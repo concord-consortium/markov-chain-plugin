@@ -1,16 +1,122 @@
-import React from "react";
-import { Text } from "./text";
-import { useSampleText } from "../hooks/use-sample-text";
-import Icon from "../assets/concord.png";
+import React, { useCallback, useState } from "react";
+import {clsx} from "clsx";
+
+import { useCODAP } from "../hooks/use-codap";
+import { useGraph } from "../hooks/use-graph";
+import { Graph } from "./graph";
+import { useGenerator } from "../hooks/use-generator";
 
 import "./app.scss";
 
+type Destination = "text component" | "dataset";
+
 export const App = () => {
-  const sampleText = useSampleText();
+  const [destination, setDestination] = useState<Destination>("text component");
+  const [lengthLimit, setLengthLimit] = useState<number|undefined>(5);
+  const [delimiter, setDelimiter] = useState("");
+
+  const {graph, updateGraph} = useGraph();
+  const {dragging, outputToDataset, outputTextSequence} = useCODAP({onCODAPDataChanged: updateGraph});
+  const {generate} = useGenerator();
+
+  const graphEmpty = useCallback(() => graph.nodes.length === 0, [graph]);
+
+  const instructions = () => {
+    if (graphEmpty()) {
+      return (
+        <div>
+          <p>
+            This plugin generates sequences of text using a Markov chain. The plugin uses a Markov chain built from a
+            dataset in CODAP. The dataset must have a column of states. The plugin will build a Markov chain from the
+            states, and then allow generation of a sequence of text using the Markov chain.
+          </p>
+          <p>
+            To use the plugin, first drag an attribute into the plugin.
+          </p>
+        </div>
+      );
+    }
+  };
+
+  const handleChangeDestination = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDestination(e.target.value as Destination);
+  };
+
+  const handleChangeLengthLimit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const numberValue = parseInt(e.target.value, 10);
+    setLengthLimit(isNaN(numberValue) ? undefined : numberValue);
+  };
+
+  const handleChangeDelimiter = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDelimiter(e.target.value);
+  };
+
+  const handleGenerate = async () => {
+    if (lengthLimit !== undefined) {
+      const generatedResult = await generate(graph, {lengthLimit});
+
+      switch (destination) {
+        case "text component":
+          await outputTextSequence(generatedResult.join(delimiter));
+          break;
+        case "dataset":
+          await outputToDataset(generatedResult);
+          break;
+      }
+    }
+  };
+
+  const uiForGenerate = () => {
+    if (!graphEmpty()) {
+      return (
+        <div className="generate">
+          <div>
+            <div>Where to put generated states</div>
+            <div>
+              <input
+                type="radio"
+                name="destinationInput"
+                value={"text component"}
+                checked={destination === "text component"}
+                onChange={handleChangeDestination} /> Text Component
+              <input
+                type="radio"
+                name="destinationInput"
+                value={"dataset"}
+                checked={destination === "dataset"}
+                onChange={handleChangeDestination} /> Dataset
+            </div>
+          </div>
+          <label> Max Length:
+            <input type="text"
+                   value={lengthLimit}
+                   onChange={handleChangeLengthLimit}
+                   maxLength={5}
+                   style={{width: "50px"}}
+            />
+          </label>
+          {destination === "text component" &&
+            <label>Delimiter:
+              <input type="text"
+                     onChange={handleChangeDelimiter}
+                     value={delimiter}
+                     maxLength={3}
+                     style={{width: "20px"}}
+              />
+            </label>}
+          <br/>
+          <button type="button" onClick={handleGenerate} disabled={lengthLimit === undefined}>Generate</button>
+        </div>
+      );
+    }
+  };
+
   return (
-    <div className="app">
-      <img src={Icon}/>
-      <Text text={sampleText} />
+    <div className={clsx("app", {dragging})}>
+      <h2>Markov Chains</h2>
+      {instructions()}
+      {uiForGenerate()}
+      <Graph graph={graph} />
     </div>
   );
 };

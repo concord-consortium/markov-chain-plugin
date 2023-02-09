@@ -1,9 +1,32 @@
-html, body {
+body {
   margin: 0;
-  padding: 0;
+  padding: 10px;
+  font-family: "Helvetica Neue","Segoe UI",helvetica,verdana,sans-serif;
+  line-height: 1.33334;
+  color: #333;
+  font-weight: 400;
+  font-size: 12px;
 }
 
-body {
-  font-family: 'Lato', sans-serif;
-  user-select: none;
+h2 {
+  font-weight: 400;
+  font-size: 24px;
+}
+
+.sq-output {
+  font-size: small;
+}
+
+.sq-options {
+  font-size: small;
+}
+
+.sq-input {
+  width: 20vw;
+}
+
+.sq-button {
+  border-radius: 6px;
+  background-color: white;
+  border-width: thin;
 }

@@ -1,13 +1,18 @@
 #app {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  height: 100vh;
+}
+
+.app {
+  &.dragging {
+    border: solid thick yellow;
+  }
+
+  height: 90%;
+  text-align: left;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #242424;
-  background-color: #dfdfdf;
+  flex-direction: column;
+  justify-content: space-between;
+  grid-gap: 0;
+  gap: 0;
 }
 
