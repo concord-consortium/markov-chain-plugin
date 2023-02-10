@@ -24,7 +24,7 @@ export const App = () => {
   const instructions = () => {
     if (graphEmpty()) {
       return (
-        <div>
+        <div className="instructions">
           <p>
             This plugin generates sequences of text using a Markov chain. The plugin uses a Markov chain built from a
             dataset in CODAP. The dataset must have a column of states. The plugin will build a Markov chain from the
@@ -104,7 +104,6 @@ export const App = () => {
                      style={{width: "20px"}}
               />
             </label>}
-          <br/>
           <button type="button" onClick={handleGenerate} disabled={lengthLimit === undefined}>Generate</button>
         </div>
       );
