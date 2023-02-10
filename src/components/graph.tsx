@@ -45,7 +45,7 @@ const options = {
 const events = {
   select: (event: any) => {
     // const {nodes, edges} = event;
-    debugger;
+    // TODO: this was ported from the old code - not sure why it is needed but keeping it here for now
   }
 };
 

@@ -10,3 +10,4 @@ top-test
 # Editors
 .idea
 
+cypress/screenshots
