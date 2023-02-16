@@ -26,12 +26,17 @@ export type CODAPAttribute = {
 
 export type OnCODAPDataChanged = (values: string[]) => void;
 
+type Sequence = {
+  value: string;
+  header?: string;
+};
+
 export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataChanged}) => {
   const [initialized, setInitialized] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
   const [sequenceNumber, setSequenceNumber] = useState(0);
-  const [generatedSequences, setGeneratedSequences] = useState<string[]>([]);
+  const [generatedSequences, setGeneratedSequences] = useState<Sequence[]>([]);
 
   const setPluginState = (values: any) => {
     // TODO: use values
@@ -204,16 +209,29 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
     }
   }, []);
 
-  const outputTextSequence = useCallback(async (sequence: string) => {
+  const outputTextSequence = useCallback(async (sequence: string, header?: string) => {
     const textComponentID = await guaranteeTextComponent();
-    const newGeneratedSequences = [...generatedSequences, sequence];
+    const newGeneratedSequences = [...generatedSequences, {value: sequence, header}];
     setGeneratedSequences(newGeneratedSequences);
 
-    const children = newGeneratedSequences.map((iSequence) => {
-      return {
+    const children: any[] = [];
+    newGeneratedSequences.forEach((iSequence, index) => {
+      if (iSequence.header) {
+        if (index > 0) {
+          children.push({
+            type: "paragraph",
+            children: [{text: ""}]
+          });
+        }
+        children.push({
+          type: "paragraph",
+          children: [{text: iSequence.header}]
+        });
+      }
+      children.push({
         type: "paragraph",
-        children: [{text: iSequence}]
-      };
+        children: [{text: iSequence.value}]
+      });
     });
     await codapInterface.sendRequest({
       action: "update",

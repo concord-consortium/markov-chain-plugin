@@ -10,11 +10,14 @@ import "./app.scss";
 
 type Destination = "text component" | "dataset";
 
+const AnyStartingState = "(any)";
+
 export const App = () => {
   const [destination, setDestination] = useState<Destination>("text component");
   const [lengthLimit, setLengthLimit] = useState<number|undefined>(5);
   const [delimiter, setDelimiter] = useState("");
   const [startingState, setStartingState] = useState("");
+  const [textSequenceHeader, setTextSequenceHeader] = useState("");
 
   const {graph, updateGraph} = useGraph();
   const {dragging, outputToDataset, outputTextSequence} = useCODAP({onCODAPDataChanged: updateGraph});
@@ -60,10 +63,18 @@ export const App = () => {
     if (lengthLimit !== undefined) {
       const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
       const generatedResult = await generate(graph, {startingNode, lengthLimit});
+      let newTextSequenceHeader: string|undefined;
 
       switch (destination) {
         case "text component":
-          await outputTextSequence(generatedResult.join(delimiter));
+          // eslint-disable-next-line max-len
+          newTextSequenceHeader = `---- starting state: ${startingState.length > 0 ? startingState : AnyStartingState}, max length: ${lengthLimit} ----`;
+          if (newTextSequenceHeader === textSequenceHeader) {
+            newTextSequenceHeader = undefined;
+          } else {
+            setTextSequenceHeader(newTextSequenceHeader);
+          }
+          await outputTextSequence(generatedResult.join(delimiter), newTextSequenceHeader);
           break;
         case "dataset":
           await outputToDataset(generatedResult);
@@ -96,15 +107,16 @@ export const App = () => {
           <div className="flex-row">
           <label> Starting State:
             <select onChange={handleChangeStartingState} value={startingState}>
-              <option value="">(any)</option>
+              <option value="">{AnyStartingState}</option>
               {graph.nodes.map(n => <option key={n.id} value={n.id}>{n.id}</option>)}
             </select>
           </label>
           <label> Max Length:
-            <input type="text"
+            <input type="number"
                    value={lengthLimit}
                    onChange={handleChangeLengthLimit}
-                   maxLength={5}
+                   min={1}
+                   max={99999}
                    style={{width: "50px"}}
             />
           </label>
