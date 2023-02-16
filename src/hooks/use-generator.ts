@@ -8,7 +8,7 @@ export type GenerateOptions = {
 export const useGenerator = () => {
   const generate = async (graph: GraphData, options: GenerateOptions) => {
     const {startingNode, lengthLimit} = options;
-    const generatedResult: string[] = [];
+    const generatedResult: Node[] = [];
 
     const chooseRandomNode = () => {
       const
@@ -35,7 +35,7 @@ export const useGenerator = () => {
     if (graph) {
       let currentNode = startingNode || chooseRandomNode();
       while (currentNode && generatedResult.length < lengthLimit) {
-        generatedResult.push(currentNode.label);
+        generatedResult.push(currentNode);
         // As a next node, choose one of the edges with a probability proportional to the edge value
         const currentEdge = chooseRandomEdge(currentNode);
         if (currentEdge?.to) {
