@@ -14,6 +14,7 @@ export const App = () => {
   const [destination, setDestination] = useState<Destination>("text component");
   const [lengthLimit, setLengthLimit] = useState<number|undefined>(5);
   const [delimiter, setDelimiter] = useState("");
+  const [startingState, setStartingState] = useState("");
 
   const {graph, updateGraph} = useGraph();
   const {dragging, outputToDataset, outputTextSequence} = useCODAP({onCODAPDataChanged: updateGraph});
@@ -51,9 +52,14 @@ export const App = () => {
     setDelimiter(e.target.value);
   };
 
+  const handleChangeStartingState = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStartingState(e.target.value);
+  };
+
   const handleGenerate = async () => {
     if (lengthLimit !== undefined) {
-      const generatedResult = await generate(graph, {lengthLimit});
+      const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
+      const generatedResult = await generate(graph, {startingNode, lengthLimit});
 
       switch (destination) {
         case "text component":
@@ -87,6 +93,13 @@ export const App = () => {
                 onChange={handleChangeDestination} /> Dataset
             </div>
           </div>
+          <div className="flex-row">
+          <label> Starting State:
+            <select onChange={handleChangeStartingState} value={startingState}>
+              <option value="">(any)</option>
+              {graph.nodes.map(n => <option key={n.id} value={n.id}>{n.id}</option>)}
+            </select>
+          </label>
           <label> Max Length:
             <input type="text"
                    value={lengthLimit}
@@ -104,6 +117,7 @@ export const App = () => {
                      style={{width: "20px"}}
               />
             </label>}
+          </div>
           <button type="button" onClick={handleGenerate} disabled={lengthLimit === undefined}>Generate</button>
         </div>
       );

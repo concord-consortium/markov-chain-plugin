@@ -1,12 +1,13 @@
 import { Node, Edge, GraphData } from "../type";
 
 export type GenerateOptions = {
+  startingNode?: Node;
   lengthLimit: number;
 };
 
 export const useGenerator = () => {
   const generate = async (graph: GraphData, options: GenerateOptions) => {
-    const {lengthLimit} = options;
+    const {startingNode, lengthLimit} = options;
     const generatedResult: string[] = [];
 
     const chooseRandomNode = () => {
@@ -32,7 +33,7 @@ export const useGenerator = () => {
     };
 
     if (graph) {
-      let currentNode = chooseRandomNode();
+      let currentNode = startingNode || chooseRandomNode();
       while (currentNode && generatedResult.length < lengthLimit) {
         generatedResult.push(currentNode.label);
         // As a next node, choose one of the edges with a probability proportional to the edge value

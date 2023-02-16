@@ -31,8 +31,6 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
   const [dragging, setDragging] = useState(false);
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
   const [sequenceNumber, setSequenceNumber] = useState(0);
-  const [textComponentID, setTextComponentID] = useState(0);
-  // const [outputDatasetID, setOutputDatasetID] = useState(0);
   const [generatedSequences, setGeneratedSequences] = useState<string[]>([]);
 
   const setPluginState = (values: any) => {
@@ -89,6 +87,7 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
 
   const guaranteeTextComponent = useCallback(async () => {
     let tFoundValue: any = null;
+
     // Verify text component exists
     const tListResult: any = await codapInterface.sendRequest({
       "action": "get",
@@ -119,9 +118,9 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
         console.log("unable to create text component");
         return;
       }
-      setTextComponentID(tCreateResult.values.id);
+      return tCreateResult.values.id;
     } else {
-      setTextComponentID(tFoundValue.id);
+      return tFoundValue.id;
     }
   }, []);
 
@@ -206,7 +205,7 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
   }, []);
 
   const outputTextSequence = useCallback(async (sequence: string) => {
-    await guaranteeTextComponent();
+    const textComponentID = await guaranteeTextComponent();
     const newGeneratedSequences = [...generatedSequences, sequence];
     setGeneratedSequences(newGeneratedSequences);
 
@@ -233,7 +232,7 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
     });
 
     incrementSequenceNumber();
-  }, [generatedSequences, textComponentID, incrementSequenceNumber, guaranteeTextComponent]);
+  }, [generatedSequences, incrementSequenceNumber, guaranteeTextComponent]);
 
   const outputToDataset = useCallback(async (sequence: string[]) => {
     await guaranteeOutputDatasetAndCaseTable();
