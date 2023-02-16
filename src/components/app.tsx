@@ -5,6 +5,7 @@ import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
 import { Graph } from "./graph";
 import { useGenerator } from "../hooks/use-generator";
+import { Node } from "../type";
 
 import "./app.scss";
 
@@ -18,6 +19,8 @@ export const App = () => {
   const [delimiter, setDelimiter] = useState("");
   const [startingState, setStartingState] = useState("");
   const [textSequenceHeader, setTextSequenceHeader] = useState("");
+  const [animateNode, setAnimateNode] = useState<Node|undefined>(undefined);
+  const [generating, setGenerating] = useState(false);
 
   const {graph, updateGraph} = useGraph();
   const {dragging, outputToDataset, outputTextSequence} = useCODAP({onCODAPDataChanged: updateGraph});
@@ -61,9 +64,17 @@ export const App = () => {
 
   const handleGenerate = async () => {
     if (lengthLimit !== undefined) {
-      const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
-      const generatedResult = await generate(graph, {startingNode, lengthLimit});
       let newTextSequenceHeader: string|undefined;
+      const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
+
+      setGenerating(true);
+
+      const generatedResult = await generate(graph, {startingNode, lengthLimit});
+      const sequence = generatedResult.map(n => n.label);
+
+      await animateNodes(generatedResult);
+
+      setGenerating(false);
 
       switch (destination) {
         case "text component":
@@ -74,13 +85,30 @@ export const App = () => {
           } else {
             setTextSequenceHeader(newTextSequenceHeader);
           }
-          await outputTextSequence(generatedResult.join(delimiter), newTextSequenceHeader);
+          await outputTextSequence(sequence.join(delimiter), newTextSequenceHeader);
           break;
         case "dataset":
-          await outputToDataset(generatedResult);
+          await outputToDataset(sequence);
           break;
       }
     }
+  };
+
+  const animateNodes = (nodes: Node[]) => {
+    return new Promise<void>((resolve) => {
+      const newNodes = [...nodes];
+      let node = newNodes.shift();
+      setAnimateNode(node);
+
+      const interval = setInterval(() => {
+        node = newNodes.shift();
+        setAnimateNode(node);
+        if (!node) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 250);
+    });
   };
 
   const uiForGenerate = () => {
@@ -130,7 +158,12 @@ export const App = () => {
               />
             </label>}
           </div>
-          <button type="button" onClick={handleGenerate} disabled={lengthLimit === undefined}>Generate</button>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={lengthLimit === undefined || generating}>
+              Generate
+          </button>
         </div>
       );
     }
@@ -141,7 +174,7 @@ export const App = () => {
       <h2>Markov Chains</h2>
       {instructions()}
       {uiForGenerate()}
-      <Graph graph={graph} />
+      <Graph graph={graph} animateNode={animateNode} />
     </div>
   );
 };

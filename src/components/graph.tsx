@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
-import { GraphData } from "../type";
+import { useResizeObserver } from "../hooks/use-resize-observer";
+import { GraphData, Node } from "../type";
 
 import "./graph.scss";
-import { useResizeObserver } from "../hooks/use-resize-observer";
 
 type Props = {
-  graph: GraphData
+  graph: GraphData,
+  animateNode?: Node
 };
 
 type D3Node = {
@@ -86,7 +87,7 @@ const findLineBetweenCircles = ({x1, y1, r1, x2, y2, r2}: FindLineBetweenCircles
   return [{x: minCombo[0].x, y: minCombo[0].y}, {x: minCombo[1].x, y: minCombo[1].y}];
 };
 
-export const Graph = ({graph}: Props) => {
+export const Graph = ({graph, animateNode}: Props) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -174,13 +175,13 @@ export const Graph = ({graph}: Props) => {
       .style("fill", "black");
 
     // draw nodes
-    const groups = svg
-      .selectAll("group")
+    const nodes = svg
+      .selectAll("g")
       .data(d3Graph.nodes)
       .enter()
       .append("g");
 
-    groups
+    nodes
       .append("circle")
       .attr("fill", "#fff")
       .attr("stroke", "#999")
@@ -189,7 +190,7 @@ export const Graph = ({graph}: Props) => {
       .attr("cx", d => d.x)
       .attr("cy", d => d.y);
 
-    groups
+    nodes
       .append("text")
       .text(d => d.label)
       .attr("fill", "#000")
@@ -234,6 +235,26 @@ export const Graph = ({graph}: Props) => {
       .attr("marker-end", "url(#arrow)");
 
   }, [svgRef, d3Graph, width, height]);
+
+  // animate the node if needed
+  useEffect(() => {
+    if (!svgRef.current) {
+      return;
+    }
+
+    const svg = d3.select(svgRef.current);
+    svg
+      .selectAll("g")
+      .selectAll("circle")
+      .filter((d: any) => animateNode?.label === d.label)
+      .transition()
+      .ease(d3.easeLinear)
+      .attr("fill", "#FFFF00")
+      .transition()
+      .ease(d3.easeLinear)
+      .attr("fill", "#fff");
+
+  }, [svgRef, d3Graph.nodes, animateNode]);
 
   return (
     <div className="graph" ref={wrapperRef}>
