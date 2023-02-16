@@ -174,33 +174,6 @@ export const Graph = ({graph, animateNode}: Props) => {
       .attr("d", "M 0 0 12 6 0 12 3 6")
       .style("fill", "black");
 
-    // draw nodes
-    const nodes = svg
-      .selectAll("g")
-      .data(d3Graph.nodes)
-      .enter()
-      .append("g");
-
-    nodes
-      .append("circle")
-      .attr("fill", "#fff")
-      .attr("stroke", "#999")
-      .attr("stroke-width", d => d.loops ? 4 : 2)
-      .attr("r", d => d.radius)
-      .attr("cx", d => d.x)
-      .attr("cy", d => d.y);
-
-    nodes
-      .append("text")
-      .text(d => d.label)
-      .attr("fill", "#000")
-      .attr("text-anchor", "middle")
-      .attr("alignment-baseline", "middle")
-      .attr("font-size", d =>d.radius/((d.radius*10)/150))
-      .attr("x", d => d.x)
-      .attr("y", d => d.y)
-      ;
-
     // calculate the edge positions
     d3Graph.edges = d3Graph.edges.map(edge => {
       const [sourceEdge, targetEdge] =
@@ -234,6 +207,31 @@ export const Graph = ({graph, animateNode}: Props) => {
       .attr("y2", d => d.targetY)
       .attr("marker-end", "url(#arrow)");
 
+    // draw nodes
+    const nodes = svg
+      .selectAll("g")
+      .data(d3Graph.nodes)
+      .enter()
+      .append("g");
+
+    nodes
+      .append("circle")
+      .attr("fill", "#fff")
+      .attr("stroke", "#999")
+      .attr("stroke-width", d => d.loops ? 4 : 2)
+      .attr("r", d => d.radius)
+      .attr("cx", d => d.x)
+      .attr("cy", d => d.y);
+
+    nodes
+      .append("text")
+      .text(d => d.label)
+      .attr("fill", "#000")
+      .attr("text-anchor", "middle")
+      .attr("alignment-baseline", "middle")
+      .attr("font-size", d =>d.radius/((d.radius*10)/150))
+      .attr("x", d => d.x)
+      .attr("y", d => d.y);
   }, [svgRef, d3Graph, width, height]);
 
   // animate the node if needed
