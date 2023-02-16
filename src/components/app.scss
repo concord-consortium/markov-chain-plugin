@@ -4,10 +4,33 @@
 
 .app {
   &.dragging {
-    border: solid thick yellow;
+    background: yellow;
   }
 
-  height: 90%;
+  h2 {
+    margin: 0;
+    padding: 10px 10px 0 10px;
+  }
+
+  .instructions, .generate {
+    padding: 10px;
+
+    p:first-of-type {
+      margin-top: 0;
+    }
+  }
+
+  .generate {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+
+    button {
+      width: fit-content;
+    }
+  }
+
+  height: 100%;
   text-align: left;
   display: flex;
   flex-direction: column;

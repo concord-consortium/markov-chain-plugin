@@ -40,7 +40,7 @@ export const useGenerator = () => {
         if (currentEdge?.to) {
           currentNode = graph.nodes.find((iNode: Node) => iNode?.id === currentEdge.to);
         } else {
-          currentNode = null;
+          currentNode = undefined;
         }
       }
     }

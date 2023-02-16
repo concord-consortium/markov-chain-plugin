@@ -7,40 +7,40 @@ export const useGraph = () => {
   const updateGraph = useCallback((values: string[]) => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    if (values.length > 0) {
-      let prevState: Node = null,
-        maxEdgeValue = 0;
 
-      values.forEach((iState) => {
-        if (iState !== "") {
-          let theState = nodes.find(element => element?.label === iState);
-          if (!theState) {
-            const fixedValue = false; // nodes.length === 1
-            theState = {id: iState, label: iState, value: 0, fixed: fixedValue};
-            nodes.push(theState);
+    if (values.length > 0) {
+      let prevNode: Node|null = null;
+
+      values.forEach((value) => {
+        if (value !== "") {
+          let node = nodes.find(element => element?.label === value);
+          if (!node) {
+            node = {id: value, label: value, value: 0};
+            nodes.push(node);
           }
-          theState.value++;
-          theState.title = `(${theState.value})`;
-          if (prevState) {
-            let theEdge = edges.find(element => element.from === prevState?.id &&
-              element.to === theState?.id);
-            if (!theEdge) {
-              theEdge = {
-                from: prevState.id, to: theState.id, value: 0,
-                label: iState.length === 2 && (iState.includes("R") || iState.includes("P") || iState.includes("S")) ?
-                  iState.charAt(1) : undefined
+          node.value++;
+          if (prevNode) {
+            let edge = edges.find(element => element.from === prevNode?.id &&
+              element.to === node?.id);
+            if (!edge) {
+              edge = {
+                from: prevNode.id,
+                to: node.id,
+                label: value.length === 2 && (value.includes("R") || value.includes("P") || value.includes("S")) ?
+                  value.charAt(1) : undefined,
+                value: 0
               };
-              edges.push(theEdge);
+              edges.push(edge);
             }
-            theEdge.value++;
-            maxEdgeValue = Math.max(maxEdgeValue, theEdge.value);
+            edge.value++;
           }
-          prevState = theState;
+          prevNode = node;
         } else {
-          prevState = null;
+          prevNode = null;
         }
       });
     }
+
     setGraph({nodes, edges});
   }, []);
 
