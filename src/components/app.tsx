@@ -12,6 +12,7 @@ import "./app.scss";
 type Destination = "text component" | "dataset";
 
 const AnyStartingState = "(any)";
+const MaxLengthLimit = 25;
 
 export const App = () => {
   const [destination, setDestination] = useState<Destination>("text component");
@@ -51,7 +52,7 @@ export const App = () => {
 
   const handleChangeLengthLimit = (e: React.ChangeEvent<HTMLInputElement>) => {
     const numberValue = parseInt(e.target.value, 10);
-    setLengthLimit(isNaN(numberValue) ? undefined : numberValue);
+    setLengthLimit(isNaN(numberValue) ? undefined : Math.min(MaxLengthLimit, numberValue));
   };
 
   const handleChangeDelimiter = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,6 +61,15 @@ export const App = () => {
 
   const handleChangeStartingState = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setStartingState(e.target.value);
+  };
+
+  const generateSequenceHeader = () => {
+    const parts = [
+      `starting state: ${startingState.length > 0 ? startingState : AnyStartingState}`,
+      `delimiter: ${delimiter === "" ? "(none)" : `"${delimiter}"`}`,
+      `max length: ${lengthLimit}`
+    ];
+    return `---- ${parts.join(", ")} ----`;
   };
 
   const handleGenerate = async () => {
@@ -78,8 +88,7 @@ export const App = () => {
 
       switch (destination) {
         case "text component":
-          // eslint-disable-next-line max-len
-          newTextSequenceHeader = `---- starting state: ${startingState.length > 0 ? startingState : AnyStartingState}, max length: ${lengthLimit} ----`;
+          newTextSequenceHeader = generateSequenceHeader();
           if (newTextSequenceHeader === textSequenceHeader) {
             newTextSequenceHeader = undefined;
           } else {
@@ -144,7 +153,7 @@ export const App = () => {
                    value={lengthLimit}
                    onChange={handleChangeLengthLimit}
                    min={1}
-                   max={99999}
+                   max={MaxLengthLimit}
                    style={{width: "50px"}}
             />
           </label>
