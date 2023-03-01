@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getValuesForAttribute,
   // entityInfo,
@@ -26,8 +26,10 @@ export type CODAPAttribute = {
 
 export type OnCODAPDataChanged = (values: string[]) => void;
 
+export type OutputTextMode = "replace"|"append";
+
 type Sequence = {
-  value: string;
+  value?: string;
   header?: string;
 };
 
@@ -36,7 +38,7 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
   const [dragging, setDragging] = useState(false);
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
   const [sequenceNumber, setSequenceNumber] = useState(0);
-  const [generatedSequences, setGeneratedSequences] = useState<Sequence[]>([]);
+  const generatedSequencesRef = useRef<Sequence[]>([]);
 
   const setPluginState = (values: any) => {
     // TODO: use values
@@ -209,14 +211,12 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
     }
   }, []);
 
-  const outputTextSequence = useCallback(async (sequence: string, header?: string) => {
+  const outputToTextComponent = useCallback(async (sequences: Sequence[]) => {
     const textComponentID = await guaranteeTextComponent();
-    const newGeneratedSequences = [...generatedSequences, {value: sequence, header}];
-    setGeneratedSequences(newGeneratedSequences);
 
     const children: any[] = [];
-    newGeneratedSequences.forEach((iSequence, index) => {
-      if (iSequence.header) {
+    sequences.forEach((iSequence, index) => {
+      if (iSequence.header !== undefined) {
         if (index > 0) {
           children.push({
             type: "paragraph",
@@ -228,10 +228,12 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
           children: [{text: iSequence.header}]
         });
       }
-      children.push({
-        type: "paragraph",
-        children: [{text: iSequence.value}]
-      });
+      if (iSequence.value !== undefined) {
+        children.push({
+          type: "paragraph",
+          children: [{text: iSequence.value}]
+        });
+      }
     });
     await codapInterface.sendRequest({
       action: "update",
@@ -248,9 +250,33 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
         }
       }
     });
+  }, [guaranteeTextComponent]);
 
-    incrementSequenceNumber();
-  }, [generatedSequences, incrementSequenceNumber, guaranteeTextComponent]);
+  const outputTextSequence = useCallback(async (mode: OutputTextMode, sequence: string, header?: string) => {
+    let newGeneratedSequences: Sequence[];
+    let lastSequence: Sequence|undefined;
+
+    if (mode === "append") {
+      newGeneratedSequences = [...generatedSequencesRef.current, {value: sequence, header}];
+    } else {
+      lastSequence = generatedSequencesRef.current[generatedSequencesRef.current.length - 1];
+      if (lastSequence) {
+        lastSequence.value = sequence;
+        if (header) {
+          lastSequence.header = header;
+        }
+        newGeneratedSequences = [...generatedSequencesRef.current];
+      } else {
+        newGeneratedSequences = [{value: sequence, header}];
+      }
+    }
+    generatedSequencesRef.current = newGeneratedSequences;
+    await outputToTextComponent(newGeneratedSequences);
+  }, [outputToTextComponent]);
+
+  const outputTextHeader = useCallback(async (header: string) => {
+    await outputToTextComponent([...generatedSequencesRef.current, {value: header}]);
+  }, [outputToTextComponent]);
 
   const outputToDataset = useCallback(async (sequence: string[]) => {
     await guaranteeOutputDatasetAndCaseTable();
@@ -260,14 +286,12 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
         State: iState
       };
     });
-    console.log(requests);
     await codapInterface.sendRequest({
       action: "create",
       resource: `dataContext[${OutputDatasetName}].item`,
       values: requests
     }).catch((reason) => {
       console.log("unable to create items because " + reason);
-
     });
 
     incrementSequenceNumber();
@@ -299,6 +323,7 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
   return {
     dragging,
     outputToDataset,
-    outputTextSequence
+    outputTextSequence,
+    outputTextHeader
   };
 };

@@ -72,7 +72,7 @@ export const App = () => {
     return `---- ${parts.join(", ")} ----`;
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (lengthLimit !== undefined) {
       let newTextSequenceHeader: string|undefined;
       const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
@@ -82,37 +82,55 @@ export const App = () => {
       const generatedResult = await generate(graph, {startingNode, lengthLimit});
       const sequence = generatedResult.map(n => n.label);
 
-      await animateNodes(generatedResult);
+      if (destination === "text component") {
+        newTextSequenceHeader = generateSequenceHeader();
+        if (newTextSequenceHeader === textSequenceHeader) {
+          newTextSequenceHeader = undefined;
+        }
+      }
+
+      await outputTextSequence("append", "", newTextSequenceHeader);
+
+      await animateNodes(generatedResult, async (animatedNodes) => {
+        await outputTextSequence(
+          "replace",
+          animatedNodes.map(node => node.label).join(delimiter),
+          newTextSequenceHeader
+        );
+      });
 
       setGenerating(false);
 
       switch (destination) {
         case "text component":
-          newTextSequenceHeader = generateSequenceHeader();
-          if (newTextSequenceHeader === textSequenceHeader) {
-            newTextSequenceHeader = undefined;
-          } else {
+          if (newTextSequenceHeader) {
             setTextSequenceHeader(newTextSequenceHeader);
           }
-          await outputTextSequence(sequence.join(delimiter), newTextSequenceHeader);
+          await outputTextSequence("replace", sequence.join(delimiter), newTextSequenceHeader);
           break;
         case "dataset":
           await outputToDataset(sequence);
           break;
       }
     }
-  };
+  }, [delimiter, destination, generate, generateSequenceHeader, graph, lengthLimit, outputTextSequence, outputToDataset, startingState, textSequenceHeader]);
 
-  const animateNodes = (nodes: Node[]) => {
-    return new Promise<void>((resolve) => {
+  const animateNodes = (nodes: Node[], callback: (animatedNodes: Node[]) => void) => {
+    // eslint-disable-next-line no-async-promise-executor
+    return new Promise<void>(async (resolve) => {
       const newNodes = [...nodes];
       let node = newNodes.shift();
+      const animatedNodes: Node[] = node ? [node] : [];
       setAnimateNode(node);
+      await callback(animatedNodes);
 
-      const interval = setInterval(() => {
+      const interval = setInterval(async () => {
         node = newNodes.shift();
         setAnimateNode(node);
-        if (!node) {
+        if (node) {
+          animatedNodes.push(node);
+          await callback(animatedNodes);
+        } else {
           clearInterval(interval);
           resolve();
         }
@@ -187,3 +205,4 @@ export const App = () => {
     </div>
   );
 };
+
