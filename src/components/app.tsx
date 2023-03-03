@@ -65,8 +65,8 @@ export const App = () => {
     // TODO
   };
 
-  const handleClear = () => {
-    // TODO
+  const handleClearOutput = () => {
+    setSequenceGroups([]);
   };
 
   const handleGenerate = useCallback(async () => {
@@ -215,8 +215,8 @@ export const App = () => {
         <div className="buttons">
           <button
             type="button"
-            onClick={handleClear}
-            disabled={lengthLimit === undefined}>
+            onClick={handleClearOutput}
+            disabled={lengthLimit === undefined || generationMode !== "ready"}>
               Clear Output
           </button>
         </div>
