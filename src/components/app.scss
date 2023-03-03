@@ -35,8 +35,13 @@
       }
     }
 
-    button {
-      width: fit-content;
+    .buttons {
+      display: flex;
+      gap: 5px;
+
+      button {
+        width: fit-content;
+      }
     }
   }
 

@@ -234,6 +234,8 @@ export const Graph = ({graph, animateNode}: Props) => {
       .attr("y", d => d.y);
   }, [svgRef, d3Graph, width, height]);
 
+  // draggable: https://codesandbox.io/s/d3js-draggable-force-directed-graph-py3rf?file=/app.js
+
   // animate the node if needed
   useEffect(() => {
     if (!svgRef.current) {

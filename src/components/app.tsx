@@ -10,6 +10,7 @@ import { Node } from "../type";
 import "./app.scss";
 
 type Destination = "text component" | "dataset";
+type GenerationMode = "ready" | "playing" | "paused" | "steping"
 
 const AnyStartingState = "(any)";
 const MaxLengthLimit = 25;
@@ -21,7 +22,7 @@ export const App = () => {
   const [startingState, setStartingState] = useState("");
   const [textSequenceHeader, setTextSequenceHeader] = useState("");
   const [animateNode, setAnimateNode] = useState<Node|undefined>(undefined);
-  const [generating, setGenerating] = useState(false);
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("ready");
 
   const {graph, updateGraph} = useGraph();
   const {dragging, outputToDataset, outputTextSequence} = useCODAP({onCODAPDataChanged: updateGraph});
@@ -72,12 +73,20 @@ export const App = () => {
     return `---- ${parts.join(", ")} ----`;
   };
 
+  const handlePause = () => {
+    // TODO
+  };
+
+  const handleStep = () => {
+    // TODO
+  };
+
   const handleGenerate = useCallback(async () => {
     if (lengthLimit !== undefined) {
       let newTextSequenceHeader: string|undefined;
       const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
 
-      setGenerating(true);
+      setGenerationMode("playing");
 
       const generatedResult = await generate(graph, {startingNode, lengthLimit});
       const sequence = generatedResult.map(n => n.label);
@@ -97,9 +106,10 @@ export const App = () => {
           animatedNodes.map(node => node.label).join(delimiter),
           newTextSequenceHeader
         );
+
       });
 
-      setGenerating(false);
+      setGenerationMode("ready");
 
       switch (destination) {
         case "text component":
@@ -185,12 +195,20 @@ export const App = () => {
               />
             </label>}
           </div>
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={lengthLimit === undefined || generating}>
-              Generate
-          </button>
+          <div className="buttons">
+            <button
+              type="button"
+              onClick={generationMode === "playing" ? handlePause : handleGenerate}
+              disabled={lengthLimit === undefined || generationMode === "steping"}>
+                {generationMode === "playing" ? "Pause": "Play"}
+            </button>
+            <button
+              type="button"
+              onClick={handleStep}
+              disabled={lengthLimit === undefined || generationMode === "playing"}>
+                Step
+            </button>
+          </div>
         </div>
       );
     }
