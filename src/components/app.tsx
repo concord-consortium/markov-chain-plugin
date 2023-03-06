@@ -30,6 +30,7 @@ export const App = () => {
   const [generationMode, setGenerationMode] = useState<GenerationMode>("ready");
   const prevAnimatedSequenceGroups = useRef<SequenceGroup[]>([]);
   const currentAnimatedSequenceGroup = useRef<SequenceGroup>();
+  const prevSequences = useRef<string[]>([]);
 
   const {graph, updateGraph} = useGraph();
   const {dragging, outputToDataset} = useCODAP({onCODAPDataChanged: updateGraph});
@@ -44,40 +45,10 @@ export const App = () => {
 
   const graphEmpty = useCallback(() => graph.nodes.length === 0, [graph]);
 
-  const handleChangeLengthLimit = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const numberValue = parseInt(e.target.value, 10);
-    setLengthLimit(isNaN(numberValue) ? undefined : Math.min(MaxLengthLimit, numberValue));
-  };
-
-  const handleChangeDelimiter = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDelimiter(e.target.value);
-  };
-
-  const handleChangeStartingState = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setStartingState(e.target.value);
-  };
-
-  const handlePause = () => {
-    // TODO
-  };
-
-  const handleStep = () => {
-    // TODO
-  };
-
-  const handleClearOutput = () => {
-    setSequenceGroups([]);
-  };
-
-  const handleGenerate = useCallback(async () => {
+  const generateNewSequence = useCallback(async () => {
     if (lengthLimit !== undefined) {
       //let newTextSequenceHeader: string|undefined;
       const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
-
-      setGenerationMode("playing");
-
-      const generatedResult = await generate(graph, {startingNode, lengthLimit});
-      const sequence = generatedResult.map(n => n.label);
 
       prevAnimatedSequenceGroups.current = [...sequenceGroups];
       currentAnimatedSequenceGroup.current =
@@ -92,25 +63,12 @@ export const App = () => {
         prevAnimatedSequenceGroups.current.pop();
       }
 
-      const prevSequences = [...currentAnimatedSequenceGroup.current.sequences];
+      prevSequences.current = [...currentAnimatedSequenceGroup.current.sequences];
       currentAnimatedSequenceGroup.current.sequences.push("");
 
-      await animateNodes(generatedResult, async (animatedNodes) => {
-        if (currentAnimatedSequenceGroup.current) {
-          const animatedSequence = animatedNodes.map(node => node.label).join(delimiter);
-          currentAnimatedSequenceGroup.current.sequences = [...prevSequences, animatedSequence];
-          setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
-        }
-      });
-
-      setGenerationMode("ready");
-
-      currentAnimatedSequenceGroup.current.sequences = [...prevSequences, sequence.join(delimiter)];
-      setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
-
-      await outputToDataset(sequence);
+      return generate(graph, {startingNode, lengthLimit});
     }
-  }, [generate, graph, lengthLimit, outputToDataset, startingState, sequenceGroups, delimiter]);
+  }, [generate, graph, lengthLimit, startingState, sequenceGroups, delimiter]);
 
   const animateNodes = (nodes: Node[], callback: (animatedNodes: Node[]) => void) => {
     // eslint-disable-next-line no-async-promise-executor
@@ -134,6 +92,61 @@ export const App = () => {
       }, 250);
     });
   };
+
+  const handleChangeLengthLimit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const numberValue = parseInt(e.target.value, 10);
+    setLengthLimit(isNaN(numberValue) ? undefined : Math.min(MaxLengthLimit, numberValue));
+  };
+
+  const handleChangeDelimiter = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDelimiter(e.target.value);
+  };
+
+  const handleChangeStartingState = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStartingState(e.target.value);
+  };
+
+  const handleClearOutput = () => {
+    setSequenceGroups([]);
+  };
+
+  const handlePause = () => {
+    setGenerationMode("paused");
+  };
+
+  const handleStep = useCallback(() => {
+    if (generationMode !== "steping") {
+      setGenerationMode("steping");
+    }
+  }, [generationMode]);
+
+  const handleGenerate = useCallback(async () => {
+    setGenerationMode("playing");
+
+    const generatedResult = await generateNewSequence();
+    if (generatedResult) {
+
+      const sequence = generatedResult.map(n => n.label);
+
+      await animateNodes(generatedResult, async (animatedNodes) => {
+        if (currentAnimatedSequenceGroup.current) {
+          const animatedSequence = animatedNodes.map(node => node.label).join(delimiter);
+          currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, animatedSequence];
+          setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
+        }
+      });
+
+      await outputToDataset(sequence);
+
+      if (currentAnimatedSequenceGroup.current) {
+        currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, sequence.join(delimiter)];
+        setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
+      }
+    }
+
+    setGenerationMode("ready");
+
+  }, [outputToDataset, delimiter, generateNewSequence]);
 
   const uiForGenerate = () => {
     if (!graphEmpty()) {
