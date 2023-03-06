@@ -20,6 +20,7 @@ type D3Node = {
   y: number,
   radius: number,
   loops: boolean
+  weight: number;
 };
 
 type D3Edge = {
@@ -29,6 +30,7 @@ type D3Edge = {
   sourceY: number,
   targetX: number,
   targetY: number,
+  weight: number;
 };
 
 type D3Graph = {
@@ -119,8 +121,9 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
         x: 0,
         y: 0,
         label: node.label,
-        radius: 15 + (5 * (node.label.length - 1)),
-        loops: false
+        radius: 15 + (5 * (node.label.length - 1)) + (5 * node.value),
+        loops: false,
+        weight: node.value
       };
       newD3Graph.nodes.push(d3Node);
       d3NodeMap[node.id] = d3Node;
@@ -130,10 +133,11 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
         d3NodeMap[edge.from].loops = true;
       } else {
         newD3Graph.edges.push({
+          weight: edge.value,
           source: d3NodeMap[edge.from],
           target: d3NodeMap[edge.to],
           sourceX: 0, sourceY: 0, targetX: 0, targetY: 0 // calculated after force layout
-          });
+        });
       }
     });
     setD3Graph(newD3Graph);
@@ -154,7 +158,7 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
     // Create a new force simulation and assign forces
     const simulation = d3
       .forceSimulation(d3Graph.nodes)
-      .force("link", d3.forceLink(d3Graph.edges).distance(e => e.source.radius + e.target.radius + 10))
+      .force("link", d3.forceLink(d3Graph.edges).distance(e => e.source.radius + e.target.radius + 20))
       .force("charge", d3.forceManyBody().strength(-350))
       .force("x", d3.forceX())
       .force("y", d3.forceY())
@@ -219,7 +223,7 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       .append("line")
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.6)
-      .attr("stroke-width", d => 2)
+      .attr("stroke-width", d => 2 * d.weight)
       .attr("x1", d => d.sourceX)
       .attr("x2", d => d.targetX)
       .attr("y1", d => d.sourceY)
@@ -250,7 +254,7 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       .attr("fill", "#000")
       .attr("text-anchor", "middle")
       .attr("alignment-baseline", "middle")
-      .attr("font-size", d =>d.radius/((d.radius*10)/150))
+      .attr("font-size", d => (d.radius/((d.radius*10)/150)) + (d.weight * 3))
       .attr("x", d => d.x)
       .attr("y", d => d.y);
   }, [svgRef, d3Graph, width, height]);
