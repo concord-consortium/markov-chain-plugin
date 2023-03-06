@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Node } from "../type";
 import {
   getValuesForAttribute,
   // entityInfo,
@@ -165,12 +166,12 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
     }
   }, []);
 
-  const outputToDataset = useCallback(async (sequence: string[]) => {
+  const outputToDataset = useCallback(async (sequence: Node[]) => {
     await guaranteeOutputDatasetAndCaseTable();
     const requests = sequence.map((iState, iIndex) => {
       return {
         "Sequence number": sequenceNumber,
-        State: iState
+        State: iState.label
       };
     });
     await codapInterface.sendRequest({

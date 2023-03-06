@@ -13,12 +13,13 @@ type GenerationMode = "ready" | "playing" | "paused" | "steping";
 
 const AnyStartingState = "(any)";
 const MaxLengthLimit = 25;
+const AnimationDelay = 500;
 
 type SequenceGroup = {
   startingState: string;
   delimiter: string;
   lengthLimit: number;
-  sequences: string[];
+  sequences: Node[][];
 };
 
 export const App = () => {
@@ -30,7 +31,10 @@ export const App = () => {
   const [generationMode, setGenerationMode] = useState<GenerationMode>("ready");
   const prevAnimatedSequenceGroups = useRef<SequenceGroup[]>([]);
   const currentAnimatedSequenceGroup = useRef<SequenceGroup>();
-  const prevSequences = useRef<string[]>([]);
+  const prevSequences = useRef<Node[][]>([]);
+  const currentSequence = useRef<Node[]>([]);
+  const currentSequenceIndex = useRef(0);
+  const animationInterval = useRef<number>();
 
   const {graph, updateGraph} = useGraph();
   const {dragging, outputToDataset} = useCODAP({onCODAPDataChanged: updateGraph});
@@ -46,8 +50,10 @@ export const App = () => {
   const graphEmpty = useCallback(() => graph.nodes.length === 0, [graph]);
 
   const generateNewSequence = useCallback(async () => {
+    currentSequence.current = [];
+    currentSequenceIndex.current = 0;
+
     if (lengthLimit !== undefined) {
-      //let newTextSequenceHeader: string|undefined;
       const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
 
       prevAnimatedSequenceGroups.current = [...sequenceGroups];
@@ -64,33 +70,55 @@ export const App = () => {
       }
 
       prevSequences.current = [...currentAnimatedSequenceGroup.current.sequences];
-      currentAnimatedSequenceGroup.current.sequences.push("");
+      // currentAnimatedSequenceGroup.current.sequences.push("");
 
-      return generate(graph, {startingNode, lengthLimit});
+      currentSequence.current = await generate(graph, {startingNode, lengthLimit});
     }
   }, [generate, graph, lengthLimit, startingState, sequenceGroups, delimiter]);
 
-  const animateNodes = (nodes: Node[], callback: (animatedNodes: Node[]) => void) => {
-    // eslint-disable-next-line no-async-promise-executor
-    return new Promise<void>(async (resolve) => {
-      const newNodes = [...nodes];
-      let node = newNodes.shift();
-      const animatedNodes: Node[] = node ? [node] : [];
-      setAnimateNode(node);
-      await callback(animatedNodes);
+  const currentSequenceAnimating = () => currentSequenceIndex.current < currentSequence.current.length - 1;
 
-      const interval = setInterval(async () => {
-        node = newNodes.shift();
-        setAnimateNode(node);
-        if (node) {
-          animatedNodes.push(node);
-          await callback(animatedNodes);
-        } else {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 250);
-    });
+  const animateCurrentSequenceIndex = useCallback(() => {
+    setAnimateNode(currentSequence.current[currentSequenceIndex.current]);
+
+    if (currentAnimatedSequenceGroup.current) {
+      const animatedSequence = currentSequence.current.slice(0, currentSequenceIndex.current + 1);
+      currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, animatedSequence];
+      setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
+    }
+  }, [setAnimateNode, setSequenceGroups]);
+
+  const animateNextSequenceIndex = useCallback(() => {
+    currentSequenceIndex.current++;
+    animateCurrentSequenceIndex();
+  }, [animateCurrentSequenceIndex]);
+
+  const finishAnimating = useCallback(async () => {
+    stopAnimationInterval();
+    setAnimateNode(undefined);
+
+    await outputToDataset(currentSequence.current);
+
+    if (currentAnimatedSequenceGroup.current) {
+      currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, currentSequence.current];
+      setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
+    }
+
+    setGenerationMode("ready");
+  }, [outputToDataset]);
+
+  const startAnimationInterval = useCallback(() => {
+    animationInterval.current = window.setInterval(() => {
+      if (currentSequenceAnimating()) {
+        animateNextSequenceIndex();
+      } else {
+        finishAnimating();
+      }
+    }, AnimationDelay);
+  }, [animateNextSequenceIndex, finishAnimating]);
+
+  const stopAnimationInterval = () => {
+    window.clearInterval(animationInterval.current);
   };
 
   const handleChangeLengthLimit = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,50 +134,50 @@ export const App = () => {
     setStartingState(e.target.value);
   };
 
-  const handleClearOutput = () => {
+  const handleClearOutput = useCallback(() => {
     setSequenceGroups([]);
-  };
+  }, []);
 
-  const handlePause = () => {
+  const handlePause = useCallback(() => {
     setGenerationMode("paused");
-  };
+    stopAnimationInterval();
+  }, []);
 
-  const handleStep = useCallback(() => {
+  const handleResume = useCallback(async () => {
+    if (currentSequenceAnimating()) {
+      setGenerationMode("playing");
+      startAnimationInterval();
+    } else {
+      await finishAnimating();
+    }
+  }, [finishAnimating, startAnimationInterval]);
+
+  const handleStep = useCallback(async () => {
     if (generationMode !== "steping") {
       setGenerationMode("steping");
+      await generateNewSequence();
+      animateCurrentSequenceIndex();
+    } else if (currentSequenceAnimating()) {
+      animateNextSequenceIndex();
+    } else {
+      await finishAnimating();
     }
-  }, [generationMode]);
+  }, [generationMode, animateCurrentSequenceIndex, animateNextSequenceIndex, finishAnimating, generateNewSequence]);
 
-  const handleGenerate = useCallback(async () => {
+  const handlePlay = useCallback(async () => {
     setGenerationMode("playing");
-
-    const generatedResult = await generateNewSequence();
-    if (generatedResult) {
-
-      const sequence = generatedResult.map(n => n.label);
-
-      await animateNodes(generatedResult, async (animatedNodes) => {
-        if (currentAnimatedSequenceGroup.current) {
-          const animatedSequence = animatedNodes.map(node => node.label).join(delimiter);
-          currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, animatedSequence];
-          setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
-        }
-      });
-
-      await outputToDataset(sequence);
-
-      if (currentAnimatedSequenceGroup.current) {
-        currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, sequence.join(delimiter)];
-        setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
-      }
-    }
-
-    setGenerationMode("ready");
-
-  }, [outputToDataset, delimiter, generateNewSequence]);
+    await generateNewSequence();
+    animateCurrentSequenceIndex();
+    startAnimationInterval();
+  }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval]);
 
   const uiForGenerate = () => {
     if (!graphEmpty()) {
+      const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
+      const onPlayClick = generationMode === "playing"
+        ? handlePause
+        : (generationMode === "paused" ? handleResume : handlePlay);
+
       return (
         <div className="generate">
           <div className="flex-col">
@@ -186,9 +214,9 @@ export const App = () => {
           <div className="buttons">
             <button
               type="button"
-              onClick={generationMode === "playing" ? handlePause : handleGenerate}
+              onClick={onPlayClick}
               disabled={lengthLimit === undefined || generationMode === "steping"}>
-                {generationMode === "playing" ? "Pause": "Play"}
+                {playLabel}
             </button>
             <button
               type="button"
@@ -218,7 +246,7 @@ export const App = () => {
                     <span>{group.delimiter === "" ? "(none)" : `"${group.delimiter}"`}</span>
                   </div>
                   <div className="sequences">
-                    {group.sequences.map((s, j) => <div key={j}>{s}</div>)}
+                    {group.sequences.map((s, j) => <div key={j}>{s.map(n => n.label)}</div>)}
                   </div>
                 </div>
               );
@@ -254,6 +282,8 @@ export const App = () => {
       </div>
     );
   }
+
+  console.log("ANIMATE NODE", animateNode?.label);
 
   return (
     <div className={clsx("app", {dragging})}>

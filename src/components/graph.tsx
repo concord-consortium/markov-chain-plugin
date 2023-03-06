@@ -243,16 +243,20 @@ export const Graph = ({graph, animateNode}: Props) => {
     }
 
     const svg = d3.select(svgRef.current);
+
+    // de-highlight all none animated nodes
+    svg
+      .selectAll("g")
+      .selectAll("circle")
+      .filter((d: any) => animateNode?.label !== d.label)
+      .attr("fill", "#fff");
+
+    // highlight animated node
     svg
       .selectAll("g")
       .selectAll("circle")
       .filter((d: any) => animateNode?.label === d.label)
-      .transition()
-      .ease(d3.easeLinear)
-      .attr("fill", "#FFFF00")
-      .transition()
-      .ease(d3.easeLinear)
-      .attr("fill", "#fff");
+      .attr("fill", "#FFFF00");
 
   }, [svgRef, d3Graph.nodes, animateNode]);
 
