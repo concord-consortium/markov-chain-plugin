@@ -273,7 +273,7 @@ export const App = () => {
                 <div className="group" key={i}>
                   <SequenceOutputHeader group={group} />
                   <div className="sequences">
-                    {group.sequences.map((s, j) => <div key={j}>{s.map(n => n.label).join(delimiter)}</div>)}
+                    {group.sequences.map((s, j) => <div key={j}>{s.map(n => n.label).join(group.delimiter)}</div>)}
                   </div>
                 </div>
               );
