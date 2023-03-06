@@ -26,8 +26,6 @@ export const useGraph = () => {
               edge = {
                 from: prevNode.id,
                 to: node.id,
-                label: value.length === 2 && (value.includes("R") || value.includes("P") || value.includes("S")) ?
-                  value.charAt(1) : undefined,
                 value: 0
               };
               edges.push(edge);
