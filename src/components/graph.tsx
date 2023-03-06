@@ -14,7 +14,6 @@ type Props = {
 
 type D3Node = {
   index: number,
-  color: string,
   label: string;
   x: number,
   y: number,
@@ -43,8 +42,6 @@ type FindLineCircleIntersectionArgs = {
   x1: number, y1: number, x2: number, y2: number, cx: number, cy: number, r: number
 };
 type FindLineLengthArgs = {x1: number, y1: number, x2: number, y2: number};
-
-//const NodeRadius = 15;
 
 const highlightYellow = "#FFFF00";
 
@@ -92,6 +89,31 @@ const findLineBetweenCircles = ({x1, y1, r1, x2, y2, r2}: FindLineBetweenCircles
   return [{x: minCombo[0].x, y: minCombo[0].y}, {x: minCombo[1].x, y: minCombo[1].y}];
 };
 
+const calculateEdges = (edges: D3Edge[]) => {
+  return edges.map(edge => {
+    const [sourceEdge, targetEdge] =
+      findLineBetweenCircles({
+        x1: edge.source.x,
+        y1: edge.source.y,
+        r1: edge.source.radius,
+        x2: edge.target.x,
+        y2: edge.target.y,
+        r2: edge.target.radius
+      });
+    edge.sourceX = sourceEdge.x;
+    edge.sourceY = sourceEdge.y;
+    edge.targetX = targetEdge.x;
+    edge.targetY = targetEdge.y;
+    return edge;
+  });
+};
+
+const graphSignature = (graph: D3Graph) => {
+  const nodeSignature = graph.nodes.map(n => `${n.label}/${n.weight}`);
+  const edgeSignature = graph.edges.map(e => `${e.source.label}/${e.target.label}/${e.weight}`);
+  return `${nodeSignature}::${edgeSignature}`;
+};
+
 export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -110,14 +132,12 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
 
   // create the d3 graph info
   useEffect(() => {
-    const numNodes = graph.nodes.length;
-
     const newD3Graph: D3Graph = {nodes: [], edges: []};
     const d3NodeMap: Record<string, D3Node> = {};
+
     graph.nodes.forEach((node, index) => {
       const d3Node: D3Node = {
         index,
-        color: d3.interpolateRainbow(index / numNodes),
         x: 0,
         y: 0,
         label: node.label,
@@ -140,9 +160,13 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
         });
       }
     });
-    setD3Graph(newD3Graph);
 
-  }, [graph]);
+    // only change if the graph really changed to prevent a redraw
+    if (graphSignature(d3Graph) !== graphSignature(newD3Graph)) {
+      setD3Graph(newD3Graph);
+    }
+
+  }, [d3Graph, graph]);
 
   // draw the graph
   useEffect(() => {
@@ -155,18 +179,7 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
     // clear the existing items
     svg.selectAll("*").remove();
 
-    // Create a new force simulation and assign forces
-    const simulation = d3
-      .forceSimulation(d3Graph.nodes)
-      .force("link", d3.forceLink(d3Graph.edges).distance(e => e.source.radius + e.target.radius + 20))
-      .force("charge", d3.forceManyBody().strength(-350))
-      .force("x", d3.forceX())
-      .force("y", d3.forceY())
-      .stop();
-    while (simulation.alpha() > simulation.alphaMin()) {
-      simulation.tick();
-    }
-
+    // add edge arrows
     svg
       .append("svg:defs")
       .append("svg:marker")
@@ -197,26 +210,87 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       .attr("stroke-width", 2)
       .style("fill", highlightYellow);
 
+    // draw nodes
+    const nodes = svg
+      .selectAll("g")
+      .data(d3Graph.nodes)
+      .enter()
+      .append("g");
+
+    const dragStart = (d: any) => {
+      simulation.alphaTarget(0.5).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    };
+
+    const dragging = (event: any, d: any) => {
+      // simulation.alpha(0.5).restart()
+      d.fx = event.x;
+      d.fy = event.y;
+    };
+
+    const dragEnd = (d: any) => {
+      simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    };
+
+    const drag = d3.drag()
+      .on("start", dragStart)
+      .on("drag", dragging)
+      .on("end", dragEnd);
+
+    const circles = nodes
+      .append("circle")
+      .attr("fill", "#fff")
+      .attr("stroke", "#999")
+      .attr("stroke-width", d => d.loops ? 4 : 2)
+      .attr("r", d => d.radius)
+      .attr("cx", d => d.x)
+      .attr("cy", d => d.y)
+      .call(drag as any);
+
+    const labels = nodes
+      .append("text")
+      .text(d => d.label)
+      .attr("fill", "#000")
+      .attr("text-anchor", "middle")
+      .attr("alignment-baseline", "middle")
+      .attr("font-size", d => (d.radius/((d.radius*10)/150)) + (d.weight * 3))
+      .attr("x", d => d.x)
+      .attr("y", d => d.y);
+
+    const tick = () => {
+      circles.attr("cx", d => d.x).attr("cy", d => d.y);
+      labels.attr("x", d => d.x).attr("y", d => d.y);
+
+      d3Graph.edges = calculateEdges(d3Graph.edges);
+      lines
+        .attr("x1", d => d.sourceX)
+        .attr("x2", d => d.targetX)
+        .attr("y1", d => d.sourceY)
+        .attr("y2", d => d.targetY);
+    };
+
+    // Create a new force simulation and assign forces
+    const simulation = d3
+      .forceSimulation(d3Graph.nodes)
+      .force("link", d3.forceLink(d3Graph.edges).distance(e => e.source.radius + e.target.radius + 20))
+      .force("charge", d3.forceManyBody().strength(-350))
+      .force("x", d3.forceX())
+      .force("y", d3.forceY())
+      .on("tick", tick);
+
+    // ensure node values before calculating edge positions
+    while (simulation.alpha() > simulation.alphaMin()) {
+      simulation.tick();
+    }
+
     // calculate the edge positions
-    d3Graph.edges = d3Graph.edges.map(edge => {
-      const [sourceEdge, targetEdge] =
-        findLineBetweenCircles({
-          x1: edge.source.x,
-          y1: edge.source.y,
-          r1: edge.source.radius,
-          x2: edge.target.x,
-          y2: edge.target.y,
-          r2: edge.target.radius
-        });
-      edge.sourceX = sourceEdge.x;
-      edge.sourceY = sourceEdge.y;
-      edge.targetX = targetEdge.x;
-      edge.targetY = targetEdge.y;
-      return edge;
-    });
+    d3Graph.edges = calculateEdges(d3Graph.edges);
 
     // draw edges
-    svg
+    const lines = svg
       .selectAll("line")
       .data(d3Graph.edges)
       .enter()
@@ -232,31 +306,6 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       .attr("data-to", d => d.target.label)
       .attr("marker-end", "url(#arrow)");
 
-    // draw nodes
-    const nodes = svg
-      .selectAll("g")
-      .data(d3Graph.nodes)
-      .enter()
-      .append("g");
-
-    nodes
-      .append("circle")
-      .attr("fill", "#fff")
-      .attr("stroke", "#999")
-      .attr("stroke-width", d => d.loops ? 4 : 2)
-      .attr("r", d => d.radius)
-      .attr("cx", d => d.x)
-      .attr("cy", d => d.y);
-
-    nodes
-      .append("text")
-      .text(d => d.label)
-      .attr("fill", "#000")
-      .attr("text-anchor", "middle")
-      .attr("alignment-baseline", "middle")
-      .attr("font-size", d => (d.radius/((d.radius*10)/150)) + (d.weight * 3))
-      .attr("x", d => d.x)
-      .attr("y", d => d.y);
   }, [svgRef, d3Graph, width, height]);
 
   // draggable: https://codesandbox.io/s/d3js-draggable-force-directed-graph-py3rf?file=/app.js
@@ -298,7 +347,6 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
     if (animateNode) {
       const nodeIndex = highlightNodes.findIndex(n => n.label === animateNode.label);
       const nextNode = nodeIndex !== -1 && highlightNodes[nodeIndex + 1];
-      console.log("nextNode", nextNode, "nodeIndex", nodeIndex);
       if (nextNode) {
         svg
         .selectAll("line")
