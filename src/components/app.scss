@@ -130,6 +130,19 @@
                 padding: 3px;
                 display: flex;
                 gap: 5px;
+                cursor: pointer;
+
+                &.expanded {
+                  flex-direction: column;
+                }
+                &.collapsed {
+                  flex-direction: row;
+
+                  .expand {
+                    flex-grow: 1;
+                    text-align: right;
+                  }
+                }
               }
               .sequences {
                 padding: 5px;

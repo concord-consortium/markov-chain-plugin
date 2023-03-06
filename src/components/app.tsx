@@ -22,6 +22,36 @@ type SequenceGroup = {
   sequences: Node[][];
 };
 
+const SequenceOutputHeader = ({group}: {group: SequenceGroup}) => {
+  const [expanded, setExpanded] = useState(false);
+  const startingState = group.startingState.length > 0 ? group.startingState : AnyStartingState;
+  const lengthLimit = group.lengthLimit;
+  const delimiter = group.delimiter === "" ? "(none)" : `"${group.delimiter}"`;
+
+  const handleToggleExpanded = () => setExpanded(prev => !prev);
+
+  if (expanded) {
+    return (
+      <div className="header expanded" onClick={handleToggleExpanded}>
+        <div>Starting State: {startingState}</div>
+        <div>Max Length: {lengthLimit}</div>
+        <div>Delimiter: {delimiter}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="header collapsed" onClick={handleToggleExpanded}>
+      <span>{startingState}</span>
+      <span>/</span>
+      <span>{lengthLimit}</span>
+      <span>/</span>
+      <span>{delimiter}</span>
+      <span className="expand">&hellip;</span>
+    </div>
+  );
+};
+
 export const App = () => {
   const [lengthLimit, setLengthLimit] = useState<number|undefined>(5);
   const [delimiter, setDelimiter] = useState("");
@@ -241,13 +271,7 @@ export const App = () => {
             {sequenceGroups.map((group, i) => {
               return (
                 <div className="group" key={i}>
-                  <div className="header">
-                    <span>{group.startingState.length > 0 ? group.startingState : AnyStartingState}</span>
-                    <span>/</span>
-                    <span>{group.lengthLimit}</span>
-                    <span>/</span>
-                    <span>{group.delimiter === "" ? "(none)" : `"${group.delimiter}"`}</span>
-                  </div>
+                  <SequenceOutputHeader group={group} />
                   <div className="sequences">
                     {group.sequences.map((s, j) => <div key={j}>{s.map(n => n.label)}</div>)}
                   </div>
