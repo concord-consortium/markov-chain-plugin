@@ -9,6 +9,7 @@ import "./graph.scss";
 type Props = {
   graph: GraphData,
   animateNode?: Node
+  highlightNodes: Node[]
 };
 
 type D3Node = {
@@ -87,7 +88,7 @@ const findLineBetweenCircles = ({x1, y1, r1, x2, y2, r2}: FindLineBetweenCircles
   return [{x: minCombo[0].x, y: minCombo[0].y}, {x: minCombo[1].x, y: minCombo[1].y}];
 };
 
-export const Graph = ({graph, animateNode}: Props) => {
+export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -244,12 +245,19 @@ export const Graph = ({graph, animateNode}: Props) => {
 
     const svg = d3.select(svgRef.current);
 
-    // de-highlight all none animated nodes
+    // de-highlight all nodes
     svg
       .selectAll("g")
       .selectAll("circle")
-      .filter((d: any) => animateNode?.label !== d.label)
       .attr("fill", "#fff");
+
+    // highlight all highlighted nodes
+    const highlightedLabels = highlightNodes.map(n => n.label);
+    svg
+      .selectAll("g")
+      .selectAll("circle")
+      .filter((d: any) => highlightedLabels.includes(d.label))
+      .attr("fill", "#aaa");
 
     // highlight animated node
     svg
@@ -258,7 +266,7 @@ export const Graph = ({graph, animateNode}: Props) => {
       .filter((d: any) => animateNode?.label === d.label)
       .attr("fill", "#FFFF00");
 
-  }, [svgRef, d3Graph.nodes, animateNode]);
+  }, [svgRef, d3Graph.nodes, animateNode, highlightNodes]);
 
   return (
     <div className="graph" ref={wrapperRef}>

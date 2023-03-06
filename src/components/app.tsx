@@ -28,6 +28,7 @@ export const App = () => {
   const [startingState, setStartingState] = useState("");
   const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
   const [animateNode, setAnimateNode] = useState<Node|undefined>(undefined);
+  const [highlightedNodes, setHighlightedNodes] = useState<Node[]>([]);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("ready");
   const prevAnimatedSequenceGroups = useRef<SequenceGroup[]>([]);
   const currentAnimatedSequenceGroup = useRef<SequenceGroup>();
@@ -80,6 +81,7 @@ export const App = () => {
 
   const animateCurrentSequenceIndex = useCallback(() => {
     setAnimateNode(currentSequence.current[currentSequenceIndex.current]);
+    setHighlightedNodes(currentSequence.current);
 
     if (currentAnimatedSequenceGroup.current) {
       const animatedSequence = currentSequence.current.slice(0, currentSequenceIndex.current + 1);
@@ -96,6 +98,7 @@ export const App = () => {
   const finishAnimating = useCallback(async () => {
     stopAnimationInterval();
     setAnimateNode(undefined);
+    setHighlightedNodes([]);
 
     await outputToDataset(currentSequence.current);
 
@@ -290,7 +293,7 @@ export const App = () => {
       <div className="split">
         <div className="left">
           <h2>Markov Chains</h2>
-          <Graph graph={graph} animateNode={animateNode} />
+          <Graph graph={graph} animateNode={animateNode} highlightNodes={highlightedNodes} />
         </div>
         <div className="right">
           {uiForGenerate()}
