@@ -310,8 +310,6 @@ export const App = () => {
     );
   }
 
-  console.log("ANIMATE NODE", animateNode?.label);
-
   return (
     <div className={clsx("app", {dragging})}>
       <div className="split">

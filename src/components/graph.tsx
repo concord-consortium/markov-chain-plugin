@@ -44,6 +44,8 @@ type FindLineLengthArgs = {x1: number, y1: number, x2: number, y2: number};
 
 //const NodeRadius = 15;
 
+const highlightYellow = "#FFFF00";
+
 const findLineCircleIntersection = ({x1, y1, x2, y2, cx, cy, r}: FindLineCircleIntersectionArgs) => {
   const dx = x2 - x1;
   const dy = y2 - y1;
@@ -172,8 +174,24 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       .attr("markerUnits","userSpaceOnUse")
       .attr("orient", "auto")
       .append("path")
-      .attr("d", "M 0 0 12 6 0 12 3 6")
+      .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
       .style("fill", "black");
+
+    svg
+      .append("svg:defs")
+      .append("svg:marker")
+      .attr("id", "highlightArrow")
+      .attr("refX", 12)
+      .attr("refY", 6)
+      .attr("markerWidth", 30)
+      .attr("markerHeight", 30)
+      .attr("markerUnits","userSpaceOnUse")
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
+      .attr("stroke", "#999")
+      .attr("stroke-width", 2)
+      .style("fill", highlightYellow);
 
     // calculate the edge positions
     d3Graph.edges = d3Graph.edges.map(edge => {
@@ -206,6 +224,8 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       .attr("x2", d => d.targetX)
       .attr("y1", d => d.sourceY)
       .attr("y2", d => d.targetY)
+      .attr("data-from", d => d.source.label)
+      .attr("data-to", d => d.target.label)
       .attr("marker-end", "url(#arrow)");
 
     // draw nodes
@@ -264,7 +284,24 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       .selectAll("g")
       .selectAll("circle")
       .filter((d: any) => animateNode?.label === d.label)
-      .attr("fill", "#FFFF00");
+      .attr("fill", highlightYellow);
+
+    // highlight animated edges
+    svg
+      .selectAll("line")
+      .attr("marker-end", "url(#arrow)");
+
+    if (animateNode) {
+      const nodeIndex = highlightNodes.findIndex(n => n.label === animateNode.label);
+      const nextNode = nodeIndex !== -1 && highlightNodes[nodeIndex + 1];
+      console.log("nextNode", nextNode, "nodeIndex", nodeIndex);
+      if (nextNode) {
+        svg
+        .selectAll("line")
+        .filter((d: any) => animateNode.label === d.source?.label && nextNode.label === d.target?.label)
+        .attr("marker-end", "url(#highlightArrow)");
+      }
+    }
 
   }, [svgRef, d3Graph.nodes, animateNode, highlightNodes]);
 
