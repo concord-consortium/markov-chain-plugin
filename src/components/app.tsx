@@ -57,7 +57,7 @@ export const App = () => {
   const [delimiter, setDelimiter] = useState("");
   const [startingState, setStartingState] = useState("");
   const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
-  const [animateNode, setAnimateNode] = useState<Node|undefined>(undefined);
+  const [animateNodeIndex, setAnimateNodeIndex] = useState<number|undefined>(undefined);
   const [highlightedNodes, setHighlightedNodes] = useState<Node[]>([]);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("ready");
   const prevAnimatedSequenceGroups = useRef<SequenceGroup[]>([]);
@@ -110,7 +110,7 @@ export const App = () => {
   const currentSequenceAnimating = () => currentSequenceIndex.current < currentSequence.current.length - 1;
 
   const animateCurrentSequenceIndex = useCallback(() => {
-    setAnimateNode(currentSequence.current[currentSequenceIndex.current]);
+    setAnimateNodeIndex(currentSequenceIndex.current);
     setHighlightedNodes(currentSequence.current);
 
     if (currentAnimatedSequenceGroup.current) {
@@ -118,7 +118,7 @@ export const App = () => {
       currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, animatedSequence];
       setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
     }
-  }, [setAnimateNode, setSequenceGroups]);
+  }, [setAnimateNodeIndex, setSequenceGroups]);
 
   const animateNextSequenceIndex = useCallback(() => {
     currentSequenceIndex.current++;
@@ -127,7 +127,7 @@ export const App = () => {
 
   const finishAnimating = useCallback(async () => {
     stopAnimationInterval();
-    setAnimateNode(undefined);
+    setAnimateNodeIndex(undefined);
     setHighlightedNodes([]);
 
     await outputToDataset(currentSequence.current);
@@ -315,7 +315,7 @@ export const App = () => {
       <div className="split">
         <div className="left">
           <h2>Markov Chains</h2>
-          <Graph graph={graph} animateNode={animateNode} highlightNodes={highlightedNodes} />
+          <Graph graph={graph} animateNodeIndex={animateNodeIndex} highlightNodes={highlightedNodes} />
         </div>
         <div className="right">
           {uiForGenerate()}

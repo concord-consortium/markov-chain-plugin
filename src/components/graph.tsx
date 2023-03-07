@@ -8,7 +8,7 @@ import "./graph.scss";
 
 type Props = {
   graph: GraphData,
-  animateNode?: Node
+  animateNodeIndex?: number
   highlightNodes: Node[]
 };
 
@@ -19,6 +19,7 @@ type D3Node = {
   y: number,
   radius: number,
   loops: boolean
+  loopAngle: number
   weight: number;
 };
 
@@ -36,6 +37,13 @@ type D3Graph = {
   nodes: D3Node[],
   edges: D3Edge[],
 };
+
+/*
+type Point = {
+  x: number;
+  y: number;
+};
+*/
 
 type FindLineBetweenCirclesArgs = {x1: number, y1: number, r1: number, x2: number, y2: number, r2: number};
 type FindLineCircleIntersectionArgs = {
@@ -108,13 +116,73 @@ const calculateEdges = (edges: D3Edge[]) => {
   });
 };
 
+/*
+const radianAngle = (p1: Point, p2: Point) => Math.abs(Math.atan2(p2.y - p1.y, p2.x - p1.x));
+
+const calculateLoops = (graph: D3Graph) => {
+  return graph.nodes.map(node => {
+    if (node.loops) {
+      const center: Point = {x: node.x, y: node.y};
+
+      const fartestAngle = graph.edges.reduce<Point[]>((acc, cur) => {
+        if (cur.source.label === node.label) {
+          acc.push({x: cur.sourceX, y: cur.sourceY});
+        } else if (cur.target.label === node.label) {
+          acc.push({x: cur.targetX, y: cur.targetY});
+        }
+        return acc;
+      }, [])
+      .map(p => radianAngle(center, p))
+      .reduce<{angle: number, distance: number}>((acc, cur, i, arr) => {
+        if (i > 0) {
+          const distance = arr[i-1] - cur;
+          if (distance < acc.distance) {
+            acc.angle = cur + (distance / 2);
+            acc.distance = distance;
+          }
+        }
+        return acc;
+      }, {angle: 0, distance: Infinity});
+
+      node.loopAngle = fartestAngle.angle;
+    }
+    return node;
+  });
+};
+*/
+
+const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+  const angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+  return {
+    x: centerX + (radius * Math.cos(angleInRadians)),
+    y: centerY + (radius * Math.sin(angleInRadians))
+  };
+};
+
+const nodeLoopPath = (node: D3Node) => {
+  const startAngle = 270;
+  const loopHeight = 15;
+  const loopWidth = 20;
+  const start = polarToCartesian(node.x, node.y, node.radius, startAngle - loopHeight);
+  const end = polarToCartesian(node.x, node.y, node.radius, startAngle + loopHeight);
+
+  const d = [
+    "M", start.x, start.y,
+    "L", start.x - loopWidth, start.y,
+    "L", start.x - loopWidth, end.y,
+    "L", end.x, end.y,
+  ].join(" ");
+
+  return d;
+};
+
 const graphSignature = (graph: D3Graph) => {
   const nodeSignature = graph.nodes.map(n => `${n.label}/${n.weight}`);
   const edgeSignature = graph.edges.map(e => `${e.source.label}/${e.target.label}/${e.weight}`);
   return `${nodeSignature}::${edgeSignature}`;
 };
 
-export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
+export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -143,6 +211,7 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
         label: node.label,
         radius: 15 + (5 * (node.label.length - 1)) + (5 * node.value),
         loops: false,
+        loopAngle: 0,
         weight: node.value
       };
       newD3Graph.nodes.push(d3Node);
@@ -244,7 +313,7 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       .append("circle")
       .attr("fill", "#fff")
       .attr("stroke", "#999")
-      .attr("stroke-width", d => d.loops ? 4 : 2)
+      .attr("stroke-width", d => 2)
       .attr("r", d => d.radius)
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
@@ -265,11 +334,15 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       labels.attr("x", d => d.x).attr("y", d => d.y);
 
       d3Graph.edges = calculateEdges(d3Graph.edges);
+      // d3Graph.nodes = calculateLoops(d3Graph);
+
       lines
         .attr("x1", d => d.sourceX)
         .attr("x2", d => d.targetX)
         .attr("y1", d => d.sourceY)
         .attr("y2", d => d.targetY);
+
+      loops.attr("d", nodeLoopPath);
     };
 
     // Create a new force simulation and assign forces
@@ -288,6 +361,7 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
 
     // calculate the edge positions
     d3Graph.edges = calculateEdges(d3Graph.edges);
+    // d3Graph.nodes = calculateLoops(d3Graph);
 
     // draw edges
     const lines = svg
@@ -306,6 +380,19 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
       .attr("data-to", d => d.target.label)
       .attr("marker-end", "url(#arrow)");
 
+    const loops = svg
+      .selectAll("path.loop")
+      .data(d3Graph.nodes.filter(n => n.loops))
+      .enter()
+      .append("path")
+      .attr("class", "loop")
+      .attr("d", nodeLoopPath)
+      .attr("stroke", "#999")
+      .attr("stroke-opacity", 0.6)
+      .attr("fill-opacity", 0)
+      .attr("stroke-width", 2)
+      .attr("marker-end", "url(#arrow)");
+
   }, [svgRef, d3Graph, width, height]);
 
   // draggable: https://codesandbox.io/s/d3js-draggable-force-directed-graph-py3rf?file=/app.js
@@ -317,6 +404,7 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
     }
 
     const svg = d3.select(svgRef.current);
+    const animateNode = animateNodeIndex !== undefined ? highlightNodes[animateNodeIndex] : undefined;
 
     // de-highlight all nodes
     svg
@@ -343,19 +431,28 @@ export const Graph = ({graph, animateNode, highlightNodes}: Props) => {
     svg
       .selectAll("line")
       .attr("marker-end", "url(#arrow)");
+    svg
+      .selectAll("path.loop")
+      .attr("marker-end", "url(#arrow)");
 
     if (animateNode) {
-      const nodeIndex = highlightNodes.findIndex(n => n.label === animateNode.label);
-      const nextNode = nodeIndex !== -1 && highlightNodes[nodeIndex + 1];
+      const nextNode = animateNodeIndex !== undefined && highlightNodes[animateNodeIndex + 1];
       if (nextNode) {
-        svg
-        .selectAll("line")
-        .filter((d: any) => animateNode.label === d.source?.label && nextNode.label === d.target?.label)
-        .attr("marker-end", "url(#highlightArrow)");
+        if (nextNode.label === animateNode.label) {
+          svg
+            .selectAll("path.loop")
+            .filter((d: any) => nextNode.label === d.label)
+            .attr("marker-end", "url(#highlightArrow)");
+        } else {
+          svg
+            .selectAll("line")
+            .filter((d: any) => animateNode.label === d.source?.label && nextNode.label === d.target?.label)
+            .attr("marker-end", "url(#highlightArrow)");
+        }
       }
     }
 
-  }, [svgRef, d3Graph.nodes, animateNode, highlightNodes]);
+  }, [svgRef, d3Graph.nodes, animateNodeIndex, highlightNodes]);
 
   return (
     <div className="graph" ref={wrapperRef}>
