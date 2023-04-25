@@ -3,7 +3,7 @@ import {clsx} from "clsx";
 
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
-import { Graph } from "./graph";
+import { Graph, GraphSettings } from "./graph";
 import { useGenerator } from "../hooks/use-generator";
 import { Node } from "../type";
 
@@ -66,6 +66,22 @@ export const App = () => {
   const currentSequence = useRef<Node[]>([]);
   const currentSequenceIndex = useRef(0);
   const animationInterval = useRef<number>();
+
+  /*
+  use this if showing settings dialog
+  const [graphSettings, setGraphSettings] = useState<GraphSettings>({
+    minRadius: 25,
+    maxRadius: 75,
+    marginFactor: 0.8,
+    minFontSize: 10,
+  });
+  */
+  const graphSettings: GraphSettings = {
+    minRadius: 25,
+    maxRadius: 75,
+    marginFactor: 0.8,
+    minFontSize: 10,
+  };
 
   const {graph, updateGraph} = useGraph();
   const {dragging, outputToDataset} = useCODAP({onCODAPDataChanged: updateGraph});
@@ -264,6 +280,23 @@ export const App = () => {
   };
 
   const sequenceOutput = () => {
+    /*
+    const handleMinRadiusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setGraphSettings(prev => ({...prev, minRadius: e.target.valueAsNumber}));
+    };
+    const handleMaxRadiusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setGraphSettings(prev => ({...prev, maxRadius: e.target.valueAsNumber}));
+    };
+    const handleMarginFactorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const marginFactor = Math.min(Math.max(0.1, e.target.valueAsNumber), 1);
+      setGraphSettings(prev => ({...prev, marginFactor }));
+    };
+    const handleMinFontSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setGraphSettings(prev => ({...prev, minFontSize: e.target.valueAsNumber}));
+    };
+    */
+
+
     return (
       <div className="sequence-output">
         <div className="output">
@@ -280,6 +313,35 @@ export const App = () => {
             })}
           </div>
         </div>
+        {/*
+        <div className="settings">
+          <div>
+            Max Label Length
+          </div>
+          <div>
+            <input type="number" value={graphSettings.minRadius} onChange={handleMinRadiusChange} />
+          </div>
+          <div>
+            Max Horizontal Radius
+          </div>
+          <div>
+            <input type="number" value={graphSettings.maxRadius}  onChange={handleMaxRadiusChange} />
+          </div>
+          <div>
+            Margin Factor
+          </div>
+          <div>
+            <input type="number" value={graphSettings.marginFactor} min={0.01} max={1} step={0.01}
+                   onChange={handleMarginFactorChange} />
+          </div>
+          <div>
+            Min Font Size
+          </div>
+          <div>
+            <input type="number" value={graphSettings.minFontSize} min={1} onChange={handleMinFontSizeChange} />
+          </div>
+        </div>
+        */}
         <div className="buttons">
           <button
             type="button"
@@ -315,7 +377,12 @@ export const App = () => {
       <div className="split">
         <div className="left">
           <h2>Markov Chains</h2>
-          <Graph graph={graph} animateNodeIndex={animateNodeIndex} highlightNodes={highlightedNodes} />
+          <Graph
+            graph={graph}
+            animateNodeIndex={animateNodeIndex}
+            highlightNodes={highlightedNodes}
+            settings={graphSettings}
+          />
         </div>
         <div className="right">
           {uiForGenerate()}
