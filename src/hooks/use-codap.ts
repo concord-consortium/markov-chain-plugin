@@ -34,15 +34,18 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
   const [sequenceNumber, setSequenceNumber] = useState(0);
 
-  const setPluginState = (values: any) => {
-    // TODO: use values
-  };
+  const setPluginState = useCallback((values: any) => {
+    if (values.attribute) {
+      setAttribute(values.attribute)
+      handleDataChanged(values.attribute)
+    }
+  }, [setAttribute]);
 
   const getPluginState = () => {
     return {
       success: true,
       values: {
-        // no state yet...
+        attribute
       }
     };
   };
@@ -72,6 +75,15 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
         };
         setAttribute(newAttribute);
         await handleDataChanged(newAttribute);
+
+        // tell CODAP we are dirty
+        await codapInterface.sendRequest([{
+          action: "notify",
+          resource: "interactiveFrame",
+          values: {
+            dirty: true
+          }
+        }]);
         break;
     }
   }, [setDragging, setAttribute, handleDataChanged]);
