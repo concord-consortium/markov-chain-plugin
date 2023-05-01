@@ -6,10 +6,18 @@ import { GraphData, Node } from "../type";
 
 import "./graph.scss";
 
+export type GraphSettings = {
+  minRadius: number;
+  maxRadius: number;
+  marginFactor: number;
+  minFontSize: number;
+};
+
 type Props = {
   graph: GraphData,
   animateNodeIndex?: number
   highlightNodes: Node[]
+  settings: GraphSettings,
 };
 
 type D3Node = {
@@ -38,75 +46,63 @@ type D3Graph = {
   edges: D3Edge[],
 };
 
-/*
-type Point = {
-  x: number;
-  y: number;
+type FindLineBetweenEllipsesArgs = {
+  x1: number, y1: number, r1: number, x2: number, y2: number, r2: number, nodeEdgeCount: {source: D3Node, count: number}
 };
-*/
-
-type FindLineBetweenCirclesArgs = {x1: number, y1: number, r1: number, x2: number, y2: number, r2: number};
-type FindLineCircleIntersectionArgs = {
-  x1: number, y1: number, x2: number, y2: number, cx: number, cy: number, r: number
+type FindPointOnEllipseArgs = {
+  x1: number, y1: number, x2: number, y2: number, cx: number, cy: number, a: number, b: number, angleDelta: number
 };
-type FindLineLengthArgs = {x1: number, y1: number, x2: number, y2: number};
 
 const highlightYellow = "#FFFF00";
+const startLoopAngle = 0.25 * Math.PI;
+const endLoopAngle = 1.75 * Math.PI;
+const bidirectionalEdgeAngle = 10 * (Math.PI / 180);
+const Pi2 = Math.PI * 2;
 
-const findLineCircleIntersection = ({x1, y1, x2, y2, cx, cy, r}: FindLineCircleIntersectionArgs) => {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const a = dx * dx + dy * dy;
-  const b = 2 * (dx * (x1 - cx) + dy * (y1 - cy));
-  const c = cx * cx + cy * cy + x1 * x1 + y1 * y1 - 2 * (cx * x1 + cy * y1) - r * r;
-  const determinant = Math.sqrt(b * b - 4 * a * c);
-  const t1 = (-b + determinant) / (2 * a);
-  const t2 = (-b - determinant) / (2 * a);
-  const intersection1 = {x: x1 + t1 * dx, y: y1 + t1 * dy};
-  const intersection2 = {x: x1 + t2 * dx, y: y1 + t2 * dy};
-  return [intersection1, intersection2];
+const ry = (radius: number) => radius / 2;
+
+const normalizeAngle = (radians: number): number => {
+  return radians - Pi2 * Math.floor(radians / Pi2);
 };
 
-const findLineLength = ({x1, y1, x2, y2}: FindLineLengthArgs) => {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  return Math.sqrt(dx * dx + dy * dy);
+const findPointOnEllipse = ({x1, y1, x2, y2, cx, cy, a, b, angleDelta}: FindPointOnEllipseArgs) => {
+  const angle = normalizeAngle(Math.atan2(y2 - y1, x2 - x1) + angleDelta);
+  return { x: cx + a * Math.cos(angle), y: cy + b * Math.sin(angle) };
 };
 
-const findLineBetweenCircles = ({x1, y1, r1, x2, y2, r2}: FindLineBetweenCirclesArgs) => {
-  const int1 = findLineCircleIntersection({x1, y1, x2, y2, cx: x1, cy: y1, r: r1});
-  const int2 = findLineCircleIntersection({x1, y1, x2, y2, cx: x2, cy: y2, r: r2});
-
-  const combos = [
-    [int1[0], int2[0]],
-    [int1[0], int2[1]],
-    [int1[1], int2[0]],
-    [int1[1], int2[1]]
+const findLineBetweenEllipses = ({x1, y1, r1, x2, y2, r2, nodeEdgeCount}: FindLineBetweenEllipsesArgs) => {
+  const angleDelta = nodeEdgeCount.count > 1 ? bidirectionalEdgeAngle : 0;
+  return [
+    findPointOnEllipse({x1, y1, x2, y2, cx: x1, cy: y1, a: r1, b: ry(r1), angleDelta}),
+    findPointOnEllipse({x1: x2, y1: y2, x2: x1, y2: y1, cx: x2, cy: y2, a: r2, b: ry(r2), angleDelta: -angleDelta})
   ];
-
-  let minLength = Infinity;
-  let minCombo = combos[0];
-  combos.forEach((combo, index) => {
-    const length = findLineLength({x1: combo[0].x, y1: combo[0].y, x2: combo[1].x, y2: combo[1].y});
-    if (length < minLength) {
-      minLength = length;
-      minCombo = combo;
-    }
-  });
-
-  return [{x: minCombo[0].x, y: minCombo[0].y}, {x: minCombo[1].x, y: minCombo[1].y}];
 };
 
 const calculateEdges = (edges: D3Edge[]) => {
+  const getKey = (edge: D3Edge) => {
+    const labels = [edge.source.label, edge.target.label];
+    labels.sort();
+    return labels.join(":");
+  };
+  const nodeEdgeCounts = edges.reduce<Map<string,{source: D3Node, count: number}>>((acc, edge) => {
+    const key = getKey(edge);
+    const entry = acc.get(key) || {source: edge.source, count: 0};
+    entry.count++;
+    acc.set(key, entry);
+    return acc;
+  }, new Map());
+
   return edges.map(edge => {
     const [sourceEdge, targetEdge] =
-      findLineBetweenCircles({
+      findLineBetweenEllipses({
         x1: edge.source.x,
         y1: edge.source.y,
         r1: edge.source.radius,
         x2: edge.target.x,
         y2: edge.target.y,
-        r2: edge.target.radius
+        r2: edge.target.radius,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        nodeEdgeCount: nodeEdgeCounts.get(getKey(edge))!
       });
     edge.sourceX = sourceEdge.x;
     edge.sourceY = sourceEdge.y;
@@ -116,73 +112,74 @@ const calculateEdges = (edges: D3Edge[]) => {
   });
 };
 
-/*
-const radianAngle = (p1: Point, p2: Point) => Math.abs(Math.atan2(p2.y - p1.y, p2.x - p1.x));
-
-const calculateLoops = (graph: D3Graph) => {
-  return graph.nodes.map(node => {
-    if (node.loops) {
-      const center: Point = {x: node.x, y: node.y};
-
-      const fartestAngle = graph.edges.reduce<Point[]>((acc, cur) => {
-        if (cur.source.label === node.label) {
-          acc.push({x: cur.sourceX, y: cur.sourceY});
-        } else if (cur.target.label === node.label) {
-          acc.push({x: cur.targetX, y: cur.targetY});
-        }
-        return acc;
-      }, [])
-      .map(p => radianAngle(center, p))
-      .reduce<{angle: number, distance: number}>((acc, cur, i, arr) => {
-        if (i > 0) {
-          const distance = arr[i-1] - cur;
-          if (distance < acc.distance) {
-            acc.angle = cur + (distance / 2);
-            acc.distance = distance;
-          }
-        }
-        return acc;
-      }, {angle: 0, distance: Infinity});
-
-      node.loopAngle = fartestAngle.angle;
-    }
-    return node;
-  });
-};
-*/
-
-const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
-  const angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
-  return {
-    x: centerX + (radius * Math.cos(angleInRadians)),
-    y: centerY + (radius * Math.sin(angleInRadians))
-  };
-};
-
 const nodeLoopPath = (node: D3Node) => {
-  const startAngle = 270;
-  const loopHeight = 15;
-  const loopWidth = 20;
-  const start = polarToCartesian(node.x, node.y, node.radius, startAngle - loopHeight);
-  const end = polarToCartesian(node.x, node.y, node.radius, startAngle + loopHeight);
+  const a = node.radius;
+  const b = ry(node.radius);
+  const clockwise = false;
 
-  const d = [
-    "M", start.x, start.y,
-    "L", start.x - loopWidth, start.y,
-    "L", start.x - loopWidth, end.y,
-    "L", end.x, end.y,
-  ].join(" ");
+  const circle = {x: node.x - a, y: node.y};
+  const radius = b;
+
+  const startX = circle.x + radius * Math.cos(startLoopAngle);
+  const startY = circle.y + radius * Math.sin(startLoopAngle);
+  const endX = circle.x + radius * Math.cos(endLoopAngle);
+  const endY = circle.y + radius * Math.sin(endLoopAngle);
+
+  const largeArc = Math.abs(endLoopAngle - startLoopAngle) <= Math.PI ? "0" : "1";
+  const sweepFlag = clockwise ? "0" : "1";
+
+  const d = "M " + startX + "," + startY + " A " + radius + "," + radius + " 0 " +
+            largeArc + "," + sweepFlag + " " + endX + "," + endY;
 
   return d;
 };
 
 const graphSignature = (graph: D3Graph) => {
-  const nodeSignature = graph.nodes.map(n => `${n.label}/${n.weight}`);
+  const nodeSignature = graph.nodes.map(n => `${n.label}/${n.weight}/${n.radius}`);
   const edgeSignature = graph.edges.map(e => `${e.source.label}/${e.target.label}/${e.weight}`);
   return `${nodeSignature}::${edgeSignature}`;
 };
 
-export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
+const calculateNodeFontSize = (d: D3Node, settings: GraphSettings) => {
+  let label = d.label;
+  const maxHeight = ry(d.radius * 2) * settings.marginFactor;
+  const maxWidth = d.radius * 2 * settings.marginFactor;
+
+  const text = document.createElement("span");
+  text.style.height = "auto";
+  text.style.width = "auto";
+  text.style.position = "absolute";
+  text.style.whiteSpace = "no-wrap";
+  text.style.opacity = "0";
+  text.innerHTML = label;
+  document.body.appendChild(text);
+
+  let fontSize = maxHeight;
+  let truncateLabelAt = label.length - 1;
+  while (fontSize > 1) {
+    text.style.fontSize = fontSize + "px";
+    if ((Math.ceil(text.clientHeight) > maxHeight) || (Math.ceil(text.clientWidth) > maxWidth)) {
+      if ((fontSize > settings.minFontSize) || (truncateLabelAt <= 0)) {
+        fontSize--;
+      } else {
+        truncateLabelAt--;
+        if (truncateLabelAt >= 0) {
+          label = d.label.substring(0, truncateLabelAt) + "...";
+          text.innerHTML = label;
+        } else {
+          break;
+        }
+      }
+    } else {
+      break;
+    }
+  }
+  document.body.removeChild(text);
+
+  return {label, fontSize};
+};
+
+export const Graph = ({graph, animateNodeIndex, highlightNodes, settings}: Props) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -203,13 +200,18 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
     const newD3Graph: D3Graph = {nodes: [], edges: []};
     const d3NodeMap: Record<string, D3Node> = {};
 
+    // get the sum of all the values
+    const totalValue = graph.nodes.reduce((acc, cur) => acc + cur.value, 0);
+    const {minRadius, maxRadius} = settings;
+
     graph.nodes.forEach((node, index) => {
       const d3Node: D3Node = {
         index,
         x: 0,
         y: 0,
         label: node.label,
-        radius: 15 + (5 * (node.label.length - 1)) + (5 * node.value),
+        // radius: 15 + (5 * (node.label.length - 1)) + (5 * node.value),
+        radius: minRadius + ((maxRadius - minRadius) * (node.value / totalValue)),
         loops: false,
         loopAngle: 0,
         weight: node.value
@@ -234,8 +236,7 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
     if (graphSignature(d3Graph) !== graphSignature(newD3Graph)) {
       setD3Graph(newD3Graph);
     }
-
-  }, [d3Graph, graph]);
+  }, [d3Graph, graph, settings]);
 
   // draw the graph
   useEffect(() => {
@@ -310,22 +311,28 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
       .on("end", dragEnd);
 
     const circles = nodes
-      .append("circle")
+      .append("ellipse")
       .attr("fill", "#fff")
       .attr("stroke", "#999")
       .attr("stroke-width", d => 2)
-      .attr("r", d => d.radius)
+      .attr("rx", d => d.radius)
+      .attr("ry", d => ry(d.radius))
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
       .call(drag as any);
 
+    const finalLabelsAndFontSizes: Array<{label: string, fontSize: number}> = [];
+    nodes.each(d => {
+      finalLabelsAndFontSizes.push(calculateNodeFontSize(d, settings));
+    });
+
     const labels = nodes
       .append("text")
-      .text(d => d.label)
+      .text((d, i) => finalLabelsAndFontSizes[i].label)
       .attr("fill", "#000")
       .attr("text-anchor", "middle")
       .attr("alignment-baseline", "middle")
-      .attr("font-size", d => (d.radius/((d.radius*10)/150)) + (d.weight * 3))
+      .attr("font-size", (d, i) => finalLabelsAndFontSizes[i].fontSize)
       .attr("x", d => d.x)
       .attr("y", d => d.y);
 
@@ -334,7 +341,6 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
       labels.attr("x", d => d.x).attr("y", d => d.y);
 
       d3Graph.edges = calculateEdges(d3Graph.edges);
-      // d3Graph.nodes = calculateLoops(d3Graph);
 
       lines
         .attr("x1", d => d.sourceX)
@@ -348,7 +354,7 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
     // Create a new force simulation and assign forces
     const simulation = d3
       .forceSimulation(d3Graph.nodes)
-      .force("link", d3.forceLink(d3Graph.edges).distance(e => e.source.radius + e.target.radius + 20))
+      .force("link", d3.forceLink(d3Graph.edges).distance(e => (e.source.radius + e.target.radius) * 1.5))
       .force("charge", d3.forceManyBody().strength(-350))
       .force("x", d3.forceX())
       .force("y", d3.forceY())
@@ -393,7 +399,7 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
       .attr("stroke-width", 2)
       .attr("marker-end", "url(#arrow)");
 
-  }, [svgRef, d3Graph, width, height]);
+  }, [svgRef, d3Graph, width, height, settings]);
 
   // draggable: https://codesandbox.io/s/d3js-draggable-force-directed-graph-py3rf?file=/app.js
 

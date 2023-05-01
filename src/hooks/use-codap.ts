@@ -34,26 +34,26 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
   const [sequenceNumber, setSequenceNumber] = useState(0);
 
-  const setPluginState = useCallback((values: any) => {
-    if (values.attribute) {
-      setAttribute(values.attribute)
-      handleDataChanged(values.attribute)
-    }
-  }, [setAttribute]);
-
-  const getPluginState = () => {
+  const getPluginState = useCallback(() => {
     return {
       success: true,
       values: {
         attribute
       }
     };
-  };
+  }, [attribute]);
 
   const handleDataChanged = useCallback(async ({datasetName, collectionName, attributeName}: CODAPAttribute) => {
     const values = await getValuesForAttribute(datasetName, collectionName, attributeName);
     onCODAPDataChanged(values);
   }, [onCODAPDataChanged]);
+
+  const setPluginState = useCallback((values: any) => {
+    if (values.attribute) {
+      setAttribute(values.attribute);
+      handleDataChanged(values.attribute);
+    }
+  }, [setAttribute, handleDataChanged]);
 
   const handleDrop = useCallback(async (iMessage: any) => {
     let newAttribute: CODAPAttribute;
@@ -218,7 +218,7 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
     return () => {
       codapInterface.clear();
     };
-  }, [initialized, handleDrop, handleCasesChanged]);
+  }, [initialized, handleDrop, handleCasesChanged, getPluginState, setPluginState]);
 
   return {
     dragging,
