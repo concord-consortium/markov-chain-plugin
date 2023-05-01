@@ -66,7 +66,6 @@ export const App = () => {
   const currentSequence = useRef<Node[]>([]);
   const currentSequenceIndex = useRef(0);
   const animationInterval = useRef<number>();
-
   const {graph, updateGraph} = useGraph();
   const {dragging, outputToDataset} = useCODAP({onCODAPDataChanged: updateGraph});
   const {generate} = useGenerator();
@@ -315,7 +314,11 @@ export const App = () => {
       <div className="split">
         <div className="left">
           <h2>Markov Chains</h2>
-          <Graph graph={graph} animateNodeIndex={animateNodeIndex} highlightNodes={highlightedNodes} />
+          <Graph
+            graph={graph}
+            animateNodeIndex={animateNodeIndex}
+            highlightNodes={highlightedNodes}
+          />
         </div>
         <div className="right">
           {uiForGenerate()}
