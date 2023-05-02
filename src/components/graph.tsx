@@ -17,7 +17,6 @@ type Props = {
   graph: GraphData,
   animateNodeIndex?: number
   highlightNodes: Node[]
-  settings: GraphSettings,
 };
 
 type D3Node = {
@@ -58,6 +57,13 @@ const startLoopAngle = 0.25 * Math.PI;
 const endLoopAngle = 1.75 * Math.PI;
 const bidirectionalEdgeAngle = 10 * (Math.PI / 180);
 const Pi2 = Math.PI * 2;
+
+const settings: GraphSettings = {
+  minRadius: 25,
+  maxRadius: 75,
+  marginFactor: 0.8,
+  minFontSize: 10,
+};
 
 const ry = (radius: number) => radius / 2;
 
@@ -140,7 +146,7 @@ const graphSignature = (graph: D3Graph) => {
   return `${nodeSignature}::${edgeSignature}`;
 };
 
-const calculateNodeFontSize = (d: D3Node, settings: GraphSettings) => {
+const calculateNodeFontSize = (d: D3Node) => {
   let label = d.label;
   const maxHeight = ry(d.radius * 2) * settings.marginFactor;
   const maxWidth = d.radius * 2 * settings.marginFactor;
@@ -179,7 +185,7 @@ const calculateNodeFontSize = (d: D3Node, settings: GraphSettings) => {
   return {label, fontSize};
 };
 
-export const Graph = ({graph, animateNodeIndex, highlightNodes, settings}: Props) => {
+export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -236,7 +242,7 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes, settings}: Props
     if (graphSignature(d3Graph) !== graphSignature(newD3Graph)) {
       setD3Graph(newD3Graph);
     }
-  }, [d3Graph, graph, settings]);
+  }, [d3Graph, graph]);
 
   // draw the graph
   useEffect(() => {
@@ -323,7 +329,7 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes, settings}: Props
 
     const finalLabelsAndFontSizes: Array<{label: string, fontSize: number}> = [];
     nodes.each(d => {
-      finalLabelsAndFontSizes.push(calculateNodeFontSize(d, settings));
+      finalLabelsAndFontSizes.push(calculateNodeFontSize(d));
     });
 
     const labels = nodes
@@ -399,7 +405,7 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes, settings}: Props
       .attr("stroke-width", 2)
       .attr("marker-end", "url(#arrow)");
 
-  }, [svgRef, d3Graph, width, height, settings]);
+  }, [svgRef, d3Graph, width, height]);
 
   // draggable: https://codesandbox.io/s/d3js-draggable-force-directed-graph-py3rf?file=/app.js
 
@@ -415,21 +421,13 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes, settings}: Props
     // de-highlight all nodes
     svg
       .selectAll("g")
-      .selectAll("circle")
+      .selectAll("ellipse")
       .attr("fill", "#fff");
-
-    // highlight all highlighted nodes
-    const highlightedLabels = highlightNodes.map(n => n.label);
-    svg
-      .selectAll("g")
-      .selectAll("circle")
-      .filter((d: any) => highlightedLabels.includes(d.label))
-      .attr("fill", "#aaa");
 
     // highlight animated node
     svg
       .selectAll("g")
-      .selectAll("circle")
+      .selectAll("ellipse")
       .filter((d: any) => animateNode?.label === d.label)
       .attr("fill", highlightYellow);
 
