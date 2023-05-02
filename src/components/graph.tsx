@@ -15,8 +15,10 @@ export type GraphSettings = {
 
 type Props = {
   graph: GraphData,
-  animateNodeIndex?: number
-  highlightNodes: Node[]
+  highlightNode?: Node,
+  highlightNextNode?: Node,
+  highlightColor: string
+  highlightAllNextNodes: boolean;
 };
 
 type D3Node = {
@@ -52,7 +54,9 @@ type FindPointOnEllipseArgs = {
   x1: number, y1: number, x2: number, y2: number, cx: number, cy: number, a: number, b: number, angleDelta: number
 };
 
-const highlightYellow = "#FFFF00";
+export const orangeColor = "#FF9900";
+export const blueColor = "#C9DAF8";
+
 const startLoopAngle = 0.25 * Math.PI;
 const endLoopAngle = 1.75 * Math.PI;
 const bidirectionalEdgeAngle = 10 * (Math.PI / 180);
@@ -185,7 +189,7 @@ const calculateNodeFontSize = (d: D3Node) => {
   return {label, fontSize};
 };
 
-export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
+export const Graph = ({graph, highlightNode, highlightNextNode, highlightAllNextNodes, highlightColor}: Props) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -273,7 +277,7 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
     svg
       .append("svg:defs")
       .append("svg:marker")
-      .attr("id", "highlightArrow")
+      .attr("id", "highlightOrangeArrow")
       .attr("refX", 12)
       .attr("refY", 6)
       .attr("markerWidth", 30)
@@ -282,9 +286,25 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
       .attr("orient", "auto")
       .append("path")
       .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
-      .attr("stroke", "#999")
+      .attr("stroke", orangeColor)
       .attr("stroke-width", 2)
-      .style("fill", highlightYellow);
+      .style("fill", orangeColor);
+
+    svg
+      .append("svg:defs")
+      .append("svg:marker")
+      .attr("id", "highlightBlueArrow")
+      .attr("refX", 12)
+      .attr("refY", 6)
+      .attr("markerWidth", 30)
+      .attr("markerHeight", 30)
+      .attr("markerUnits","userSpaceOnUse")
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
+      .attr("stroke", blueColor)
+      .attr("stroke-width", 2)
+      .style("fill", blueColor);
 
     // draw nodes
     const nodes = svg
@@ -407,8 +427,6 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
 
   }, [svgRef, d3Graph, width, height]);
 
-  // draggable: https://codesandbox.io/s/d3js-draggable-force-directed-graph-py3rf?file=/app.js
-
   // animate the node if needed
   useEffect(() => {
     if (!svgRef.current) {
@@ -416,7 +434,6 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
     }
 
     const svg = d3.select(svgRef.current);
-    const animateNode = animateNodeIndex !== undefined ? highlightNodes[animateNodeIndex] : undefined;
 
     // de-highlight all nodes
     svg
@@ -428,35 +445,35 @@ export const Graph = ({graph, animateNodeIndex, highlightNodes}: Props) => {
     svg
       .selectAll("g")
       .selectAll("ellipse")
-      .filter((d: any) => animateNode?.label === d.label)
-      .attr("fill", highlightYellow);
+      .filter((d: any) => highlightNode?.label === d.label)
+      .attr("fill", highlightColor);
+
+    const arrowUrl = highlightColor === orangeColor ? "url(#highlightOrangeArrow)" : "url(#highlightBlueArrow)";
 
     // highlight animated edges
     svg
       .selectAll("line")
-      .attr("marker-end", "url(#arrow)");
+      .attr("stroke", "#999")
+      .attr("stroke-dasharray", "")
+      .attr("marker-end", "url(#arrow)")
+      .filter((d: any) => highlightNode?.label === d.source?.label &&
+                          (highlightAllNextNodes || (highlightNextNode?.label === d.target?.label)))
+      .attr("stroke", highlightColor)
+      .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
+      .attr("marker-end", arrowUrl);
+
     svg
       .selectAll("path.loop")
-      .attr("marker-end", "url(#arrow)");
+      .attr("stroke", "#999")
+      .attr("stroke-dasharray", "")
+      .attr("marker-end", "url(#arrow)")
+      .filter((d: any) => highlightNode?.label === d.label &&
+                          (highlightAllNextNodes || (highlightNextNode?.label === d.label)))
+      .attr("stroke", highlightColor)
+      .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
+      .attr("marker-end", arrowUrl);
 
-    if (animateNode) {
-      const nextNode = animateNodeIndex !== undefined && highlightNodes[animateNodeIndex + 1];
-      if (nextNode) {
-        if (nextNode.label === animateNode.label) {
-          svg
-            .selectAll("path.loop")
-            .filter((d: any) => nextNode.label === d.label)
-            .attr("marker-end", "url(#highlightArrow)");
-        } else {
-          svg
-            .selectAll("line")
-            .filter((d: any) => animateNode.label === d.source?.label && nextNode.label === d.target?.label)
-            .attr("marker-end", "url(#highlightArrow)");
-        }
-      }
-    }
-
-  }, [svgRef, d3Graph.nodes, animateNodeIndex, highlightNodes]);
+  }, [svgRef, d3Graph.nodes, highlightNode, highlightNextNode, highlightAllNextNodes, highlightColor]);
 
   return (
     <div className="graph" ref={wrapperRef}>

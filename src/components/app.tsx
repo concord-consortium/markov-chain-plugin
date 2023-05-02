@@ -3,7 +3,7 @@ import {clsx} from "clsx";
 
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
-import { Graph } from "./graph";
+import { Graph, blueColor, orangeColor } from "./graph";
 import { useGenerator } from "../hooks/use-generator";
 import { Node } from "../type";
 
@@ -13,7 +13,7 @@ type GenerationMode = "ready" | "playing" | "paused" | "steping";
 
 const AnyStartingState = "(any)";
 const MaxLengthLimit = 25;
-const AnimationDelay = 500;
+const AnimationDelay = 1000;
 
 type SequenceGroup = {
   startingState: string;
@@ -57,11 +57,14 @@ export const App = () => {
   const [delimiter, setDelimiter] = useState("");
   const [startingState, setStartingState] = useState("");
   const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
-  const [animateNodeIndex, setAnimateNodeIndex] = useState<number|undefined>(undefined);
-  const [highlightedNodes, setHighlightedNodes] = useState<Node[]>([]);
+  const [highlightNode, setHighlightNode] = useState<Node>();
+  const [highlightNextNode, setHighlightNextNode] = useState<Node|undefined>();
+  const [highlightAllNextNodes, setHighlightAllNextNodes] = useState(false);
+  const [highlightColor, setHighlightColor] = useState(orangeColor);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("ready");
   const prevAnimatedSequenceGroups = useRef<SequenceGroup[]>([]);
   const currentAnimatedSequenceGroup = useRef<SequenceGroup>();
+  const currentAnimationStep = useRef<"before"|"after">("before");
   const prevSequences = useRef<Node[][]>([]);
   const currentSequence = useRef<Node[]>([]);
   const currentSequenceIndex = useRef(0);
@@ -103,31 +106,51 @@ export const App = () => {
       // currentAnimatedSequenceGroup.current.sequences.push("");
 
       currentSequence.current = await generate(graph, {startingNode, lengthLimit});
+      currentAnimationStep.current = "before";
     }
   }, [generate, graph, lengthLimit, startingState, sequenceGroups, delimiter]);
 
   const currentSequenceAnimating = () => currentSequenceIndex.current < currentSequence.current.length - 1;
 
+  const inBeforeStep = () => currentAnimationStep.current === "before";
+
   const animateCurrentSequenceIndex = useCallback(() => {
-    setAnimateNodeIndex(currentSequenceIndex.current);
-    setHighlightedNodes(currentSequence.current);
+    const currentNode = currentSequence.current[currentSequenceIndex.current];
+    const nextNode = currentSequence.current[currentSequenceIndex.current + 1];
+
+    setHighlightNode(currentNode);
+    if (inBeforeStep()) {
+      // highlight all the possible edges
+      setHighlightColor(orangeColor);
+      setHighlightAllNextNodes(true);
+      setHighlightNextNode(undefined);
+    } else {
+      // highlight the selected edge
+      setHighlightColor(blueColor);
+      setHighlightAllNextNodes(false);
+      setHighlightNextNode(nextNode);
+    }
 
     if (currentAnimatedSequenceGroup.current) {
       const animatedSequence = currentSequence.current.slice(0, currentSequenceIndex.current + 1);
       currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, animatedSequence];
       setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
     }
-  }, [setAnimateNodeIndex, setSequenceGroups]);
+  }, [setSequenceGroups]);
 
   const animateNextSequenceIndex = useCallback(() => {
-    currentSequenceIndex.current++;
+    if (inBeforeStep()) {
+      currentAnimationStep.current = "after";
+    } else {
+      currentAnimationStep.current = "before";
+      currentSequenceIndex.current++;
+    }
     animateCurrentSequenceIndex();
   }, [animateCurrentSequenceIndex]);
 
   const finishAnimating = useCallback(async () => {
+    setHighlightNode(undefined);
     stopAnimationInterval();
-    setAnimateNodeIndex(undefined);
-    setHighlightedNodes([]);
 
     await outputToDataset(currentSequence.current);
 
@@ -316,8 +339,10 @@ export const App = () => {
           <h2>Markov Chains</h2>
           <Graph
             graph={graph}
-            animateNodeIndex={animateNodeIndex}
-            highlightNodes={highlightedNodes}
+            highlightNode={highlightNode}
+            highlightNextNode={highlightNextNode}
+            highlightColor={highlightColor}
+            highlightAllNextNodes={highlightAllNextNodes}
           />
         </div>
         <div className="right">
