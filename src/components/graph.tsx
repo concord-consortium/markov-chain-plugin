@@ -403,7 +403,7 @@ export const Graph = ({graph, highlightNode, highlightNextNode, highlightAllNext
       .append("line")
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.6)
-      .attr("stroke-width", d => Math.min(10, 2 * d.weight))
+      .attr("stroke-width", d => Math.min(5, 2 * d.weight))
       .attr("x1", d => d.sourceX)
       .attr("x2", d => d.targetX)
       .attr("y1", d => d.sourceY)
