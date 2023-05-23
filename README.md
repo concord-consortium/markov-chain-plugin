@@ -94,3 +94,7 @@ Inside of your `package.json` file:
 Markov Chain Plugin is Copyright 2018 (c) by the Concord Consortium and is distributed under the [MIT license](http://www.opensource.org/licenses/MIT).
 
 See license.md for the complete license text.
+
+### TESTING
+
+Testing workflow cancellation - initial PR
