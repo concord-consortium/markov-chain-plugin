@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {clsx} from "clsx";
+import { clsx } from "clsx";
 
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
 import { Graph, blueColor, orangeColor } from "./graph";
 import { useGenerator } from "../hooks/use-generator";
-import { Node } from "../type";
+import { Edge, Node } from "../type";
 
 import "./app.scss";
 
@@ -22,7 +22,7 @@ type SequenceGroup = {
   sequences: Node[][];
 };
 
-const SequenceOutputHeader = ({group}: {group: SequenceGroup}) => {
+const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
   const [expanded, setExpanded] = useState(false);
   const startingState = group.startingState.length > 0 ? group.startingState : AnyStartingState;
   const lengthLimit = group.lengthLimit;
@@ -53,26 +53,26 @@ const SequenceOutputHeader = ({group}: {group: SequenceGroup}) => {
 };
 
 export const App = () => {
-  const [lengthLimit, setLengthLimit] = useState<number|undefined>(5);
+  const [lengthLimit, setLengthLimit] = useState<number | undefined>(5);
   const [delimiter, setDelimiter] = useState("");
   const [startingState, setStartingState] = useState("");
   const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
   const [highlightNode, setHighlightNode] = useState<Node>();
-  const [highlightNextNode, setHighlightNextNode] = useState<Node|undefined>();
+  const [highlightEdge, setHighlightEdge] = useState<Edge>();
   const [highlightAllNextNodes, setHighlightAllNextNodes] = useState(false);
   const [highlightColor, setHighlightColor] = useState(orangeColor);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("ready");
   const prevAnimatedSequenceGroups = useRef<SequenceGroup[]>([]);
   const currentAnimatedSequenceGroup = useRef<SequenceGroup>();
-  const currentAnimationStep = useRef<"before"|"after">("before");
+  const currentAnimationStep = useRef<"before" | "after">("before");
   const prevSequences = useRef<Node[][]>([]);
   const currentSequence = useRef<Node[]>([]);
   const currentSequenceIndex = useRef(0);
   const animationInterval = useRef<number>();
-  const {graph, updateGraph} = useGraph();
-  const {dragging, outputToDataset} = useCODAP({onCODAPDataChanged: updateGraph});
-  const {generate} = useGenerator();
-  const innerOutputRef = useRef<HTMLDivElement|null>(null);
+  const { graph, updateGraph } = useGraph();
+  const { dragging, outputToDataset } = useCODAP({ onCODAPDataChanged: updateGraph });
+  const { generate } = useGenerator();
+  const innerOutputRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (innerOutputRef.current && sequenceGroups.length > 0) {
@@ -93,10 +93,10 @@ export const App = () => {
       currentAnimatedSequenceGroup.current =
         prevAnimatedSequenceGroups.current[prevAnimatedSequenceGroups.current.length - 1];
       if (!currentAnimatedSequenceGroup.current ||
-          (currentAnimatedSequenceGroup.current.delimiter !== delimiter) ||
-          (currentAnimatedSequenceGroup.current.lengthLimit !== lengthLimit) ||
-          (currentAnimatedSequenceGroup.current.startingState !== startingState)) {
-        currentAnimatedSequenceGroup.current = {delimiter, lengthLimit, startingState, sequences: []};
+        (currentAnimatedSequenceGroup.current.delimiter !== delimiter) ||
+        (currentAnimatedSequenceGroup.current.lengthLimit !== lengthLimit) ||
+        (currentAnimatedSequenceGroup.current.startingState !== startingState)) {
+        currentAnimatedSequenceGroup.current = { delimiter, lengthLimit, startingState, sequences: [] };
         setSequenceGroups(prevAnimatedSequenceGroups.current);
       } else {
         prevAnimatedSequenceGroups.current.pop();
@@ -105,7 +105,7 @@ export const App = () => {
       prevSequences.current = [...currentAnimatedSequenceGroup.current.sequences];
       // currentAnimatedSequenceGroup.current.sequences.push("");
 
-      currentSequence.current = await generate(graph, {startingNode, lengthLimit});
+      currentSequence.current = await generate(graph, { startingNode, lengthLimit });
       currentAnimationStep.current = "before";
     }
   }, [generate, graph, lengthLimit, startingState, sequenceGroups, delimiter]);
@@ -118,38 +118,34 @@ export const App = () => {
     const currentNode = currentSequence.current[currentSequenceIndex.current];
     const nextNode = currentSequence.current[currentSequenceIndex.current + 1];
 
-    setHighlightNode(currentNode);
     if (inBeforeStep()) {
-      // highlight all the possible edges
-      setHighlightColor(orangeColor);
-      setHighlightAllNextNodes(true);
-      setHighlightNextNode(undefined);
+      setHighlightNode(currentNode);
+      setHighlightEdge(undefined);
+      setHighlightColor(nextNode ? orangeColor : blueColor);
+      // highlight all the possible edges if we have a next node
+      setHighlightAllNextNodes(!!nextNode);
     } else {
-      // highlight the selected edge
+      const edge = nextNode
+        ? graph.edges.find(e => e.from === currentNode.label && e.to === nextNode.label)
+        : undefined;
+      setHighlightEdge(edge);
+      setHighlightNode(nextNode);
       setHighlightColor(blueColor);
       setHighlightAllNextNodes(false);
-      setHighlightNextNode(nextNode);
     }
 
     if (currentAnimatedSequenceGroup.current) {
-      const animatedSequence = currentSequence.current.slice(0, currentSequenceIndex.current + 1);
+      const delta = inBeforeStep() ? 1 : 2;
+      const animatedSequence = currentSequence.current.slice(0, currentSequenceIndex.current + delta);
       currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, animatedSequence];
       setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
     }
-  }, [setSequenceGroups]);
 
-  const animateNextSequenceIndex = useCallback(() => {
-    if (inBeforeStep()) {
-      currentAnimationStep.current = "after";
-    } else {
-      currentAnimationStep.current = "before";
-      currentSequenceIndex.current++;
-    }
-    animateCurrentSequenceIndex();
-  }, [animateCurrentSequenceIndex]);
+  }, [setSequenceGroups, graph]);
 
   const finishAnimating = useCallback(async () => {
     setHighlightNode(undefined);
+    setHighlightEdge(undefined);
     stopAnimationInterval();
 
     await outputToDataset(currentSequence.current);
@@ -161,6 +157,20 @@ export const App = () => {
 
     setGenerationMode("ready");
   }, [outputToDataset]);
+
+  const animateNextSequenceIndex = useCallback(() => {
+    if (inBeforeStep()) {
+      currentAnimationStep.current = "after";
+    } else {
+      currentAnimationStep.current = "before";
+      currentSequenceIndex.current++;
+    }
+    if (currentSequenceAnimating()) {
+      animateCurrentSequenceIndex();
+    } else {
+      finishAnimating();
+    }
+  }, [animateCurrentSequenceIndex, finishAnimating]);
 
   const startAnimationInterval = useCallback(() => {
     animationInterval.current = window.setInterval(() => {
@@ -248,20 +258,20 @@ export const App = () => {
               <div>
                 <label>Max Length:</label>
                 <input type="number"
-                      value={lengthLimit}
-                      onChange={handleChangeLengthLimit}
-                      min={1}
-                      max={MaxLengthLimit}
+                  value={lengthLimit}
+                  onChange={handleChangeLengthLimit}
+                  min={1}
+                  max={MaxLengthLimit}
                 />
               </div>
 
               <div>
                 <label>Delimiter:</label>
                 <input type="text"
-                        onChange={handleChangeDelimiter}
-                        value={delimiter}
-                        placeholder="(none)"
-                        maxLength={3}
+                  onChange={handleChangeDelimiter}
+                  value={delimiter}
+                  placeholder="(none)"
+                  maxLength={3}
                 />
               </div>
             </div>
@@ -271,13 +281,13 @@ export const App = () => {
               type="button"
               onClick={onPlayClick}
               disabled={lengthLimit === undefined || generationMode === "steping"}>
-                {playLabel}
+              {playLabel}
             </button>
             <button
               type="button"
               onClick={handleStep}
               disabled={lengthLimit === undefined || generationMode === "playing"}>
-                Step
+              Step
             </button>
           </div>
         </div>
@@ -307,7 +317,7 @@ export const App = () => {
             type="button"
             onClick={handleClearOutput}
             disabled={lengthLimit === undefined || generationMode !== "ready"}>
-              Clear Output
+            Clear Output
           </button>
         </div>
       </div>
@@ -316,7 +326,7 @@ export const App = () => {
 
   if (graphEmpty()) {
     return (
-      <div className={clsx("app", {dragging})}>
+      <div className={clsx("app", { dragging })}>
         <div className="instructions">
           <h2>Markov Chains</h2>
           <p>
@@ -333,14 +343,14 @@ export const App = () => {
   }
 
   return (
-    <div className={clsx("app", {dragging})}>
+    <div className={clsx("app", { dragging })}>
       <div className="split">
         <div className="left">
           <h2>Markov Chains</h2>
           <Graph
             graph={graph}
             highlightNode={highlightNode}
-            highlightNextNode={highlightNextNode}
+            highlightEdge={highlightEdge}
             highlightColor={highlightColor}
             highlightAllNextNodes={highlightAllNextNodes}
           />
