@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
-import { GraphData, Node } from "../type";
+import { Edge, GraphData, Node } from "../type";
 
 import "./graph.scss";
 
 export type GraphSettings = {
   minRadius: number;
   maxRadius: number;
+  minStroke: number;
+  maxStroke: number;
   marginFactor: number;
   minFontSize: number;
 };
@@ -16,7 +18,7 @@ export type GraphSettings = {
 type Props = {
   graph: GraphData,
   highlightNode?: Node,
-  highlightNextNode?: Node,
+  highlightEdge?: Edge,
   highlightColor: string
   highlightAllNextNodes: boolean;
 };
@@ -28,7 +30,7 @@ type D3Node = {
   y: number,
   radius: number,
   loops: boolean
-  loopAngle: number
+  loopWeight: number,
   weight: number;
 };
 
@@ -65,6 +67,8 @@ const Pi2 = Math.PI * 2;
 const settings: GraphSettings = {
   minRadius: 25,
   maxRadius: 75,
+  minStroke: 2,
+  maxStroke: 7,
   marginFactor: 0.8,
   minFontSize: 10,
 };
@@ -189,7 +193,7 @@ const calculateNodeFontSize = (d: D3Node) => {
   return {label, fontSize};
 };
 
-export const Graph = ({graph, highlightNode, highlightNextNode, highlightAllNextNodes, highlightColor}: Props) => {
+export const Graph = ({graph, highlightNode, highlightEdge, highlightAllNextNodes, highlightColor}: Props) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -211,8 +215,9 @@ export const Graph = ({graph, highlightNode, highlightNextNode, highlightAllNext
     const d3NodeMap: Record<string, D3Node> = {};
 
     // get the sum of all the values
-    const totalValue = graph.nodes.reduce((acc, cur) => acc + cur.value, 0);
-    const {minRadius, maxRadius} = settings;
+    const totalNodeValue = graph.nodes.reduce((acc, cur) => acc + cur.value, 0);
+    const totalEdgeValue = graph.edges.reduce((acc, cur) => acc + cur.value, 0);
+    const {minRadius, maxRadius, minStroke, maxStroke} = settings;
 
     graph.nodes.forEach((node, index) => {
       const d3Node: D3Node = {
@@ -221,20 +226,25 @@ export const Graph = ({graph, highlightNode, highlightNextNode, highlightAllNext
         y: 0,
         label: node.label,
         // radius: 15 + (5 * (node.label.length - 1)) + (5 * node.value),
-        radius: minRadius + ((maxRadius - minRadius) * (node.value / totalValue)),
+        radius: minRadius + ((maxRadius - minRadius) * (node.value / totalNodeValue)),
         loops: false,
-        loopAngle: 0,
+        loopWeight: 0,
         weight: node.value
       };
       newD3Graph.nodes.push(d3Node);
       d3NodeMap[node.id] = d3Node;
     });
+
+    const edgeWeight = (value: number) => minStroke + ((maxStroke - minStroke) * (value / totalEdgeValue));
+
     graph.edges.forEach((edge) => {
       if (edge.from === edge.to) {
         d3NodeMap[edge.from].loops = true;
+        d3NodeMap[edge.from].loopWeight = edgeWeight(edge.value);
       } else {
         newD3Graph.edges.push({
-          weight: edge.value,
+          //weight: edge.value,
+          weight: edgeWeight(edge.value),
           source: d3NodeMap[edge.from],
           target: d3NodeMap[edge.to],
           sourceX: 0, sourceY: 0, targetX: 0, targetY: 0 // calculated after force layout
@@ -403,7 +413,7 @@ export const Graph = ({graph, highlightNode, highlightNextNode, highlightAllNext
       .append("line")
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.6)
-      .attr("stroke-width", d => Math.min(5, 2 * d.weight))
+      .attr("stroke-width", d => d.weight)
       .attr("x1", d => d.sourceX)
       .attr("x2", d => d.targetX)
       .attr("y1", d => d.sourceY)
@@ -422,7 +432,7 @@ export const Graph = ({graph, highlightNode, highlightNextNode, highlightAllNext
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.6)
       .attr("fill-opacity", 0)
-      .attr("stroke-width", 2)
+      .attr("stroke-width", d => d.loopWeight)
       .attr("marker-end", "url(#arrow)");
 
   }, [svgRef, d3Graph, width, height]);
@@ -456,8 +466,9 @@ export const Graph = ({graph, highlightNode, highlightNextNode, highlightAllNext
       .attr("stroke", "#999")
       .attr("stroke-dasharray", "")
       .attr("marker-end", "url(#arrow)")
-      .filter((d: any) => highlightNode?.label === d.source?.label &&
-                          (highlightAllNextNodes || (highlightNextNode?.label === d.target?.label)))
+      .filter((d: any) => ((
+        (highlightNode?.label === d.source?.label && highlightAllNextNodes) ||
+        (highlightEdge?.from === d.source?.label && highlightEdge?.to === d.target?.label))))
       .attr("stroke", highlightColor)
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
       .attr("marker-end", arrowUrl);
@@ -467,13 +478,12 @@ export const Graph = ({graph, highlightNode, highlightNextNode, highlightAllNext
       .attr("stroke", "#999")
       .attr("stroke-dasharray", "")
       .attr("marker-end", "url(#arrow)")
-      .filter((d: any) => highlightNode?.label === d.label &&
-                          (highlightAllNextNodes || (highlightNextNode?.label === d.label)))
+      .filter((d: any) => highlightNode?.label === d.label)
       .attr("stroke", highlightColor)
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
       .attr("marker-end", arrowUrl);
 
-  }, [svgRef, d3Graph.nodes, highlightNode, highlightNextNode, highlightAllNextNodes, highlightColor]);
+  }, [svgRef, d3Graph.nodes, highlightNode, highlightEdge, highlightAllNextNodes, highlightColor]);
 
   return (
     <div className="graph" ref={wrapperRef}>
