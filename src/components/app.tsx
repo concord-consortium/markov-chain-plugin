@@ -6,6 +6,7 @@ import { useGraph } from "../hooks/use-graph";
 import { Graph, orangeColor } from "./graph";
 import { useGenerator } from "../hooks/use-generator";
 import { Edge, Node } from "../type";
+import { Drawing } from "./drawing";
 
 import "./app.scss";
 
@@ -70,10 +71,20 @@ export const App = () => {
   const currentSequence = useRef<Node[]>([]);
   const currentSequenceIndex = useRef(0);
   const animationInterval = useRef<number>();
-  const { graph, updateGraph } = useGraph();
-  const { dragging, outputToDataset } = useCODAP({ onCODAPDataChanged: updateGraph });
+  const { graph, updateGraph, setGraph } = useGraph();
+  const { dragging, outputToDataset, viewMode, setViewMode, notifyStateIsDirty } = useCODAP({
+    onCODAPDataChanged: updateGraph,
+    getGraph: useCallback(() => graph, [graph]),
+    setGraph
+  });
   const { generate } = useGenerator();
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (viewMode === "drawing") {
+      notifyStateIsDirty();
+    }
+  }, [graph, viewMode, notifyStateIsDirty]);
 
   useEffect(() => {
     if (innerOutputRef.current && sequenceGroups.length > 0) {
@@ -128,8 +139,8 @@ export const App = () => {
       setHighlightLoopOnNode(currentNode);
     } else {
       const edge = nextNode
-        ? graph.edges.find(e => e.from === currentNode.label && e.to === nextNode.label)
-        : undefined;
+      ? graph.edges.find(e => e.from === currentNode.id && e.to === nextNode.id)
+      : undefined;
       setHighlightEdge(edge);
       setHighlightNode(nextNode);
       setHighlightColor(orangeColor);
@@ -241,65 +252,67 @@ export const App = () => {
   }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval]);
 
   const uiForGenerate = () => {
-    if (!graphEmpty()) {
-      const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
-      const onPlayClick = generationMode === "playing"
-        ? handlePause
-        : (generationMode === "paused" ? handleResume : handlePlay);
+    const disabled = graphEmpty();
+    const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
+    const onPlayClick = generationMode === "playing"
+      ? handlePause
+      : (generationMode === "paused" ? handleResume : handlePlay);
 
-      return (
-        <div className="generate">
-          <div className="flex-col">
-            <div>
-              <label>Starting State:</label>
-              <select onChange={handleChangeStartingState} value={startingState}>
-                <option value="">{AnyStartingState}</option>
-                {graph.nodes.map(n => <option key={n.id} value={n.id}>{n.id}</option>)}
-              </select>
-            </div>
-
-            <div className="flex-row">
-              <div>
-                <label>Max Length:</label>
-                <input type="number"
-                  value={lengthLimit}
-                  onChange={handleChangeLengthLimit}
-                  min={1}
-                  max={MaxLengthLimit}
-                />
-              </div>
-
-              <div>
-                <label>Delimiter:</label>
-                <input type="text"
-                  onChange={handleChangeDelimiter}
-                  value={delimiter}
-                  placeholder="(none)"
-                  maxLength={3}
-                />
-              </div>
-            </div>
+    return (
+      <div className="generate">
+        <div className="flex-col">
+          <div>
+            <label>Starting State:</label>
+            <select onChange={handleChangeStartingState} value={startingState} disabled={disabled}>
+              <option value="">{AnyStartingState}</option>
+              {graph.nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+            </select>
           </div>
-          <div className="buttons">
-            <button
-              type="button"
-              onClick={onPlayClick}
-              disabled={lengthLimit === undefined || generationMode === "steping"}>
-              {playLabel}
-            </button>
-            <button
-              type="button"
-              onClick={handleStep}
-              disabled={lengthLimit === undefined || generationMode === "playing"}>
-              Step
-            </button>
+
+          <div className="flex-row">
+            <div>
+              <label>Max Length:</label>
+              <input type="number"
+                value={lengthLimit}
+                onChange={handleChangeLengthLimit}
+                min={1}
+                max={MaxLengthLimit}
+                disabled={disabled}
+              />
+            </div>
+
+            <div>
+              <label>Delimiter:</label>
+              <input type="text"
+                onChange={handleChangeDelimiter}
+                value={delimiter}
+                placeholder="(none)"
+                maxLength={3}
+                disabled={disabled}
+              />
+            </div>
           </div>
         </div>
-      );
-    }
+        <div className="buttons">
+          <button
+            type="button"
+            onClick={onPlayClick}
+            disabled={disabled || lengthLimit === undefined || generationMode === "steping"}>
+            {playLabel}
+          </button>
+          <button
+            type="button"
+            onClick={handleStep}
+            disabled={disabled || lengthLimit === undefined || generationMode === "playing"}>
+            Step
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const sequenceOutput = () => {
+    const disabled = sequenceGroups.length === 0;
     return (
       <div className="sequence-output">
         <div className="output">
@@ -320,7 +333,7 @@ export const App = () => {
           <button
             type="button"
             onClick={handleClearOutput}
-            disabled={lengthLimit === undefined || generationMode !== "ready"}>
+            disabled={disabled || lengthLimit === undefined || generationMode !== "ready"}>
             Clear Output
           </button>
         </div>
@@ -328,7 +341,41 @@ export const App = () => {
     );
   };
 
-  if (graphEmpty()) {
+  const handleSelectDatasetMode = () => {
+    setViewMode("dataset");
+    notifyStateIsDirty();
+  };
+
+  const handleSelectDrawingMode = () => {
+    setViewMode("drawing");
+    notifyStateIsDirty();
+  };
+
+  if (!viewMode) {
+    return (
+      <div className={clsx("app")}>
+        <div className="instructions">
+          <h2>Select Mode</h2>
+          <div className="select-view-mode">
+            <div>
+              <button onClick={handleSelectDatasetMode}>Dataset</button>
+              <div>
+                Use existing data to generate a Markov Chain.
+              </div>
+            </div>
+            <div>
+              <button onClick={handleSelectDrawingMode}>Drawing</button>
+              <div>
+                Create a Markov Chain by dragging and dropping elements.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (graphEmpty() && viewMode === "dataset") {
     return (
       <div className={clsx("app", { dragging })}>
         <div className="instructions">
@@ -350,15 +397,31 @@ export const App = () => {
     <div className={clsx("app", { dragging })}>
       <div className="split">
         <div className="left">
-          <h2>Markov Chains</h2>
-          <Graph
-            graph={graph}
-            highlightNode={highlightNode}
-            highlightLoopOnNode={highlightLoopOnNode}
-            highlightEdge={highlightEdge}
-            highlightColor={highlightColor}
-            highlightAllNextNodes={highlightAllNextNodes}
-          />
+          {viewMode === "drawing"
+            ?
+              <Drawing
+                graph={graph}
+                highlightNode={highlightNode}
+                highlightLoopOnNode={highlightLoopOnNode}
+                highlightEdge={highlightEdge}
+                highlightColor={highlightColor}
+                highlightAllNextNodes={highlightAllNextNodes}
+                setGraph={setGraph}
+                setHighlightNode={setHighlightNode}
+              />
+            :
+              <Graph
+              mode="dataset"
+              graph={graph}
+              highlightNode={highlightNode}
+              highlightLoopOnNode={highlightLoopOnNode}
+              highlightEdge={highlightEdge}
+              highlightColor={highlightColor}
+              highlightAllNextNodes={highlightAllNextNodes}
+              allowDragging={true}
+              autoArrange={true}
+            />
+          }
         </div>
         <div className="right">
           {uiForGenerate()}
@@ -368,4 +431,3 @@ export const App = () => {
     </div>
   );
 };
-

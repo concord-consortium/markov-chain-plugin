@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Node } from "../type";
+import { GraphData, Node } from "../type";
 import {
   getValuesForAttribute,
   // entityInfo,
@@ -25,23 +25,51 @@ export type CODAPAttribute = {
 };
 
 export type OnCODAPDataChanged = (values: string[]) => void;
+export type GetGraphCallback = () => GraphData;
 
+export type ViewMode = "dataset"|"drawing";
 export type OutputTextMode = "replace"|"append";
 
-export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataChanged}) => {
+export type UseCODAPOptions = {
+  onCODAPDataChanged: OnCODAPDataChanged;
+  getGraph: GetGraphCallback;
+  setGraph: React.Dispatch<React.SetStateAction<GraphData>>
+};
+
+export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph}: UseCODAPOptions) => {
   const [initialized, setInitialized] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
   const [sequenceNumber, setSequenceNumber] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode|undefined>();
 
   const getPluginState = useCallback(() => {
-    return {
+    const state: any = {
       success: true,
       values: {
-        attribute
+        attribute,
+        viewMode,
       }
     };
-  }, [attribute]);
+
+    if (viewMode === "drawing") {
+      const {nodes, edges} = getGraph();
+      state.values.nodes = nodes;
+      state.values.edges = edges;
+    }
+
+    return state;
+  }, [attribute, viewMode, getGraph]);
+
+  const notifyStateIsDirty = async () => {
+    await codapInterface.sendRequest([{
+      action: "notify",
+      resource: "interactiveFrame",
+      values: {
+        dirty: true
+      }
+    }]);
+  };
 
   const handleDataChanged = useCallback(async ({datasetName, collectionName, attributeName}: CODAPAttribute) => {
     const values = await getValuesForAttribute(datasetName, collectionName, attributeName);
@@ -49,14 +77,29 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
   }, [onCODAPDataChanged]);
 
   const setPluginState = useCallback((values: any) => {
-    if (values.attribute) {
-      setAttribute(values.attribute);
-      handleDataChanged(values.attribute);
+    if (values?.viewMode) {
+      setViewMode(values.viewMode);
+
+      if (values.viewMode === "drawing") {
+        const {nodes, edges} = values;
+        if (nodes !== undefined && edges !== undefined) {
+          setGraph({nodes, edges});
+        }
+      } else {
+        if (values?.attribute) {
+          setAttribute(values.attribute);
+          handleDataChanged(values.attribute);
+        }
+      }
     }
-  }, [setAttribute, handleDataChanged]);
+  }, [setAttribute, handleDataChanged, setGraph]);
 
   const handleDrop = useCallback(async (iMessage: any) => {
     let newAttribute: CODAPAttribute;
+
+    if (viewMode !== "dataset") {
+      return;
+    }
 
     switch (iMessage.values.operation) {
       case "dragstart":
@@ -75,18 +118,10 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
         };
         setAttribute(newAttribute);
         await handleDataChanged(newAttribute);
-
-        // tell CODAP we are dirty
-        await codapInterface.sendRequest([{
-          action: "notify",
-          resource: "interactiveFrame",
-          values: {
-            dirty: true
-          }
-        }]);
+        await notifyStateIsDirty();
         break;
     }
-  }, [setDragging, setAttribute, handleDataChanged]);
+  }, [setDragging, setAttribute, handleDataChanged, viewMode]);
 
   const handleCasesChanged = useCallback(async () => {
     if (attribute) {
@@ -223,5 +258,8 @@ export const useCODAP = ({onCODAPDataChanged}: {onCODAPDataChanged: OnCODAPDataC
   return {
     dragging,
     outputToDataset,
+    viewMode,
+    setViewMode,
+    notifyStateIsDirty
   };
 };

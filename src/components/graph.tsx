@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
+import { ViewMode } from "../hooks/use-codap";
 
 import "./graph.scss";
 
@@ -15,17 +16,31 @@ export type GraphSettings = {
   minFontSize: number;
 };
 
+export type Point = {x: number, y: number};
+
+export type RubberBand = {from: string, to: Point};
+
 type Props = {
   graph: GraphData,
+  mode: ViewMode;
   highlightNode?: Node,
   highlightLoopOnNode?: Node,
   highlightEdge?: Edge,
   highlightColor: string
   highlightAllNextNodes: boolean;
+  allowDragging: boolean;
+  autoArrange: boolean;
+  rubberBand?: RubberBand;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onNodeClick?: (id: string, onLoop?: boolean) => void;
+  onNodeDoubleClick?: (id: string) => void;
+  onEdgeClick?: (options: {from: string, to: string}) => void;
+  onDragStop?: (id: string, pos: Point) => void;
 };
 
 type D3Node = {
   index: number,
+  id: string;
   label: string;
   x: number,
   y: number,
@@ -94,9 +109,9 @@ const findLineBetweenEllipses = ({x1, y1, r1, x2, y2, r2, nodeEdgeCount}: FindLi
 
 const calculateEdges = (edges: D3Edge[]) => {
   const getKey = (edge: D3Edge) => {
-    const labels = [edge.source.label, edge.target.label];
-    labels.sort();
-    return labels.join(":");
+    const ids = [edge.source.id, edge.target.id];
+    ids.sort();
+    return ids.join(":");
   };
   const nodeEdgeCounts = edges.reduce<Map<string,{source: D3Node, count: number}>>((acc, edge) => {
     const key = getKey(edge);
@@ -149,8 +164,8 @@ const nodeLoopPath = (node: D3Node) => {
 };
 
 const graphSignature = (graph: D3Graph) => {
-  const nodeSignature = graph.nodes.map(n => `${n.label}/${n.weight}/${n.radius}`);
-  const edgeSignature = graph.edges.map(e => `${e.source.label}/${e.target.label}/${e.weight}`);
+  const nodeSignature = graph.nodes.map(n => `$${n.id}/${n.weight}/${n.radius}`);
+  const edgeSignature = graph.edges.map(e => `${e.source.id}/${e.target.id}/${e.weight}`);
   return `${nodeSignature}::${edgeSignature}`;
 };
 
@@ -194,7 +209,9 @@ const calculateNodeFontSize = (d: D3Node) => {
 };
 
 export const Graph = (props: Props) => {
-  const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightColor} = props;
+  const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
+         highlightColor, allowDragging, autoArrange, mode, rubberBand,
+         onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -223,8 +240,9 @@ export const Graph = (props: Props) => {
     graph.nodes.forEach((node, index) => {
       const d3Node: D3Node = {
         index,
-        x: 0,
-        y: 0,
+        id: node.id,
+        x: node.x || 0,
+        y: node.y || 0,
         label: node.label,
         // radius: 15 + (5 * (node.label.length - 1)) + (5 * node.value),
         radius: minRadius + ((maxRadius - minRadius) * (node.value / totalNodeValue)),
@@ -266,6 +284,7 @@ export const Graph = (props: Props) => {
     }
 
     const svg = d3.select(svgRef.current);
+    let simulation: d3.Simulation<D3Node, undefined>|undefined;
 
     // clear the existing items
     svg.selectAll("*").remove();
@@ -309,27 +328,38 @@ export const Graph = (props: Props) => {
       .append("g");
 
     const dragStart = (d: any) => {
-      simulation.alphaTarget(0.5).restart();
+      simulation?.alphaTarget(0.5).restart();
       d.fx = d.x;
       d.fy = d.y;
     };
 
     const dragging = (event: any, d: any) => {
       // simulation.alpha(0.5).restart()
-      d.fx = event.x;
-      d.fy = event.y;
+      if (autoArrange) {
+        d.fx = event.x;
+        d.fy = event.y;
+      } else {
+        d.x = event.x;
+        d.y = event.y;
+
+        // update graph
+        tick();
+      }
     };
 
     const dragEnd = (d: any) => {
-      simulation.alphaTarget(0);
+      simulation?.alphaTarget(0);
       d.fx = null;
       d.fy = null;
+      onDragStop?.(d.subject.id, {x: d.x, y: d.y});
     };
 
     const drag = d3.drag()
       .on("start", dragStart)
       .on("drag", dragging)
       .on("end", dragEnd);
+
+    let waitForDouble: number|undefined = undefined;
 
     const circles = nodes
       .append("ellipse")
@@ -340,7 +370,23 @@ export const Graph = (props: Props) => {
       .attr("ry", d => ry(d.radius))
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
-      .call(drag as any);
+      .on("click", (e, d) => {
+        if (waitForDouble) {
+          clearTimeout(waitForDouble);
+          waitForDouble = undefined;
+          onNodeDoubleClick?.(d.id);
+        } else {
+          waitForDouble = setTimeout(() => {
+            onNodeClick?.(d.id);
+            waitForDouble = undefined;
+          }, 250);
+        }
+      })
+      ;
+
+    if (allowDragging) {
+      circles.call(drag as any);
+    }
 
     const finalLabelsAndFontSizes: Array<{label: string, fontSize: number}> = [];
     nodes.each(d => {
@@ -372,18 +418,21 @@ export const Graph = (props: Props) => {
       loops.attr("d", nodeLoopPath);
     };
 
-    // Create a new force simulation and assign forces
-    const simulation = d3
-      .forceSimulation(d3Graph.nodes)
-      .force("link", d3.forceLink(d3Graph.edges).distance(e => (e.source.radius + e.target.radius) * 1.5))
-      .force("charge", d3.forceManyBody().strength(-350))
-      .force("x", d3.forceX())
-      .force("y", d3.forceY())
-      .on("tick", tick);
 
-    // ensure node values before calculating edge positions
-    while (simulation.alpha() > simulation.alphaMin()) {
-      simulation.tick();
+    if (autoArrange) {
+      // Create a new force simulation and assign forces
+      simulation = d3
+        .forceSimulation(d3Graph.nodes)
+        .force("link", d3.forceLink(d3Graph.edges).distance(e => (e.source.radius + e.target.radius) * 1.5))
+        .force("charge", d3.forceManyBody().strength(-350))
+        .force("x", d3.forceX())
+        .force("y", d3.forceY())
+        .on("tick", tick);
+
+      // ensure node values before calculating edge positions
+      while (simulation.alpha() > simulation.alphaMin()) {
+        simulation.tick();
+      }
     }
 
     // calculate the edge positions
@@ -392,10 +441,11 @@ export const Graph = (props: Props) => {
 
     // draw edges
     const lines = svg
-      .selectAll("line")
+      .selectAll("line.edge")
       .data(d3Graph.edges)
       .enter()
       .append("line")
+      .attr("class", "edge")
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.6)
       .attr("stroke-width", d => d.weight)
@@ -403,9 +453,13 @@ export const Graph = (props: Props) => {
       .attr("x2", d => d.targetX)
       .attr("y1", d => d.sourceY)
       .attr("y2", d => d.targetY)
-      .attr("data-from", d => d.source.label)
-      .attr("data-to", d => d.target.label)
-      .attr("marker-end", "url(#arrow)");
+      .attr("data-from", d => d.source.id)
+      .attr("data-to", d => d.target.id)
+      .attr("marker-end", "url(#arrow)")
+      .on("click", (e, d) => {
+        onEdgeClick?.({from: d.source.id, to: d.target.id});
+      })
+      ;
 
     const loops = svg
       .selectAll("path.loop")
@@ -418,9 +472,33 @@ export const Graph = (props: Props) => {
       .attr("stroke-opacity", 0.6)
       .attr("fill-opacity", 0)
       .attr("stroke-width", d => d.loopWeight)
-      .attr("marker-end", "url(#arrow)");
+      .attr("marker-end", "url(#arrow)")
+      .on("click", (e, d) => {
+        onNodeClick?.(d.id, true);
+      })
+      ;
 
-  }, [svgRef, d3Graph, width, height]);
+    const rubberBandNode = d3Graph.nodes.find(n => n.id === rubberBand?.from);
+    if (rubberBand && rubberBandNode) {
+      const data = [{x1: rubberBandNode.x, x2: rubberBand.to.x, y1: rubberBandNode.y, y2: rubberBand.to.y}];
+      svg
+        .selectAll("line.rubberband")
+        .data(data)
+        .enter()
+        .append("line")
+        .attr("class", "rubberband")
+        .attr("stroke", "#999")
+        .attr("stroke-opacity", 0.6)
+        .attr("stroke-width", 2)
+        .attr("x1", d => d.x1)
+        .attr("x2", d => d.x2)
+        .attr("y1", d => d.y1)
+        .attr("y2", d => d.y2)
+        .attr("marker-end", "url(#arrow)");
+    }
+
+  }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand,
+      onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop]);
 
   // animate the node if needed
   useEffect(() => {
@@ -440,7 +518,7 @@ export const Graph = (props: Props) => {
     svg
       .selectAll("g")
       .selectAll("ellipse")
-      .filter((d: any) => highlightNode?.label === d.label)
+      .filter((d: any) => highlightNode?.id === d.id)
       .attr("fill", highlightColor);
 
     const arrowUrl = "url(#highlightOrangeArrow)";
@@ -452,8 +530,8 @@ export const Graph = (props: Props) => {
       .attr("stroke-dasharray", "")
       .attr("marker-end", "url(#arrow)")
       .filter((d: any) => ((
-        (highlightNode?.label === d.source?.label && highlightAllNextNodes) ||
-        (highlightEdge?.from === d.source?.label && highlightEdge?.to === d.target?.label))))
+        (highlightNode?.id === d.source?.id && highlightAllNextNodes) ||
+        (highlightEdge?.from === d.source?.id && highlightEdge?.to === d.target?.id))))
       .attr("stroke", highlightColor)
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
       .attr("marker-end", arrowUrl);
@@ -463,20 +541,29 @@ export const Graph = (props: Props) => {
       .attr("stroke", "#999")
       .attr("stroke-dasharray", "")
       .attr("marker-end", "url(#arrow)")
-      .filter((d: any) => highlightLoopOnNode?.label === d.label)
+      .filter((d: any) => highlightLoopOnNode?.id === d.id)
       .attr("stroke", highlightColor)
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
       .attr("marker-end", arrowUrl);
 
   }, [svgRef, d3Graph.nodes, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightColor]);
 
+  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!autoArrange && onClick) {
+      onClick(e);
+    }
+  }, [autoArrange, onClick]);
+
+  const viewBox = mode === "drawing" ? `0 0 ${width} ${height}` : `${-width / 2} ${-height / 2} ${width} ${height}`;
+
   return (
-    <div className="graph" ref={wrapperRef}>
+    <div className="graph" ref={wrapperRef} onClick={handleClick}>
       <svg
         width={width}
         height={height}
         id="barchart"
-        viewBox={`${-width / 2} ${-height / 2} ${width} ${height}`} ref={svgRef}
+        viewBox={viewBox}
+        ref={svgRef}
       />
     </div>
   );

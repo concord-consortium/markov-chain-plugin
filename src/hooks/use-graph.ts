@@ -44,6 +44,7 @@ export const useGraph = () => {
 
   return {
     graph,
-    updateGraph
+    updateGraph,
+    setGraph
   };
 };

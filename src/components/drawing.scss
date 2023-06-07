@@ -1,0 +1,77 @@
+.drawing {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    background-color: #ddd;
+
+    button {
+      width: 30px;
+      height: 30px;
+      padding: 2px;
+
+      &.selected {
+        background-color: #999;
+
+        svg path {
+          stroke: white;
+          fill: white;
+        }
+      }
+    }
+  }
+
+  .dragIcon {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    padding: 2px;
+    pointer-events: none;
+  }
+
+  .nodeModalBackground {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: #000;
+    opacity: 0.25;
+  }
+  .nodeModal {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .nodeModalTitle {
+      background-color: #177991;
+      color: white;
+      padding: 5px 10px;
+    }
+
+    form {
+      padding: 10px;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .nodeModalButtons {
+        display: flex;
+        gap: 5px;
+        justify-content: flex-end;
+      }
+    }
+  }
+
+}
