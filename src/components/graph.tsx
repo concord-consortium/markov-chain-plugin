@@ -18,6 +18,7 @@ export type GraphSettings = {
 type Props = {
   graph: GraphData,
   highlightNode?: Node,
+  highlightLoopOnNode?: Node,
   highlightEdge?: Edge,
   highlightColor: string
   highlightAllNextNodes: boolean;
@@ -57,7 +58,6 @@ type FindPointOnEllipseArgs = {
 };
 
 export const orangeColor = "#FF9900";
-export const blueColor = "#C9DAF8";
 
 const startLoopAngle = 0.25 * Math.PI;
 const endLoopAngle = 1.75 * Math.PI;
@@ -193,7 +193,8 @@ const calculateNodeFontSize = (d: D3Node) => {
   return {label, fontSize};
 };
 
-export const Graph = ({graph, highlightNode, highlightEdge, highlightAllNextNodes, highlightColor}: Props) => {
+export const Graph = (props: Props) => {
+  const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightColor} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -299,22 +300,6 @@ export const Graph = ({graph, highlightNode, highlightEdge, highlightAllNextNode
       .attr("stroke", orangeColor)
       .attr("stroke-width", 2)
       .style("fill", orangeColor);
-
-    svg
-      .append("svg:defs")
-      .append("svg:marker")
-      .attr("id", "highlightBlueArrow")
-      .attr("refX", 12)
-      .attr("refY", 6)
-      .attr("markerWidth", 30)
-      .attr("markerHeight", 30)
-      .attr("markerUnits","userSpaceOnUse")
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
-      .attr("stroke", blueColor)
-      .attr("stroke-width", 2)
-      .style("fill", blueColor);
 
     // draw nodes
     const nodes = svg
@@ -458,7 +443,7 @@ export const Graph = ({graph, highlightNode, highlightEdge, highlightAllNextNode
       .filter((d: any) => highlightNode?.label === d.label)
       .attr("fill", highlightColor);
 
-    const arrowUrl = highlightColor === orangeColor ? "url(#highlightOrangeArrow)" : "url(#highlightBlueArrow)";
+    const arrowUrl = "url(#highlightOrangeArrow)";
 
     // highlight animated edges
     svg
@@ -478,12 +463,12 @@ export const Graph = ({graph, highlightNode, highlightEdge, highlightAllNextNode
       .attr("stroke", "#999")
       .attr("stroke-dasharray", "")
       .attr("marker-end", "url(#arrow)")
-      .filter((d: any) => highlightNode?.label === d.label)
+      .filter((d: any) => highlightLoopOnNode?.label === d.label)
       .attr("stroke", highlightColor)
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
       .attr("marker-end", arrowUrl);
 
-  }, [svgRef, d3Graph.nodes, highlightNode, highlightEdge, highlightAllNextNodes, highlightColor]);
+  }, [svgRef, d3Graph.nodes, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightColor]);
 
   return (
     <div className="graph" ref={wrapperRef}>

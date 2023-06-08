@@ -3,7 +3,7 @@ import { clsx } from "clsx";
 
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
-import { Graph, blueColor, orangeColor } from "./graph";
+import { Graph, orangeColor } from "./graph";
 import { useGenerator } from "../hooks/use-generator";
 import { Edge, Node } from "../type";
 
@@ -58,6 +58,7 @@ export const App = () => {
   const [startingState, setStartingState] = useState("");
   const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
   const [highlightNode, setHighlightNode] = useState<Node>();
+  const [highlightLoopOnNode, setHighlightLoopOnNode] = useState<Node>();
   const [highlightEdge, setHighlightEdge] = useState<Edge>();
   const [highlightAllNextNodes, setHighlightAllNextNodes] = useState(false);
   const [highlightColor, setHighlightColor] = useState(orangeColor);
@@ -121,17 +122,19 @@ export const App = () => {
     if (inBeforeStep()) {
       setHighlightNode(currentNode);
       setHighlightEdge(undefined);
-      setHighlightColor(nextNode ? orangeColor : blueColor);
+      setHighlightColor(orangeColor);
       // highlight all the possible edges if we have a next node
       setHighlightAllNextNodes(!!nextNode);
+      setHighlightLoopOnNode(currentNode);
     } else {
       const edge = nextNode
         ? graph.edges.find(e => e.from === currentNode.label && e.to === nextNode.label)
         : undefined;
       setHighlightEdge(edge);
       setHighlightNode(nextNode);
-      setHighlightColor(blueColor);
+      setHighlightColor(orangeColor);
       setHighlightAllNextNodes(false);
+      setHighlightLoopOnNode(nextNode === currentNode ? nextNode : undefined);
     }
 
     if (currentAnimatedSequenceGroup.current) {
@@ -146,6 +149,7 @@ export const App = () => {
   const finishAnimating = useCallback(async () => {
     setHighlightNode(undefined);
     setHighlightEdge(undefined);
+    setHighlightLoopOnNode(undefined);
     stopAnimationInterval();
 
     await outputToDataset(currentSequence.current);
@@ -350,6 +354,7 @@ export const App = () => {
           <Graph
             graph={graph}
             highlightNode={highlightNode}
+            highlightLoopOnNode={highlightLoopOnNode}
             highlightEdge={highlightEdge}
             highlightColor={highlightColor}
             highlightAllNextNodes={highlightAllNextNodes}
