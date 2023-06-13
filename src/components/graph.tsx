@@ -164,7 +164,7 @@ const nodeLoopPath = (node: D3Node) => {
 };
 
 const graphSignature = (graph: D3Graph) => {
-  const nodeSignature = graph.nodes.map(n => `$${n.id}/${n.weight}/${n.radius}`);
+  const nodeSignature = graph.nodes.map(n => `${n.id}/${n.label}/${n.weight}/${n.radius}`);
   const edgeSignature = graph.edges.map(e => `${e.source.id}/${e.target.id}/${e.weight}`);
   return `${nodeSignature}::${edgeSignature}`;
 };
@@ -218,6 +218,7 @@ export const Graph = (props: Props) => {
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
   const [d3Graph, setD3Graph] = useState<D3Graph>({nodes: [], edges: []});
+  const waitForDoubleRef = useRef<number|undefined>(undefined);
 
   // calculate the svg dimensions
   useEffect(() => {
@@ -359,8 +360,6 @@ export const Graph = (props: Props) => {
       .on("drag", dragging)
       .on("end", dragEnd);
 
-    let waitForDouble: number|undefined = undefined;
-
     const circles = nodes
       .append("ellipse")
       .attr("fill", "#fff")
@@ -371,14 +370,14 @@ export const Graph = (props: Props) => {
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
       .on("click", (e, d) => {
-        if (waitForDouble) {
-          clearTimeout(waitForDouble);
-          waitForDouble = undefined;
+        if (waitForDoubleRef.current) {
+          clearTimeout(waitForDoubleRef.current);
+          waitForDoubleRef.current = undefined;
           onNodeDoubleClick?.(d.id);
         } else {
-          waitForDouble = setTimeout(() => {
+          waitForDoubleRef.current = setTimeout(() => {
             onNodeClick?.(d.id);
-            waitForDouble = undefined;
+            waitForDoubleRef.current = undefined;
           }, 250);
         }
       })

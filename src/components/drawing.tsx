@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
+import { nanoid } from "nanoid";
 
 import { Graph, Point, RubberBand } from "./graph";
 import { Edge, GraphData, Node } from "../type";
@@ -147,7 +148,7 @@ export const Drawing = (props: Props) => {
 
   const addNode = useCallback(({x, y}: {x: number, y: number}) => {
     setGraph(prev => {
-      const id = `node_${prev.nodes.length + 1}`;
+      const id = nanoid();
       const label = `State ${prev.nodes.length + 1}`;
       const newNode: Node = {id, label, value: 1, x, y};
       return {
