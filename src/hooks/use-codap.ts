@@ -11,7 +11,7 @@ import {
 import codapInterface from "../utils/codap-interface";
 
 const PluginName = "Markov Chain";
-const PluginVersion = "0.16";
+const PluginVersion = "0.18";
 const InitialDimensions = {
   width: 600,
   height: 420
