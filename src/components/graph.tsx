@@ -32,6 +32,7 @@ type Props = {
   autoArrange: boolean;
   rubberBand?: RubberBand;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onMouseUp?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onNodeClick?: (id: string, onLoop?: boolean) => void;
   onNodeDoubleClick?: (id: string) => void;
   onEdgeClick?: (options: {from: string, to: string}) => void;
@@ -211,7 +212,7 @@ const calculateNodeFontSize = (d: D3Node) => {
 export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
          highlightColor, allowDragging, autoArrange, mode, rubberBand,
-         onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop} = props;
+         onClick, onMouseUp, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -553,10 +554,16 @@ export const Graph = (props: Props) => {
     }
   }, [autoArrange, onClick]);
 
+  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!autoArrange && onMouseUp) {
+      onMouseUp(e);
+    }
+  }, [autoArrange, onMouseUp]);
+
   const viewBox = mode === "drawing" ? `0 0 ${width} ${height}` : `${-width / 2} ${-height / 2} ${width} ${height}`;
 
   return (
-    <div className="graph" ref={wrapperRef} onClick={handleClick}>
+    <div className="graph" ref={wrapperRef} onClick={handleClick} onMouseUp={handleMouseUp}>
       <svg
         width={width}
         height={height}
