@@ -414,12 +414,19 @@ export const Graph = (props: Props) => {
 
       d3Graph.edges = calculateEdges(d3Graph.edges);
 
+      lineBackgrounds
+        .attr("x1", d => d.sourceX)
+        .attr("x2", d => d.targetX)
+        .attr("y1", d => d.sourceY)
+        .attr("y2", d => d.targetY);
+
       lines
         .attr("x1", d => d.sourceX)
         .attr("x2", d => d.targetX)
         .attr("y1", d => d.sourceY)
         .attr("y2", d => d.targetY);
 
+      loopBackgrounds.attr("d", nodeLoopPath);
       loops.attr("d", nodeLoopPath);
     };
 
@@ -444,6 +451,26 @@ export const Graph = (props: Props) => {
     d3Graph.edges = calculateEdges(d3Graph.edges);
     // d3Graph.nodes = calculateLoops(d3Graph);
 
+    // draw backgrounds for edges to increase click area
+    const lineBackgrounds = svg
+      .selectAll("line.edge-background")
+      .data(d3Graph.edges)
+      .enter()
+      .append("line")
+      .attr("class", "edge-background")
+      .attr("stroke", "#000")
+      .attr("stroke-opacity", 0)
+      .attr("stroke-width", 15)
+      .attr("x1", d => d.sourceX)
+      .attr("x2", d => d.targetX)
+      .attr("y1", d => d.sourceY)
+      .attr("y2", d => d.targetY)
+      .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
+      .on("click", (e, d) => {
+        onEdgeClick?.({from: d.source.id, to: d.target.id});
+      })
+      ;
+
     // draw edges
     const lines = svg
       .selectAll("line.edge")
@@ -458,12 +485,27 @@ export const Graph = (props: Props) => {
       .attr("x2", d => d.targetX)
       .attr("y1", d => d.sourceY)
       .attr("y2", d => d.targetY)
-      .attr("data-from", d => d.source.id)
-      .attr("data-to", d => d.target.id)
       .attr("marker-end", "url(#arrow)")
       .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
       .on("click", (e, d) => {
         onEdgeClick?.({from: d.source.id, to: d.target.id});
+      })
+      ;
+
+    const loopBackgrounds = svg
+      .selectAll("path.loop-background")
+      .data(d3Graph.nodes.filter(n => n.loops))
+      .enter()
+      .append("path")
+      .attr("class", "loop-background")
+      .attr("d", nodeLoopPath)
+      .attr("stroke", "#000")
+      .attr("stroke-opacity", 0)
+      .attr("fill-opacity", 0)
+      .attr("stroke-width", 15)
+      .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
+      .on("click", (e, d) => {
+        onNodeClick?.(d.id, true);
       })
       ;
 
