@@ -180,6 +180,15 @@ export const Drawing = (props: Props) => {
     }
   }, [drawingMode, addNode, handleSetSelectMode]);
 
+  // allow nodes to be "dragged" from the toolbar to the canvas
+  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (drawingMode === "addNode") {
+      handleClicked(e);
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, [drawingMode, handleClicked]);
+
   const handleNodeClicked = useCallback((id: string, onLoop?: boolean) => {
     const node = getNode(id);
     if (!node) {
@@ -296,7 +305,7 @@ export const Drawing = (props: Props) => {
         </button>
         <button
           title="Add State"
-          onClick={handleSetAddNodeMode}
+          onMouseDown={handleSetAddNodeMode}
           className={clsx({selected: drawingMode === "addNode"})}
         >
           <AddNodeIcon />
@@ -328,6 +337,7 @@ export const Drawing = (props: Props) => {
         autoArrange={false}
         rubberBand={rubberBand}
         onClick={handleClicked}
+        onMouseUp={handleMouseUp}
         onNodeClick={handleNodeClicked}
         onNodeDoubleClick={handleNodeDoubleClicked}
         onEdgeClick={handleEdgeClicked}
