@@ -7,6 +7,9 @@ import { ViewMode } from "../hooks/use-codap";
 
 import "./graph.scss";
 
+export type DrawingMode = "select"|"addNode"|"addEdge"|"delete";
+
+
 export type GraphSettings = {
   minRadius: number;
   maxRadius: number;
@@ -31,6 +34,7 @@ type Props = {
   allowDragging: boolean;
   autoArrange: boolean;
   rubberBand?: RubberBand;
+  drawingMode?: DrawingMode;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onMouseUp?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onNodeClick?: (id: string, onLoop?: boolean) => void;
@@ -211,7 +215,7 @@ const calculateNodeFontSize = (d: D3Node) => {
 
 export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
-         highlightColor, allowDragging, autoArrange, mode, rubberBand,
+         highlightColor, allowDragging, autoArrange, mode, rubberBand, drawingMode,
          onClick, onMouseUp, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -370,6 +374,7 @@ export const Graph = (props: Props) => {
       .attr("ry", d => ry(d.radius))
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
+      .attr("style", drawingMode !== "addNode" ? "cursor: pointer" : "")
       .on("click", (e, d) => {
         if (waitForDoubleRef.current) {
           clearTimeout(waitForDoubleRef.current);
@@ -456,6 +461,7 @@ export const Graph = (props: Props) => {
       .attr("data-from", d => d.source.id)
       .attr("data-to", d => d.target.id)
       .attr("marker-end", "url(#arrow)")
+      .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
       .on("click", (e, d) => {
         onEdgeClick?.({from: d.source.id, to: d.target.id});
       })
@@ -473,6 +479,7 @@ export const Graph = (props: Props) => {
       .attr("fill-opacity", 0)
       .attr("stroke-width", d => d.loopWeight)
       .attr("marker-end", "url(#arrow)")
+      .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
       .on("click", (e, d) => {
         onNodeClick?.(d.id, true);
       })
@@ -497,7 +504,7 @@ export const Graph = (props: Props) => {
         .attr("marker-end", "url(#arrow)");
     }
 
-  }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand,
+  }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand, drawingMode,
       onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop]);
 
   // animate the node if needed
