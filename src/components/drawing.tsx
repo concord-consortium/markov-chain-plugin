@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { nanoid } from "nanoid";
 
-import { Graph, Point, RubberBand } from "./graph";
+import { DrawingMode, Graph, Point, RubberBand } from "./graph";
 import { Edge, GraphData, Node } from "../type";
 
 import SelectIcon from "../assets/select-icon.svg";
@@ -11,8 +11,6 @@ import AddEdgeIcon from "../assets/add-edge-icon.svg";
 import DeleteIcon from "../assets/delete-icon.svg";
 
 import "./drawing.scss";
-
-type DrawingMode = "select"|"addNode"|"addEdge"|"delete";
 
 interface NodeModalProps {
   node?: Node,
@@ -327,6 +325,7 @@ export const Drawing = (props: Props) => {
       </div>
       <Graph
         mode="drawing"
+        drawingMode={drawingMode}
         graph={graph}
         highlightNode={highlightNode}
         highlightEdge={highlightEdge}
