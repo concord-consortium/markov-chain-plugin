@@ -9,7 +9,6 @@ import "./graph.scss";
 
 export type DrawingMode = "select"|"addNode"|"addEdge"|"delete";
 
-
 export type GraphSettings = {
   minRadius: number;
   maxRadius: number;
@@ -63,6 +62,7 @@ type D3Edge = {
   targetX: number,
   targetY: number,
   weight: number;
+  value: number;
 };
 
 type D3Graph = {
@@ -213,6 +213,8 @@ const calculateNodeFontSize = (d: D3Node) => {
   return {label, fontSize};
 };
 
+const lineDashArray = (edge: D3Edge) => edge.value ? "" : "4";
+
 export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
          highlightColor, allowDragging, autoArrange, mode, rubberBand, drawingMode,
@@ -268,7 +270,7 @@ export const Graph = (props: Props) => {
         d3NodeMap[edge.from].loopWeight = edgeWeight(edge.value);
       } else {
         newD3Graph.edges.push({
-          //weight: edge.value,
+          value: edge.value,
           weight: edgeWeight(edge.value),
           source: d3NodeMap[edge.from],
           target: d3NodeMap[edge.to],
@@ -492,6 +494,7 @@ export const Graph = (props: Props) => {
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.6)
       .attr("stroke-width", d => d.weight)
+      .attr("stroke-dasharray", d => lineDashArray(d))
       .attr("x1", d => d.sourceX)
       .attr("x2", d => d.targetX)
       .attr("y1", d => d.sourceY)
@@ -628,11 +631,12 @@ export const Graph = (props: Props) => {
     svg
       .selectAll("line")
       .attr("stroke", "#999")
-      .attr("stroke-dasharray", "")
+      .attr("stroke-dasharray", (d: any) => lineDashArray(d))
       .attr("marker-end", "url(#arrow)")
       .filter((d: any) => ((
+        (d.value > 0) && (
         (highlightNode?.id === d.source?.id && highlightAllNextNodes) ||
-        (highlightEdge?.from === d.source?.id && highlightEdge?.to === d.target?.id))))
+        (highlightEdge?.from === d.source?.id && highlightEdge?.to === d.target?.id)))))
       .attr("stroke", highlightColor)
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
       .attr("marker-end", arrowUrl);

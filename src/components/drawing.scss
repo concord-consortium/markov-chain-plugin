@@ -42,6 +42,7 @@
     left: 0;
     background: #000;
     opacity: 0.25;
+    z-index: 100;
   }
   .nodeModal {
     position: absolute;
@@ -52,24 +53,29 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 101;
 
-    .nodeModalTitle {
-      background-color: #177991;
-      color: white;
-      padding: 5px 10px;
-    }
+    .nodeModalContent {
+      min-width: 200px;
 
-    form {
-      padding: 10px;
-      background-color: white;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      .nodeModalTitle {
+        background-color: #177991;
+        color: white;
+        padding: 5px 10px;
+      }
 
-      .nodeModalButtons {
+      form {
+        padding: 10px;
+        background-color: white;
         display: flex;
-        gap: 5px;
-        justify-content: flex-end;
+        flex-direction: column;
+        gap: 10px;
+
+        .nodeModalButtons {
+          display: flex;
+          gap: 5px;
+          justify-content: flex-end;
+        }
       }
     }
   }
