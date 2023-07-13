@@ -186,8 +186,14 @@ export const Drawing = (props: Props) => {
     if (drawingMode === "addNode") {
       addNode(translateToGraphPoint(e));
       handleSetSelectMode();
+    } else if (drawingMode === "addEdge") {
+      const onSVGBackground = ((e.target as HTMLElement)?.tagName || "").toLowerCase() === "svg";
+      if (onSVGBackground) {
+        clearSelections();
+        handleSetSelectMode();
+      }
     }
-  }, [drawingMode, addNode, handleSetSelectMode]);
+  }, [drawingMode, addNode, handleSetSelectMode, clearSelections]);
 
   // allow nodes to be "dragged" from the toolbar to the canvas
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
