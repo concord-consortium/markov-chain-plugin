@@ -11,4 +11,8 @@
   .rubberband {
     pointer-events: none;
   }
+
+  svg ellipse.can-add-edge:hover {
+    fill: lightgreen;
+  }
 }

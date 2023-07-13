@@ -367,6 +367,7 @@ export const Graph = (props: Props) => {
 
     const circles = nodes
       .append("ellipse")
+      .attr("class", drawingMode === "addEdge" ? "can-add-edge" : "")
       .attr("fill", "#fff")
       .attr("stroke", "#999")
       .attr("stroke-width", d => 2)
