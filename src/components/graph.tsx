@@ -493,6 +493,8 @@ export const Graph = (props: Props) => {
       })
       ;
 
+    const loopStyle = drawingMode === "delete" ? "cursor: pointer" : "pointer-events: none";
+
     const loopBackgrounds = svg
       .selectAll("path.loop-background")
       .data(d3Graph.nodes.filter(n => n.loops))
@@ -504,7 +506,7 @@ export const Graph = (props: Props) => {
       .attr("stroke-opacity", 0)
       .attr("fill-opacity", 0)
       .attr("stroke-width", 15)
-      .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
+      .attr("style", loopStyle)
       .on("click", (e, d) => {
         onNodeClick?.(d.id, true);
       })
@@ -522,7 +524,7 @@ export const Graph = (props: Props) => {
       .attr("fill-opacity", 0)
       .attr("stroke-width", d => d.loopWeight)
       .attr("marker-end", "url(#arrow)")
-      .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
+      .attr("style", loopStyle)
       .on("click", (e, d) => {
         onNodeClick?.(d.id, true);
       })
