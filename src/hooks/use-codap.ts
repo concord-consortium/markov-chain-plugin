@@ -37,6 +37,7 @@ export type UseCODAPOptions = {
 };
 
 export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph}: UseCODAPOptions) => {
+  const [loadState, setLoadState] = useState<"loading"|"loaded">("loading");
   const [initialized, setInitialized] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
@@ -77,6 +78,8 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph}: UseCODAPOptio
   }, [onCODAPDataChanged]);
 
   const setPluginState = useCallback((values: any) => {
+    setLoadState("loaded");
+
     if (values?.viewMode) {
       setViewMode(values.viewMode);
 
@@ -260,6 +263,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph}: UseCODAPOptio
     outputToDataset,
     viewMode,
     setViewMode,
-    notifyStateIsDirty
+    notifyStateIsDirty,
+    loadState
   };
 };

@@ -7,6 +7,14 @@
   display: flex;
 }
 
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-size: 2em;
+}
+
 .app {
   display: flex;
   flex-direction: column;
