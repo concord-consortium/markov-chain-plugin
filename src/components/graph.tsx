@@ -547,6 +547,44 @@ export const Graph = (props: Props) => {
         .attr("y1", d => d.y1)
         .attr("y2", d => d.y2)
         .attr("marker-end", "url(#arrow)");
+
+      // add loopback "ghost" with background
+      if (!rubberBandNode.loops) {
+        svg
+          .selectAll("path.ghost-loop-background")
+          .data([rubberBandNode])
+          .enter()
+          .append("path")
+          .attr("class", "ghost-loop-background")
+          .attr("d", nodeLoopPath)
+          .attr("stroke", "#000")
+          .attr("stroke-opacity", 0)
+          .attr("fill-opacity", 0)
+          .attr("stroke-width", 15)
+          .attr("style", "cursor: pointer")
+          .on("click", () => {
+            onNodeClick?.(rubberBandNode.id);
+          })
+          ;
+        svg
+          .selectAll("path.ghost-loop")
+          .data([rubberBandNode])
+          .enter()
+          .append("path")
+          .attr("class", "ghost-loop")
+          .attr("d", nodeLoopPath)
+          .attr("stroke", "#999")
+          .attr("stroke-opacity", 0.6)
+          .attr("stroke-dasharray", 4)
+          .attr("fill-opacity", 0)
+          .attr("stroke-width", 1)
+          .attr("marker-end", "url(#arrow)")
+          .attr("style", "cursor: pointer")
+          .on("click", () => {
+            onNodeClick?.(rubberBandNode.id);
+          })
+          ;
+      }
     }
 
   }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand, drawingMode,
