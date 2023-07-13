@@ -108,6 +108,14 @@ export const Drawing = (props: Props) => {
     };
   };
 
+  const getNode = useCallback((id: string) => graph.nodes.find(n => n.id === id), [graph.nodes]);
+
+  const clearSelections = useCallback(() => {
+    setFirstEdgeNode(undefined);
+    setHighlightNode(undefined);
+    setRubberBand(undefined);
+  }, [setFirstEdgeNode, setHighlightNode]);
+
   useEffect(() => {
     if (drawingMode === "addEdge" && firstEdgeNode) {
       const updateRubberBand = (e: MouseEvent) => {
@@ -119,13 +127,16 @@ export const Drawing = (props: Props) => {
     }
   }, [drawingMode, firstEdgeNode]);
 
-  const getNode = useCallback((id: string) => graph.nodes.find(n => n.id === id), [graph.nodes]);
-
-  const clearSelections = useCallback(() => {
-    setFirstEdgeNode(undefined);
-    setHighlightNode(undefined);
-    setRubberBand(undefined);
-  }, [setFirstEdgeNode, setHighlightNode]);
+  useEffect(() => {
+    const listenForEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        clearSelections();
+        setDrawingMode("select");
+      }
+    };
+    window.addEventListener("keydown", listenForEscape);
+    return () => window.removeEventListener("keydown", listenForEscape);
+  }, [drawingMode, setDrawingMode, clearSelections]);
 
   const handleSetSelectMode = useCallback(() => {
     setDrawingMode("select");
