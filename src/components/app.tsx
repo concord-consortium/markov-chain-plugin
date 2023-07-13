@@ -72,7 +72,7 @@ export const App = () => {
   const currentSequenceIndex = useRef(0);
   const animationInterval = useRef<number>();
   const { graph, updateGraph, setGraph } = useGraph();
-  const { dragging, outputToDataset, viewMode, setViewMode, notifyStateIsDirty } = useCODAP({
+  const { dragging, outputToDataset, viewMode, setViewMode, notifyStateIsDirty, loadState } = useCODAP({
     onCODAPDataChanged: updateGraph,
     getGraph: useCallback(() => graph, [graph]),
     setGraph
@@ -350,6 +350,10 @@ export const App = () => {
     setViewMode("drawing");
     notifyStateIsDirty();
   };
+
+  if (loadState === "loading") {
+    return <div className="loading">Loading ...</div>;
+  }
 
   if (!viewMode) {
     return (
