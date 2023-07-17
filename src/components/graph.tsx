@@ -365,9 +365,14 @@ export const Graph = (props: Props) => {
       .on("drag", dragging)
       .on("end", dragEnd);
 
+    const circleClass = [
+      drawingMode === "addEdge" ? "can-add-edge" : "",
+      drawingMode === "delete" ? "can-delete" : "",
+    ].join(" ");
+
     const circles = nodes
       .append("ellipse")
-      .attr("class", drawingMode === "addEdge" ? "can-add-edge" : "")
+      .attr("class", circleClass)
       .attr("fill", "#fff")
       .attr("stroke", "#999")
       .attr("stroke-width", d => 2)
@@ -452,13 +457,18 @@ export const Graph = (props: Props) => {
     d3Graph.edges = calculateEdges(d3Graph.edges);
     // d3Graph.nodes = calculateLoops(d3Graph);
 
+    const lineBackgroundClass = [
+      "edge-background",
+      drawingMode === "delete" ? "can-delete" : "",
+    ].join(" ");
+
     // draw backgrounds for edges to increase click area
     const lineBackgrounds = svg
       .selectAll("line.edge-background")
       .data(d3Graph.edges)
       .enter()
       .append("line")
-      .attr("class", "edge-background")
+      .attr("class", lineBackgroundClass)
       .attr("stroke", "#000")
       .attr("stroke-opacity", 0)
       .attr("stroke-width", 15)
@@ -487,8 +497,9 @@ export const Graph = (props: Props) => {
       .attr("y1", d => d.sourceY)
       .attr("y2", d => d.targetY)
       .attr("marker-end", "url(#arrow)")
-      .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
+      .attr("style", drawingMode === "delete" ? "pointer-events: none" : "")
       .on("click", (e, d) => {
+        // this is not really needed as the pointer events are off
         onEdgeClick?.({from: d.source.id, to: d.target.id});
       })
       ;
