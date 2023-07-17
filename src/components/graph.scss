@@ -15,4 +15,11 @@
   svg ellipse.can-add-edge:hover {
     fill: lightgreen;
   }
+  svg ellipse.can-delete:hover {
+    fill: lightcoral;
+  }
+  svg line.can-delete:hover {
+    stroke: lightcoral;
+    stroke-opacity: 1;
+  }
 }
