@@ -10,7 +10,7 @@ import { Drawing } from "./drawing";
 
 import "./app.scss";
 
-type GenerationMode = "ready" | "playing" | "paused" | "steping";
+type GenerationMode = "ready" | "playing" | "paused" | "stepping";
 
 const AnyStartingState = "(any)";
 const MaxLengthLimit = 25;
@@ -233,8 +233,8 @@ export const App = () => {
   }, [finishAnimating, startAnimationInterval]);
 
   const handleStep = useCallback(async () => {
-    if (generationMode !== "steping") {
-      setGenerationMode("steping");
+    if ((generationMode !== "stepping") && (generationMode !== "paused")) {
+      setGenerationMode("stepping");
       await generateNewSequence();
       animateCurrentSequenceIndex();
     } else if (currentSequenceAnimating()) {
@@ -297,7 +297,7 @@ export const App = () => {
           <button
             type="button"
             onClick={onPlayClick}
-            disabled={disabled || lengthLimit === undefined || generationMode === "steping"}>
+            disabled={disabled || lengthLimit === undefined || generationMode === "stepping"}>
             {playLabel}
           </button>
           <button
