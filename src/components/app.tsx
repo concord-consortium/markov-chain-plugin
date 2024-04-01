@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
-import { Graph, orangeColor } from "./graph";
+import { Graph } from "./graph";
 import { useGenerator } from "../hooks/use-generator";
 import { Edge, Node } from "../type";
 import { Drawing } from "./drawing";
@@ -58,11 +58,11 @@ export const App = () => {
   const [delimiter, setDelimiter] = useState("");
   const [startingState, setStartingState] = useState("");
   const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
+  const [selectedNodeId, _setSelectedNodeId] = useState<string>();
   const [highlightNode, setHighlightNode] = useState<Node>();
   const [highlightLoopOnNode, setHighlightLoopOnNode] = useState<Node>();
   const [highlightEdge, setHighlightEdge] = useState<Edge>();
   const [highlightAllNextNodes, setHighlightAllNextNodes] = useState(false);
-  const [highlightColor, setHighlightColor] = useState(orangeColor);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("ready");
   const prevAnimatedSequenceGroups = useRef<SequenceGroup[]>([]);
   const currentAnimatedSequenceGroup = useRef<SequenceGroup>();
@@ -79,6 +79,20 @@ export const App = () => {
   });
   const { generate } = useGenerator();
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
+
+  const animating = useMemo(() => {
+    return generationMode !== "ready";
+  }, [generationMode]);
+
+  const setSelectedNodeId = useCallback((id?: string, skipToggle?: boolean) => {
+    if (!animating) {
+      if ((!id || (id === selectedNodeId)) && !skipToggle) {
+        _setSelectedNodeId(undefined);
+      } else {
+        _setSelectedNodeId(id);
+      }
+    }
+  }, [_setSelectedNodeId, selectedNodeId, animating]);
 
   useEffect(() => {
     if (viewMode === "drawing") {
@@ -133,7 +147,6 @@ export const App = () => {
     if (inBeforeStep()) {
       setHighlightNode(currentNode);
       setHighlightEdge(undefined);
-      setHighlightColor(orangeColor);
       // highlight all the possible edges if we have a next node
       setHighlightAllNextNodes(!!nextNode);
       setHighlightLoopOnNode(currentNode);
@@ -143,7 +156,6 @@ export const App = () => {
       : undefined;
       setHighlightEdge(edge);
       setHighlightNode(nextNode);
-      setHighlightColor(orangeColor);
       setHighlightAllNextNodes(false);
       setHighlightLoopOnNode(nextNode === currentNode ? nextNode : undefined);
     }
@@ -408,23 +420,27 @@ export const App = () => {
                 highlightNode={highlightNode}
                 highlightLoopOnNode={highlightLoopOnNode}
                 highlightEdge={highlightEdge}
-                highlightColor={highlightColor}
                 highlightAllNextNodes={highlightAllNextNodes}
+                selectedNodeId={selectedNodeId}
+                animating={animating}
                 setGraph={setGraph}
                 setHighlightNode={setHighlightNode}
+                setSelectedNodeId={setSelectedNodeId}
               />
             :
               <Graph
-              mode="dataset"
-              graph={graph}
-              highlightNode={highlightNode}
-              highlightLoopOnNode={highlightLoopOnNode}
-              highlightEdge={highlightEdge}
-              highlightColor={highlightColor}
-              highlightAllNextNodes={highlightAllNextNodes}
-              allowDragging={true}
-              autoArrange={true}
-            />
+                mode="dataset"
+                graph={graph}
+                highlightNode={highlightNode}
+                highlightLoopOnNode={highlightLoopOnNode}
+                highlightEdge={highlightEdge}
+                highlightAllNextNodes={highlightAllNextNodes}
+                selectedNodeId={selectedNodeId}
+                animating={animating}
+                allowDragging={true && !animating}
+                autoArrange={true}
+                setSelectedNodeId={setSelectedNodeId}
+              />
           }
         </div>
         <div className="right">

@@ -7,6 +7,24 @@ import { ViewMode } from "../hooks/use-codap";
 
 import "./graph.scss";
 
+const unselectedOpacity = 0.35;
+const lineAndLoopOpacity = 0.6;
+
+const selectedNodeColor = "#14f49e3f";  // 3f is 25% opacity
+const incomingArrowColor = "#0081ff";
+const outgoingArrowColor = "#ff9900";
+const animatedNodeColor = "#FF00877f"; // 7f is 50% opacity
+const animatedArrowColor = "#FF0087";
+const selectedLoopArrowColor = "#8d61bc";
+
+const arrowUrl = "url(#arrow)";
+const incomingArrowUrl = "url(#incomingArrow)";
+const outgoingArrowUrl = "url(#outgoingArrow)";
+const animatedArrowUrl = "url(#animatedArrow)";
+const selectedLoopArrowUrl = "url(#selectedLoopArrow)";
+const unselectedArrowUrl = "url(#unselectedArrow)";
+const unselectedLoopArrowUrl = "url(#unselectedLoopArrow)";
+
 export type DrawingMode = "select"|"addNode"|"addEdge"|"delete";
 
 export type GraphSettings = {
@@ -28,18 +46,20 @@ type Props = {
   highlightNode?: Node,
   highlightLoopOnNode?: Node,
   highlightEdge?: Edge,
-  highlightColor: string
   highlightAllNextNodes: boolean;
   allowDragging: boolean;
   autoArrange: boolean;
   rubberBand?: RubberBand;
   drawingMode?: DrawingMode;
+  selectedNodeId?: string;
+  animating: boolean;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onMouseUp?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onNodeClick?: (id: string, onLoop?: boolean) => void;
   onNodeDoubleClick?: (id: string) => void;
   onEdgeClick?: (options: {from: string, to: string}) => void;
   onDragStop?: (id: string, pos: Point) => void;
+  setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
 };
 
 type D3Node = {
@@ -76,8 +96,6 @@ type FindLineBetweenEllipsesArgs = {
 type FindPointOnEllipseArgs = {
   x1: number, y1: number, x2: number, y2: number, cx: number, cy: number, a: number, b: number, angleDelta: number
 };
-
-export const orangeColor = "#FF9900";
 
 const startLoopAngle = 0.25 * Math.PI;
 const endLoopAngle = 1.75 * Math.PI;
@@ -217,15 +235,84 @@ const lineDashArray = (edge: D3Edge) => edge.value ? "" : "4";
 
 export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
-         highlightColor, allowDragging, autoArrange, mode, rubberBand, drawingMode,
-         onClick, onMouseUp, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop} = props;
+         allowDragging, autoArrange, mode, rubberBand, drawingMode,
+         onClick, onMouseUp, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
+         selectedNodeId, setSelectedNodeId, animating} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
   const [d3Graph, setD3Graph] = useState<D3Graph>({nodes: [], edges: []});
-  const waitForDoubleRef = useRef<number|undefined>(undefined);
+  const lastClickTimeRef = useRef<number|undefined>(undefined);
+  const lastClickIdRef = useRef<string|undefined>(undefined);
+  const draggedRef = useRef(false);
+
+  const highlightSelected = useCallback((svg: d3.Selection<SVGSVGElement, unknown, null, undefined>) => {
+    if (animating || !selectedNodeId) {
+      return;
+    }
+
+    const connectedNodeIds = graph.edges
+      .filter(e => e.from === selectedNodeId || e.to === selectedNodeId)
+      .map(e => e.from === selectedNodeId ? e.to: e.from)
+      .concat(selectedNodeId);
+
+    // highlight selected node
+    svg
+      .selectAll("g")
+      .selectAll("ellipse")
+      .style("opacity", unselectedOpacity)
+      .filter((d: any) => connectedNodeIds.includes(d.id))
+      .style("opacity", 1)
+      .filter((d: any) => selectedNodeId === d.id)
+      .attr("fill", selectedNodeColor);
+
+    // make all lines have the unselected opacity
+    svg
+      .selectAll("line")
+      .style("opacity", unselectedOpacity)
+      .attr("marker-end", unselectedArrowUrl);
+
+    // highlight selected incoming edges
+    svg
+      .selectAll("line")
+      .filter((d: any) => ((
+        (d.value > 0) && (selectedNodeId === d.target?.id))))
+      .attr("stroke", incomingArrowColor)
+      .attr("marker-end", incomingArrowUrl)
+      .style("opacity", 1);
+
+    // highlight selected outgoing edges
+    svg
+      .selectAll("line")
+      .filter((d: any) => ((
+        (d.value > 0) && (selectedNodeId === d.source?.id))))
+      .attr("stroke", outgoingArrowColor)
+      .attr("marker-end", outgoingArrowUrl)
+      .style("opacity", 1);
+
+    // highlight loops
+    svg
+      .selectAll("path.loop")
+      .style("opacity", unselectedOpacity)
+      .attr("marker-end", unselectedLoopArrowUrl)
+      .filter((d: any) => selectedNodeId === d.id)
+      .attr("stroke", selectedLoopArrowColor)
+      .attr("stroke-dasharray", "")
+      .attr("marker-end", selectedLoopArrowUrl)
+      .style("opacity", 1);
+
+    // highlight text
+    svg
+      .selectAll("g")
+      .selectAll("text")
+      .style("opacity", unselectedOpacity)
+      .filter((d: any) => connectedNodeIds.includes(d.id))
+      .style("opacity", 1);
+
+
+  }, [selectedNodeId, animating, graph]);
 
   // calculate the svg dimensions
   useEffect(() => {
@@ -297,36 +384,34 @@ export const Graph = (props: Props) => {
     // clear the existing items
     svg.selectAll("*").remove();
 
-    // add edge arrows
-    svg
-      .append("svg:defs")
-      .append("svg:marker")
-      .attr("id", "arrow")
-      .attr("refX", 12)
-      .attr("refY", 6)
-      .attr("markerWidth", 30)
-      .attr("markerHeight", 30)
-      .attr("markerUnits","userSpaceOnUse")
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
-      .style("fill", "black");
+    const addArrowMarker = (id: string, color: string, opacity?: number) => {
+      svg
+        .append("svg:defs")
+        .append("svg:marker")
+        .attr("id", id)
+        .attr("refX", 12)
+        .attr("refY", 6)
+        .attr("markerWidth", 30)
+        .attr("markerHeight", 30)
+        .attr("markerUnits","userSpaceOnUse")
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
+        .attr("stroke", color)
+        .style("fill", color)
+        .style("fill-opacity", opacity ?? 1)
+        .style("stroke-opacity", opacity ?? 1);
+    };
 
-    svg
-      .append("svg:defs")
-      .append("svg:marker")
-      .attr("id", "highlightOrangeArrow")
-      .attr("refX", 12)
-      .attr("refY", 6)
-      .attr("markerWidth", 30)
-      .attr("markerHeight", 30)
-      .attr("markerUnits","userSpaceOnUse")
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
-      .attr("stroke", orangeColor)
-      .attr("stroke-width", 2)
-      .style("fill", orangeColor);
+    // add arrows markers
+    addArrowMarker("arrow", "black");
+    addArrowMarker("loopArrow", "black");
+    addArrowMarker("animatedArrow", animatedArrowColor);
+    addArrowMarker("incomingArrow", incomingArrowColor);
+    addArrowMarker("outgoingArrow", outgoingArrowColor);
+    addArrowMarker("selectedLoopArrow", selectedLoopArrowColor);
+    addArrowMarker("unselectedArrow", "black", unselectedOpacity);
+    addArrowMarker("unselectedLoopArrow", "black", unselectedOpacity / lineAndLoopOpacity); // 0
 
     // draw nodes
     const nodes = svg
@@ -339,9 +424,11 @@ export const Graph = (props: Props) => {
       simulation?.alphaTarget(0.5).restart();
       d.fx = d.x;
       d.fy = d.y;
+      draggedRef.current = false;
     };
 
     const dragging = (event: any, d: any) => {
+      draggedRef.current = true;
       // simulation.alpha(0.5).restart()
       if (autoArrange) {
         d.fx = event.x;
@@ -384,15 +471,21 @@ export const Graph = (props: Props) => {
       .attr("cy", d => d.y)
       .attr("style", drawingMode !== "addNode" ? "cursor: pointer" : "")
       .on("click", (e, d) => {
-        if (waitForDoubleRef.current) {
-          clearTimeout(waitForDoubleRef.current);
-          waitForDoubleRef.current = undefined;
+        const now = Date.now();
+        const timeDiff = now - (lastClickTimeRef.current ?? 0);
+        const sameNode = lastClickIdRef.current === d.id;
+        const withinDoubleClickTime = timeDiff <= 250;
+        const skipToggle = withinDoubleClickTime && d.id === selectedNodeId;
+
+        lastClickTimeRef.current = now;
+        lastClickIdRef.current = d.id;
+
+        if (withinDoubleClickTime && sameNode) {
+          setSelectedNodeId(d.id, true);
           onNodeDoubleClick?.(d.id);
         } else {
-          waitForDoubleRef.current = setTimeout(() => {
-            onNodeClick?.(d.id);
-            waitForDoubleRef.current = undefined;
-          }, 250);
+          setSelectedNodeId(d.id, skipToggle);
+          onNodeClick?.(d.id);
         }
       })
       ;
@@ -492,14 +585,14 @@ export const Graph = (props: Props) => {
       .append("line")
       .attr("class", "edge")
       .attr("stroke", "#999")
-      .attr("stroke-opacity", 0.6)
+      .attr("stroke-opacity", lineAndLoopOpacity)
       .attr("stroke-width", d => d.weight)
       .attr("stroke-dasharray", d => lineDashArray(d))
       .attr("x1", d => d.sourceX)
       .attr("x2", d => d.targetX)
       .attr("y1", d => d.sourceY)
       .attr("y2", d => d.targetY)
-      .attr("marker-end", "url(#arrow)")
+      .attr("marker-end", arrowUrl)
       .attr("style", drawingMode === "delete" ? "pointer-events: none" : "")
       .on("click", (e, d) => {
         // this is not really needed as the pointer events are off
@@ -534,10 +627,10 @@ export const Graph = (props: Props) => {
       .attr("class", "loop")
       .attr("d", nodeLoopPath)
       .attr("stroke", "#999")
-      .attr("stroke-opacity", 0.6)
+      .attr("stroke-opacity", lineAndLoopOpacity)
       .attr("fill-opacity", 0)
       .attr("stroke-width", d => d.loopWeight)
-      .attr("marker-end", "url(#arrow)")
+      .attr("marker-end", arrowUrl)
       .attr("style", loopStyle)
       .on("click", (e, d) => {
         onNodeClick?.(d.id, true);
@@ -554,13 +647,13 @@ export const Graph = (props: Props) => {
         .append("line")
         .attr("class", "rubberband")
         .attr("stroke", "#999")
-        .attr("stroke-opacity", 0.6)
+        .attr("stroke-opacity", lineAndLoopOpacity)
         .attr("stroke-width", 2)
         .attr("x1", d => d.x1)
         .attr("x2", d => d.x2)
         .attr("y1", d => d.y1)
         .attr("y2", d => d.y2)
-        .attr("marker-end", "url(#arrow)");
+        .attr("marker-end", arrowUrl);
 
       // add loopback "ghost" with background
       if (!rubberBandNode.loops) {
@@ -588,11 +681,11 @@ export const Graph = (props: Props) => {
           .attr("class", "ghost-loop")
           .attr("d", nodeLoopPath)
           .attr("stroke", "#999")
-          .attr("stroke-opacity", 0.6)
+          .attr("stroke-opacity", lineAndLoopOpacity)
           .attr("stroke-dasharray", 4)
           .attr("fill-opacity", 0)
           .attr("stroke-width", 1)
-          .attr("marker-end", "url(#arrow)")
+          .attr("marker-end", arrowUrl)
           .attr("style", "cursor: pointer")
           .on("click", () => {
             onNodeClick?.(rubberBandNode.id);
@@ -601,8 +694,10 @@ export const Graph = (props: Props) => {
       }
     }
 
+    highlightSelected(svg);
+
   }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand, drawingMode,
-      onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop]);
+      onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop, setSelectedNodeId, selectedNodeId, highlightSelected]);
 
   // animate the node if needed
   useEffect(() => {
@@ -623,35 +718,35 @@ export const Graph = (props: Props) => {
       .selectAll("g")
       .selectAll("ellipse")
       .filter((d: any) => highlightNode?.id === d.id)
-      .attr("fill", highlightColor);
-
-    const arrowUrl = "url(#highlightOrangeArrow)";
+      .attr("fill", animatedNodeColor);
 
     // highlight animated edges
     svg
       .selectAll("line")
       .attr("stroke", "#999")
       .attr("stroke-dasharray", (d: any) => lineDashArray(d))
-      .attr("marker-end", "url(#arrow)")
+      .attr("marker-end", arrowUrl)
       .filter((d: any) => ((
         (d.value > 0) && (
         (highlightNode?.id === d.source?.id && highlightAllNextNodes) ||
         (highlightEdge?.from === d.source?.id && highlightEdge?.to === d.target?.id)))))
-      .attr("stroke", highlightColor)
+      .attr("stroke", animatedArrowColor)
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
-      .attr("marker-end", arrowUrl);
+      .attr("marker-end", animatedArrowUrl);
 
     svg
       .selectAll("path.loop")
       .attr("stroke", "#999")
       .attr("stroke-dasharray", "")
-      .attr("marker-end", "url(#arrow)")
+      .attr("marker-end", arrowUrl)
       .filter((d: any) => highlightLoopOnNode?.id === d.id)
-      .attr("stroke", highlightColor)
+      .attr("stroke", animatedArrowColor)
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
-      .attr("marker-end", arrowUrl);
+      .attr("marker-end", animatedArrowUrl);
 
-  }, [svgRef, d3Graph.nodes, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightColor]);
+    highlightSelected(svg);
+  }, [svgRef, d3Graph.nodes, selectedNodeId, highlightNode, highlightLoopOnNode,
+      highlightEdge, highlightAllNextNodes, highlightSelected]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!autoArrange && onClick) {
@@ -672,7 +767,6 @@ export const Graph = (props: Props) => {
       <svg
         width={width}
         height={height}
-        id="barchart"
         viewBox={viewBox}
         ref={svgRef}
       />
