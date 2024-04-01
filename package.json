@@ -1,6 +1,6 @@
 {
   "name": "markov-chain-plugin",
-  "version": "0.1.0-pre.1",
+  "version": "0.2.0",
   "description": "Concord Consortium Markov Chain Plugin",
   "main": "index.js",
   "browserslist": "> 0.2%, last 5 versions, Firefox ESR, not dead, not ie > 0",
