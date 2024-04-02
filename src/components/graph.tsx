@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
-import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
 import { ViewMode } from "../hooks/use-codap";
 
@@ -34,6 +33,7 @@ type Props = {
   autoArrange: boolean;
   rubberBand?: RubberBand;
   drawingMode?: DrawingMode;
+  appDimensions?: {width: number, height: number};
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onMouseUp?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onNodeClick?: (id: string, onLoop?: boolean) => void;
@@ -217,23 +217,21 @@ const lineDashArray = (edge: D3Edge) => edge.value ? "" : "4";
 
 export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
-         highlightColor, allowDragging, autoArrange, mode, rubberBand, drawingMode,
+         highlightColor, allowDragging, autoArrange, mode, rubberBand, drawingMode, appDimensions,
          onClick, onMouseUp, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const dimensions = useResizeObserver(wrapperRef);
-  const [width, setWidth] = useState(0);
-  const [height, setHeight] = useState(0);
+  const [width, setWidth] = useState(appDimensions?.width || 0);
+  const [height, setHeight] = useState(appDimensions?.height || 0);
   const [d3Graph, setD3Graph] = useState<D3Graph>({nodes: [], edges: []});
   const waitForDoubleRef = useRef<number|undefined>(undefined);
 
   // calculate the svg dimensions
   useEffect(() => {
-    if (dimensions) {
-      setWidth(dimensions.width);
-      setHeight(dimensions.height - 5);
+    if (appDimensions) {
+      setWidth(appDimensions.width);
+      setHeight(appDimensions.height - 5);
     }
-  }, [dimensions]);
+  }, [appDimensions]);
 
   // create the d3 graph info
   useEffect(() => {
@@ -668,7 +666,7 @@ export const Graph = (props: Props) => {
   const viewBox = mode === "drawing" ? `0 0 ${width} ${height}` : `${-width / 2} ${-height / 2} ${width} ${height}`;
 
   return (
-    <div className="graph" ref={wrapperRef} onClick={handleClick} onMouseUp={handleMouseUp}>
+    <div className="graph" onClick={handleClick} onMouseUp={handleMouseUp}>
       <svg
         width={width}
         height={height}

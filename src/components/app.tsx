@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
-
+import { useResizeObserver } from "../hooks/use-resize-observer";
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
 import { Graph, orangeColor } from "./graph";
@@ -70,6 +70,8 @@ export const App = () => {
   const prevSequences = useRef<Node[][]>([]);
   const currentSequence = useRef<Node[]>([]);
   const currentSequenceIndex = useRef(0);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const dimensions = useResizeObserver(wrapperRef);
   const animationInterval = useRef<number>();
   const { graph, updateGraph, setGraph } = useGraph();
   const { dragging, outputToDataset, viewMode, setViewMode, notifyStateIsDirty, loadState } = useCODAP({
@@ -79,6 +81,14 @@ export const App = () => {
   });
   const { generate } = useGenerator();
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
+  const [appDimensions, setAppDimensions] = useState({width: 0, height: 0});
+
+  // calculate the app dimensions
+  useEffect(() => {
+    if (dimensions) {
+      setAppDimensions({width: dimensions.width, height: dimensions.height});
+    }
+  }, [dimensions]);
 
   useEffect(() => {
     if (viewMode === "drawing") {
@@ -398,7 +408,7 @@ export const App = () => {
   }
 
   return (
-    <div className={clsx("app", { dragging })}>
+    <div className={clsx("app", { dragging })} ref={wrapperRef}>
       <div className="split">
         <div className="left">
           {viewMode === "drawing"
@@ -415,16 +425,17 @@ export const App = () => {
               />
             :
               <Graph
-              mode="dataset"
-              graph={graph}
-              highlightNode={highlightNode}
-              highlightLoopOnNode={highlightLoopOnNode}
-              highlightEdge={highlightEdge}
-              highlightColor={highlightColor}
-              highlightAllNextNodes={highlightAllNextNodes}
-              allowDragging={true}
-              autoArrange={true}
-            />
+                mode="dataset"
+                graph={graph}
+                highlightNode={highlightNode}
+                highlightLoopOnNode={highlightLoopOnNode}
+                highlightEdge={highlightEdge}
+                highlightColor={highlightColor}
+                highlightAllNextNodes={highlightAllNextNodes}
+                allowDragging={true}
+                autoArrange={true}
+                appDimensions={appDimensions}
+              />
           }
         </div>
         <div className="right">
