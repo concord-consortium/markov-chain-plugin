@@ -13,7 +13,6 @@ import "./app.scss";
 type GenerationMode = "ready" | "playing" | "paused" | "steping";
 
 const AnyStartingState = "(any)";
-const MaxLengthLimit = 25;
 const AnimationDelay = 1000;
 
 type SequenceGroup = {
@@ -55,7 +54,7 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
 
 export const App = () => {
   const [lengthLimit, setLengthLimit] = useState<number | undefined>(5);
-  const [delimiter, setDelimiter] = useState("");
+  const [delimiter, setDelimiter] = useState(" ");
   const [startingState, setStartingState] = useState("");
   const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
   const [highlightNode, setHighlightNode] = useState<Node>();
@@ -203,7 +202,7 @@ export const App = () => {
 
   const handleChangeLengthLimit = (e: React.ChangeEvent<HTMLInputElement>) => {
     const numberValue = parseInt(e.target.value, 10);
-    setLengthLimit(isNaN(numberValue) ? undefined : Math.min(MaxLengthLimit, numberValue));
+    setLengthLimit(isNaN(numberValue) ? undefined : numberValue);
   };
 
   const handleChangeDelimiter = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,7 +275,6 @@ export const App = () => {
                 value={lengthLimit}
                 onChange={handleChangeLengthLimit}
                 min={1}
-                max={MaxLengthLimit}
                 disabled={disabled}
               />
             </div>
@@ -286,7 +284,7 @@ export const App = () => {
               <input type="text"
                 onChange={handleChangeDelimiter}
                 value={delimiter}
-                placeholder="(none)"
+                placeholder="(space)"
                 maxLength={3}
                 disabled={disabled}
               />
