@@ -546,11 +546,17 @@ export const Graph = (props: Props) => {
       while (simulation.alpha() > simulation.alphaMin()) {
         simulation.tick();
       }
+
+      // pin the nodes so that dragging does not cause a force layout change
+      d3Graph.nodes
+        .forEach((d: any) => {
+          d.fx = d.x;
+          d.fy = d.y;
+        });
     }
 
     // calculate the edge positions
     d3Graph.edges = calculateEdges(d3Graph.edges);
-    // d3Graph.nodes = calculateLoops(d3Graph);
 
     const lineBackgroundClass = [
       "edge-background",
