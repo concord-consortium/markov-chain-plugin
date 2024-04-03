@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { createRef, useCallback, useEffect, useRef, useState } from "react";
 import { nanoid } from "nanoid";
 
 import { DrawingMode, Graph, Point, RubberBand, Transform } from "./graph";
@@ -7,11 +7,12 @@ import { Edge, GraphData, Node } from "../type";
 import { DragIcon } from "./drawing/drag-icon";
 import { NodeModal } from "./drawing/node-modal";
 import { Tool, Toolbar } from "./toolbar";
+import { AddText } from "./drawing/add-text";
 
 import "./drawing.scss";
 
 const tools: Tool[] = ["select","addNode","addEdge","addText","delete","fitView","recenter","reset","home"];
-const drawingTools: Tool[] = ["select", "addNode", "addEdge", "delete"];
+const drawingTools: Tool[] = ["select", "addNode", "addEdge", "delete", "addText"];
 
 interface Props {
   highlightNode?: Node,
@@ -33,6 +34,9 @@ interface Props {
   onDimensions?: (dimensions: {width: number, height: number}) => void;
 }
 
+const keepPunctuationRegex = /[.,?!:;]/g;
+const removePunctuationRegex = /["(){}[\]_+=|\\/><]/g;
+
 export const Drawing = (props: Props) => {
   const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
          graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId,
@@ -45,6 +49,10 @@ export const Drawing = (props: Props) => {
   const widthRef = useRef(0);
   const heightRef = useRef(0);
   const transformRef = useRef<Transform>();
+  const [autoArrange, setAutoArrange] = useState(false);
+  const [addTextWidth, setAddTextWidth] = useState(0);
+  const prevWordsRef = useRef<string[]>([]);
+  const textAreaRef = createRef<HTMLTextAreaElement>();
 
   const setSelectedNodeId = useCallback((id?: string, skipToggle?: boolean) => {
     if (drawingMode === "select") {
@@ -55,6 +63,7 @@ export const Drawing = (props: Props) => {
   const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
     widthRef.current = width;
     heightRef.current = height;
+    setAddTextWidth(width - 40); // for 10px margin and padding
 
     // also tell the app so that it can translate the origin of any loaded data if needed
     props.onDimensions?.({width, height});
@@ -103,22 +112,20 @@ export const Drawing = (props: Props) => {
     return () => window.removeEventListener("keydown", listenForEscape);
   }, [drawingMode, setDrawingMode, clearSelections]);
 
+  useEffect(() => {
+    if (drawingMode === "addText" && textAreaRef.current) {
+      textAreaRef.current.focus();
+    }
+  }, [drawingMode, textAreaRef]);
+
   const handleToolSelected = (tool: Tool) => {
     if (drawingTools.includes(tool)) {
       setDrawingMode(tool as DrawingMode);
+      setAutoArrange(tool === "addText");
+      prevWordsRef.current = [];
       clearSelections();
     }
   };
-
-  /*
-
-  keep for now until ok is given to delete
-
-  const handleSetSelectMode = useCallback(() => {
-    setDrawingMode("select");
-    clearSelections();
-  }, [setDrawingMode, clearSelections]);
-  */
 
   const addNode = useCallback(({x, y}: {x: number, y: number}) => {
     setGraph(prev => {
@@ -150,15 +157,13 @@ export const Drawing = (props: Props) => {
   const handleClicked = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (drawingMode === "addNode") {
       addNode(translateToGraphPoint(e));
-      // handleSetSelectMode();
     } else if (drawingMode === "addEdge") {
       const onSVGBackground = ((e.target as HTMLElement)?.tagName || "").toLowerCase() === "svg";
       if (onSVGBackground) {
         clearSelections();
-        // handleSetSelectMode();
       }
     }
-  }, [drawingMode, addNode/*, handleSetSelectMode */, clearSelections]);
+  }, [drawingMode, addNode, clearSelections]);
 
   const handleNodeClicked = useCallback((id: string, onLoop?: boolean) => {
     const node = getNode(id);
@@ -173,7 +178,6 @@ export const Drawing = (props: Props) => {
         addEdge({from: firstEdgeNode.id, to: node.id});
         setFirstEdgeNode(undefined);
         setRubberBand(undefined);
-        // handleSetSelectMode();
       }
     }
 
@@ -202,9 +206,8 @@ export const Drawing = (props: Props) => {
           edges
         };
       });
-      // handleSetSelectMode();
     }
-  }, [addEdge, drawingMode, getNode, firstEdgeNode, setFirstEdgeNode, setGraph/*, handleSetSelectMode */]);
+  }, [addEdge, drawingMode, getNode, firstEdgeNode, setFirstEdgeNode, setGraph]);
 
   const handleNodeDoubleClicked = useCallback((id: string) => {
     if (drawingMode === "select") {
@@ -214,9 +217,8 @@ export const Drawing = (props: Props) => {
       addEdge({from: id, to: id});
       setFirstEdgeNode(undefined);
       setRubberBand(undefined);
-    // handleSetSelectMode();
     }
-  }, [drawingMode, addEdge/*, handleSetSelectMode */, getNode]);
+  }, [drawingMode, addEdge, getNode]);
 
   const handleEdgeClicked = useCallback(({from, to}: {from: string, to: string}) => {
     if (drawingMode === "delete") {
@@ -230,9 +232,8 @@ export const Drawing = (props: Props) => {
           return prev;
         }
       });
-      // handleSetSelectMode();
     }
-  }, [setGraph, drawingMode/*, handleSetSelectMode */]);
+  }, [setGraph, drawingMode]);
 
   const handleDragStop = useCallback((id: string, {x, y}: Point) => {
     setGraph(prev => {
@@ -265,6 +266,36 @@ export const Drawing = (props: Props) => {
     handleClearSelectedNode();
   }, [setGraph, handleClearSelectedNode]);
 
+  const handleTextChange = useCallback((newText: string) => {
+    const words = newText
+      .replace(keepPunctuationRegex, (match) => ` ${match} `)
+      .replace(removePunctuationRegex, " ")
+      .split(/\s/)
+      .map(w => w.trim().toLocaleLowerCase())
+      .filter(w => w.length > 0);
+
+    const nodes: Record<string, Node> = {};
+    const edges: Record<string, Edge> = {};
+
+    words.forEach((word, index) => {
+      nodes[word] = nodes[word] ?? {id: word, label: word, value: 0};
+      nodes[word].value++;
+
+      if (index > 0) {
+        const lastWord = words[index - 1];
+        const key = `${lastWord}|${word}`;
+        edges[key] = edges[key] ?? {from: lastWord, to: word, value: 0};
+        edges[key].value++;
+      }
+    });
+
+    if (JSON.stringify(words) !== JSON.stringify(prevWordsRef.current)) {
+      setGraph({ nodes: Object.values(nodes), edges: Object.values(edges) });
+    }
+    prevWordsRef.current = words;
+
+  }, [setGraph]);
+
   return (
     <div className="drawing">
       <Toolbar
@@ -283,8 +314,8 @@ export const Drawing = (props: Props) => {
         highlightEdge={highlightEdge}
         highlightAllNextNodes={highlightAllNextNodes}
         highlightLoopOnNode={highlightLoopOnNode}
-        allowDragging={drawingMode === "select" && !animating}
-        autoArrange={false}
+        allowDragging={drawingMode === "select"}
+        autoArrange={autoArrange}
         rubberBand={rubberBand}
         selectedNodeId={selectedNodeId}
         animating={animating}
@@ -306,6 +337,7 @@ export const Drawing = (props: Props) => {
         onChange={handleChangeNode}
         onCancel={handleClearSelectedNode}
       />
+      <AddText ref={textAreaRef} visible={drawingMode === "addText"} width={addTextWidth} onChange={handleTextChange} />
     </div>
   );
 };
