@@ -242,6 +242,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph}: UseCODAPOptio
     codapInterface.on("notify", "*", "createCases", handleCasesChanged);
     codapInterface.on("notify", "*", "updateCases", handleCasesChanged);
     codapInterface.on("notify", "*", "dependentCases", handleCasesChanged);
+    codapInterface.on("notify", "*", "deleteCases", handleCasesChanged);
 
     if (!initialized) {
       setInitialized(true);
