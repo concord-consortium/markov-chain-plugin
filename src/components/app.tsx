@@ -18,6 +18,7 @@ const AnimationDelay = 1000;
 
 type SequenceGroup = {
   startingState: string;
+  startingNode: Node | undefined;
   delimiter: string;
   lengthLimit: number;
   sequences: Node[][];
@@ -25,7 +26,7 @@ type SequenceGroup = {
 
 const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
   const [expanded, setExpanded] = useState(false);
-  const startingState = group.startingState.length > 0 ? group.startingState : AnyStartingState;
+  const startingState = group.startingNode?.label ?? AnyStartingState;
   const lengthLimit = group.lengthLimit;
   const delimiter = group.delimiter === "" ? "(none)" : `"${group.delimiter}"`;
 
@@ -122,7 +123,7 @@ export const App = () => {
         (currentAnimatedSequenceGroup.current.delimiter !== delimiter) ||
         (currentAnimatedSequenceGroup.current.lengthLimit !== lengthLimit) ||
         (currentAnimatedSequenceGroup.current.startingState !== startingState)) {
-        currentAnimatedSequenceGroup.current = { delimiter, lengthLimit, startingState, sequences: [] };
+        currentAnimatedSequenceGroup.current = { delimiter, lengthLimit, startingState, startingNode, sequences: [] };
         setSequenceGroups(prevAnimatedSequenceGroups.current);
       } else {
         prevAnimatedSequenceGroups.current.pop();
