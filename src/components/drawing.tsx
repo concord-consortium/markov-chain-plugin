@@ -20,20 +20,28 @@ interface Props {
   highlightNode?: Node,
   highlightLoopOnNode?: Node,
   highlightEdge?: Edge,
-  highlightColor: string
   highlightAllNextNodes: boolean;
   graph: GraphData;
+  selectedNodeId?: string;
+  animating: boolean;
   setGraph: React.Dispatch<React.SetStateAction<GraphData>>;
   setHighlightNode: React.Dispatch<React.SetStateAction<Node | undefined>>
+  setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
 }
 
 export const Drawing = (props: Props) => {
-  const {highlightNode, highlightLoopOnNode, highlightEdge, highlightColor, highlightAllNextNodes,
-         graph, setGraph, setHighlightNode} = props;
+  const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
+         graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId, selectedNodeId, animating} = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
-  const [selectedNode, setSelectedNode] = useState<Node|undefined>(undefined);
+  const [selectedNodeForModal, setSelectedNodeForModal] = useState<Node|undefined>(undefined);
+
+  const setSelectedNodeId = useCallback((id?: string, skipToggle?: boolean) => {
+    if (drawingMode === "select") {
+      _setSelectedNodeId(id, skipToggle);
+    }
+  }, [drawingMode, _setSelectedNodeId]);
 
   const sidebarRef = useRef<HTMLDivElement|null>(null);
 
@@ -186,7 +194,7 @@ export const Drawing = (props: Props) => {
 
   const handleNodeDoubleClicked = useCallback((id: string) => {
     if (drawingMode === "select") {
-      setSelectedNode(getNode(id));
+      setSelectedNodeForModal(getNode(id));
     }
     if (drawingMode === "addEdge") {
       addEdge({from: id, to: id});
@@ -225,7 +233,7 @@ export const Drawing = (props: Props) => {
     });
   }, [setGraph]);
 
-  const handleClearSelectedNode = useCallback(() => setSelectedNode(undefined), [setSelectedNode]);
+  const handleClearSelectedNode = useCallback(() => setSelectedNodeForModal(undefined), [setSelectedNodeForModal]);
 
   const handleChangeNode = useCallback((id: string, newNode: Node, newEdges: Edge[]) => {
     setGraph(prev => {
@@ -279,22 +287,24 @@ export const Drawing = (props: Props) => {
         graph={graph}
         highlightNode={highlightNode}
         highlightEdge={highlightEdge}
-        highlightColor={highlightColor}
         highlightAllNextNodes={highlightAllNextNodes}
         highlightLoopOnNode={highlightLoopOnNode}
-        allowDragging={drawingMode === "select"}
+        allowDragging={drawingMode === "select" && !animating}
         autoArrange={false}
         rubberBand={rubberBand}
+        selectedNodeId={selectedNodeId}
+        animating={animating}
         onClick={handleClicked}
         onMouseUp={handleMouseUp}
         onNodeClick={handleNodeClicked}
         onNodeDoubleClick={handleNodeDoubleClicked}
         onEdgeClick={handleEdgeClicked}
         onDragStop={handleDragStop}
+        setSelectedNodeId={setSelectedNodeId}
       />
       <DragIcon drawingMode={drawingMode} />
       <NodeModal
-        node={selectedNode}
+        node={selectedNodeForModal}
         graph={graph}
         onChange={handleChangeNode}
         onCancel={handleClearSelectedNode}
