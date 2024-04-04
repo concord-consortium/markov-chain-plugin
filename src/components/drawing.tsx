@@ -24,11 +24,14 @@ interface Props {
   setGraph: React.Dispatch<React.SetStateAction<GraphData>>;
   setHighlightNode: React.Dispatch<React.SetStateAction<Node | undefined>>
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
+  onReset: () => void;
+  onReturnToMainMenu: () => void;
 }
 
 export const Drawing = (props: Props) => {
   const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
-         graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId, selectedNodeId, animating} = props;
+         graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId,
+         selectedNodeId, animating, onReset, onReturnToMainMenu} = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
@@ -124,7 +127,6 @@ export const Drawing = (props: Props) => {
   }, [setGraph]);
 
   const handleClicked = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    console.log("HANDLE CLICKED");
     if (drawingMode === "addNode") {
       addNode(translateToGraphPoint(e));
       // handleSetSelectMode();
@@ -244,7 +246,12 @@ export const Drawing = (props: Props) => {
 
   return (
     <div className="drawing">
-      <Toolbar tools={tools} onToolSelected={handleToolSelected} />
+      <Toolbar
+        tools={tools}
+        onToolSelected={handleToolSelected}
+        onReset={onReset}
+        onReturnToMainMenu={onReturnToMainMenu}
+      />
       <Graph
         mode="drawing"
         drawingMode={drawingMode}
