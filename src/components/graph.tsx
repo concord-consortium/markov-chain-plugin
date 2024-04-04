@@ -54,7 +54,6 @@ type Props = {
   selectedNodeId?: string;
   animating: boolean;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-  onMouseUp?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onNodeClick?: (id: string, onLoop?: boolean) => void;
   onNodeDoubleClick?: (id: string) => void;
   onEdgeClick?: (options: {from: string, to: string}) => void;
@@ -236,7 +235,7 @@ const lineDashArray = (edge: D3Edge) => edge.value ? "" : "4";
 export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
          allowDragging, autoArrange, mode, rubberBand, drawingMode,
-         onClick, onMouseUp, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
+         onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
          selectedNodeId, setSelectedNodeId, animating} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -760,16 +759,10 @@ export const Graph = (props: Props) => {
     }
   }, [autoArrange, onClick]);
 
-  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!autoArrange && onMouseUp) {
-      onMouseUp(e);
-    }
-  }, [autoArrange, onMouseUp]);
-
   const viewBox = mode === "drawing" ? `0 0 ${width} ${height}` : `${-width / 2} ${-height / 2} ${width} ${height}`;
 
   return (
-    <div className="graph" ref={wrapperRef} onClick={handleClick} onMouseUp={handleMouseUp}>
+    <div className="graph" ref={wrapperRef} onClick={handleClick}>
       <svg
         width={width}
         height={height}

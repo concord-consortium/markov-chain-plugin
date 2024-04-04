@@ -87,6 +87,25 @@
       flex: 1;
       flex-grow: 0;
       gap: 10px;
+      background-color: #dddddd7f;
+      border-radius: 3px;
+      padding: 5px;
+
+      button {
+        width: fit-content;
+        padding: 3px 5px;
+        border-radius: 3px;
+        border: solid 1px #177991;
+        background-color: #fff;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+
+        &:hover {
+          background-color: rgba(114, 191, 202, 0.12);
+        }
+      }
 
       .generate {
         display: flex;
@@ -102,15 +121,22 @@
           label {
             display: block;
             white-space: nowrap;
+            font-weight: bold;
           }
 
           select {
             padding: 2px;
-            width: 125px;
+            width: 100%;
+            border-radius: 1.5px;
+            border: solid 1px #177991;
+            background-color: #fff;
           }
           input {
             padding: 2px;
             width: 55px;
+            border-radius: 1.5px;
+            border: solid 1px #177991;
+            background-color: #fff;
           }
         }
 
@@ -123,10 +149,6 @@
         .buttons {
           display: flex;
           gap: 5px;
-
-          button {
-            width: fit-content;
-          }
         }
       }
 
@@ -134,14 +156,15 @@
         display: flex;
         flex-direction: column;
         flex: 1;
-        gap: 10px;
+        gap: 5px;
 
         .output {
           display: flex;
           flex-direction: column;
           // gap: 10px;
           flex: 1;
-          border: 1px solid #000;
+          border: 1px solid #979797;
+          background-color: white;
           position: relative;
 
           .inner-output {
@@ -163,6 +186,19 @@
 
                 &.expanded {
                   flex-direction: column;
+
+                  .firstItem {
+                    display: flex;
+                    flex-direction: row;
+
+                    .collapse {
+                      flex-grow: 1;
+                      text-align: right;
+                      width: 10px;
+                      height: 10px;
+                      margin-top: -2px;
+                    }
+                  }
                 }
                 &.collapsed {
                   flex-direction: row;
@@ -170,6 +206,9 @@
                   .expand {
                     flex-grow: 1;
                     text-align: right;
+                    width: 10px;
+                    height: 10px;
+                    margin-top: -2px;
                   }
                 }
               }
@@ -181,7 +220,9 @@
         }
 
         .buttons {
-
+          button {
+            padding: 8px;
+          }
         }
       }
     }

@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { clsx } from "clsx";
+import React, { useCallback, useEffect, useState } from "react";
 import { nanoid } from "nanoid";
 
 import { DrawingMode, Graph, Point, RubberBand } from "./graph";
@@ -7,14 +6,12 @@ import { Edge, GraphData, Node } from "../type";
 
 import { DragIcon } from "./drawing/drag-icon";
 import { NodeModal } from "./drawing/node-modal";
-
-import SelectIcon from "../assets/select-icon.svg";
-import AddNodeIcon from "../assets/add-node-icon.svg";
-import AddEdgeIcon from "../assets/add-edge-icon.svg";
-import DeleteIcon from "../assets/delete-icon.svg";
+import { Tool, Toolbar } from "./toolbar";
 
 import "./drawing.scss";
 
+const tools: Tool[] = ["select","addNode","addEdge","addText","delete","fitView","recenter","reset","home"];
+const drawingTools: Tool[] = ["select", "addNode", "addEdge", "delete"];
 
 interface Props {
   highlightNode?: Node,
@@ -43,12 +40,11 @@ export const Drawing = (props: Props) => {
     }
   }, [drawingMode, _setSelectedNodeId]);
 
-  const sidebarRef = useRef<HTMLDivElement|null>(null);
-
   const translateToGraphPoint = (e: MouseEvent|React.MouseEvent<HTMLDivElement>): Point => {
+    // the offsets were determined visually to put the state centered on the mouse
     return {
-      x: e.clientX - (sidebarRef?.current?.clientWidth || 0),
-      y: e.clientY - (sidebarRef?.current?.clientTop || 0)
+      x: e.clientX - 50,
+      y: e.clientY - 12,
     };
   };
 
@@ -82,24 +78,25 @@ export const Drawing = (props: Props) => {
     return () => window.removeEventListener("keydown", listenForEscape);
   }, [drawingMode, setDrawingMode, clearSelections]);
 
+  const handleToolSelected = (tool: Tool) => {
+    if (drawingTools.includes(tool)) {
+      setDrawingMode(tool as DrawingMode);
+      clearSelections();
+    }
+  };
+
+  /*
+
+  keep for now until ok is given to delete
+
   const handleSetSelectMode = useCallback(() => {
     setDrawingMode("select");
     clearSelections();
   }, [setDrawingMode, clearSelections]);
-  const handleSetAddNodeMode = useCallback(() => {
-    setDrawingMode("addNode");
-    clearSelections();
-  }, [setDrawingMode, clearSelections]);
-  const handleSetAddEdgeMode = useCallback(() => {
-    setDrawingMode("addEdge");
-    clearSelections();
-  }, [setDrawingMode, clearSelections]);
-  const handleSetDeleteMode = useCallback(() => {
-    setDrawingMode("delete");
-    clearSelections();
-  }, [setDrawingMode, clearSelections]);
+  */
 
   const addNode = useCallback(({x, y}: {x: number, y: number}) => {
+    console.log("ADD NODE");
     setGraph(prev => {
       const id = nanoid();
       const label = `State ${prev.nodes.length + 1}`;
@@ -127,26 +124,18 @@ export const Drawing = (props: Props) => {
   }, [setGraph]);
 
   const handleClicked = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    console.log("HANDLE CLICKED");
     if (drawingMode === "addNode") {
       addNode(translateToGraphPoint(e));
-      handleSetSelectMode();
+      // handleSetSelectMode();
     } else if (drawingMode === "addEdge") {
       const onSVGBackground = ((e.target as HTMLElement)?.tagName || "").toLowerCase() === "svg";
       if (onSVGBackground) {
         clearSelections();
-        handleSetSelectMode();
+        // handleSetSelectMode();
       }
     }
-  }, [drawingMode, addNode, handleSetSelectMode, clearSelections]);
-
-  // allow nodes to be "dragged" from the toolbar to the canvas
-  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (drawingMode === "addNode") {
-      handleClicked(e);
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, [drawingMode, handleClicked]);
+  }, [drawingMode, addNode/*, handleSetSelectMode */, clearSelections]);
 
   const handleNodeClicked = useCallback((id: string, onLoop?: boolean) => {
     const node = getNode(id);
@@ -159,7 +148,9 @@ export const Drawing = (props: Props) => {
         setFirstEdgeNode(node);
       } else {
         addEdge({from: firstEdgeNode.id, to: node.id});
-        handleSetSelectMode();
+        setFirstEdgeNode(undefined);
+        setRubberBand(undefined);
+        // handleSetSelectMode();
       }
     }
 
@@ -188,9 +179,9 @@ export const Drawing = (props: Props) => {
           edges
         };
       });
-      handleSetSelectMode();
+      // handleSetSelectMode();
     }
-  }, [addEdge, drawingMode, getNode, firstEdgeNode, setFirstEdgeNode, setGraph, handleSetSelectMode]);
+  }, [addEdge, drawingMode, getNode, firstEdgeNode, setFirstEdgeNode, setGraph/*, handleSetSelectMode */]);
 
   const handleNodeDoubleClicked = useCallback((id: string) => {
     if (drawingMode === "select") {
@@ -198,9 +189,11 @@ export const Drawing = (props: Props) => {
     }
     if (drawingMode === "addEdge") {
       addEdge({from: id, to: id});
-      handleSetSelectMode();
+      setFirstEdgeNode(undefined);
+      setRubberBand(undefined);
+    // handleSetSelectMode();
     }
-  }, [drawingMode, addEdge, handleSetSelectMode, getNode]);
+  }, [drawingMode, addEdge/*, handleSetSelectMode */, getNode]);
 
   const handleEdgeClicked = useCallback(({from, to}: {from: string, to: string}) => {
     if (drawingMode === "delete") {
@@ -214,9 +207,9 @@ export const Drawing = (props: Props) => {
           return prev;
         }
       });
-      handleSetSelectMode();
+      // handleSetSelectMode();
     }
-  }, [setGraph, drawingMode, handleSetSelectMode]);
+  }, [setGraph, drawingMode/*, handleSetSelectMode */]);
 
   const handleDragStop = useCallback((id: string, {x, y}: Point) => {
     setGraph(prev => {
@@ -251,36 +244,7 @@ export const Drawing = (props: Props) => {
 
   return (
     <div className="drawing">
-      <div className="sidebar" ref={sidebarRef}>
-        <button
-          title="Select Mode"
-          onClick={handleSetSelectMode}
-          className={clsx({selected: drawingMode === "select"})}
-        >
-          <SelectIcon />
-        </button>
-        <button
-          title="Add State"
-          onMouseDown={handleSetAddNodeMode}
-          className={clsx({selected: drawingMode === "addNode"})}
-        >
-          <AddNodeIcon />
-        </button>
-        <button
-          title="Add Transition"
-          onClick={handleSetAddEdgeMode}
-          className={clsx({selected: drawingMode === "addEdge"})}
-        >
-          <AddEdgeIcon />
-        </button>
-        <button
-          title="Delete Mode"
-          onClick={handleSetDeleteMode}
-          className={clsx({selected: drawingMode === "delete"})}
-        >
-          <DeleteIcon />
-        </button>
-      </div>
+      <Toolbar tools={tools} onToolSelected={handleToolSelected} />
       <Graph
         mode="drawing"
         drawingMode={drawingMode}
@@ -295,7 +259,6 @@ export const Drawing = (props: Props) => {
         selectedNodeId={selectedNodeId}
         animating={animating}
         onClick={handleClicked}
-        onMouseUp={handleMouseUp}
         onNodeClick={handleNodeClicked}
         onNodeDoubleClick={handleNodeDoubleClicked}
         onEdgeClick={handleEdgeClicked}

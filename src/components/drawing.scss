@@ -3,29 +3,6 @@
   flex-direction: row;
   flex: 1;
 
-  .sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 5px;
-    background-color: #ddd;
-
-    button {
-      width: 30px;
-      height: 30px;
-      padding: 2px;
-
-      &.selected {
-        background-color: #999;
-
-        svg path {
-          stroke: white;
-          fill: white;
-        }
-      }
-    }
-  }
-
   .dragIcon {
     position: absolute;
     width: 30px;
