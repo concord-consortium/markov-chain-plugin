@@ -115,7 +115,7 @@ export const App = () => {
     }
   }, [sequenceGroups]);
 
-  const graphEmpty = useCallback(() => graph.nodes.length === 0, [graph]);
+  const graphEmpty = useMemo(() => graph.nodes.length === 0, [graph]);
 
   const generateNewSequence = useCallback(async () => {
     currentSequence.current = [];
@@ -273,7 +273,7 @@ export const App = () => {
   }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval]);
 
   const uiForGenerate = () => {
-    const disabled = graphEmpty();
+    const disabled = graphEmpty;
     const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
     const PlayOrPauseIcon = generationMode === "playing" ? PauseIcon : PlayIcon;
     const onPlayClick = generationMode === "playing"
@@ -344,6 +344,7 @@ export const App = () => {
     const disabled = sequenceGroups.length === 0;
     return (
       <div className="sequence-output">
+        <label>Output:</label>
         <div className="output">
           <div className="inner-output" ref={innerOutputRef}>
             {sequenceGroups.map((group, i) => {
@@ -380,6 +381,19 @@ export const App = () => {
     notifyStateIsDirty();
   };
 
+  const handleReset = () => {
+    if (confirm("Are you sure you want to reset?\n\nAny changes you have made will be lost.")) {
+      setGraph({nodes: [], edges: []});
+    }
+  };
+
+  const handleReturnToMainMenu = () => {
+    if (confirm("Are you sure you want to reset?\n\nAny changes you have made will be lost.")) {
+      setGraph({nodes: [], edges: []});
+      setViewMode(undefined);
+    }
+  };
+
   if (loadState === "loading") {
     return <div className="loading">Loading ...</div>;
   }
@@ -408,23 +422,18 @@ export const App = () => {
     );
   }
 
-  if (graphEmpty() && viewMode === "dataset") {
+  const maybeRenderRightBar = () => {
+    if (viewMode === "dataset" && graphEmpty) {
+      return;
+    }
+
     return (
-      <div className={clsx("app", { dragging })}>
-        <div className="instructions">
-          <h2>Markov Chains</h2>
-          <p>
-            This plugin generates sequences of text using a Markov chain. The plugin uses a Markov chain built from a
-            dataset in CODAP. The dataset must have a column of states. The plugin will build a Markov chain from the
-            states, and then allow generation of a sequence of text using the Markov chain.
-          </p>
-          <p>
-            To use the plugin, first drag an attribute into the plugin.
-          </p>
-        </div>
+      <div className="right">
+        {uiForGenerate()}
+        {sequenceOutput()}
       </div>
     );
-  }
+  };
 
   return (
     <div className={clsx("app", { dragging })}>
@@ -443,6 +452,8 @@ export const App = () => {
                 setGraph={setGraph}
                 setHighlightNode={setHighlightNode}
                 setSelectedNodeId={setSelectedNodeId}
+                onReset={handleReset}
+                onReturnToMainMenu={handleReturnToMainMenu}
               />
             :
               <Dataset
@@ -453,14 +464,14 @@ export const App = () => {
                 highlightAllNextNodes={highlightAllNextNodes}
                 selectedNodeId={selectedNodeId}
                 animating={animating}
+                graphEmpty={graphEmpty}
                 setSelectedNodeId={setSelectedNodeId}
+                onReset={handleReset}
+                onReturnToMainMenu={handleReturnToMainMenu}
               />
           }
         </div>
-        <div className="right">
-          {uiForGenerate()}
-          {sequenceOutput()}
-        </div>
+        {maybeRenderRightBar()}
       </div>
     </div>
   );

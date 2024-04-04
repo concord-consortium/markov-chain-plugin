@@ -107,6 +107,12 @@
         }
       }
 
+      label {
+        display: block;
+        white-space: nowrap;
+        font-weight: bold;
+      }
+
       .generate {
         display: flex;
         flex-direction: column;
@@ -117,12 +123,6 @@
           display: flex;
           flex-direction: column;
           gap: 5px;
-
-          label {
-            display: block;
-            white-space: nowrap;
-            font-weight: bold;
-          }
 
           select {
             padding: 2px;
