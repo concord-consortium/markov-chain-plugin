@@ -1,0 +1,53 @@
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  width: 32px;
+  padding: 4px;
+  border-radius: 3px;
+  background-color: #dddddd7f;
+  justify-content: space-between;
+
+  button {
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    padding: 3px;
+    border-radius: 4px 3px;
+    background-color: white;
+    border: solid 1px #177991;
+
+    &.selected {
+      background-color: #dceff2;
+    }
+
+    &.notImplemented {
+      cursor: not-allowed;
+    }
+
+    &:hover {
+      background-color: rgba(114, 191, 202, 0.12);
+    }
+  }
+
+  .top, .bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bottom {
+    button {
+      background-color: #177991;
+
+      &:hover {
+        background-color: rgba(114, 191, 202, 0.12);
+
+        svg {
+          path {
+            fill: #177991;
+          }
+        }
+      }
+    }
+  }
+}

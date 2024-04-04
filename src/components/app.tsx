@@ -3,10 +3,16 @@ import { clsx } from "clsx";
 
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
-import { Graph } from "./graph";
 import { useGenerator } from "../hooks/use-generator";
 import { Edge, Node } from "../type";
 import { Drawing } from "./drawing";
+import { Dataset } from "./dataset";
+
+import StepIcon from "../assets/step.svg";
+import PlayIcon from "../assets/play.svg";
+import PauseIcon from "../assets/pause.svg";
+import DropdownUpArrowIcon from "../assets/dropdown-up-arrow-icon.svg";
+import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
 
 import "./app.scss";
 
@@ -35,7 +41,10 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
   if (expanded) {
     return (
       <div className="header expanded" onClick={handleToggleExpanded}>
-        <div>Starting State: {startingState}</div>
+        <div className="firstItem">
+          <div>Starting State: {startingState}</div>
+          <span className="collapse"><DropdownUpArrowIcon /></span>
+        </div>
         <div>Max Length: {lengthLimit}</div>
         <div>Delimiter: {delimiter}</div>
       </div>
@@ -49,7 +58,7 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
       <span>{lengthLimit}</span>
       <span>/</span>
       <span>{delimiter}</span>
-      <span className="expand">&hellip;</span>
+      <span className="expand"><DropdownDownArrowIcon /></span>
     </div>
   );
 };
@@ -267,6 +276,7 @@ export const App = () => {
   const uiForGenerate = () => {
     const disabled = graphEmpty();
     const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
+    const PlayOrPauseIcon = generationMode === "playing" ? PauseIcon : PlayIcon;
     const onPlayClick = generationMode === "playing"
       ? handlePause
       : (generationMode === "paused" ? handleResume : handlePlay);
@@ -305,18 +315,26 @@ export const App = () => {
               />
             </div>
           </div>
+
+          <div>
+            <label>Simulation Speed:</label>
+            <div>TBD</div>
+          </div>
+
         </div>
         <div className="buttons">
           <button
             type="button"
             onClick={onPlayClick}
             disabled={disabled || lengthLimit === undefined || generationMode === "stepping"}>
+            <PlayOrPauseIcon />
             {playLabel}
           </button>
           <button
             type="button"
             onClick={handleStep}
             disabled={disabled || lengthLimit === undefined || generationMode === "playing"}>
+            <StepIcon />
             Step
           </button>
         </div>
@@ -429,8 +447,7 @@ export const App = () => {
                 setSelectedNodeId={setSelectedNodeId}
               />
             :
-              <Graph
-                mode="dataset"
+              <Dataset
                 graph={graph}
                 highlightNode={highlightNode}
                 highlightLoopOnNode={highlightLoopOnNode}
@@ -438,8 +455,6 @@ export const App = () => {
                 highlightAllNextNodes={highlightAllNextNodes}
                 selectedNodeId={selectedNodeId}
                 animating={animating}
-                allowDragging={true && !animating}
-                autoArrange={true}
                 setSelectedNodeId={setSelectedNodeId}
               />
           }
