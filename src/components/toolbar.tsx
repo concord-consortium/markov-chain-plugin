@@ -1,5 +1,5 @@
 import { clsx } from "clsx";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 
 import SelectIcon from "../assets/select.svg";
 import AddStateIcon from "../assets/add-state.svg";
@@ -79,8 +79,12 @@ export const ToolbarButton = ({tool, selectedTool, onClick}: ToolbarButtonProps)
 export const Toolbar = ({tools, onToolSelected, onReset, onReturnToMainMenu}: ToolbarProps) => {
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
 
-  const handleToolSelected = (tool: Tool) => {
+  const handleToolSelected = useCallback((tool: Tool) => {
     if (toggleableTools.includes(tool)) {
+      // allow toggling off a tool and returning to select mode
+      if (tool === selectedTool) {
+        tool = "select";
+      }
       setSelectedTool(tool);
     } else if (tool === "reset") {
       onReset();
@@ -88,7 +92,7 @@ export const Toolbar = ({tools, onToolSelected, onReset, onReturnToMainMenu}: To
       onReturnToMainMenu();
     }
     onToolSelected(tool);
-  };
+  }, [selectedTool, onReset, onReturnToMainMenu, onToolSelected]);
 
   const topTools = tools.filter(tool => !nonTopTools.includes(tool));
   const bottomTools = tools.filter(tool => nonTopTools.includes(tool));
