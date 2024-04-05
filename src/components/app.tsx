@@ -388,7 +388,7 @@ export const App = () => {
   };
 
   const handleReturnToMainMenu = () => {
-    if (confirm("Are you sure you want to reset?\n\nAny changes you have made will be lost.")) {
+    if (confirm("Are you sure you want to go back to the main menu?\n\nAny changes you have made will be lost.")) {
       setGraph({nodes: [], edges: []});
       setViewMode(undefined);
     }
