@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
 import { useGenerator } from "../hooks/use-generator";
-import { Edge, Node } from "../type";
+import { Edge, GraphData, Node } from "../type";
 import { Drawing } from "./drawing";
 import { Dataset } from "./dataset";
 
@@ -87,10 +87,12 @@ export const App = () => {
   const currentSequenceIndex = useRef(0);
   const animationInterval = useRef<number>();
   const { graph, updateGraph, setGraph } = useGraph();
+  const [initialGraph, setInitialGraph] = useState<GraphData>();
   const { dragging, outputToDataset, viewMode, setViewMode, notifyStateIsDirty, loadState } = useCODAP({
     onCODAPDataChanged: updateGraph,
     getGraph: useCallback(() => graph, [graph]),
-    setGraph
+    setGraph,
+    setInitialGraph
   });
   const { generate } = useGenerator();
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
@@ -403,15 +405,16 @@ export const App = () => {
     notifyStateIsDirty();
   };
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     if (confirm("Are you sure you want to reset?\n\nAny changes you have made will be lost.")) {
-      setGraph({nodes: [], edges: []});
+      setGraph(initialGraph ? {...initialGraph} : {nodes: [], edges: []});
     }
-  };
+  }, [initialGraph, setGraph]);
 
   const handleReturnToMainMenu = () => {
     if (confirm("Are you sure you want to go back to the main menu?\n\nAny changes you have made will be lost.")) {
       setGraph({nodes: [], edges: []});
+      setInitialGraph(undefined);
       setViewMode(undefined);
     }
   };
