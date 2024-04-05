@@ -13,13 +13,19 @@ import PlayIcon from "../assets/play.svg";
 import PauseIcon from "../assets/pause.svg";
 import DropdownUpArrowIcon from "../assets/dropdown-up-arrow-icon.svg";
 import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
+import { SpeedToggle } from "./speed-toggle";
 
 import "./app.scss";
 
 type GenerationMode = "ready" | "playing" | "paused" | "stepping";
 
 const AnyStartingState = "(any)";
-const AnimationDelay = 1000;
+
+const fastAnimationOverride = parseInt((new URLSearchParams(window.location.search)).get("fastSpeed") ?? "", 10);
+const normalAnimationOverride = parseInt((new URLSearchParams(window.location.search)).get("normalSpeed") ?? "", 10);
+
+const FastAnimationDelay = isNaN(fastAnimationOverride) ? 250 : fastAnimationOverride;
+const NormalAnimationDelay = isNaN(normalAnimationOverride) ? 1000 : normalAnimationOverride;
 
 type SequenceGroup = {
   startingState: string;
@@ -88,6 +94,8 @@ export const App = () => {
   });
   const { generate } = useGenerator();
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
+  const [fastSimulation, setFastSimulation] = useState(false);
+  const fastSimulationRef = useRef(false);
 
   const animating = useMemo(() => {
     return generationMode !== "ready";
@@ -209,13 +217,22 @@ export const App = () => {
   }, [animateCurrentSequenceIndex, finishAnimating]);
 
   const startAnimationInterval = useCallback(() => {
+    // this allows the animation speed to change during the animation
+    const getNext = () => Date.now() + (fastSimulationRef.current ? FastAnimationDelay : NormalAnimationDelay) - 1;
+    let next = getNext();
+
     animationInterval.current = window.setInterval(() => {
+      if (Date.now() < next) {
+        return;
+      }
+      next = getNext();
+
       if (currentSequenceAnimating()) {
         animateNextSequenceIndex();
       } else {
         finishAnimating();
       }
-    }, AnimationDelay);
+    }, FastAnimationDelay);
   }, [animateNextSequenceIndex, finishAnimating]);
 
   const stopAnimationInterval = () => {
@@ -272,6 +289,11 @@ export const App = () => {
     startAnimationInterval();
   }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval]);
 
+  const handleSpeedToggle = useCallback((value: boolean) => {
+    setFastSimulation(value);
+    fastSimulationRef.current = value;
+  }, [setFastSimulation]);
+
   const uiForGenerate = () => {
     const disabled = graphEmpty;
     const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
@@ -294,7 +316,7 @@ export const App = () => {
           <div className="flex-row">
             <div>
               <label>Max Length:</label>
-              <input type="number"
+              <input className="bordered" type="number"
                 value={lengthLimit}
                 onChange={handleChangeLengthLimit}
                 min={1}
@@ -304,7 +326,7 @@ export const App = () => {
 
             <div>
               <label>Delimiter:</label>
-              <input type="text"
+              <input className="bordered" type="text"
                 onChange={handleChangeDelimiter}
                 value={delimiter}
                 placeholder="(none)"
@@ -314,10 +336,7 @@ export const App = () => {
             </div>
           </div>
 
-          <div>
-            <label>Simulation Speed:</label>
-            <div>TBD</div>
-          </div>
+          <SpeedToggle fastSimulation={fastSimulation} onChange={handleSpeedToggle} />
 
         </div>
         <div className="buttons">
