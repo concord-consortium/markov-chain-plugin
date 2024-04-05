@@ -74,8 +74,10 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph}: UseCODAPOptio
 
   const handleDataChanged = useCallback(async ({datasetName, collectionName, attributeName}: CODAPAttribute) => {
     const values = await getValuesForAttribute(datasetName, collectionName, attributeName);
-    onCODAPDataChanged(values);
-  }, [onCODAPDataChanged]);
+    if (viewMode === "dataset") {
+      onCODAPDataChanged(values);
+    }
+  }, [onCODAPDataChanged, viewMode]);
 
   const setPluginState = useCallback((values: any) => {
     setLoadState("loaded");
