@@ -65,6 +65,8 @@
     margin: 10px;
 
     .left {
+      overflow: hidden;
+
       display: flex;
       flex-direction: column;
       justify-content: space-between;

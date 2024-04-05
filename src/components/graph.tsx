@@ -764,8 +764,8 @@ export const Graph = (props: Props) => {
   return (
     <div className="graph" ref={wrapperRef} onClick={handleClick}>
       <svg
-        width={width}
-        height={height}
+        width="100%"
+        height="calc(100vh - 20px)"
         viewBox={viewBox}
         ref={svgRef}
       />
