@@ -1,0 +1,56 @@
+.speedToggle {
+
+  &>div {
+    margin: 7px 0;
+    display: flex;
+    gap: 10px;
+    cursor: pointer;
+
+    &>div {
+      width: 40px;
+    }
+
+    .fast {
+      flex-grow: 1;
+    }
+  }
+
+  input.slider {
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    font-size: inherit;
+    width: 40px;
+    height: 14px;
+    box-sizing: content-box;
+    border: 1px solid #177991;
+    border-radius: 16px;
+    vertical-align: text-bottom;
+    margin: auto;
+    color: inherit;
+    background-color: #177991;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -3px;
+      transform: translate(0, -50%);
+      box-sizing: border-box;
+      width: 24px;
+      height: 24px;
+      margin: 0 0.15em;
+      border: 1px solid black;
+      border-radius: 50%;
+      background: currentcolor;
+      color: white;
+      box-shadow: 0 1px 5px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    &:checked::before {
+      left: 18px;
+    }
+  }
+}
