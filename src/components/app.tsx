@@ -324,7 +324,7 @@ export const App = () => {
           <button
             type="button"
             onClick={onPlayClick}
-            disabled={disabled || lengthLimit === undefined || generationMode === "stepping"}>
+            disabled={disabled || lengthLimit === undefined}>
             <PlayOrPauseIcon />
             {playLabel}
           </button>
