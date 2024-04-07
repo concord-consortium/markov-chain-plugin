@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { nanoid } from "nanoid";
 
 import { DrawingMode, Graph, Point, RubberBand } from "./graph";
@@ -36,6 +36,8 @@ export const Drawing = (props: Props) => {
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
   const [selectedNodeForModal, setSelectedNodeForModal] = useState<Node|undefined>(undefined);
+  const widthRef = useRef(0);
+  const heightRef = useRef(0);
 
   const setSelectedNodeId = useCallback((id?: string, skipToggle?: boolean) => {
     if (drawingMode === "select") {
@@ -43,11 +45,16 @@ export const Drawing = (props: Props) => {
     }
   }, [drawingMode, _setSelectedNodeId]);
 
+  const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
+    widthRef.current = width;
+    heightRef.current = height;
+  };
+
   const translateToGraphPoint = (e: MouseEvent|React.MouseEvent<HTMLDivElement>): Point => {
     // the offsets were determined visually to put the state centered on the mouse
     return {
-      x: e.clientX - 50,
-      y: e.clientY - 12,
+      x: e.clientX - 50 - (widthRef.current / 2),
+      y: e.clientY - 10 - (heightRef.current / 2),
     };
   };
 
@@ -271,6 +278,7 @@ export const Drawing = (props: Props) => {
         onEdgeClick={handleEdgeClicked}
         onDragStop={handleDragStop}
         setSelectedNodeId={setSelectedNodeId}
+        onDimensions={handleDimensionChange}
       />
       <DragIcon drawingMode={drawingMode} />
       <NodeModal
