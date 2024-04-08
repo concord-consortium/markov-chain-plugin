@@ -33,7 +33,7 @@ export type OutputTextMode = "replace"|"append";
 export type UseCODAPOptions = {
   onCODAPDataChanged: OnCODAPDataChanged;
   getGraph: GetGraphCallback;
-  setGraph: React.Dispatch<React.SetStateAction<GraphData>>
+  setGraph: (data: GraphData) => void;
   setInitialGraph: React.Dispatch<React.SetStateAction<GraphData|undefined>>
 };
 

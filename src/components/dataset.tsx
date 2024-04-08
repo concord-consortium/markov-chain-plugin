@@ -14,15 +14,20 @@ interface Props {
   selectedNodeId?: string;
   animating: boolean;
   graphEmpty: boolean;
+  fitViewAt?: number;
+  recenterViewAt?: number;
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
   onReset: () => void;
   onReturnToMainMenu: () => void;
+  onFitView: () => void;
+  onRecenterView: () => void;
 }
 
 export const Dataset = (props: Props) => {
   const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
-    graph, graphEmpty, setSelectedNodeId, selectedNodeId, animating, onReset, onReturnToMainMenu} = props;
-
+         graph, graphEmpty, setSelectedNodeId, selectedNodeId, animating,
+         fitViewAt, recenterViewAt,
+         onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
 
   const handleToolSelected = (tool: Tool) => {
     // TBD
@@ -36,6 +41,8 @@ export const Dataset = (props: Props) => {
           onToolSelected={handleToolSelected}
           onReset={onReset}
           onReturnToMainMenu={onReturnToMainMenu}
+          onFitView={onFitView}
+          onRecenterView={onRecenterView}
         />
         <div className="instructions">
           <h2>Markov Chains</h2>
@@ -59,6 +66,8 @@ export const Dataset = (props: Props) => {
         onToolSelected={handleToolSelected}
         onReset={onReset}
         onReturnToMainMenu={onReturnToMainMenu}
+        onFitView={onFitView}
+        onRecenterView={onRecenterView}
       />
       <Graph
         mode="dataset"
@@ -72,6 +81,8 @@ export const Dataset = (props: Props) => {
         allowDragging={true && !animating}
         autoArrange={true}
         setSelectedNodeId={setSelectedNodeId}
+        fitViewAt={fitViewAt}
+        recenterViewAt={recenterViewAt}
       />
     </div>
   );

@@ -88,10 +88,20 @@ export const App = () => {
   const animationInterval = useRef<number>();
   const { graph, updateGraph, setGraph } = useGraph();
   const [initialGraph, setInitialGraph] = useState<GraphData>();
+  const [fitViewAt, setFitViewAt] = useState<number>();
+  const [recenterViewAt, setRecenterViewAt] = useState<number>();
+  const onCODAPDataChanged = (values: string[]) => {
+    updateGraph(values);
+    setFitViewAt(Date.now());
+  };
+  const onSetGraph = (data: GraphData) => {
+    setGraph(data);
+    setFitViewAt(Date.now());
+  };
   const { dragging, outputToDataset, viewMode, setViewMode, notifyStateIsDirty, loadState } = useCODAP({
-    onCODAPDataChanged: updateGraph,
+    onCODAPDataChanged,
     getGraph: useCallback(() => graph, [graph]),
-    setGraph,
+    setGraph: onSetGraph,
     setInitialGraph
   });
   const { generate } = useGenerator();
@@ -419,6 +429,14 @@ export const App = () => {
     }
   };
 
+  const handleFitView = () => {
+    setFitViewAt(Date.now());
+  };
+
+  const handleRecenterView = () => {
+    setRecenterViewAt(Date.now());
+  };
+
   if (loadState === "loading") {
     return <div className="loading">Loading ...</div>;
   }
@@ -479,6 +497,10 @@ export const App = () => {
                 setSelectedNodeId={setSelectedNodeId}
                 onReset={handleReset}
                 onReturnToMainMenu={handleReturnToMainMenu}
+                onFitView={handleFitView}
+                onRecenterView={handleRecenterView}
+                fitViewAt={fitViewAt}
+                recenterViewAt={recenterViewAt}
               />
             :
               <Dataset
@@ -493,6 +515,10 @@ export const App = () => {
                 setSelectedNodeId={setSelectedNodeId}
                 onReset={handleReset}
                 onReturnToMainMenu={handleReturnToMainMenu}
+                onFitView={handleFitView}
+                onRecenterView={handleRecenterView}
+                fitViewAt={fitViewAt}
+                recenterViewAt={recenterViewAt}
               />
           }
         </div>

@@ -27,7 +27,7 @@ const unselectedLoopArrowUrl = "url(#unselectedLoopArrow)";
 
 export type DrawingMode = "select"|"addNode"|"addEdge"|"delete";
 
-export type Transform = {x: number, y: number, k: number};
+export type Transform = d3.ZoomTransform;
 
 export type GraphSettings = {
   minRadius: number;
@@ -55,6 +55,8 @@ type Props = {
   drawingMode?: DrawingMode;
   selectedNodeId?: string;
   animating: boolean;
+  fitViewAt?: number;
+  recenterViewAt?: number;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onNodeClick?: (id: string, onLoop?: boolean) => void;
   onNodeDoubleClick?: (id: string) => void;
@@ -240,6 +242,7 @@ export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
          allowDragging, autoArrange, rubberBand, drawingMode,
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
+         fitViewAt, recenterViewAt,
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -250,7 +253,10 @@ export const Graph = (props: Props) => {
   const lastClickTimeRef = useRef<number|undefined>(undefined);
   const lastClickIdRef = useRef<string|undefined>(undefined);
   const draggedRef = useRef(false);
-  const transformRef = useRef<any>(undefined);
+  const transformRef = useRef<Transform>();
+  const zoomRef = useRef<d3.ZoomBehavior<any, any>>();
+  const lastFitViewAtRef = useRef<number>();
+  const lastRecenterViewAtRef = useRef<number>();
 
   const highlightSelected = useCallback((svg: d3.Selection<any, unknown, null, undefined>) => {
     if (animating || !selectedNodeId) {
@@ -382,15 +388,18 @@ export const Graph = (props: Props) => {
     const svg = d3.select(svgRef.current);
 
     // add zoom
-    const zoom = d3.zoom()
+    zoomRef.current = d3.zoom()
       //.scaleExtent([0.5, 10]) // This defines the zoom levels (min, max)
       .on("zoom", (e) => {
         const root = svg.select("g.root");
-        root.attr("transform", e.transform);
-        transformRef.current = e.transform;
-        onTransformed?.(e.transform);
+        const transform = e.transform as d3.ZoomTransform;
+        root.attr("transform", transform.toString());
+        transformRef.current = transform;
+        onTransformed?.(transform);
       });
-    svg.call(zoom as any);
+    svg
+      .call(zoomRef.current)
+      .on("dblclick.zoom", null); // disable double click to zoom
   });
 
   // draw the graph
@@ -409,7 +418,7 @@ export const Graph = (props: Props) => {
     const root = svg
       .append("g")
       .attr("class", "root")
-      .attr("transform", transformRef.current)
+      .attr("transform", transformRef.current?.toString() ?? "")
       ;
 
     const addArrowMarker = (id: string, color: string, opacity?: number) => {
@@ -784,6 +793,48 @@ export const Graph = (props: Props) => {
     highlightSelected(root);
   }, [svgRef, d3Graph.nodes, selectedNodeId, highlightNode, highlightLoopOnNode,
       highlightEdge, highlightAllNextNodes, highlightSelected]);
+
+  const fitOrCenter = useCallback((op: "fit" | "center") => {
+    if (!width || !height || !zoomRef.current) {
+      return false;
+    }
+
+    const svg = d3.select(svgRef.current);
+    const root = svg.select("g.root");
+    const bounds = (root.node() as SVGGElement).getBBox();
+    const center = {
+      x: bounds.x + (bounds.width / 2),
+      y: bounds.y + (bounds.height / 2),
+    };
+    const currentScale = transformRef.current?.k ?? 1;
+    const fitScale = Math.min(width / bounds.width, height / bounds.height) * 0.8;
+    const scale = op === "center" ? currentScale : fitScale;
+    const x = scale * (-center.x / 2);
+    const y = scale * (-center.y / 2);
+    const transform = new d3.ZoomTransform(scale, x, y);
+
+    svg.call(zoomRef.current.transform, transform);
+
+    return true;
+  }, [width, height]);
+
+  // listen for fit view requests
+  useEffect(() => {
+    if ((fitViewAt ?? 0) > (lastFitViewAtRef.current ?? 0)) {
+      if (fitOrCenter("fit")) {
+        lastFitViewAtRef.current = fitViewAt;
+      }
+    }
+  }, [fitViewAt, fitOrCenter]);
+
+  // listen for recenter view requests
+  useEffect(() => {
+    if ((recenterViewAt ?? 0) > (lastRecenterViewAtRef.current ?? 0)) {
+      if (fitOrCenter("center")) {
+        lastRecenterViewAtRef.current = recenterViewAt;
+      }
+    }
+  }, [recenterViewAt, fitOrCenter]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!autoArrange && onClick) {
