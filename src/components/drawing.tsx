@@ -30,6 +30,7 @@ interface Props {
   onReturnToMainMenu: () => void;
   onFitView: () => void;
   onRecenterView: () => void;
+  onDimensions?: (dimensions: {width: number, height: number}) => void;
 }
 
 export const Drawing = (props: Props) => {
@@ -54,6 +55,9 @@ export const Drawing = (props: Props) => {
   const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
     widthRef.current = width;
     heightRef.current = height;
+
+    // also tell the app so that it can translate the origin of any loaded data if needed
+    props.onDimensions?.({width, height});
   };
 
   const handleTransformed = (transform: Transform) => {

@@ -33,7 +33,7 @@ export type OutputTextMode = "replace"|"append";
 export type UseCODAPOptions = {
   onCODAPDataChanged: OnCODAPDataChanged;
   getGraph: GetGraphCallback;
-  setGraph: (data: GraphData) => void;
+  setGraph: (data: GraphData, version: number) => void;
   setInitialGraph: React.Dispatch<React.SetStateAction<GraphData|undefined>>
 };
 
@@ -58,6 +58,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
       const {nodes, edges} = getGraph();
       state.values.nodes = nodes;
       state.values.edges = edges;
+      state.values.version = 2; // there was no version 1 but set graph returns 1 if there is no version
     }
 
     return state;
@@ -87,9 +88,9 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
       setViewMode(values.viewMode);
 
       if (values.viewMode === "drawing") {
-        const {nodes, edges} = values;
+        const {nodes, edges, version} = values;
         if (nodes !== undefined && edges !== undefined) {
-          setGraph({nodes, edges});
+          setGraph({nodes, edges}, version ?? 1);
           // save a copy of the graph
           setInitialGraph({nodes: nodes.map((n: Node) => ({...n})), edges: edges.map((e: Edge) => ({...e}))});
         }

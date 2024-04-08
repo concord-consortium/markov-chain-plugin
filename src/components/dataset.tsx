@@ -21,6 +21,7 @@ interface Props {
   onReturnToMainMenu: () => void;
   onFitView: () => void;
   onRecenterView: () => void;
+  onDimensions?: (dimensions: {width: number, height: number}) => void;
 }
 
 export const Dataset = (props: Props) => {
