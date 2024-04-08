@@ -301,6 +301,9 @@ export const App = () => {
     const onPlayClick = generationMode === "playing"
       ? handlePause
       : (generationMode === "paused" ? handleResume : handlePlay);
+    const delimiterIsSpace = delimiter === " ";
+    const delimiterValue = delimiterIsSpace ? "" : delimiter;
+    const delimiterPlaceholder = delimiterIsSpace ? "(space)" : "(none)";
 
     return (
       <div className="generate">
@@ -328,8 +331,8 @@ export const App = () => {
               <label>Delimiter:</label>
               <input className="bordered" type="text"
                 onChange={handleChangeDelimiter}
-                value={delimiter}
-                placeholder="(none)"
+                value={delimiterValue}
+                placeholder={delimiterPlaceholder}
                 maxLength={3}
                 disabled={disabled}
               />
