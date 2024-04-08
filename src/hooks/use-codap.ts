@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Edge, GraphData, Node } from "../type";
 import {
   getValuesForAttribute,
@@ -44,6 +44,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
   const [sequenceNumber, setSequenceNumber] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode|undefined>();
+  const valuesRef = useRef<string[]>();
 
   const getPluginState = useCallback(() => {
     const state: any = {
@@ -76,8 +77,9 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
 
   const handleDataChanged = useCallback(async ({datasetName, collectionName, attributeName}: CODAPAttribute) => {
     const values = await getValuesForAttribute(datasetName, collectionName, attributeName);
-    if (viewMode === "dataset") {
+    if (viewMode === "dataset" && (JSON.stringify(values) !== JSON.stringify(valuesRef.current))) {
       onCODAPDataChanged(values);
+      valuesRef.current = values;
     }
   }, [onCODAPDataChanged, viewMode]);
 
