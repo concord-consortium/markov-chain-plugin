@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { nanoid } from "nanoid";
 
-import { DrawingMode, Graph, Point, RubberBand } from "./graph";
+import { DrawingMode, Graph, Point, RubberBand, Transform } from "./graph";
 import { Edge, GraphData, Node } from "../type";
 
 import { DragIcon } from "./drawing/drag-icon";
@@ -38,6 +38,7 @@ export const Drawing = (props: Props) => {
   const [selectedNodeForModal, setSelectedNodeForModal] = useState<Node|undefined>(undefined);
   const widthRef = useRef(0);
   const heightRef = useRef(0);
+  const transformRef = useRef<Transform>();
 
   const setSelectedNodeId = useCallback((id?: string, skipToggle?: boolean) => {
     if (drawingMode === "select") {
@@ -50,11 +51,16 @@ export const Drawing = (props: Props) => {
     heightRef.current = height;
   };
 
+  const handleTransformed = (transform: Transform) => {
+    transformRef.current = transform;
+  };
+
   const translateToGraphPoint = (e: MouseEvent|React.MouseEvent<HTMLDivElement>): Point => {
     // the offsets were determined visually to put the state centered on the mouse
+    const {x, y, k} = transformRef.current ?? {x: 0, y: 0, k: 1};
     return {
-      x: e.clientX - 50 - (widthRef.current / 2),
-      y: e.clientY - 10 - (heightRef.current / 2),
+      x: ((e.clientX - 50 - (widthRef.current / 2)) - x) / k,
+      y: ((e.clientY - 10 - (heightRef.current / 2)) - y) / k,
     };
   };
 
@@ -106,7 +112,6 @@ export const Drawing = (props: Props) => {
   */
 
   const addNode = useCallback(({x, y}: {x: number, y: number}) => {
-    console.log("ADD NODE");
     setGraph(prev => {
       const id = nanoid();
       const label = `State ${prev.nodes.length + 1}`;
@@ -279,6 +284,7 @@ export const Drawing = (props: Props) => {
         onDragStop={handleDragStop}
         setSelectedNodeId={setSelectedNodeId}
         onDimensions={handleDimensionChange}
+        onTransformed={handleTransformed}
       />
       <DragIcon drawingMode={drawingMode} />
       <NodeModal
