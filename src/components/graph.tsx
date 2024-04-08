@@ -186,7 +186,7 @@ const nodeLoopPath = (node: D3Node) => {
 };
 
 const graphSignature = (graph: D3Graph) => {
-  const nodeSignature = graph.nodes.map(n => `${n.id}/${n.label}/${n.weight}/${n.radius}`);
+  const nodeSignature = graph.nodes.map(n => `${n.id}/${n.label}/${n.weight}/${n.radius}/${n.x}/${n.y}`);
   const edgeSignature = graph.edges.map(e => `${e.source.id}/${e.target.id}/${e.weight}`);
   return `${nodeSignature}::${edgeSignature}`;
 };

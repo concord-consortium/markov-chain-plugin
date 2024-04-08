@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { GraphData, Node } from "../type";
+import { Edge, GraphData, Node } from "../type";
 import {
   getValuesForAttribute,
   // entityInfo,
@@ -34,9 +34,10 @@ export type UseCODAPOptions = {
   onCODAPDataChanged: OnCODAPDataChanged;
   getGraph: GetGraphCallback;
   setGraph: React.Dispatch<React.SetStateAction<GraphData>>
+  setInitialGraph: React.Dispatch<React.SetStateAction<GraphData|undefined>>
 };
 
-export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph}: UseCODAPOptions) => {
+export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGraph}: UseCODAPOptions) => {
   const [loadState, setLoadState] = useState<"loading"|"loaded">("loading");
   const [initialized, setInitialized] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -89,6 +90,8 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph}: UseCODAPOptio
         const {nodes, edges} = values;
         if (nodes !== undefined && edges !== undefined) {
           setGraph({nodes, edges});
+          // save a copy of the graph
+          setInitialGraph({nodes: nodes.map((n: Node) => ({...n})), edges: edges.map((e: Edge) => ({...e}))});
         }
       } else {
         if (values?.attribute) {
@@ -97,7 +100,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph}: UseCODAPOptio
         }
       }
     }
-  }, [setAttribute, handleDataChanged, setGraph]);
+  }, [setAttribute, handleDataChanged, setGraph, setInitialGraph]);
 
   const handleDrop = useCallback(async (iMessage: any) => {
     let newAttribute: CODAPAttribute;
