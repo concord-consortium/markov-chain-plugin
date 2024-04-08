@@ -129,7 +129,10 @@ export const ProbabilitySelector = ({exactPercentages, edgeLabels, onChange}: Pr
     newExactPercentages[index] = newExactPercentage;
     newExactPercentages[index+1] = pairedPercentageSum - newExactPercentage;
 
-    onChange(newExactPercentages);
+    const allAboveZero = newExactPercentages.find(n => n < 0) === undefined;
+    if (allAboveZero) {
+      onChange(newExactPercentages);
+    }
   }, [exactPercentages, onChange]);
 
   if (exactPercentages.length < 2) {
