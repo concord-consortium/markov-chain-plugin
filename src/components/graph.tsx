@@ -58,6 +58,7 @@ type Props = {
   onNodeDoubleClick?: (id: string) => void;
   onEdgeClick?: (options: {from: string, to: string}) => void;
   onDragStop?: (id: string, pos: Point) => void;
+  onDimensions?: (dimensions: {width: number, height: number}) => void;
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
 };
 
@@ -234,9 +235,9 @@ const lineDashArray = (edge: D3Edge) => edge.value ? "" : "4";
 
 export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
-         allowDragging, autoArrange, mode, rubberBand, drawingMode,
+         allowDragging, autoArrange, rubberBand, drawingMode,
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
-         selectedNodeId, setSelectedNodeId, animating} = props;
+         selectedNodeId, setSelectedNodeId, animating, onDimensions} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -317,9 +318,10 @@ export const Graph = (props: Props) => {
   useEffect(() => {
     if (dimensions) {
       setWidth(dimensions.width);
-      setHeight(dimensions.height - 5);
+      setHeight(dimensions.height);
+      onDimensions?.({width: dimensions.width, height: dimensions.height});
     }
-  }, [dimensions]);
+  }, [dimensions, onDimensions]);
 
   // create the d3 graph info
   useEffect(() => {
@@ -759,14 +761,12 @@ export const Graph = (props: Props) => {
     }
   }, [autoArrange, onClick]);
 
-  const viewBox = mode === "drawing" ? `0 0 ${width} ${height}` : `${-width / 2} ${-height / 2} ${width} ${height}`;
-
   return (
     <div className="graph" ref={wrapperRef} onClick={handleClick}>
       <svg
         width="100%"
         height="calc(100vh - 20px)"
-        viewBox={viewBox}
+        viewBox={`${-width / 2} ${-height / 2} ${width} ${height}`}
         ref={svgRef}
       />
     </div>
