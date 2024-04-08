@@ -88,16 +88,59 @@ export const App = () => {
   const animationInterval = useRef<number>();
   const { graph, updateGraph, setGraph } = useGraph();
   const [initialGraph, setInitialGraph] = useState<GraphData>();
+  const [fitViewAt, setFitViewAt] = useState<number>();
+  const [recenterViewAt, setRecenterViewAt] = useState<number>();
+  const onCODAPDataChanged = (values: string[]) => {
+    updateGraph(values);
+    setFitViewAt(Date.now());
+  };
+  const widthRef = useRef(0);
+  const heightRef = useRef(0);
+  const onSetGraph = (data: GraphData, version: number) => {
+
+    const done = () => {
+      setGraph(data);
+      setFitViewAt(Date.now());
+    };
+
+    const translateOrigin = () => {
+      if (!widthRef.current || !heightRef.current) {
+        setTimeout(translateOrigin, 1);
+      } else {
+        // the original data was stored with the origin at the top left
+        // but now data is stored with the origin in the center
+        // so we need to translate the points on load to the center
+        const xOffset = -widthRef.current / 2;
+        const yOffset = -heightRef.current / 2;
+        data.nodes.forEach(n => {
+          n.x = (n.x ?? 0) + xOffset;
+          n.y = (n.y ?? 0) + yOffset;
+        });
+        done();
+      }
+    };
+
+    if (version < 2) {
+      translateOrigin();
+    } else {
+      done();
+    }
+  };
   const { dragging, outputToDataset, viewMode, setViewMode, notifyStateIsDirty, loadState } = useCODAP({
-    onCODAPDataChanged: updateGraph,
+    onCODAPDataChanged,
     getGraph: useCallback(() => graph, [graph]),
-    setGraph,
+    setGraph: onSetGraph,
     setInitialGraph
   });
   const { generate } = useGenerator();
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
   const [fastSimulation, setFastSimulation] = useState(false);
   const fastSimulationRef = useRef(false);
+
+  const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
+    widthRef.current = width;
+    heightRef.current = height;
+  };
 
   const animating = useMemo(() => {
     return generationMode !== "ready";
@@ -419,6 +462,14 @@ export const App = () => {
     }
   };
 
+  const handleFitView = () => {
+    setFitViewAt(Date.now());
+  };
+
+  const handleRecenterView = () => {
+    setRecenterViewAt(Date.now());
+  };
+
   if (loadState === "loading") {
     return <div className="loading">Loading ...</div>;
   }
@@ -479,6 +530,11 @@ export const App = () => {
                 setSelectedNodeId={setSelectedNodeId}
                 onReset={handleReset}
                 onReturnToMainMenu={handleReturnToMainMenu}
+                onFitView={handleFitView}
+                onRecenterView={handleRecenterView}
+                fitViewAt={fitViewAt}
+                recenterViewAt={recenterViewAt}
+                onDimensions={handleDimensionChange}
               />
             :
               <Dataset
@@ -493,6 +549,11 @@ export const App = () => {
                 setSelectedNodeId={setSelectedNodeId}
                 onReset={handleReset}
                 onReturnToMainMenu={handleReturnToMainMenu}
+                onFitView={handleFitView}
+                onRecenterView={handleRecenterView}
+                fitViewAt={fitViewAt}
+                recenterViewAt={recenterViewAt}
+                onDimensions={handleDimensionChange}
               />
           }
         </div>

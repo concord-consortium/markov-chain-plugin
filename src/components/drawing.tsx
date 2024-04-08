@@ -21,17 +21,23 @@ interface Props {
   graph: GraphData;
   selectedNodeId?: string;
   animating: boolean;
+  fitViewAt?: number;
+  recenterViewAt?: number;
   setGraph: React.Dispatch<React.SetStateAction<GraphData>>;
   setHighlightNode: React.Dispatch<React.SetStateAction<Node | undefined>>
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
   onReset: () => void;
   onReturnToMainMenu: () => void;
+  onFitView: () => void;
+  onRecenterView: () => void;
+  onDimensions?: (dimensions: {width: number, height: number}) => void;
 }
 
 export const Drawing = (props: Props) => {
   const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
          graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId,
-         selectedNodeId, animating, onReset, onReturnToMainMenu} = props;
+         fitViewAt, recenterViewAt,
+         selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
@@ -49,6 +55,9 @@ export const Drawing = (props: Props) => {
   const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
     widthRef.current = width;
     heightRef.current = height;
+
+    // also tell the app so that it can translate the origin of any loaded data if needed
+    props.onDimensions?.({width, height});
   };
 
   const handleTransformed = (transform: Transform) => {
@@ -263,6 +272,8 @@ export const Drawing = (props: Props) => {
         onToolSelected={handleToolSelected}
         onReset={onReset}
         onReturnToMainMenu={onReturnToMainMenu}
+        onFitView={onFitView}
+        onRecenterView={onRecenterView}
       />
       <Graph
         mode="drawing"
@@ -285,6 +296,8 @@ export const Drawing = (props: Props) => {
         setSelectedNodeId={setSelectedNodeId}
         onDimensions={handleDimensionChange}
         onTransformed={handleTransformed}
+        fitViewAt={fitViewAt}
+        recenterViewAt={recenterViewAt}
       />
       <DragIcon drawingMode={drawingMode} />
       <NodeModal

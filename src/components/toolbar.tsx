@@ -16,7 +16,7 @@ import "./toolbar.scss";
 export const allTools = ["select","addNode","addEdge","addText","delete","fitView","recenter","reset","home"] as const;
 const toggleableTools: Tool[] = ["select","addNode","addEdge","addText","delete"];
 const nonTopTools: Tool[] = ["reset","home"];
-const notImplementedTools: Tool[] = ["addText","fitView","recenter"];
+const notImplementedTools: Tool[] = ["addText"];
 
 export type Tool = typeof allTools[number];
 
@@ -55,6 +55,8 @@ interface ToolbarProps {
   onToolSelected: (tool: Tool) => void;
   onReset: () => void;
   onReturnToMainMenu: () => void;
+  onFitView: () => void;
+  onRecenterView: () => void;
 }
 
 export const ToolbarButton = ({tool, selectedTool, onClick}: ToolbarButtonProps) => {
@@ -76,7 +78,8 @@ export const ToolbarButton = ({tool, selectedTool, onClick}: ToolbarButtonProps)
   );
 };
 
-export const Toolbar = ({tools, onToolSelected, onReset, onReturnToMainMenu}: ToolbarProps) => {
+export const Toolbar = (props: ToolbarProps) => {
+  const {tools, onToolSelected, onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
 
   const handleToolSelected = useCallback((tool: Tool) => {
@@ -90,9 +93,13 @@ export const Toolbar = ({tools, onToolSelected, onReset, onReturnToMainMenu}: To
       onReset();
     } else if (tool === "home") {
       onReturnToMainMenu();
+    } else if (tool === "fitView") {
+      onFitView();
+    } else if (tool === "recenter") {
+      onRecenterView();
     }
     onToolSelected(tool);
-  }, [selectedTool, onReset, onReturnToMainMenu, onToolSelected]);
+  }, [selectedTool, onReset, onReturnToMainMenu, onFitView, onRecenterView, onToolSelected]);
 
   const topTools = tools.filter(tool => !nonTopTools.includes(tool));
   const bottomTools = tools.filter(tool => nonTopTools.includes(tool));
