@@ -27,6 +27,11 @@ const normalAnimationOverride = parseInt((new URLSearchParams(window.location.se
 const FastAnimationDelay = isNaN(fastAnimationOverride) ? 250 : fastAnimationOverride;
 const NormalAnimationDelay = isNaN(normalAnimationOverride) ? 1000 : normalAnimationOverride;
 
+const defaultLengthLimit = 5;
+const defaultDelimiter = " ";
+const defaultStartingState = "";
+const defaultFastSimulation = false;
+
 type SequenceGroup = {
   startingState: string;
   startingNode: Node | undefined;
@@ -69,9 +74,9 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
 };
 
 export const App = () => {
-  const [lengthLimit, setLengthLimit] = useState<number | undefined>(5);
-  const [delimiter, setDelimiter] = useState(" ");
-  const [startingState, setStartingState] = useState("");
+  const [lengthLimit, setLengthLimit] = useState<number | undefined>(defaultLengthLimit);
+  const [delimiter, setDelimiter] = useState(defaultDelimiter);
+  const [startingState, setStartingState] = useState(defaultStartingState);
   const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
   const [selectedNodeId, _setSelectedNodeId] = useState<string>();
   const [highlightNode, setHighlightNode] = useState<Node>();
@@ -134,7 +139,7 @@ export const App = () => {
   });
   const { generate } = useGenerator();
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
-  const [fastSimulation, setFastSimulation] = useState(false);
+  const [fastSimulation, setFastSimulation] = useState(defaultFastSimulation);
   const fastSimulationRef = useRef(false);
 
   const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
@@ -451,6 +456,11 @@ export const App = () => {
 
   const handleReset = useCallback(() => {
     if (confirm("Are you sure you want to reset?\n\nAny changes you have made will be lost.")) {
+      setLengthLimit(defaultLengthLimit);
+      setDelimiter(defaultDelimiter);
+      setStartingState(defaultStartingState);
+      setSequenceGroups([]);
+      setFastSimulation(defaultFastSimulation);
       setGraph(initialGraph ? {...initialGraph} : {nodes: [], edges: []});
     }
   }, [initialGraph, setGraph]);
