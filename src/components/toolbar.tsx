@@ -16,7 +16,7 @@ import "./toolbar.scss";
 export const allTools = ["select","addNode","addEdge","addText","delete","fitView","recenter","reset","home"] as const;
 const toggleableTools: Tool[] = ["select","addNode","addEdge","addText","delete"];
 const nonTopTools: Tool[] = ["reset","home"];
-const notImplementedTools: Tool[] = ["addText"];
+const notImplementedTools: Tool[] = [];
 
 export type Tool = typeof allTools[number];
 

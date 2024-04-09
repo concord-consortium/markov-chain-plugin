@@ -349,6 +349,8 @@ export const App = () => {
     const delimiterIsSpace = delimiter === " ";
     const delimiterValue = delimiterIsSpace ? "" : delimiter;
     const delimiterPlaceholder = delimiterIsSpace ? "(space)" : "(none)";
+    const sortedNodes = [...graph.nodes];
+    sortedNodes.sort((a, b) => a.label.localeCompare(a.label));
 
     return (
       <div className="generate">
@@ -357,7 +359,7 @@ export const App = () => {
             <label>Starting State:</label>
             <select onChange={handleChangeStartingState} value={startingState} disabled={disabled}>
               <option value="">{AnyStartingState}</option>
-              {graph.nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+              {sortedNodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
           </div>
 
