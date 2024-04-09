@@ -16,6 +16,7 @@ interface Props {
   graphEmpty: boolean;
   fitViewAt?: number;
   recenterViewAt?: number;
+  resetZoomAt?: number;
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
   onReset: () => void;
   onReturnToMainMenu: () => void;
@@ -27,7 +28,7 @@ interface Props {
 export const Dataset = (props: Props) => {
   const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
          graph, graphEmpty, setSelectedNodeId, selectedNodeId, animating,
-         fitViewAt, recenterViewAt,
+         fitViewAt, recenterViewAt, resetZoomAt,
          onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
 
   const handleToolSelected = (tool: Tool) => {
@@ -86,6 +87,7 @@ export const Dataset = (props: Props) => {
         setSelectedNodeId={setSelectedNodeId}
         fitViewAt={fitViewAt}
         recenterViewAt={recenterViewAt}
+        resetZoomAt={resetZoomAt}
       />
     </div>
   );

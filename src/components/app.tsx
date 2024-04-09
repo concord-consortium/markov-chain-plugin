@@ -95,6 +95,7 @@ export const App = () => {
   const [initialGraph, setInitialGraph] = useState<GraphData>();
   const [fitViewAt, setFitViewAt] = useState<number>();
   const [recenterViewAt, setRecenterViewAt] = useState<number>();
+  const [resetZoomAt, setResetZoomAt] = useState<number>();
   const onCODAPDataChanged = (values: string[]) => {
     updateGraph(values);
     setFitViewAt(Date.now());
@@ -473,6 +474,7 @@ export const App = () => {
       setStartingState(defaultStartingState);
       setSequenceGroups([]);
       setFastSimulation(defaultFastSimulation);
+      setResetZoomAt(Date.now());
       setGraph(initialGraph ? {...initialGraph} : {nodes: [], edges: []});
     }
   }, [initialGraph, setGraph]);
@@ -557,6 +559,7 @@ export const App = () => {
                 onRecenterView={handleRecenterView}
                 fitViewAt={fitViewAt}
                 recenterViewAt={recenterViewAt}
+                resetZoomAt={resetZoomAt}
                 onDimensions={handleDimensionChange}
               />
             :
@@ -576,6 +579,7 @@ export const App = () => {
                 onRecenterView={handleRecenterView}
                 fitViewAt={fitViewAt}
                 recenterViewAt={recenterViewAt}
+                resetZoomAt={resetZoomAt}
                 onDimensions={handleDimensionChange}
               />
           }

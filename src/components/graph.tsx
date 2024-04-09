@@ -60,6 +60,7 @@ type Props = {
   animating: boolean;
   fitViewAt?: number;
   recenterViewAt?: number;
+  resetZoomAt?: number;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   onNodeClick?: (id: string, onLoop?: boolean) => void;
   onNodeDoubleClick?: (id: string) => void;
@@ -245,7 +246,7 @@ export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
          allowDragging, autoArrange, rubberBand, drawingMode,
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
-         fitViewAt, recenterViewAt,
+         fitViewAt, recenterViewAt, resetZoomAt,
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -846,6 +847,15 @@ export const Graph = (props: Props) => {
       }
     }
   }, [recenterViewAt, fitOrCenter]);
+
+  // listen for reset zoom requests
+  useEffect(() => {
+    if ((resetZoomAt ?? 0) && zoomRef.current) {
+      const svg = d3.select(svgRef.current);
+      const transform = new d3.ZoomTransform(1, 0, 0);
+      svg.call(zoomRef.current.transform, transform);
+    }
+  }, [resetZoomAt]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!autoArrange && onClick) {
