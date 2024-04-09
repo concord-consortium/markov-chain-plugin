@@ -5,6 +5,9 @@ import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
 import { ViewMode } from "../hooks/use-codap";
 
+import PlusIcon from "../assets/plus.svg";
+import MinusIcon from "../assets/minus.svg";
+
 import "./graph.scss";
 
 const unselectedOpacity = 0.35;
@@ -845,6 +848,16 @@ export const Graph = (props: Props) => {
     }
   }, [autoArrange, onClick]);
 
+  const scaleBy = (value: number) => {
+    if (zoomRef.current && svgRef.current) {
+      const svg = d3.select(svgRef.current);
+      svg.call(zoomRef.current.scaleBy, value);
+    }
+  };
+
+  const handleZoomIn = () => scaleBy(1.1);
+  const handleZoomOut = () => scaleBy(0.9);
+
   return (
     <div className="graph" ref={wrapperRef} onClick={handleClick}>
       <svg
@@ -853,6 +866,10 @@ export const Graph = (props: Props) => {
         viewBox={`${-width / 2} ${-height / 2} ${width} ${height}`}
         ref={svgRef}
       />
+      <div className="zoomButtons">
+        <button className="plusButton" onClick={handleZoomIn}><PlusIcon /></button>
+        <button className="minusButton" onClick={handleZoomOut}><MinusIcon /></button>
+      </div>
     </div>
   );
 };
