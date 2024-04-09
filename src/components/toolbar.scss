@@ -21,11 +21,15 @@
       background-color: #dceff2;
     }
 
+    &:disabled {
+      background-color: #ffffff59;
+    }
+
     &.notImplemented {
       cursor: not-allowed;
     }
 
-    &:hover {
+    &:hover:not(:disabled) {
       background-color: rgba(114, 191, 202, 0.12);
     }
   }
@@ -40,7 +44,7 @@
     button {
       background-color: #177991;
 
-      &:hover {
+      &:hover:not(:disabled) {
         background-color: rgba(114, 191, 202, 0.12);
 
         svg {
@@ -49,6 +53,16 @@
           }
         }
       }
-    }
+
+      &:disabled {
+        background-color: #ffffff59;
+
+        svg {
+          path {
+            fill: #177991;
+          }
+        }
+      }
+     }
   }
 }

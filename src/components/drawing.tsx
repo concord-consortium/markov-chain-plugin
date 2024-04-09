@@ -299,6 +299,7 @@ export const Drawing = (props: Props) => {
   return (
     <div className="drawing">
       <Toolbar
+        disabled={animating}
         tools={tools}
         onToolSelected={handleToolSelected}
         onReset={onReset}
@@ -337,7 +338,13 @@ export const Drawing = (props: Props) => {
         onChange={handleChangeNode}
         onCancel={handleClearSelectedNode}
       />
-      <AddText ref={textAreaRef} visible={drawingMode === "addText"} width={addTextWidth} onChange={handleTextChange} />
+      <AddText
+        ref={textAreaRef}
+        visible={drawingMode === "addText"}
+        width={addTextWidth}
+        disabled={animating}
+        onChange={handleTextChange}
+      />
     </div>
   );
 };
