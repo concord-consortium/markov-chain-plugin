@@ -18,7 +18,7 @@ export const SpeedToggle = ({fastSimulation, onChange}: Props) => {
     <div className="speedToggle">
       <label htmlFor="simulationSpeed">Simulation Speed:</label>
       <div>
-        <div style={getStyle(!fastSimulation)} onClick={() => onChange(false)}>Normal</div>
+        <div style={getStyle(!fastSimulation)}>Normal</div>
         <input
           id="simulationSpeed"
           className="slider"
@@ -28,7 +28,7 @@ export const SpeedToggle = ({fastSimulation, onChange}: Props) => {
           checked={fastSimulation}
           onChange={handleChange}
         />
-        <div style={getStyle(fastSimulation)} className="fast" onClick={() => onChange(true)}>Fast</div>
+        <div style={getStyle(fastSimulation)} className="fast">Fast</div>
       </div>
     </div>
   );
