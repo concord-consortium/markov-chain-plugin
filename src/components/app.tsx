@@ -390,7 +390,7 @@ export const App = () => {
             </div>
           </div>
 
-          <SpeedToggle fastSimulation={fastSimulation} onChange={handleSpeedToggle} disabled={animating} />
+          <SpeedToggle fastSimulation={fastSimulation} onChange={handleSpeedToggle} />
 
         </div>
         <div className="buttons">
