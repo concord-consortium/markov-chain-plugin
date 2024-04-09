@@ -236,17 +236,19 @@ export const App = () => {
 
   }, [setSequenceGroups, graph]);
 
-  const finishAnimating = useCallback(async () => {
+  const finishAnimating = useCallback(async (cancel?: boolean) => {
     setHighlightNode(undefined);
     setHighlightEdge(undefined);
     setHighlightLoopOnNode(undefined);
     stopAnimationInterval();
 
-    await outputToDataset(currentSequence.current);
+    if (!cancel) {
+      await outputToDataset(currentSequence.current);
 
-    if (currentAnimatedSequenceGroup.current) {
-      currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, currentSequence.current];
-      setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
+      if (currentAnimatedSequenceGroup.current) {
+        currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, currentSequence.current];
+        setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
+      }
     }
 
     setGenerationMode("ready");
@@ -344,6 +346,10 @@ export const App = () => {
     fastSimulationRef.current = value;
   }, [setFastSimulation]);
 
+  const handleCancel = () => {
+    finishAnimating(true);
+  };
+
   const uiForGenerate = () => {
     const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
     const PlayOrPauseIcon = generationMode === "playing" ? PauseIcon : PlayIcon;
@@ -438,6 +444,12 @@ export const App = () => {
             onClick={handleClearOutput}
             disabled={disabled || lengthLimit === undefined || generationMode !== "ready"}>
             Clear Output
+          </button>
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={graphEmpty || (generationMode === "ready")}>
+            Cancel
           </button>
         </div>
       </div>

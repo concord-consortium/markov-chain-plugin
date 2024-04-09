@@ -223,6 +223,9 @@
         }
 
         .buttons {
+          display: flex;
+          gap: 5px;
+
           button {
             padding: 8px;
           }
