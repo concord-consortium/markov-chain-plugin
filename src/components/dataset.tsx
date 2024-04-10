@@ -38,6 +38,7 @@ export const Dataset = (props: Props) => {
     return (
       <div className="dataset">
         <Toolbar
+          disabled={animating}
           tools={["home"]}
           onToolSelected={handleToolSelected}
           onReset={onReset}
@@ -63,6 +64,7 @@ export const Dataset = (props: Props) => {
   return (
     <div className="dataset">
       <Toolbar
+        disabled={animating}
         tools={["select","fitView","recenter","reset","home"]}
         onToolSelected={handleToolSelected}
         onReset={onReset}

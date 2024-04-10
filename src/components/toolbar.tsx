@@ -46,12 +46,14 @@ const toolIcons: Record<Tool, any> = {
 
 interface ToolbarButtonProps {
   tool: Tool
+  disabled: boolean
   selectedTool: Tool;
   onClick: (tool: Tool) => void;
 }
 
 interface ToolbarProps {
   tools: Tool[]
+  disabled: boolean
   onToolSelected: (tool: Tool) => void;
   onReset: () => void;
   onReturnToMainMenu: () => void;
@@ -59,7 +61,7 @@ interface ToolbarProps {
   onRecenterView: () => void;
 }
 
-export const ToolbarButton = ({tool, selectedTool, onClick}: ToolbarButtonProps) => {
+export const ToolbarButton = ({tool, disabled, selectedTool, onClick}: ToolbarButtonProps) => {
   const handleClick = () => onClick(tool);
   const selected = toggleableTools.includes(tool) && tool === selectedTool;
   const notImplemented = notImplementedTools.includes(tool);
@@ -71,7 +73,7 @@ export const ToolbarButton = ({tool, selectedTool, onClick}: ToolbarButtonProps)
       title={title}
       onClick={handleClick}
       className={clsx({selected, notImplemented})}
-      disabled={notImplemented}
+      disabled={disabled || notImplemented}
     >
       <ToolIcon />
     </button>
@@ -79,7 +81,7 @@ export const ToolbarButton = ({tool, selectedTool, onClick}: ToolbarButtonProps)
 };
 
 export const Toolbar = (props: ToolbarProps) => {
-  const {tools, onToolSelected, onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
+  const {tools, disabled, onToolSelected, onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
 
   const handleToolSelected = useCallback((tool: Tool) => {
@@ -110,6 +112,7 @@ export const Toolbar = (props: ToolbarProps) => {
         {topTools.map(tool => (
           <ToolbarButton
             key={tool}
+            disabled={disabled}
             tool={tool}
             selectedTool={selectedTool}
             onClick={handleToolSelected}
@@ -120,6 +123,7 @@ export const Toolbar = (props: ToolbarProps) => {
         {bottomTools.map(tool => (
           <ToolbarButton
             key={tool}
+            disabled={disabled}
             tool={tool}
             selectedTool={selectedTool}
             onClick={handleToolSelected}

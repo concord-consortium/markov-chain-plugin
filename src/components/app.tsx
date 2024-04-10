@@ -340,7 +340,6 @@ export const App = () => {
   }, [setFastSimulation]);
 
   const uiForGenerate = () => {
-    const disabled = graphEmpty;
     const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
     const PlayOrPauseIcon = generationMode === "playing" ? PauseIcon : PlayIcon;
     const onPlayClick = generationMode === "playing"
@@ -357,7 +356,7 @@ export const App = () => {
         <div className="flex-col">
           <div>
             <label>Starting State:</label>
-            <select onChange={handleChangeStartingState} value={startingState} disabled={disabled}>
+            <select onChange={handleChangeStartingState} value={startingState} disabled={animating}>
               <option value="">{AnyStartingState}</option>
               {sortedNodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
@@ -370,7 +369,7 @@ export const App = () => {
                 value={lengthLimit}
                 onChange={handleChangeLengthLimit}
                 min={1}
-                disabled={disabled}
+                disabled={animating}
               />
             </div>
 
@@ -381,26 +380,26 @@ export const App = () => {
                 value={delimiterValue}
                 placeholder={delimiterPlaceholder}
                 maxLength={3}
-                disabled={disabled}
+                disabled={animating}
               />
             </div>
           </div>
 
-          <SpeedToggle fastSimulation={fastSimulation} onChange={handleSpeedToggle} />
+          <SpeedToggle fastSimulation={fastSimulation} onChange={handleSpeedToggle} disabled={animating} />
 
         </div>
         <div className="buttons">
           <button
             type="button"
             onClick={onPlayClick}
-            disabled={disabled || lengthLimit === undefined}>
+            disabled={graphEmpty || lengthLimit === undefined}>
             <PlayOrPauseIcon />
             {playLabel}
           </button>
           <button
             type="button"
             onClick={handleStep}
-            disabled={disabled || lengthLimit === undefined || generationMode === "playing"}>
+            disabled={graphEmpty || lengthLimit === undefined || generationMode === "playing"}>
             <StepIcon />
             Step
           </button>
