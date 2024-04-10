@@ -22,4 +22,41 @@
     stroke: lightcoral;
     stroke-opacity: 1;
   }
+
+  .zoomButtons {
+    position: absolute;
+    left: 60px;
+    bottom: 25px;
+    display: flex;
+    flex-direction: column;
+
+    button {
+      width: 22px;
+      height: 22px;
+      margin: 0;
+      padding: 3px;
+      border-radius: 3px;
+      background-color: white;
+      border: solid 1px #1779917f;
+
+      svg {
+        width: 16px;
+        margin-top: -5px;
+      }
+
+      &.plusButton {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+      &.minusButton {
+        border-top: 0;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+      }
+
+      &:hover:not(:disabled) {
+        background-color: rgba(114, 191, 202, 0.12);
+      }
+    }
+  }
 }
