@@ -808,6 +808,11 @@ export const Graph = (props: Props) => {
     const svg = d3.select(svgRef.current);
     const root = svg.select("g.root");
     const bounds = (root.node() as SVGGElement).getBBox();
+
+    if (!bounds.width || !bounds.height) {
+      return false;
+    }
+
     const center = {
       x: bounds.x + (bounds.width / 2),
       y: bounds.y + (bounds.height / 2),

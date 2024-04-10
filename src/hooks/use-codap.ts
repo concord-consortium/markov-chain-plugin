@@ -77,7 +77,8 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
 
   const handleDataChanged = useCallback(async ({datasetName, collectionName, attributeName}: CODAPAttribute) => {
     const values = await getValuesForAttribute(datasetName, collectionName, attributeName);
-    if (viewMode === "dataset" && (JSON.stringify(values) !== JSON.stringify(valuesRef.current))) {
+    const valuesChanged = !valuesRef.current || (JSON.stringify(values) !== JSON.stringify(valuesRef.current));
+    if (viewMode === "dataset" && valuesChanged) {
       onCODAPDataChanged(values);
       valuesRef.current = values;
     }
@@ -127,6 +128,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
           collectionName: iMessage.values.collection.name,
           attributeName: iMessage.values.attribute.name
         };
+        valuesRef.current = [];
         setAttribute(newAttribute);
         await handleDataChanged(newAttribute);
         await notifyStateIsDirty();

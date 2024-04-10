@@ -4,11 +4,10 @@ import "./speed-toggle.scss";
 
 interface Props {
   fastSimulation: boolean;
-  disabled: boolean;
   onChange: (newValue: boolean) => void;
 }
 
-export const SpeedToggle = ({fastSimulation, disabled, onChange}: Props) => {
+export const SpeedToggle = ({fastSimulation, onChange}: Props) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.checked);
   };
@@ -28,7 +27,6 @@ export const SpeedToggle = ({fastSimulation, disabled, onChange}: Props) => {
           title={title}
           checked={fastSimulation}
           onChange={handleChange}
-          disabled={disabled}
         />
         <div style={getStyle(fastSimulation)} className="fast">Fast</div>
       </div>
