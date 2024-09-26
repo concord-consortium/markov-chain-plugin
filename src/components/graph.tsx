@@ -613,6 +613,7 @@ export const Graph = (props: Props) => {
       .data(d3Graph.edges)
       .enter()
       .append("line")
+      .lower() // add below nodes
       .attr("class", lineBackgroundClass)
       .attr("stroke", "#000")
       .attr("stroke-opacity", 0)
@@ -633,6 +634,7 @@ export const Graph = (props: Props) => {
       .data(d3Graph.edges)
       .enter()
       .append("line")
+      .lower() // add below nodes
       .attr("class", "edge")
       .attr("stroke", "#999")
       .attr("stroke-opacity", lineAndLoopOpacity)
@@ -657,6 +659,7 @@ export const Graph = (props: Props) => {
       .data(d3Graph.nodes.filter(n => n.loops))
       .enter()
       .append("path")
+      .lower() // add below nodes
       .attr("class", "loop-background")
       .attr("d", nodeLoopPath)
       .attr("stroke", "#000")
@@ -674,6 +677,7 @@ export const Graph = (props: Props) => {
       .data(d3Graph.nodes.filter(n => n.loops))
       .enter()
       .append("path")
+      .lower() // add below nodes
       .attr("class", "loop")
       .attr("d", nodeLoopPath)
       .attr("stroke", "#999")
