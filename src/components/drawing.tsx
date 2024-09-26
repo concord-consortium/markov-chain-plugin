@@ -19,6 +19,7 @@ interface Props {
   highlightLoopOnNode?: Node,
   highlightEdge?: Edge,
   highlightAllNextNodes: boolean;
+  highlightOutputNodes?: Node[];
   graph: GraphData;
   selectedNodeId?: string;
   animating: boolean;
@@ -38,7 +39,7 @@ const keepPunctuationRegex = /[.,?!:;]/g;
 const removePunctuationRegex = /["(){}[\]_+=|\\/><]/g;
 
 export const Drawing = (props: Props) => {
-  const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
+  const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId,
          fitViewAt, recenterViewAt,
          selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
@@ -314,6 +315,7 @@ export const Drawing = (props: Props) => {
         highlightNode={highlightNode}
         highlightEdge={highlightEdge}
         highlightAllNextNodes={highlightAllNextNodes}
+        highlightOutputNodes={highlightOutputNodes}
         highlightLoopOnNode={highlightLoopOnNode}
         allowDragging={drawingMode === "select"}
         autoArrange={autoArrange}

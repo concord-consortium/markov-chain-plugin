@@ -52,6 +52,7 @@ type Props = {
   highlightLoopOnNode?: Node,
   highlightEdge?: Edge,
   highlightAllNextNodes: boolean;
+  highlightOutputNodes?: Node[];
   allowDragging: boolean;
   autoArrange: boolean;
   rubberBand?: RubberBand;
@@ -242,7 +243,7 @@ const calculateNodeFontSize = (d: D3Node) => {
 const lineDashArray = (edge: D3Edge) => edge.value ? "" : "4";
 
 export const Graph = (props: Props) => {
-  const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
+  const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          allowDragging, autoArrange, rubberBand, drawingMode,
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
          fitViewAt, recenterViewAt,
@@ -326,6 +327,47 @@ export const Graph = (props: Props) => {
 
 
   }, [selectedNodeId, animating, graph]);
+
+  const unhighlightNonOutput = useCallback((svg: d3.Selection<any, unknown, null, undefined>) => {
+    if (animating) {
+      return;
+    }
+
+    const nodeIds = highlightOutputNodes?.map(n => n.id) ?? [];
+    const haveNodes = nodeIds.length > 0;
+
+    // unhighlight non-highlighted nodes
+    svg
+      .selectAll("g.node")
+      .selectAll("ellipse")
+      .style("opacity", 1)
+      .filter((d: any) => haveNodes && !nodeIds.includes(d.id))
+      .style("opacity", unselectedOpacity);
+
+    // unhighlight non-highlighted edges
+    svg
+      .selectAll("line")
+      .style("opacity", 1)
+      .filter((d: any) => ((
+        (d.value > 0) && haveNodes && (!(nodeIds.includes(d.source?.id) && nodeIds.includes(d.target?.id))))))
+      .style("opacity", unselectedOpacity);
+
+    // unhighlight loops
+    svg
+      .selectAll("path.loop")
+      .style("opacity", 1)
+      .filter((d: any) => haveNodes && !nodeIds.includes(d.id))
+      .style("opacity", unselectedOpacity);
+
+    // unhighlight text
+    svg
+      .selectAll("g.node")
+      .selectAll("text")
+      .style("opacity", 1)
+      .filter((d: any) => haveNodes && !nodeIds.includes(d.id))
+      .style("opacity", unselectedOpacity);
+
+  }, [highlightOutputNodes, animating]);
 
   // calculate the svg dimensions
   useEffect(() => {
@@ -769,11 +811,11 @@ export const Graph = (props: Props) => {
       .selectAll("ellipse")
       .attr("fill", "#fff");
 
-    // highlight animated node
+    // highlight animated node and output nodes
     root
       .selectAll("g.node")
       .selectAll("ellipse")
-      .filter((d: any) => highlightNode?.id === d.id)
+      .filter((d: any) => (highlightNode?.id === d.id) || !!highlightOutputNodes?.find(n => n.id === d.id))
       .attr("fill", animatedNodeColor);
 
     // highlight animated edges
@@ -784,8 +826,12 @@ export const Graph = (props: Props) => {
       .attr("marker-end", arrowUrl)
       .filter((d: any) => ((
         (d.value > 0) && (
-        (highlightNode?.id === d.source?.id && highlightAllNextNodes) ||
-        (highlightEdge?.from === d.source?.id && highlightEdge?.to === d.target?.id)))))
+            (highlightNode?.id === d.source?.id && highlightAllNextNodes) ||
+            (highlightEdge?.from === d.source?.id && highlightEdge?.to === d.target?.id) ||
+            (!!highlightOutputNodes?.find(n => n.id === d.source?.id)
+              && !!highlightOutputNodes?.find(n => n.id === d.target?.id))
+          )
+        )))
       .attr("stroke", animatedArrowColor)
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
       .attr("marker-end", animatedArrowUrl);
@@ -800,9 +846,11 @@ export const Graph = (props: Props) => {
       .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
       .attr("marker-end", animatedArrowUrl);
 
+    unhighlightNonOutput(root);
     highlightSelected(root);
+
   }, [svgRef, d3Graph.nodes, selectedNodeId, highlightNode, highlightLoopOnNode,
-      highlightEdge, highlightAllNextNodes, highlightSelected]);
+      highlightEdge, highlightAllNextNodes, highlightSelected, highlightOutputNodes, unhighlightNonOutput]);
 
   const fitOrCenter = useCallback((op: "fit" | "center") => {
     if (!width || !height || !zoomRef.current) {

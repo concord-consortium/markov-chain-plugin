@@ -141,6 +141,7 @@ export const App = () => {
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
   const [fastSimulation, setFastSimulation] = useState(defaultFastSimulation);
   const fastSimulationRef = useRef(false);
+  const [highlightOutput, setHighlightOutput] = useState<{group: SequenceGroup, sequence: Node[]}|undefined>();
 
   const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
     widthRef.current = width;
@@ -153,6 +154,7 @@ export const App = () => {
 
   const setSelectedNodeId = useCallback((id?: string, skipToggle?: boolean) => {
     if (!animating) {
+      setHighlightOutput(undefined);
       if ((!id || (id === selectedNodeId)) && !skipToggle) {
         _setSelectedNodeId(undefined);
       } else {
@@ -174,6 +176,10 @@ export const App = () => {
   }, [sequenceGroups]);
 
   const graphEmpty = useMemo(() => graph.nodes.length === 0, [graph]);
+
+  const highlightOutputNodes = useMemo(() => {
+    return animating ? undefined : highlightOutput?.sequence;
+  }, [animating, highlightOutput]);
 
   const generateNewSequence = useCallback(async () => {
     currentSequence.current = [];
@@ -323,6 +329,7 @@ export const App = () => {
   }, [finishAnimating, startAnimationInterval]);
 
   const handleStep = useCallback(async () => {
+    setHighlightOutput(undefined);
     if ((generationMode !== "stepping") && (generationMode !== "paused")) {
       setGenerationMode("stepping");
       await generateNewSequence();
@@ -335,6 +342,7 @@ export const App = () => {
   }, [generationMode, animateCurrentSequenceIndex, animateNextSequenceIndex, finishAnimating, generateNewSequence]);
 
   const handlePlay = useCallback(async () => {
+    setHighlightOutput(undefined);
     setGenerationMode("playing");
     await generateNewSequence();
     animateCurrentSequenceIndex();
@@ -349,6 +357,15 @@ export const App = () => {
   const handleCancel = () => {
     finishAnimating(true);
   };
+
+  const toggleHighlightOutput = useCallback((group: SequenceGroup, sequence: Node[]) => {
+    setSelectedNodeId();
+    if (!highlightOutput || (highlightOutput.group !== group) || (highlightOutput.sequence !== sequence)) {
+      setHighlightOutput({group, sequence});
+    } else {
+      setHighlightOutput(undefined);
+    }
+  }, [highlightOutput, setHighlightOutput, setSelectedNodeId]);
 
   const uiForGenerate = () => {
     const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
@@ -431,7 +448,20 @@ export const App = () => {
                 <div className="group" key={i}>
                   <SequenceOutputHeader group={group} />
                   <div className="sequences">
-                    {group.sequences.map((s, j) => <div key={j}>{s.map(n => n.label).join(group.delimiter)}</div>)}
+                    {group.sequences.map((s, j) => (
+                      <div
+                        key={j}
+                        className={clsx("sequence", {
+                          disabled: animating,
+                          highlighted: (
+                            highlightOutput && highlightOutput.group === group && highlightOutput.sequence === s
+                          )
+                        })}
+                        onClick={animating ? undefined : () => toggleHighlightOutput(group, s)}
+                      >
+                        {s.map(n => n.label).join(group.delimiter)}
+                      </div>
+                    ))}
                   </div>
                 </div>
               );
@@ -546,6 +576,7 @@ export const App = () => {
                 highlightLoopOnNode={highlightLoopOnNode}
                 highlightEdge={highlightEdge}
                 highlightAllNextNodes={highlightAllNextNodes}
+                highlightOutputNodes={highlightOutputNodes}
                 selectedNodeId={selectedNodeId}
                 animating={animating}
                 setGraph={setGraph}
@@ -566,6 +597,7 @@ export const App = () => {
                 highlightLoopOnNode={highlightLoopOnNode}
                 highlightEdge={highlightEdge}
                 highlightAllNextNodes={highlightAllNextNodes}
+                highlightOutputNodes={highlightOutputNodes}
                 selectedNodeId={selectedNodeId}
                 animating={animating}
                 graphEmpty={graphEmpty}
