@@ -33,6 +33,7 @@ interface Props {
   onFitView: () => void;
   onRecenterView: () => void;
   onDimensions?: (dimensions: {width: number, height: number}) => void;
+  onClearHighlightOutput?: () => void;
 }
 
 const keepPunctuationRegex = /[.,?!:;]/g;
@@ -41,7 +42,7 @@ const removePunctuationRegex = /["(){}[\]_+=|\\/><]/g;
 export const Drawing = (props: Props) => {
   const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId,
-         fitViewAt, recenterViewAt,
+         fitViewAt, recenterViewAt, onClearHighlightOutput,
          selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
@@ -120,6 +121,7 @@ export const Drawing = (props: Props) => {
   }, [drawingMode, textAreaRef]);
 
   const handleToolSelected = (tool: Tool) => {
+    onClearHighlightOutput?.();
     if (drawingTools.includes(tool)) {
       setDrawingMode(tool as DrawingMode);
       setAutoArrange(tool === "addText");

@@ -216,9 +216,10 @@
                 }
               }
               .sequences {
-                padding: 5px;
+                padding: 5px 0;
 
                 .sequence {
+                  padding: 0 5px;
                   cursor: pointer;
 
                   &.highlighted {
