@@ -40,6 +40,8 @@ type SequenceGroup = {
   sequences: Node[][];
 };
 
+type DelimiterType = "none"|"space"|"other";
+
 const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
   const [expanded, setExpanded] = useState(false);
   const startingState = group.startingNode?.label ?? AnyStartingState;
@@ -142,6 +144,8 @@ export const App = () => {
   const [fastSimulation, setFastSimulation] = useState(defaultFastSimulation);
   const fastSimulationRef = useRef(false);
   const [highlightOutput, setHighlightOutput] = useState<{group: SequenceGroup, sequence: Node[]}|undefined>();
+  const [delimiterType, setDelimiterType] = useState<DelimiterType>(
+    delimiter === "" ? "none" : (delimiter === " " ? "space" : "other"));
 
   const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
     widthRef.current = width;
@@ -306,6 +310,20 @@ export const App = () => {
     setDelimiter(e.target.value);
   };
 
+  const handleChangeDelimiterType = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newType = e.target.value as DelimiterType;
+    setDelimiterType(newType);
+    switch (newType) {
+      case "space":
+        setDelimiter(" ");
+        break;
+      case "none":
+      case "other":
+        setDelimiter("");
+        break;
+    }
+  };
+
   const handleChangeStartingState = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setStartingState(e.target.value);
   };
@@ -373,9 +391,6 @@ export const App = () => {
     const onPlayClick = generationMode === "playing"
       ? handlePause
       : (generationMode === "paused" ? handleResume : handlePlay);
-    const delimiterIsSpace = delimiter === " ";
-    const delimiterValue = delimiterIsSpace ? "" : delimiter;
-    const delimiterPlaceholder = delimiterIsSpace ? "(space)" : "(none)";
     const sortedNodes = [...graph.nodes];
     sortedNodes.sort((a, b) => a.label.localeCompare(a.label));
 
@@ -403,13 +418,20 @@ export const App = () => {
 
             <div>
               <label>Delimiter:</label>
-              <input className="bordered" type="text"
+              <select value={delimiterType} onChange={handleChangeDelimiterType}>
+                <option value="none">none</option>
+                <option value="space">space</option>
+                <option value="other">other ...</option>
+              </select>
+              {delimiterType === "other" && <input className="bordered" type="text"
                 onChange={handleChangeDelimiter}
-                value={delimiterValue}
-                placeholder={delimiterPlaceholder}
+                value={delimiter}
+                placeholder="delimiter"
                 maxLength={3}
                 disabled={animating}
-              />
+                style={{width: 75, marginTop: 5}}
+                autoFocus={true}
+              />}
             </div>
           </div>
 
