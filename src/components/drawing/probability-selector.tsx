@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from "react";
+import { ViewMode } from "../../hooks/use-codap";
 
 import "./probability-selector.scss";
 
@@ -15,6 +16,7 @@ interface ProbabilitySelectorThumbProps {
 }
 
 interface ProbabilitySelectorProps {
+  viewMode: ViewMode;
   exactPercentages: number[]
   edgeLabels: string[]
   onChange: (newPercentages: number[]) => void
@@ -73,7 +75,7 @@ export const ProbabilitySelectorThumb = (props: ProbabilitySelectorThumbProps) =
   );
 };
 
-export const ProbabilitySelector = ({exactPercentages, edgeLabels, onChange}: ProbabilitySelectorProps) => {
+export const ProbabilitySelector = ({viewMode, exactPercentages, edgeLabels, onChange}: ProbabilitySelectorProps) => {
 
   const roundPercentages = useMemo(() => {
     const result = exactPercentages.slice(0, -1).map(exactPercentage => Math.round(exactPercentage));
@@ -135,13 +137,15 @@ export const ProbabilitySelector = ({exactPercentages, edgeLabels, onChange}: Pr
     }
   }, [exactPercentages, onChange]);
 
-  if (exactPercentages.length < 2) {
+  const isDrawingMode = viewMode === "drawing";
+  if (isDrawingMode && (exactPercentages.length < 2)) {
     return null;
   }
 
   return (
     <div className="probability-selector">
       <div className="header">Transition Probabilities</div>
+      {isDrawingMode &&
       <div className="svg-container" style={{width: svgWidth, height: svgHeight}}>
         <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`}>
           {segments.map(({start, end}, i) => (
@@ -166,9 +170,10 @@ export const ProbabilitySelector = ({exactPercentages, edgeLabels, onChange}: Pr
           ))}
         </svg>
       </div>
+      }
       <div className="percentages">
         {roundPercentages.map((p, i) => (
-          <div key={i} style={{color: getDistinctColor(i)}}>To {edgeLabels[i]}: {p}%</div>
+          <div key={i} style={{color: isDrawingMode ? getDistinctColor(i) : "#000"}}>To {edgeLabels[i]}: {p}%</div>
         ))}
       </div>
     </div>

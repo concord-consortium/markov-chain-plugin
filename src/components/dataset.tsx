@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Tool, Toolbar } from "./toolbar";
 import { Graph } from "./graph";
 import { Node, Edge, GraphData } from "../type";
+import { NodeModal } from "./drawing/node-modal";
 
 import "./dataset.scss";
 
@@ -30,10 +31,16 @@ export const Dataset = (props: Props) => {
          graph, graphEmpty, setSelectedNodeId, selectedNodeId, animating,
          fitViewAt, recenterViewAt,
          onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
+  const [selectedNodeForModal, setSelectedNodeForModal] = useState<Node|undefined>(undefined);
 
   const handleToolSelected = (tool: Tool) => {
     // TBD
   };
+
+  const handleNodeDoubleClicked = (id: string) => {
+    setSelectedNodeForModal(graph.nodes.find(n => n.id === id));
+  };
+  const handleClearSelectedNode = () => setSelectedNodeForModal(undefined);
 
   if (graphEmpty) {
     return (
@@ -82,12 +89,20 @@ export const Dataset = (props: Props) => {
         highlightAllNextNodes={highlightAllNextNodes}
         highlightOutputNodes={highlightOutputNodes}
         selectedNodeId={selectedNodeId}
+        onNodeDoubleClick={handleNodeDoubleClicked}
         animating={animating}
         allowDragging={true && !animating}
         autoArrange={true}
         setSelectedNodeId={setSelectedNodeId}
         fitViewAt={fitViewAt}
         recenterViewAt={recenterViewAt}
+      />
+      <NodeModal
+        viewMode="dataset"
+        node={selectedNodeForModal}
+        graph={graph}
+        onChange={() => undefined}
+        onCancel={handleClearSelectedNode}
       />
     </div>
   );
