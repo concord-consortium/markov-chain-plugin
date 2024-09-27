@@ -217,6 +217,17 @@
               }
               .sequences {
                 padding: 5px;
+
+                .sequence {
+                  cursor: pointer;
+
+                  &.highlighted {
+                    background-color: #FF00877f;
+                  }
+                  &.disabled {
+                    cursor: default;
+                  }
+                }
               }
             }
           }

@@ -10,6 +10,7 @@ interface Props {
   highlightLoopOnNode?: Node,
   highlightEdge?: Edge,
   highlightAllNextNodes: boolean;
+  highlightOutputNodes?: Node[];
   graph: GraphData;
   selectedNodeId?: string;
   animating: boolean;
@@ -25,7 +26,7 @@ interface Props {
 }
 
 export const Dataset = (props: Props) => {
-  const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes,
+  const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, graphEmpty, setSelectedNodeId, selectedNodeId, animating,
          fitViewAt, recenterViewAt,
          onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
@@ -79,6 +80,7 @@ export const Dataset = (props: Props) => {
         highlightLoopOnNode={highlightLoopOnNode}
         highlightEdge={highlightEdge}
         highlightAllNextNodes={highlightAllNextNodes}
+        highlightOutputNodes={highlightOutputNodes}
         selectedNodeId={selectedNodeId}
         animating={animating}
         allowDragging={true && !animating}
