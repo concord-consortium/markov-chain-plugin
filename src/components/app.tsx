@@ -504,6 +504,7 @@ export const App = () => {
       setSequenceGroups([]);
       setFastSimulation(defaultFastSimulation);
       setGraph(initialGraph ? {...initialGraph} : {nodes: [], edges: []});
+      setFitViewAt(Date.now());
     }
   }, [initialGraph, setGraph]);
 
