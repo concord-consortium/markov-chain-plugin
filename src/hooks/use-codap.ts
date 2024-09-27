@@ -75,10 +75,12 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
     }]);
   };
 
-  const handleDataChanged = useCallback(async ({datasetName, collectionName, attributeName}: CODAPAttribute) => {
+  const handleDataChanged = useCallback(async (codapAttribute: CODAPAttribute, viewModeOverride?: ViewMode ) => {
+    const {datasetName, collectionName, attributeName} = codapAttribute;
     const values = await getValuesForAttribute(datasetName, collectionName, attributeName);
     const valuesChanged = !valuesRef.current || (JSON.stringify(values) !== JSON.stringify(valuesRef.current));
-    if (viewMode === "dataset" && valuesChanged) {
+    const currentViewMode = viewModeOverride ?? viewMode;
+    if (currentViewMode === "dataset" && valuesChanged) {
       onCODAPDataChanged(values);
       valuesRef.current = values;
     }
@@ -100,7 +102,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
       } else {
         if (values?.attribute) {
           setAttribute(values.attribute);
-          handleDataChanged(values.attribute);
+          handleDataChanged(values.attribute, values.viewMode);
         }
       }
     }
