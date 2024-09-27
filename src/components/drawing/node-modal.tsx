@@ -1,15 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ProbabilitySelector, percentage, reduceToSum } from "./probability-selector";
 import { Node, Edge, GraphData } from "../../type";
+import { ViewMode } from "../../hooks/use-codap";
 
 export interface NodeModalProps {
+  viewMode: ViewMode;
   node?: Node,
   graph: GraphData;
   onChange: (id: string, newNode: Node, newEdge: Edge[]) => void,
   onCancel: () => void
 }
 
-export const NodeModal = ({ node, graph, onChange, onCancel }: NodeModalProps) => {
+export const NodeModal = ({ viewMode, node, graph, onChange, onCancel }: NodeModalProps) => {
   const [label, setLabel] = useState(node?.label || "");
   const [exactPercentages, _setExactPercentages] = useState<number[]>([]);
 
@@ -68,6 +70,29 @@ export const NodeModal = ({ node, graph, onChange, onCancel }: NodeModalProps) =
     return null;
   }
 
+  if (viewMode === "dataset") {
+    return (
+      <>
+        <div className="nodeModalBackground" />
+        <div className="nodeModal">
+          <div className="nodeModalContent">
+            <div className="nodeModalTitle">State: {label}</div>
+            <form>
+              <ProbabilitySelector
+                viewMode={viewMode}
+                exactPercentages={exactPercentages}
+                edgeLabels={edgeLabels}
+                onChange={setExactPercentages} />
+              <div className="nodeModalButtons">
+                <button onClick={onCancel}>Close</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <div className="nodeModalBackground" />
@@ -77,6 +102,7 @@ export const NodeModal = ({ node, graph, onChange, onCancel }: NodeModalProps) =
           <form onSubmit={handleSubmit}>
             <input type="text" value={label} onChange={handleChangeLabel} autoFocus={true} />
             <ProbabilitySelector
+              viewMode="drawing"
               exactPercentages={exactPercentages}
               edgeLabels={edgeLabels}
               onChange={setExactPercentages} />

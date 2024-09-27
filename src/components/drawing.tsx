@@ -335,6 +335,7 @@ export const Drawing = (props: Props) => {
       />
       <DragIcon drawingMode={drawingMode} />
       <NodeModal
+        viewMode="drawing"
         node={selectedNodeForModal}
         graph={graph}
         onChange={handleChangeNode}
