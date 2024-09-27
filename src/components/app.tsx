@@ -14,6 +14,7 @@ import PauseIcon from "../assets/pause.svg";
 import DropdownUpArrowIcon from "../assets/dropdown-up-arrow-icon.svg";
 import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
 import { SpeedToggle } from "./speed-toggle";
+import { ConfirmModal, IConfirmModal } from "./confirm-modal";
 
 import "./app.scss";
 
@@ -146,6 +147,7 @@ export const App = () => {
   const [highlightOutput, setHighlightOutput] = useState<{group: SequenceGroup, sequence: Node[]}|undefined>();
   const [delimiterType, setDelimiterType] = useState<DelimiterType>(
     delimiter === "" ? "none" : (delimiter === " " ? "space" : "other"));
+  const [confirmModal, setConfirmModal] = useState<IConfirmModal|undefined>(undefined);
 
   const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
     widthRef.current = width;
@@ -519,23 +521,33 @@ export const App = () => {
   };
 
   const handleReset = useCallback(() => {
-    if (confirm("Are you sure you want to reset?\n\nAny changes you have made will be lost.")) {
-      setLengthLimit(defaultLengthLimit);
-      setDelimiter(defaultDelimiter);
-      setStartingState(defaultStartingState);
-      setSequenceGroups([]);
-      setFastSimulation(defaultFastSimulation);
-      setGraph(initialGraph ? {...initialGraph} : {nodes: [], edges: []});
-      setFitViewAt(Date.now());
-    }
+    setConfirmModal({
+      title: "Reset?",
+      message: <>Are you sure you want to reset?<br/>Any changes you have made will be lost.</>,
+      onOk: () => {
+        setLengthLimit(defaultLengthLimit);
+        setDelimiter(defaultDelimiter);
+        setStartingState(defaultStartingState);
+        setSequenceGroups([]);
+        setFastSimulation(defaultFastSimulation);
+        setGraph(initialGraph ? {...initialGraph} : {nodes: [], edges: []});
+        setFitViewAt(Date.now());
+      },
+      onClose: () => setConfirmModal(undefined)
+    });
   }, [initialGraph, setGraph]);
 
   const handleReturnToMainMenu = () => {
-    if (confirm("Are you sure you want to go back to the main menu?\n\nAny changes you have made will be lost.")) {
-      setGraph({nodes: [], edges: []});
-      setInitialGraph(undefined);
-      setViewMode(undefined);
-    }
+    setConfirmModal({
+      title: "Back To Main Menu?",
+      message: <>Are you sure you want to go back to the main menu?<br/>Any changes you have made will be lost.</>,
+      onOk: () => {
+        setGraph({nodes: [], edges: []});
+        setInitialGraph(undefined);
+        setViewMode(undefined);
+      },
+      onClose: () => setConfirmModal(undefined)
+    });
   };
 
   const handleFitView = () => {
@@ -636,6 +648,7 @@ export const App = () => {
           }
         </div>
         {maybeRenderRightBar()}
+        {confirmModal && <ConfirmModal {...confirmModal} />}
       </div>
     </div>
   );
