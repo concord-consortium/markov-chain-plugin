@@ -1,7 +1,7 @@
 import React, { createRef, useCallback, useEffect, useRef, useState } from "react";
 import { nanoid } from "nanoid";
 
-import { DrawingMode, Graph, Point, RubberBand, Transform } from "./graph";
+import { D3Node, DrawingMode, Graph, Point, RubberBand, Transform } from "./graph";
 import { Edge, GraphData, Node } from "../type";
 
 import { DragIcon } from "./drawing/drag-icon";
@@ -253,6 +253,25 @@ export const Drawing = (props: Props) => {
     });
   }, [setGraph]);
 
+  const handleAutoArrangeEnd = useCallback((nodes: D3Node[]) => {
+    const d3NodesById = nodes.reduce<Record<string,D3Node>>((acc, cur) => {
+      acc[cur.id] = cur;
+      return acc;
+    }, {});
+
+    setGraph(prev => {
+      prev.nodes = prev.nodes.map(n => {
+        const d3Node = d3NodesById[n.id];
+        if (d3Node) {
+          n.x = d3Node.x;
+          n.y = d3Node.y;
+        }
+        return n;
+      });
+      return prev;
+    });
+  }, [setGraph]);
+
   const handleClearSelectedNode = useCallback(() => setSelectedNodeForModal(undefined), [setSelectedNodeForModal]);
 
   const handleChangeNode = useCallback((id: string, newNode: Node, newEdges: Edge[]) => {
@@ -297,7 +316,11 @@ export const Drawing = (props: Props) => {
     }
     prevWordsRef.current = words;
 
-  }, [setGraph]);
+    setTimeout(() => {
+      onFitView();
+    }, 0);
+
+  }, [setGraph, onFitView]);
 
   return (
     <div className="drawing">
@@ -332,6 +355,7 @@ export const Drawing = (props: Props) => {
         setSelectedNodeId={setSelectedNodeId}
         onDimensions={handleDimensionChange}
         onTransformed={handleTransformed}
+        onAutoArrangeEnd={handleAutoArrangeEnd}
         fitViewAt={fitViewAt}
         recenterViewAt={recenterViewAt}
       />

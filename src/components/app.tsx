@@ -533,7 +533,9 @@ export const App = () => {
         setSequenceGroups([]);
         setFastSimulation(defaultFastSimulation);
         setGraph(initialGraph ? {...initialGraph} : {nodes: [], edges: []});
-        setFitViewAt(Date.now());
+        setTimeout(() => {
+          setFitViewAt(Date.now());
+        }, 0);
       },
       onClose: () => setConfirmModal(undefined)
     });

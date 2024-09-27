@@ -69,9 +69,10 @@ type Props = {
   onDimensions?: (dimensions: {width: number, height: number}) => void;
   onTransformed?: (transform: Transform) => void;
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
+  onAutoArrangeEnd?: (nodes: D3Node[]) => void;
 };
 
-type D3Node = {
+export type D3Node = {
   index: number,
   id: string;
   label: string;
@@ -246,7 +247,7 @@ export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          allowDragging, autoArrange, rubberBand, drawingMode,
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
-         fitViewAt, recenterViewAt,
+         fitViewAt, recenterViewAt, onAutoArrangeEnd,
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -633,6 +634,8 @@ export const Graph = (props: Props) => {
         simulation.tick();
       }
 
+      onAutoArrangeEnd?.(d3Graph.nodes);
+
       // pin the nodes so that dragging does not cause a force layout change
       d3Graph.nodes
         .forEach((d: any) => {
@@ -794,7 +797,7 @@ export const Graph = (props: Props) => {
 
   }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand, drawingMode,
       onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop, setSelectedNodeId,
-      selectedNodeId, highlightSelected]);
+      selectedNodeId, highlightSelected, onAutoArrangeEnd]);
 
   // animate the node if needed
   useEffect(() => {
