@@ -387,6 +387,8 @@ export const App = () => {
     }
   }, [highlightOutput, setHighlightOutput, setSelectedNodeId]);
 
+  const handleClearHighlightOutput = () => setHighlightOutput(undefined);
+
   const uiForGenerate = () => {
     const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
     const PlayOrPauseIcon = generationMode === "playing" ? PauseIcon : PlayIcon;
@@ -624,6 +626,7 @@ export const App = () => {
                 fitViewAt={fitViewAt}
                 recenterViewAt={recenterViewAt}
                 onDimensions={handleDimensionChange}
+                onClearHighlightOutput={handleClearHighlightOutput}
               />
             :
               <Dataset
