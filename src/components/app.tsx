@@ -98,6 +98,7 @@ export const App = () => {
   const [initialGraph, setInitialGraph] = useState<GraphData>();
   const [fitViewAt, setFitViewAt] = useState<number>();
   const [recenterViewAt, setRecenterViewAt] = useState<number>();
+  const [resetViewAt, setResetViewAt] = useState<number>();
   const onCODAPDataChanged = (values: string[]) => {
     updateGraph(values);
     setFitViewAt(Date.now());
@@ -148,6 +149,7 @@ export const App = () => {
   const [delimiterType, setDelimiterType] = useState<DelimiterType>(
     delimiter === "" ? "none" : (delimiter === " " ? "space" : "other"));
   const [confirmModal, setConfirmModal] = useState<IConfirmModal|undefined>(undefined);
+  const [graphOpacity, setGraphOpacity] = useState(1);
 
   const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
     widthRef.current = width;
@@ -532,9 +534,12 @@ export const App = () => {
         setStartingState(defaultStartingState);
         setSequenceGroups([]);
         setFastSimulation(defaultFastSimulation);
+        setGraphOpacity(0);
         setGraph(initialGraph ? {...initialGraph} : {nodes: [], edges: []});
+        setResetViewAt(Date.now());
         setTimeout(() => {
           setFitViewAt(Date.now());
+          setGraphOpacity(1);
         }, 0);
       },
       onClose: () => setConfirmModal(undefined)
@@ -618,6 +623,7 @@ export const App = () => {
                 highlightOutputNodes={highlightOutputNodes}
                 selectedNodeId={selectedNodeId}
                 animating={animating}
+                graphOpacity={graphOpacity}
                 setGraph={setGraph}
                 setHighlightNode={setHighlightNode}
                 setSelectedNodeId={setSelectedNodeId}
@@ -627,6 +633,7 @@ export const App = () => {
                 onRecenterView={handleRecenterView}
                 fitViewAt={fitViewAt}
                 recenterViewAt={recenterViewAt}
+                resetViewAt={resetViewAt}
                 onDimensions={handleDimensionChange}
                 onClearHighlightOutput={handleClearHighlightOutput}
               />
@@ -641,6 +648,7 @@ export const App = () => {
                 selectedNodeId={selectedNodeId}
                 animating={animating}
                 graphEmpty={graphEmpty}
+                graphOpacity={graphOpacity}
                 setSelectedNodeId={setSelectedNodeId}
                 onReset={handleReset}
                 onReturnToMainMenu={handleReturnToMainMenu}

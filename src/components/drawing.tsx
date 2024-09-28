@@ -23,8 +23,10 @@ interface Props {
   graph: GraphData;
   selectedNodeId?: string;
   animating: boolean;
+  graphOpacity: number;
   fitViewAt?: number;
   recenterViewAt?: number;
+  resetViewAt?: number;
   setGraph: React.Dispatch<React.SetStateAction<GraphData>>;
   setHighlightNode: React.Dispatch<React.SetStateAction<Node | undefined>>
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
@@ -42,7 +44,7 @@ const removePunctuationRegex = /["(){}[\]_+=|\\/><]/g;
 export const Drawing = (props: Props) => {
   const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId,
-         fitViewAt, recenterViewAt, onClearHighlightOutput,
+         fitViewAt, recenterViewAt, onClearHighlightOutput, graphOpacity, resetViewAt,
          selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
@@ -343,6 +345,7 @@ export const Drawing = (props: Props) => {
         highlightOutputNodes={highlightOutputNodes}
         highlightLoopOnNode={highlightLoopOnNode}
         allowDragging={drawingMode === "select"}
+        opacity={graphOpacity}
         autoArrange={autoArrange}
         rubberBand={rubberBand}
         selectedNodeId={selectedNodeId}
@@ -372,6 +375,7 @@ export const Drawing = (props: Props) => {
         visible={drawingMode === "addText"}
         width={addTextWidth}
         disabled={animating}
+        resetViewAt={resetViewAt}
         onChange={handleTextChange}
       />
     </div>
