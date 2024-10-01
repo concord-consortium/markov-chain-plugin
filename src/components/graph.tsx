@@ -59,6 +59,7 @@ type Props = {
   drawingMode?: DrawingMode;
   selectedNodeId?: string;
   animating: boolean;
+  opacity: number;
   fitViewAt?: number;
   recenterViewAt?: number;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
@@ -247,7 +248,7 @@ export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          allowDragging, autoArrange, rubberBand, drawingMode,
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
-         fitViewAt, recenterViewAt, onAutoArrangeEnd,
+         fitViewAt, recenterViewAt, onAutoArrangeEnd, opacity,
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed} = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -471,7 +472,7 @@ export const Graph = (props: Props) => {
       .attr("transform", transformRef.current?.toString() ?? "")
       ;
 
-    const addArrowMarker = (id: string, color: string, opacity?: number) => {
+    const addArrowMarker = (id: string, color: string, markerOpacity?: number) => {
       root
         .append("svg:defs")
         .append("svg:marker")
@@ -486,8 +487,8 @@ export const Graph = (props: Props) => {
         .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
         .attr("stroke", color)
         .style("fill", color)
-        .style("fill-opacity", opacity ?? 1)
-        .style("stroke-opacity", opacity ?? 1);
+        .style("fill-opacity", markerOpacity ?? 1)
+        .style("stroke-opacity", markerOpacity ?? 1);
     };
 
     // add arrows markers
@@ -925,6 +926,7 @@ export const Graph = (props: Props) => {
         height="calc(100vh - 20px)"
         viewBox={`${-width / 2} ${-height / 2} ${width} ${height}`}
         ref={svgRef}
+        style={{opacity}}
       />
       <div className="zoomButtons">
         <button className="plusButton" onClick={handleZoomIn}><PlusIcon /></button>

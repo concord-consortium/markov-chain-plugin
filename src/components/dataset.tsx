@@ -16,6 +16,7 @@ interface Props {
   selectedNodeId?: string;
   animating: boolean;
   graphEmpty: boolean;
+  graphOpacity: number;
   fitViewAt?: number;
   recenterViewAt?: number;
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
@@ -29,7 +30,7 @@ interface Props {
 export const Dataset = (props: Props) => {
   const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, graphEmpty, setSelectedNodeId, selectedNodeId, animating,
-         fitViewAt, recenterViewAt,
+         fitViewAt, recenterViewAt, graphOpacity,
          onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
   const [selectedNodeForModal, setSelectedNodeForModal] = useState<Node|undefined>(undefined);
 
@@ -91,6 +92,7 @@ export const Dataset = (props: Props) => {
         selectedNodeId={selectedNodeId}
         onNodeDoubleClick={handleNodeDoubleClicked}
         animating={animating}
+        opacity={graphOpacity}
         allowDragging={true && !animating}
         autoArrange={true}
         setSelectedNodeId={setSelectedNodeId}
