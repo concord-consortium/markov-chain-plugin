@@ -431,7 +431,6 @@ export const App = () => {
                 onChange={handleChangeDelimiter}
                 value={delimiter}
                 placeholder="delimiter"
-                maxLength={3}
                 disabled={animating}
                 style={{width: 75, marginTop: 5}}
                 autoFocus={true}
