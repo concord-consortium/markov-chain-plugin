@@ -391,15 +391,11 @@ export const Graph = (props: Props) => {
     const {minRadius, maxRadius, minStroke, maxStroke} = settings;
 
     graph.nodes.forEach((node, index) => {
-      const oldD3Node = d3Graph.nodes.find(n => n.id === node.id);
-      node.x = oldD3Node?.x ?? node.x ?? 0;
-      node.y = oldD3Node?.y ?? node.y ?? 0;
-
       const d3Node: D3Node = {
         index,
         id: node.id,
-        x: node.x,
-        y: node.y,
+        x: node.x ?? 0,
+        y: node.y ?? 0,
         label: node.label,
         // radius: 15 + (5 * (node.label.length - 1)) + (5 * node.value),
         radius: minRadius + ((maxRadius - minRadius) * (node.value / totalNodeValue)),
