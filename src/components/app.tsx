@@ -534,16 +534,20 @@ export const App = () => {
         setSequenceGroups([]);
         setFastSimulation(defaultFastSimulation);
         setGraphOpacity(0);
-        setGraph(initialGraph ? {...initialGraph} : {nodes: [], edges: []});
+        setSelectedNodeId();
+        setGraph({nodes: [], edges: []});
         setResetViewAt(Date.now());
         setTimeout(() => {
+          if (initialGraph) {
+            setGraph(initialGraph);
+          }
           setFitViewAt(Date.now());
           setGraphOpacity(1);
-        }, 0);
+        }, 1);
       },
       onClose: () => setConfirmModal(undefined)
     });
-  }, [initialGraph, setGraph]);
+  }, [initialGraph, setGraph, setSelectedNodeId]);
 
   const handleReturnToMainMenu = () => {
     setConfirmModal({
