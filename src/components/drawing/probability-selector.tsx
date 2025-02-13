@@ -31,6 +31,8 @@ const lineStart = thumbRadius;
 const lineEnd = svgWidth - thumbRadius;
 const lineLength = lineEnd - lineStart;
 const lineY = (svgHeight - lineWidth) / 2;
+// Thumbs with cumulative percentage higher than this value will be rendered in reverse so they can be dragged left
+const reversePercent = .9;
 
 const distinctColors = [
   "#e6194B", "#3cb44b", "#4363d8", "#f58231", "#42d4f4", "#ffe119",
@@ -159,15 +161,34 @@ export const ProbabilitySelector = ({viewMode, exactPercentages, edgeLabels, onC
               stroke={getDistinctColor(i)}
             />
           ))}
-          {offsets.map((offset, index) => (
-            <ProbabilitySelectorThumb
-              key={index}
-              index={index}
-              offset={offset}
-              visibleLineLength={visibleLineLength}
-              onChange={handleProbabilitySelectorThumbChange}
-            />
-          ))}
+          {offsets.map((offset, index) => {
+            if (offset.cur / lineLength < reversePercent) {
+              return (
+                <ProbabilitySelectorThumb
+                  key={index}
+                  index={index}
+                  offset={offset}
+                  visibleLineLength={visibleLineLength}
+                  onChange={handleProbabilitySelectorThumbChange}
+                />
+              );
+            }
+          }).filter(thumb => !!thumb)}
+          {/* Render thumbs with high cumulative percentage in reverse so they can be dragged left */}
+          {offsets.reverse().map((offset, _index) => {
+            const index = offsets.length - _index - 1;
+            if (offset.cur / lineLength >= reversePercent) {
+              return (
+                <ProbabilitySelectorThumb
+                  key={index}
+                  index={index}
+                  offset={offset}
+                  visibleLineLength={visibleLineLength}
+                  onChange={handleProbabilitySelectorThumbChange}
+                />
+              );
+            }
+          }).filter(thumb => !!thumb)}
         </svg>
       </div>
       }
