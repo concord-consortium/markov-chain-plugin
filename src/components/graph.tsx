@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
@@ -263,6 +263,19 @@ export const Graph = (props: Props) => {
   const zoomRef = useRef<d3.ZoomBehavior<any, any>>();
   const lastFitViewAtRef = useRef<number>();
   const lastRecenterViewAtRef = useRef<number>();
+
+  // generate an ordered edge list from the highlight output nodes
+  const highlightOutputEdges = useMemo(() => {
+    const edges: Edge[] = [];
+    if (highlightOutputNodes) {
+      for (let i = 0; i < highlightOutputNodes.length - 1; i++) {
+        const fromNode = highlightOutputNodes[i];
+        const toNode = highlightOutputNodes[i + 1];
+        edges.push({from: fromNode.id, to: toNode.id, value: 0});
+      }
+    }
+    return edges;
+  }, [highlightOutputNodes]);
 
   const highlightSelected = useCallback((svg: d3.Selection<any, unknown, null, undefined>) => {
     if (animating || !selectedNodeId) {
@@ -831,8 +844,7 @@ export const Graph = (props: Props) => {
         (d.value > 0) && (
             (highlightNode?.id === d.source?.id && highlightAllNextNodes) ||
             (highlightEdge?.from === d.source?.id && highlightEdge?.to === d.target?.id) ||
-            (!!highlightOutputNodes?.find(n => n.id === d.source?.id)
-              && !!highlightOutputNodes?.find(n => n.id === d.target?.id))
+            (!!highlightOutputEdges.find(e => e.from === d.source?.id && e.to === d.target?.id))
           )
         )))
       .attr("stroke", animatedArrowColor)
@@ -853,7 +865,8 @@ export const Graph = (props: Props) => {
     highlightSelected(root);
 
   }, [svgRef, d3Graph.nodes, selectedNodeId, highlightNode, highlightLoopOnNode,
-      highlightEdge, highlightAllNextNodes, highlightSelected, highlightOutputNodes, unhighlightNonOutput]);
+      highlightEdge, highlightAllNextNodes, highlightSelected, highlightOutputNodes,
+      unhighlightNonOutput, highlightOutputEdges]);
 
   const fitOrCenter = useCallback((op: "fit" | "center") => {
     if (!width || !height || !zoomRef.current) {
