@@ -102,14 +102,17 @@ const getNextSequenceNumber = async (sendRequest: SendRequest) => {
 };
 
 export const createSequenceOutput = (sendRequest: SendRequest) => {
-  let nextSequenceNumber: number|undefined;
+  // overlapping outputs share one lookup, so each still gets its own number
+  let firstSequenceNumber: Promise<number>|undefined;
+  let outputCount = 0;
 
   return async (states: string[]) => {
     const datasetExisted = await guaranteeOutputDatasetAndCaseTable(sendRequest);
-    if (nextSequenceNumber === undefined) {
-      nextSequenceNumber = datasetExisted ? await getNextSequenceNumber(sendRequest) : 0;
+    if (firstSequenceNumber === undefined) {
+      firstSequenceNumber = datasetExisted ? getNextSequenceNumber(sendRequest) : Promise.resolve(0);
     }
-    const sequenceNumber = nextSequenceNumber++;
+    const first = await firstSequenceNumber;
+    const sequenceNumber = first + outputCount++;
     await sendRequest({
       action: "create",
       resource: `dataContext[${OutputDatasetName}].item`,

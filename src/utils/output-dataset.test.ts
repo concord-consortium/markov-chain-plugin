@@ -63,6 +63,13 @@ describe("createSequenceOutput", () => {
     expect(sequenceNumbers(sendRequest)).toEqual([5, 6]);
   });
 
+  it("gives overlapping outputs their own sequence numbers", async () => {
+    const sendRequest = mockCODAP(true);
+    const output = createSequenceOutput(sendRequest);
+    await Promise.all([output(["i", "love"]), output(["class"])]);
+    expect(sequenceNumbers(sendRequest)).toEqual([5, 6]);
+  });
+
   it("continues after the highest sequence number in a very large dataset", async () => {
     const items = Array.from({length: 500000}, (_, i) => ({id: i, values: {State: "i", "Sequence number": i}}));
     const sendRequest = mockCODAP(true, false, {success: true, values: items});
