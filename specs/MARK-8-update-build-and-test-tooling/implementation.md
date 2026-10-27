@@ -6,7 +6,7 @@
 
 ## Implementation Plan
 
-Eleven small commits. The first four change code and config only, and each works on master's package versions. The next six change only `package.json` and `package-lock.json` (one tool group each), except that the TypeScript commit carries the one `tsconfig.json` line TypeScript 6 cannot build without. One code commit comes last, right after the package bump that makes it necessary. This keeps every dependency and lockfile change apart from code changes, so each lockfile diff reads against one commit's purpose, and every commit builds and runs the Cypress spec.
+Eleven small commits on MARK-20's branch. The first four change code and config only, and each works on the base's package versions. The next six change only `package.json` and `package-lock.json` (one tool group each), except that the TypeScript commit carries the one `tsconfig.json` line TypeScript 6 cannot build without. One code commit comes last, right after the package bump that makes it necessary. This keeps every dependency and lockfile change apart from code changes, so each lockfile diff reads against one commit's purpose, and every commit builds and runs the Cypress spec.
 
 Work on Node 24 (`nvm use` once `.nvmrc` exists). Install with `CYPRESS_INSTALL_BINARY=0` to skip the binary download, except where `cypress run` is being checked. Use `npm install` / `npm uninstall` with the exact specifiers below, so each lockfile diff is limited to that group; do not delete and regenerate `package-lock.json`. The lockfile stays at `lockfileVersion` 2.
 
@@ -24,7 +24,7 @@ Commit subjects follow the repo's `<type>: <summary> [<KEY>]` form (for example 
 10. `build(deps): update loaders and build plugins [MARK-8]`
 11. `build: update SVGR options for svgo 3 [MARK-8]`
 
-After every commit, the check is: `npm ci && npm run build` passes with 21 `no-console` warnings, `npx tsc --noEmit -p .` passes, and `npx cypress run` compiles and runs the spec to its existing failure. From the Jest config commit on, a throwaway component test (below) passes too. The replay of this whole sequence, with the results per commit, is under Verification.
+After every commit, the check is: `npm ci && npm run build` passes with 21 `no-console` warnings, `npx tsc --noEmit -p .` and `npm run lint` pass, `npm test` passes all 32 of MARK-20's tests, and `npx cypress run` compiles and runs the spec to its existing failure. From the Jest config commit on, a throwaway component test (below) passes too. The replay of this whole sequence, with the results per commit, is under Verification.
 
 ---
 
@@ -239,11 +239,11 @@ The `cleanupIDs.js` link moves to `cleanupIds.js` because svgo has renamed the f
 
 Run R23 and R24 on the branch head, from a clean `npm ci` on Node 24:
 
-- `npm run build` (21 `no-console` warnings, no svgo warnings, no "caniuse-lite is outdated"), `npm run lint`, `npx tsc --noEmit -p .`.
+- `npm run build` (21 `no-console` warnings, no svgo warnings, no "caniuse-lite is outdated"), `npm run lint`, `npx tsc --noEmit -p .`, `npm test` (MARK-20's 32 tests).
 - The throwaway component test below, under `npx jest`. Delete it afterwards.
 - `npm run build:top-test`: `top-test/index-top.html` loads `specific/release/assets/...`. Delete `top-test/`.
 - `CODE_COVERAGE=true npx webpack --mode development`: the bundle contains `__coverage__`.
-- `npm start`, then `npx cypress run`: the spec runs and fails on its "Hello World" expectation or the CODAP request timeout, as on master. If port 8080 is taken, use `npm start -- --port 8091` and `npx cypress run --config baseUrl=http://localhost:8091`.
+- `npm start`, then `npx cypress run`: the spec runs and fails on its "Hello World" expectation or the CODAP request timeout, as on the base. If port 8080 is taken, use `npm start -- --port 8091` and `npx cypress run --config baseUrl=http://localhost:8091`.
 - `npm run start:secure` serves HTTPS.
 - The CODAP check in R24.
 - After the push: CI's build job passes (R25).
@@ -266,21 +266,21 @@ describe("probe", () => {
 
 ## Verification
 
-The whole sequence was replayed in a scratch git repo from master (v0.5.0), on Node 24.14 and npm 11.9, running the steps above as written (README edits aside). After each commit: a clean `npm ci`, `npm run build`, `npx tsc --noEmit -p .`, `npx jest` with the throwaway test, and `npx cypress run` against a static page (the spec runs and fails on its own assertion, as on master).
+The whole sequence was replayed in a scratch git repo from MARK-20's branch, on Node 24.14 and npm 11.9, running the steps above as written (README edits aside). The base itself passes every check below except the throwaway test. After each commit: a clean `npm ci`, `npm run build`, `npx tsc --noEmit -p .`, `npm run lint`, `npx jest` (MARK-20's 32 tests), the throwaway test on its own, and `npx cypress run` against a static page (the spec runs and fails on its own assertion, as on the base).
 
-| Commit | `npm ci` | build | `no-console` warnings | svgo warnings | `tsc` | throwaway test | `cypress run` | files, lines |
-|---|---|---|---|---|---|---|---|---|
-| Pin Node 24 | pass | pass | 21 | 0 | pass | fails (`.scss` not mapped, as on master) | runs (10.8) | 1, +1 |
-| GitHub Actions | pass | pass | 21 | 0 | pass | fails, as above | runs (10.8) | 1, +10 -4 (see note) |
-| Dev server option | pass | pass | 21 | 0 | pass | fails, as above | runs (10.8) | 2, +7 -5 |
-| TypeScript and Jest config | pass | pass | 21 | 0 | pass | pass | runs (10.8) | 3, +2 -2 |
-| Remove unused devDependencies | pass | pass | 21 | 0 | pass | pass | runs (10.8) | 2, -556 |
-| Cypress 16 | pass | pass | 21 | 0 | pass | pass | runs (16.2) | 2, +4278 -2919 |
-| TypeScript 6.0 | pass | pass | 21 | 0 | pass | pass | runs (16.2) | 3, +60 -43 |
-| Jest 30 | pass | pass | 21 | 0 | pass | pass | runs (16.2) | 2, +5383 -3066 |
-| webpack | pass | pass | 21 | 0 | pass | pass | runs (16.2) | 2, +3837 -2559 |
-| Loaders and build plugins | pass | pass | 21 | 38 | pass | pass | runs (16.2) | 2, +917 -849 |
-| SVGR options | pass | pass | 21 | 0 | pass | pass | runs (16.2) | 1, +2 -5 (see note) |
+| Commit | `npm ci` | build | `no-console` warnings | svgo warnings | `tsc`, lint | MARK-20 tests | throwaway test | `cypress run` | files, lines |
+|---|---|---|---|---|---|---|---|---|---|
+| Pin Node 24 | pass | pass | 21 | 0 | pass | 32 pass | fails (`.scss` not mapped, as on the base) | runs (10.8) | 1, +1 |
+| GitHub Actions | pass | pass | 21 | 0 | pass | 32 pass | fails, as above | runs (10.8) | 1, +10 -4 (see note) |
+| Dev server option | pass | pass | 21 | 0 | pass | 32 pass | fails, as above | runs (10.8) | 2, +7 -5 |
+| TypeScript and Jest config | pass | pass | 21 | 0 | pass | 32 pass | pass | runs (10.8) | 3, +2 -2 |
+| Remove unused devDependencies | pass | pass | 21 | 0 | pass | 32 pass | pass | runs (10.8) | 2, -556 |
+| Cypress 16 | pass | pass | 21 | 0 | pass | 32 pass | pass | runs (16.2) | 2, +4278 -2919 |
+| TypeScript 6.0 | pass | pass | 21 | 0 | pass | 32 pass | pass | runs (16.2) | 3, +60 -43 |
+| Jest 30 | pass | pass | 21 | 0 | pass | 32 pass | pass | runs (16.2) | 2, +5383 -3066 |
+| webpack | pass | pass | 21 | 0 | pass | 32 pass | pass | runs (16.2) | 2, +3837 -2559 |
+| Loaders and build plugins | pass | pass | 21 | 38 | pass | 32 pass | pass | runs (16.2) | 2, +917 -849 |
+| SVGR options | pass | pass | 21 | 0 | pass | 32 pass | pass | runs (16.2) | 1, +2 -5 (see note) |
 
 The replay's GitHub Actions commit also rewrote the three `@v2` references inside the commented-out jobs (+13 -7); the step above leaves them, which gives +10 -4. The replay's SVGR commit left the `cleanupIDs.js` comment link unchanged (+1 -4); with the link fix the step gives +2 -5. The large line counts are `package-lock.json`; the `package.json` part of each dependency commit is the handful of lines its command names. The lockfile stayed at `lockfileVersion` 2 throughout. `npm audit` on the last commit reports 11 vulnerabilities, none critical (65, 7 critical, on master); requirements.md's Technical Notes say where they come from.
 

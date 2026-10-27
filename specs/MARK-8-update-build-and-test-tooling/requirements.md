@@ -17,7 +17,7 @@ It deliberately leaves two neighboring areas alone: the code style checker (ESLi
 
 ## Background
 
-MARK-8 is the base of a stack in this repo: MARK-8, then MARK-9 (code style checker), MARK-10 (unit tests), MARK-11 (rendering tests in CI) and MARK-12 (React and runtime libraries). Scope comes from the Jira story and section D1 of the stream's `dev-stories.md`, checked here against master at v0.5.0.
+MARK-8 sits on MARK-20's branch (the plugin bug fixes), which sits on MARK-6's (the deploy and release check). Above it come MARK-9 (code style checker), MARK-10 (unit tests), MARK-11 (rendering tests in CI) and MARK-12 (React and runtime libraries). MARK-6 and MARK-20 change no package, lockfile or build, TypeScript or Jest config, so the installed versions below are master's; MARK-20 adds the repo's first Jest tests, which import only plain TypeScript modules (no components, `.scss`, `d3` or `nanoid`). Scope comes from the Jira story and section D1 of the stream's `dev-stories.md`.
 
 What the repo has today (versions installed by `npm ci` from the committed lockfile):
 
@@ -31,21 +31,21 @@ What the repo has today (versions installed by `npm ci` from the committed lockf
 | Lint (MARK-9) | `eslint` 8.23, `@typescript-eslint/*` 5.37, `eslint-webpack-plugin` 3.2, plugins | ESLint 10, typescript-eslint 8.72 |
 | React (MARK-12) | `react` 17, `@testing-library/react` 12.1.5, `@types/react` 17 | |
 
-Measured on master with Node 22 (`npm ci`, then each command):
+Measured on MARK-20's branch with Node 24 (`npm ci`, then each command):
 
 - `npm run build` passes (it runs `lint:build`, then webpack) with 21 `no-console` warnings.
 - `npm run lint` passes with no problems. `npx tsc --noEmit -p .` passes.
-- `npm run lint:style` **fails on master** with 212 `object-curly-spacing` and similar errors. That is pre-existing and belongs to MARK-9.
-- `npm test` exits 1 because there are no tests. A throwaway test that imports a component fails on master too, because the Jest `moduleNameMapper` maps `.css|less|sass` but not `.scss`, which every component imports.
-- `npm run start:secure:no-certs` fails on master without `~/.localhost-ssl` certificate files (`PEM routines::no start line`), because the webpack config always names those files; with the files present it behaves the same as `start:secure`.
+- `npm run lint:style` **fails** with 380 `object-curly-spacing` and similar errors (212 on master; the rest are in MARK-20's new files). That is pre-existing and belongs to MARK-9.
+- `npm test` passes MARK-20's 32 tests in 6 suites. A throwaway test that imports a component fails, because the Jest `moduleNameMapper` maps `.css|less|sass` but not `.scss`, which every component imports.
+- `npm run start:secure:no-certs` fails without `~/.localhost-ssl` certificate files (`PEM routines::no start line`), because the webpack config always names those files; with the files present it behaves the same as `start:secure`.
 - The one Cypress spec is a template leftover that fails (MARK-11 replaces it).
-- The GitHub repo has no Actions runs on record, so the first push of this branch is also the first evidence CI works.
+- CI passes on MARK-6's and MARK-20's pushes, on `actions/checkout@v2` and `actions/setup-node@v2`, which GitHub now forces onto Node 24 with a deprecation warning.
 
 Corrections to the Jira and D1 technical details, found by checking them against the repo and npm:
 
 - **"webpack-dev-server 5 drops `--no-https`"**: true, and current is 6. The change is wider than the `start` scripts: the `devServer.https` key in `webpack.config.js` is rejected outright by dev-server 5 and 6 (`options has an unknown property 'https'`), so the config moves to `devServer.server`, and `start` becomes `--server-type http`.
 - **`@testing-library/react` 12**: listed with the tooling, but 13 and later require React 18, so it moves with React in MARK-12. `@testing-library/jest-dom` 6.10 and 7 also declare a peer on `@testing-library/dom` 10, which React Testing Library 12 does not use.
-- **"`s3-deploy-action@v1` already runs on `node20`"**: true (v1.3.0, `using: 'node20'`). Node 20 reached end of life in April 2026, so it is not "current", but the action is not ours to change; MARK-6 owns the deploy pipeline and the first push shows whether it still runs.
+- **"`s3-deploy-action@v1` already runs on `node20`"**: true (v1.3.0, `using: 'node20'`). Node 20 reached end of life in April 2026, so it is not "current", but the action is not ours to change; MARK-6 owns the deploy pipeline, and its first push showed the action still runs (GitHub forces it onto Node 24 with a warning).
 - **TypeScript**: "current" cannot mean 7.0. `ts-jest` 29 accepts `typescript >=4.3 <7` and typescript-eslint 8 accepts `<6.1.0`, so 6.0 is the newest TypeScript the rest of the toolchain accepts.
 
 ## Requirements
@@ -97,13 +97,13 @@ Corrections to the Jira and D1 technical details, found by checking them against
 
 ### README
 
-- R22. The README's Development section says the Node version comes from `.nvmrc` (`nvm use`), and drops the `start:secure:no-certs` steps. The Deployment and release text is left to MARK-6.
+- R22. The README's Development section says the Node version comes from `.nvmrc` (`nvm use`), and drops the `start:secure:no-certs` steps. The Deployment and release text is MARK-6's and is not changed here.
 
 ### Done when
 
-- R23. On Node 24, from a clean `npm ci`: `npm run build` passes with the same 21 `no-console` warnings as master and no new warnings; `npm run lint` passes; `npx tsc --noEmit -p .` passes; a throwaway component test passes under Jest; `cypress run` launches and runs the spec; `npm run build:top-test` writes an `index-top.html` whose asset URLs carry the `DEPLOY_PATH` prefix; `npm start` and `npm run start:secure` serve the plugin.
+- R23. On Node 24, from a clean `npm ci`, at every MARK-8 commit and on the head: `npm run build` passes with the same 21 `no-console` warnings as the base and no new warnings; `npm run lint` passes; `npx tsc --noEmit -p .` passes; `npm test` passes all of MARK-20's Jest tests. On the head also: a throwaway component test passes under Jest; `cypress run` launches and runs the spec; `npm run build:top-test` writes an `index-top.html` whose asset URLs carry the `DEPLOY_PATH` prefix; `npm start` and `npm run start:secure` serve the plugin.
 - R24. The plugin, served by `npm start`, loads and works in CODAP (`https://codap.concord.org/app/?di=http://localhost:8080/`, which is v3): choosing Drawing mode, building a chain from text, drawing the graph, and generating a sequence, with no console errors. CODAP v2's `releases/latest` URL now redirects to the same v3 app; if MARK-5 finds that classes still run a v2 build, the same check is repeated there.
-- R25. CI's build job passes on the first push, on the new action versions. The deploy job runs too; if it fails on AWS credentials or the deploy action rather than on the build, that is recorded for MARK-6, which owns the deploy pipeline and the secrets, and does not block MARK-8.
+- R25. CI's build and deploy jobs pass on the first push, on the new action versions, and the branch build at `https://models-resources.concord.org/markov-chain-plugin/branch/build-and-test-tooling/index.html` loads. MARK-6's first push showed both jobs and the AWS secrets working on the old action versions, so a failure here is MARK-8's.
 
 ## Technical Notes
 
@@ -111,13 +111,13 @@ Corrections to the Jira and D1 technical details, found by checking them against
 - Port 8080 is the dev server's default and is often taken by another local dev server; checks here used `--port 8091`. `cypress.config.ts` hardcodes `baseUrl: http://localhost:8080`, which MARK-11 can revisit.
 - `npm ci` and `npm install` keep the lockfile at `lockfileVersion` 2 (checked with npm 11.9 on Node 24).
 - `nanoid` 4 and `d3` 7 are ES-module-only, and Jest runs tests as CommonJS, so importing `App`, `Drawing` or `Graph` in a test fails with "Must use import to load ES Module". Two fixes were checked on the updated tooling, and both load `App` and `Graph`: a `transformIgnorePatterns` that lets `ts-jest` (the `js-with-ts` preset, with `allowJs`) compile `nanoid`, `d3`, `d3-*`, `internmap`, `delaunator` and `robust-predicates`; or running Jest with `NODE_OPTIONS=--experimental-vm-modules`, which on Node 24.9 and later lets Jest 30 `require()` ES modules natively (with an `ExperimentalWarning`). Which one fits depends on how MARK-10 structures its tests, so it is MARK-10's choice.
-- `npm audit` (2026-10-27) reports 65 vulnerabilities on master (7 critical) and 11 after this story (none critical). Of the 11, `nanoid` is a runtime dependency (MARK-12), and the rest are transitive dependencies of the lint packages (MARK-9), `@testing-library/react` 12 (MARK-12) and `npm-run-all`; only the `ajv` 8.11 copies also reach a package updated here (`mini-css-extract-plugin`), and they are build-time schema validation with no untrusted input. `npm audit fix --package-lock-only` clears all but `nanoid`, but it also moves lint and React Testing Library transitives, which the targeted installs leave for MARK-9 and MARK-12.
+- `npm audit` (2026-10-27) reports 65 vulnerabilities on the base (7 critical; the same as master, since MARK-6 and MARK-20 change no package) and 11 after this story (none critical). Of the 11, `nanoid` is a runtime dependency (MARK-12), and the rest are transitive dependencies of the lint packages (MARK-9), `@testing-library/react` 12 (MARK-12) and `npm-run-all`; only the `ajv` 8.11 copies also reach a package updated here (`mini-css-extract-plugin`), and they are build-time schema validation with no untrusted input. `npm audit fix --package-lock-only` clears all but `nanoid`, but it also moves lint and React Testing Library transitives, which the targeted installs leave for MARK-9 and MARK-12.
 - The commented-out Jest and Cypress jobs in `ci.yml` stay commented out; MARK-10 and MARK-11 replace them.
 - The later split of the UI into components shared with an Activity Player interactive is not designed for here; nothing in this story ties the build to the CODAP plugin more tightly than it is today.
 
 ## Out of Scope
 
-- ESLint 9 and the flat config, and any lint rule change (MARK-9). `npm run lint:style` failing on master stays as it is.
+- ESLint 9 and the flat config, and any lint rule change (MARK-9). `npm run lint:style` failing on the base stays as it is.
 - React 18 or 19, `@testing-library/react` 13 or later, and runtime libraries (MARK-12). `@testing-library/jest-dom` 7 is not taken here or in MARK-12 (#1199): it needs `@testing-library/dom` 10, which arrives with React Testing Library 16 in MARK-12, and 6.9.1 has no peer on `@testing-library/dom`, so it works on either side of that change. It is left for a later update.
 - Adding Jest or Cypress jobs to CI, replacing the template Cypress spec, and `doc/cypress-coverage.md` (MARK-10, MARK-11).
 - The deploy pipeline, `s3-deploy-action`, `release.yml`, and the README's deployment and release sections (MARK-6).
