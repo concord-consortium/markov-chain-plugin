@@ -18,13 +18,13 @@ export const wordsToGraph = (words: string[]): GraphData => {
   const edges: Record<string, Edge> = Object.create(null);
 
   words.forEach((word, index) => {
-    nodes[word] = nodes[word] ?? {id: word, label: word, value: 0};
+    nodes[word] = nodes[word] ?? { id: word, label: word, value: 0 };
     nodes[word].value++;
 
     if (index > 0) {
       const lastWord = words[index - 1];
       const key = `${lastWord}|${word}`;
-      edges[key] = edges[key] ?? {from: lastWord, to: word, value: 0};
+      edges[key] = edges[key] ?? { from: lastWord, to: word, value: 0 };
       edges[key].value++;
     }
   });

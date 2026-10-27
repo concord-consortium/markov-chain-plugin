@@ -1,28 +1,28 @@
 import { createSequenceOutput, guaranteeOutputDatasetAndCaseTable } from "./output-dataset";
 
 // replies captured from CODAP 3.1.2
-const dataContextList = {success: true, values: [
-  {name: "Sequence Data", guid: 667035179064476, title: "Output Sequences", id: 667035179064476}
-]};
-const componentList = {success: true, values: [
-  {hidden: false, id: 3, name: "index", title: "Markov Chain", type: "game"},
-  {hidden: false, id: 399498427788315, name: "Sequence Data", title: "Output Sequences", type: "caseTable"}
-]};
-const itemSearch = {success: true, values: [0, 4, 4, 1, 2, 3, "abc"].map((n, i) => (
-  {id: i, values: {State: "i", "Sequence number": n}}
-))};
+const dataContextList = { success: true, values: [
+  { name: "Sequence Data", guid: 667035179064476, title: "Output Sequences", id: 667035179064476 }
+] };
+const componentList = { success: true, values: [
+  { hidden: false, id: 3, name: "index", title: "Markov Chain", type: "game" },
+  { hidden: false, id: 399498427788315, name: "Sequence Data", title: "Output Sequences", type: "caseTable" }
+] };
+const itemSearch = { success: true, values: [0, 4, 4, 1, 2, 3, "abc"].map((n, i) => (
+  { id: i, values: { State: "i", "Sequence number": n } }
+)) };
 
 const mockCODAP = (datasetExists: boolean, rejectComponentList = false, itemSearchReply: unknown = itemSearch) =>
   jest.fn(async (request: any) => {
     switch (request.resource) {
-      case "dataContextList": return datasetExists ? dataContextList : {success: true, values: []};
+      case "dataContextList": return datasetExists ? dataContextList : { success: true, values: [] };
       case "componentList":
         if (rejectComponentList) {
           throw new Error("handleResponse: CODAP request timed out");
         }
         return componentList;
       case "dataContext[Sequence Data].itemSearch[*]": return itemSearchReply;
-      default: return {success: true, values: {}};
+      default: return { success: true, values: {} };
     }
   });
 
@@ -71,15 +71,15 @@ describe("createSequenceOutput", () => {
   });
 
   it("continues after the highest sequence number in a very large dataset", async () => {
-    const items = Array.from({length: 500000}, (_, i) => ({id: i, values: {State: "i", "Sequence number": i}}));
-    const sendRequest = mockCODAP(true, false, {success: true, values: items});
+    const items = Array.from({ length: 500000 }, (_, i) => ({ id: i, values: { State: "i", "Sequence number": i } }));
+    const sendRequest = mockCODAP(true, false, { success: true, values: items });
     const output = createSequenceOutput(sendRequest);
     await output(["i"]);
     expect(sequenceNumbers(sendRequest)).toEqual([500000]);
   });
 
   it("starts at 0 when the existing numbers can't be read", async () => {
-    const sendRequest = mockCODAP(true, false, {success: false, values: {error: "DataContext not found"}});
+    const sendRequest = mockCODAP(true, false, { success: false, values: { error: "DataContext not found" } });
     const output = createSequenceOutput(sendRequest);
     await output(["i"]);
     await output(["love"]);

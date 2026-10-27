@@ -46,7 +46,7 @@ export const probability = (n: number) => n / 100;
 export const reduceToSum = (a: number[]) => a.reduce((acc, cur) => acc + cur, 0);
 
 export const ProbabilitySelectorThumb = (props: ProbabilitySelectorThumbProps) => {
-  const {index, offset, onChange} = props;
+  const { index, offset, onChange } = props;
 
   const handleMouseDown = useCallback((e: React.MouseEvent<SVGCircleElement>) => {
     const startX = e.clientX;
@@ -77,7 +77,7 @@ export const ProbabilitySelectorThumb = (props: ProbabilitySelectorThumbProps) =
   );
 };
 
-export const ProbabilitySelector = ({viewMode, exactPercentages, edgeLabels, onChange}: ProbabilitySelectorProps) => {
+export const ProbabilitySelector = ({ viewMode, exactPercentages, edgeLabels, onChange }: ProbabilitySelectorProps) => {
 
   const roundPercentages = useMemo(() => {
     const result = exactPercentages.slice(0, -1).map(exactPercentage => Math.round(exactPercentage));
@@ -147,10 +147,10 @@ export const ProbabilitySelector = ({viewMode, exactPercentages, edgeLabels, onC
   return (
     <div className="probability-selector">
       <div className="header">Transition Probabilities</div>
-      {isDrawingMode &&
-      <div className="svg-container" style={{width: svgWidth, height: svgHeight}}>
+      { isDrawingMode &&
+      <div className="svg-container" style={{ width: svgWidth, height: svgHeight }}>
         <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`}>
-          {segments.map(({start, end}, i) => (
+          { segments.map(({ start, end }, i) => (
             <line
               key={i}
               x1={start}
@@ -160,8 +160,8 @@ export const ProbabilitySelector = ({viewMode, exactPercentages, edgeLabels, onC
               strokeWidth={lineWidth}
               stroke={getDistinctColor(i)}
             />
-          ))}
-          {offsets.map((offset, index) => {
+          )) }
+          { offsets.map((offset, index) => {
             if (offset.cur / lineLength < reversePercent) {
               return (
                 <ProbabilitySelectorThumb
@@ -173,9 +173,9 @@ export const ProbabilitySelector = ({viewMode, exactPercentages, edgeLabels, onC
                 />
               );
             }
-          }).filter(thumb => !!thumb)}
-          {/* Render thumbs with high cumulative percentage in reverse so they can be dragged left */}
-          {offsets.reverse().map((offset, _index) => {
+          }).filter(thumb => !!thumb) }
+          { /* Render thumbs with high cumulative percentage in reverse so they can be dragged left */ }
+          { offsets.reverse().map((offset, _index) => {
             const index = offsets.length - _index - 1;
             if (offset.cur / lineLength >= reversePercent) {
               return (
@@ -188,16 +188,16 @@ export const ProbabilitySelector = ({viewMode, exactPercentages, edgeLabels, onC
                 />
               );
             }
-          }).filter(thumb => !!thumb)}
+          }).filter(thumb => !!thumb) }
         </svg>
       </div>
       }
       <div className="percentages">
-        {roundPercentages.map((p, i) => (
-          <div key={i} style={{color: isDrawingMode ? getDistinctColor(i) : "#000"}}>
-            To {edgeLabels[i]}: {p}%
+        { roundPercentages.map((p, i) => (
+          <div key={i} style={{ color: isDrawingMode ? getDistinctColor(i) : "#000" }}>
+            To { edgeLabels[i] }: { p }%
           </div>
-        ))}
+        )) }
       </div>
     </div>
   );

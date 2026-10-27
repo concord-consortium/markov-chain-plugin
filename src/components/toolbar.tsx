@@ -61,7 +61,7 @@ interface ToolbarProps {
   onRecenterView: () => void;
 }
 
-export const ToolbarButton = ({tool, disabled, selectedTool, onClick}: ToolbarButtonProps) => {
+export const ToolbarButton = ({ tool, disabled, selectedTool, onClick }: ToolbarButtonProps) => {
   const handleClick = () => onClick(tool);
   const selected = toggleableTools.includes(tool) && tool === selectedTool;
   const notImplemented = notImplementedTools.includes(tool);
@@ -72,7 +72,7 @@ export const ToolbarButton = ({tool, disabled, selectedTool, onClick}: ToolbarBu
     <button
       title={title}
       onClick={handleClick}
-      className={clsx({selected, notImplemented})}
+      className={clsx({ selected, notImplemented })}
       disabled={disabled || notImplemented}
     >
       <ToolIcon />
@@ -81,7 +81,7 @@ export const ToolbarButton = ({tool, disabled, selectedTool, onClick}: ToolbarBu
 };
 
 export const Toolbar = (props: ToolbarProps) => {
-  const {tools, disabled, onToolSelected, onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
+  const { tools, disabled, onToolSelected, onReset, onReturnToMainMenu, onFitView, onRecenterView } = props;
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
 
   const handleToolSelected = useCallback((tool: Tool) => {
@@ -109,7 +109,7 @@ export const Toolbar = (props: ToolbarProps) => {
   return (
     <div className="toolbar">
       <div className="top">
-        {topTools.map(tool => (
+        { topTools.map(tool => (
           <ToolbarButton
             key={tool}
             disabled={disabled}
@@ -117,10 +117,10 @@ export const Toolbar = (props: ToolbarProps) => {
             selectedTool={selectedTool}
             onClick={handleToolSelected}
           />)
-        )}
+        ) }
       </div>
       <div className="bottom">
-        {bottomTools.map(tool => (
+        { bottomTools.map(tool => (
           <ToolbarButton
             key={tool}
             disabled={disabled}
@@ -128,7 +128,7 @@ export const Toolbar = (props: ToolbarProps) => {
             selectedTool={selectedTool}
             onClick={handleToolSelected}
           />)
-        )}
+        ) }
       </div>
     </div>
   );

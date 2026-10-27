@@ -15,7 +15,7 @@ interface Props {
 const placeholder = "Create a Markov chain by typing or pasting text here.  WARNING: your current Markov chain will be overwritten.";
 
 export const AddText = forwardRef<HTMLTextAreaElement, Props>((props: Props, ref) => {
-  const {disabled, visible, width, resetViewAt, onChange} = props;
+  const { disabled, visible, width, resetViewAt, onChange } = props;
   const [text, setText] = useState("");
 
   // listen for reset requests
@@ -30,7 +30,7 @@ export const AddText = forwardRef<HTMLTextAreaElement, Props>((props: Props, ref
   };
 
   return (
-    <div className={clsx("addText", {visible})} style={{width}}>
+    <div className={clsx("addText", { visible })} style={{ width }}>
       <textarea ref={ref} placeholder={placeholder} value={text} disabled={disabled} onChange={handleChange} />
     </div>
   );

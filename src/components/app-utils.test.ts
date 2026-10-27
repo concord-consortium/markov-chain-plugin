@@ -1,6 +1,6 @@
 import { clampLengthLimit, compareStateLabels, graphToRestore } from "./app-utils";
 
-const sortLabels = (labels: unknown[]) => labels.map(label => ({label})).sort(compareStateLabels).map(n => n.label);
+const sortLabels = (labels: unknown[]) => labels.map(label => ({ label })).sort(compareStateLabels).map(n => n.label);
 
 describe("compareStateLabels", () => {
   it("sorts labels alphabetically, punctuation first", () => {
@@ -15,7 +15,7 @@ describe("compareStateLabels", () => {
 });
 
 describe("graphToRestore", () => {
-  const initialGraph = {nodes: [{id: "a", label: "a", value: 1}], edges: []};
+  const initialGraph = { nodes: [{ id: "a", label: "a", value: 1 }], edges: [] };
 
   it("restores the loaded drawing in drawing mode", () => {
     expect(graphToRestore("drawing", initialGraph, ["x", "y"])).toBe(initialGraph);
@@ -24,8 +24,8 @@ describe("graphToRestore", () => {
 
   it("rebuilds the graph from the current values in dataset mode", () => {
     expect(graphToRestore("dataset", undefined, ["x", "y", "x"])).toEqual({
-      nodes: [{id: "x", label: "x", value: 2}, {id: "y", label: "y", value: 1}],
-      edges: [{from: "x", to: "y", value: 1}, {from: "y", to: "x", value: 1}],
+      nodes: [{ id: "x", label: "x", value: 2 }, { id: "y", label: "y", value: 1 }],
+      edges: [{ from: "x", to: "y", value: 1 }, { from: "y", to: "x", value: 1 }],
     });
     expect(graphToRestore("dataset", initialGraph, undefined)).toBeUndefined();
   });

@@ -2,7 +2,7 @@ import { getAttributeValues, graphFromValues } from "./attribute-values";
 
 const reply = (values: unknown[]) => ({
   success: true,
-  values: values.map((value, i) => ({id: i, values: {word: value}}))
+  values: values.map((value, i) => ({ id: i, values: { word: value } }))
 });
 
 describe("getAttributeValues and graphFromValues", () => {
@@ -13,15 +13,15 @@ describe("getAttributeValues and graphFromValues", () => {
     const values = await getAttributeValues(sendRequest, "Words", "Cases", "word");
     expect(values).toEqual(["a", "", "b", "", "", "3", "a", "3"]);
 
-    const {nodes, edges} = graphFromValues(values ?? []);
+    const { nodes, edges } = graphFromValues(values ?? []);
     expect(nodes).toEqual([
-      {id: "a", label: "a", value: 2},
-      {id: "b", label: "b", value: 1},
-      {id: "3", label: "3", value: 2},
+      { id: "a", label: "a", value: 2 },
+      { id: "b", label: "b", value: 1 },
+      { id: "3", label: "3", value: 2 },
     ]);
     expect(edges).toEqual([
-      {from: "3", to: "a", value: 1},
-      {from: "a", to: "3", value: 1},
+      { from: "3", to: "a", value: 1 },
+      { from: "a", to: "3", value: 1 },
     ]);
   });
 
@@ -32,7 +32,7 @@ describe("getAttributeValues and graphFromValues", () => {
   });
 
   it("gives no values for a failed reply", async () => {
-    const sendRequest = jest.fn().mockResolvedValue({success: false});
+    const sendRequest = jest.fn().mockResolvedValue({ success: false });
     await expect(getAttributeValues(sendRequest, "Words", "Cases", "word")).resolves.toEqual([]);
   });
 });

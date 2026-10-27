@@ -69,7 +69,7 @@ export const NodeModal = ({ viewMode, node, graph, onChange, onCancel }: NodeMod
         <div className="nodeModalBackground" />
         <div className="nodeModal">
           <div className="nodeModalContent">
-            <div className="nodeModalTitle">State: {label}</div>
+            <div className="nodeModalTitle">State: { label }</div>
             <form>
               <ProbabilitySelector
                 viewMode={viewMode}

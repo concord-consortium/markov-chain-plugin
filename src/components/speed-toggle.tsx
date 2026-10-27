@@ -7,11 +7,11 @@ interface Props {
   onChange: (newValue: boolean) => void;
 }
 
-export const SpeedToggle = ({fastSimulation, onChange}: Props) => {
+export const SpeedToggle = ({ fastSimulation, onChange }: Props) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.checked);
   };
-  const getStyle = (isBold: boolean): React.CSSProperties => ({fontWeight: isBold ? "bold" : "normal"});
+  const getStyle = (isBold: boolean): React.CSSProperties => ({ fontWeight: isBold ? "bold" : "normal" });
   const title = `Simulation Speed: ${fastSimulation ? "Fast" : "Normal"}`;
 
   return (

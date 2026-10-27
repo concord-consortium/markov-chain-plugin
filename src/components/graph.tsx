@@ -109,16 +109,16 @@ const normalizeAngle = (radians: number): number => {
   return radians - Pi2 * Math.floor(radians / Pi2);
 };
 
-const findPointOnEllipse = ({x1, y1, x2, y2, cx, cy, a, b, angleDelta}: FindPointOnEllipseArgs) => {
+const findPointOnEllipse = ({ x1, y1, x2, y2, cx, cy, a, b, angleDelta }: FindPointOnEllipseArgs) => {
   const angle = normalizeAngle(Math.atan2(y2 - y1, x2 - x1) + angleDelta);
   return { x: cx + a * Math.cos(angle), y: cy + b * Math.sin(angle) };
 };
 
-const findLineBetweenEllipses = ({x1, y1, r1, x2, y2, r2, nodeEdgeCount}: FindLineBetweenEllipsesArgs) => {
+const findLineBetweenEllipses = ({ x1, y1, r1, x2, y2, r2, nodeEdgeCount }: FindLineBetweenEllipsesArgs) => {
   const angleDelta = nodeEdgeCount.count > 1 ? bidirectionalEdgeAngle : 0;
   return [
-    findPointOnEllipse({x1, y1, x2, y2, cx: x1, cy: y1, a: r1, b: ry(r1), angleDelta}),
-    findPointOnEllipse({x1: x2, y1: y2, x2: x1, y2: y1, cx: x2, cy: y2, a: r2, b: ry(r2), angleDelta: -angleDelta})
+    findPointOnEllipse({ x1, y1, x2, y2, cx: x1, cy: y1, a: r1, b: ry(r1), angleDelta }),
+    findPointOnEllipse({ x1: x2, y1: y2, x2: x1, y2: y1, cx: x2, cy: y2, a: r2, b: ry(r2), angleDelta: -angleDelta })
   ];
 };
 
@@ -130,7 +130,7 @@ const calculateEdges = (edges: D3Edge[]) => {
   };
   const nodeEdgeCounts = edges.reduce<Map<string,{source: D3Node, count: number}>>((acc, edge) => {
     const key = getKey(edge);
-    const entry = acc.get(key) || {source: edge.source, count: 0};
+    const entry = acc.get(key) || { source: edge.source, count: 0 };
     entry.count++;
     acc.set(key, entry);
     return acc;
@@ -162,17 +162,17 @@ const lineEnd = (edge: D3Edge) =>
   pullBackLineEnd(edge.sourceX, edge.sourceY, edge.targetX, edge.targetY, edge.weight);
 
 export const Graph = (props: Props) => {
-  const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
+  const { graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          allowDragging, autoArrange, rubberBand, drawingMode,
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
          fitViewAt, recenterViewAt, onAutoArrangeEnd, opacity,
-         selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed} = props;
+         selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
-  const [d3Graph, setD3Graph] = useState<D3Graph>({nodes: [], edges: []});
+  const [d3Graph, setD3Graph] = useState<D3Graph>({ nodes: [], edges: [] });
   const lastClickTimeRef = useRef<number|undefined>(undefined);
   const lastClickIdRef = useRef<string|undefined>(undefined);
   const draggedRef = useRef(false);
@@ -188,7 +188,7 @@ export const Graph = (props: Props) => {
       for (let i = 0; i < highlightOutputNodes.length - 1; i++) {
         const fromNode = highlightOutputNodes[i];
         const toNode = highlightOutputNodes[i + 1];
-        edges.push({from: fromNode.id, to: toNode.id, value: 0});
+        edges.push({ from: fromNode.id, to: toNode.id, value: 0 });
       }
     }
     return edges;
@@ -305,18 +305,18 @@ export const Graph = (props: Props) => {
     if (dimensions) {
       setWidth(dimensions.width);
       setHeight(dimensions.height);
-      onDimensions?.({width: dimensions.width, height: dimensions.height});
+      onDimensions?.({ width: dimensions.width, height: dimensions.height });
     }
   }, [dimensions, onDimensions]);
 
   // create the d3 graph info
   useEffect(() => {
-    const newD3Graph: D3Graph = {nodes: [], edges: []};
+    const newD3Graph: D3Graph = { nodes: [], edges: [] };
     const d3NodeMap: Record<string, D3Node> = {};
 
     // get the sum of all the values
     const totalNodeValue = graph.nodes.reduce((acc, cur) => acc + cur.value, 0);
-    const {minRadius, maxRadius} = settings;
+    const { minRadius, maxRadius } = settings;
 
     graph.nodes.forEach((node, index) => {
       const oldD3Node = d3Graph.nodes.find(n => n.id === node.id);
@@ -460,7 +460,7 @@ export const Graph = (props: Props) => {
       simulation?.alphaTarget(0);
       d.fx = null;
       d.fy = null;
-      onDragStop?.(d.subject.id, {x: d.x, y: d.y});
+      onDragStop?.(d.subject.id, { x: d.x, y: d.y });
     };
 
     const drag = d3.drag()
@@ -595,7 +595,7 @@ export const Graph = (props: Props) => {
       .attr("y2", d => d.targetY)
       .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
       .on("click", (e, d) => {
-        onEdgeClick?.({from: d.source.id, to: d.target.id});
+        onEdgeClick?.({ from: d.source.id, to: d.target.id });
       })
       ;
 
@@ -619,7 +619,7 @@ export const Graph = (props: Props) => {
       .attr("style", drawingMode === "delete" ? "pointer-events: none" : "")
       .on("click", (e, d) => {
         // this is not really needed as the pointer events are off
-        onEdgeClick?.({from: d.source.id, to: d.target.id});
+        onEdgeClick?.({ from: d.source.id, to: d.target.id });
       })
       ;
 
@@ -664,7 +664,7 @@ export const Graph = (props: Props) => {
 
     const rubberBandNode = d3Graph.nodes.find(n => n.id === rubberBand?.from);
     if (rubberBand && rubberBandNode) {
-      const data = [{x1: rubberBandNode.x, x2: rubberBand.to.x, y1: rubberBandNode.y, y2: rubberBand.to.y}];
+      const data = [{ x1: rubberBandNode.x, x2: rubberBand.to.x, y1: rubberBandNode.y, y2: rubberBand.to.y }];
       root
         .selectAll("line.rubberband")
         .data(data)
@@ -851,7 +851,7 @@ export const Graph = (props: Props) => {
         height="calc(100vh - 20px)"
         viewBox={`${-width / 2} ${-height / 2} ${width} ${height}`}
         ref={svgRef}
-        style={{opacity}}
+        style={{ opacity }}
       />
       <div className="zoomButtons">
         <button className="plusButton" onClick={handleZoomIn}><PlusIcon /></button>

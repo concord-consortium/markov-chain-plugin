@@ -29,13 +29,13 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
           {
             "name": "States",
             "attrs": [
-              {"name": "State"}
+              { "name": "State" }
             ]
           },
           {
             "name": "Sequences",
             "attrs": [
-              {"name": "Sequence number"}
+              { "name": "Sequence number" }
             ]
           }
         ]
@@ -116,7 +116,7 @@ export const createSequenceOutput = (sendRequest: SendRequest) => {
     await sendRequest({
       action: "create",
       resource: `dataContext[${OutputDatasetName}].item`,
-      values: states.map(state => ({"Sequence number": sequenceNumber, State: state}))
+      values: states.map(state => ({ "Sequence number": sequenceNumber, State: state }))
     }).catch((reason) => {
       console.error("unable to create items because " + reason);
     });

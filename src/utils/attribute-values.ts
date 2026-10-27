@@ -34,7 +34,7 @@ export const graphFromValues = (values: string[]): GraphData => {
       if (value !== "") {
         let node = nodes.find(element => element?.label === value);
         if (!node) {
-          node = {id: value, label: value, value: 0};
+          node = { id: value, label: value, value: 0 };
           nodes.push(node);
         }
         node.value++;
@@ -58,5 +58,5 @@ export const graphFromValues = (values: string[]): GraphData => {
     });
   }
 
-  return {nodes, edges};
+  return { nodes, edges };
 };

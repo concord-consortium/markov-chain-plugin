@@ -25,7 +25,7 @@ export const stateEdgeWeights = (edges: Edge[]) => {
   const stateTotals = new Map<string, number>();
   edges.forEach(edge => stateTotals.set(edge.from, (stateTotals.get(edge.from) ?? 0) + edge.value));
 
-  const {minStroke, maxStroke} = settings;
+  const { minStroke, maxStroke } = settings;
   return (edge: Edge) => {
     const total = stateTotals.get(edge.from) ?? 0;
     return total > 0 ? minStroke + ((maxStroke - minStroke) * (edge.value / total)) : minStroke;
@@ -52,10 +52,10 @@ export const pullBackLineEnd = (x1: number, y1: number, x2: number, y2: number, 
   const length = Math.hypot(x2 - x1, y2 - y1);
   const pullBack = Math.min(arrowHeadReach * width, Math.max(0, length - 1));
   if (pullBack <= 0) {
-    return {x: x2, y: y2};
+    return { x: x2, y: y2 };
   }
   const ratio = (length - pullBack) / length;
-  return {x: x1 + (x2 - x1) * ratio, y: y1 + (y2 - y1) * ratio};
+  return { x: x1 + (x2 - x1) * ratio, y: y1 + (y2 - y1) * ratio };
 };
 
 const startLoopAngle = 0.25 * Math.PI;
@@ -90,7 +90,7 @@ export const nodeLoopPath = (node: {x: number, y: number, radius: number}, arrow
   const b = ry(node.radius);
   const clockwise = false;
 
-  const circle = {x: node.x - a, y: node.y};
+  const circle = { x: node.x - a, y: node.y };
   const radius = b;
   const endAngle = trimmedLoopEndAngle(a, arrowWidth);
 
@@ -144,5 +144,5 @@ export const calculateNodeFontSize = (d: {label: string, radius: number}) => {
   }
   document.body.removeChild(text);
 
-  return {label, fontSize};
+  return { label, fontSize };
 };

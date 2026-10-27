@@ -3,7 +3,7 @@ import type { ViewMode } from "../hooks/use-codap";
 import { graphFromValues } from "../utils/attribute-values";
 
 export const compareStateLabels = (a: {label: unknown}, b: {label: unknown}) =>
-  String(a.label).localeCompare(String(b.label), undefined, {numeric: true});
+  String(a.label).localeCompare(String(b.label), undefined, { numeric: true });
 
 export const graphToRestore = (viewMode: ViewMode|undefined, initialGraph: GraphData|undefined,
                                datasetValues: string[]|undefined) => {
