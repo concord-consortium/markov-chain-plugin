@@ -19,11 +19,6 @@ Additional steps are required to run using HTTPS.
 4. Make the cert files: `mkcert -cert-file localhost.pem -key-file localhost.key localhost 127.0.0.1 ::1`
 5. Run `npm run start:secure` to run `webpack-dev-server` in development mode with hot module replacement
 
-Alternately, you can run secure without certificates in Chrome:
-1. Enter `chrome://flags/#allow-insecure-localhost` in Chrome URL bar
-2. Change flag from disabled to enabled
-3. Run `npm run start:secure:no-certs` to run `webpack-dev-server` in development mode with hot module replacement
-
 ### Building
 
 If you want to build a local version run `npm run build`, it will create the files in the `dist` folder.

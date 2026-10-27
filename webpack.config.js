@@ -21,9 +21,12 @@ module.exports = (env, argv) => {
     devServer: {
       static: 'dist',
       hot: true,
-      https: {
-        key: path.resolve(os.homedir(), '.localhost-ssl/localhost.key'),
-        cert: path.resolve(os.homedir(), '.localhost-ssl/localhost.pem'),
+      server: {
+        type: 'https',
+        options: {
+          key: path.resolve(os.homedir(), '.localhost-ssl/localhost.key'),
+          cert: path.resolve(os.homedir(), '.localhost-ssl/localhost.pem'),
+        },
       },
       allowedHosts: 'all',
     },
