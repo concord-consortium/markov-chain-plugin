@@ -148,8 +148,10 @@ npm uninstall @testing-library/react-hooks @cypress/webpack-preprocessor file-lo
 **Summary**: Dependency-only commit (R9). It comes before TypeScript 6 because Cypress 10 bundles its own spec preprocessor, which compiles specs with the project's TypeScript and fails under 6.0 (`TS5053: Option 'sourceMap' cannot be specified with option 'inlineSourceMap'`); Cypress 16 runs the spec on both TypeScript 4.8 and 6.0. Install without `CYPRESS_INSTALL_BINARY=0` (or run `npx cypress install` after) so `cypress run` can be checked.
 
 ```bash
-npm install -D cypress@^16.2.0 @cypress/code-coverage@^4.0.3
+npm install -D cypress@^16.2.0 @cypress/code-coverage@4.0.3
 ```
+
+`@cypress/code-coverage` is installed as 4.0.3, the version the replay verified, rather than through `^4.0.3`, which on 2026-10-27 resolved to a 4.1.1 published that day. `package.json` still records `^4.0.3`.
 
 **Files affected**: `package.json`, `package-lock.json`
 
@@ -199,10 +201,10 @@ npm install -D webpack@^5.112.2 webpack-cli@^7.2.3 webpack-dev-server@^6.1.0
 
 ### Update the loaders and build plugins
 
-**Summary**: Dependency-only commit (R13). After it the build passes but svgo 3 prints "You are trying to configure cleanupIDs which is not part of preset-default" (and the same for `prefixIds`) for every SVG; the next commit fixes that.
+**Summary**: Dependency-only commit (R13). `sass-loader` is installed as 17.0.1 for the same reason as `@cypress/code-coverage` in the Cypress step (17.1.0 was published on 2026-10-27); `package.json` records `^17.0.1`. After it the build passes but svgo 3 prints "You are trying to configure cleanupIDs which is not part of preset-default" (and the same for `prefixIds`) for every SVG; the next commit fixes that.
 
 ```bash
-npm install -D css-loader@^7.1.5 style-loader@^4.0.0 postcss-loader@^8.2.1 sass-loader@^17.0.1 sass@^1.106.1 mini-css-extract-plugin@^2.10.2 html-webpack-plugin@^5.6.8 @svgr/webpack@^8.1.0 autoprefixer@^10.6.1 caniuse-lite@latest cross-env@^10.1.0
+npm install -D css-loader@^7.1.5 style-loader@^4.0.0 postcss-loader@^8.2.1 sass-loader@17.0.1 sass@^1.106.1 mini-css-extract-plugin@^2.10.2 html-webpack-plugin@^5.6.8 @svgr/webpack@^8.1.0 autoprefixer@^10.6.1 caniuse-lite@latest cross-env@^10.1.0
 ```
 
 **Files affected**: `package.json`, `package-lock.json`
