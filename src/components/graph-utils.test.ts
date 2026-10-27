@@ -1,4 +1,6 @@
-import { arrowHeadReach, graphSignature, nodeLoopPath, pullBackLineEnd, stateEdgeWeights } from "./graph-utils";
+import {
+  arrowHeadReach, calculateNodeFontSize, graphSignature, nodeLoopPath, pullBackLineEnd, stateEdgeWeights
+} from "./graph-utils";
 
 describe("stateEdgeWeights", () => {
   it("compares an edge only with the other edges leaving its state", () => {
@@ -69,5 +71,38 @@ describe("nodeLoopPath", () => {
       const reach = arrowHeadReach * width;
       expect(outlineValue(node, x - reach * Math.sin(angle), y + reach * Math.cos(angle))).toBeCloseTo(1, 3);
     }));
+  });
+});
+
+describe("calculateNodeFontSize", () => {
+  const spyOnMeasuring = () => {
+    const appendChild = jest.spyOn(document.body, "appendChild");
+    return () => appendChild.mock.calls[0][0] as HTMLElement;
+  };
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it("measures markup in a label as text", () => {
+    const measured = spyOnMeasuring();
+    calculateNodeFontSize({label: "<b>x</b>", radius: 50});
+    expect(measured().textContent).toBe("<b>x</b>");
+    expect(measured().children).toHaveLength(0);
+  });
+
+  it("measures an entity in a label as the characters typed", () => {
+    const measured = spyOnMeasuring();
+    calculateNodeFontSize({label: "x &amp; y", radius: 50});
+    expect(measured().textContent).toBe("x &amp; y");
+  });
+
+  it("sets truncated labels as text too", () => {
+    // jsdom measures every element as 0 wide, so give each character a width
+    jest.spyOn(HTMLElement.prototype, "clientWidth", "get")
+      .mockImplementation(function(this: HTMLElement) { return (this.textContent?.length ?? 0) * 5; });
+    const measured = spyOnMeasuring();
+    const {label} = calculateNodeFontSize({label: "<i>abcdefgh</i>", radius: 30});
+    expect(label).toBe("<i>abc...");
+    expect(measured().textContent).toBe("<i>abc...");
+    expect(measured().children).toHaveLength(0);
   });
 });

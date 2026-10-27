@@ -107,3 +107,42 @@ export const nodeLoopPath = (node: {x: number, y: number, radius: number}, arrow
 
   return d;
 };
+
+export const calculateNodeFontSize = (d: {label: string, radius: number}) => {
+  let label = d.label;
+  const maxHeight = ry(d.radius * 2) * settings.marginFactor;
+  const maxWidth = d.radius * 2 * settings.marginFactor;
+
+  const text = document.createElement("span");
+  text.style.height = "auto";
+  text.style.width = "auto";
+  text.style.position = "absolute";
+  text.style.whiteSpace = "no-wrap";
+  text.style.opacity = "0";
+  text.textContent = label;
+  document.body.appendChild(text);
+
+  let fontSize = maxHeight;
+  let truncateLabelAt = label.length - 1;
+  while (fontSize > 1) {
+    text.style.fontSize = fontSize + "px";
+    if ((Math.ceil(text.clientHeight) > maxHeight) || (Math.ceil(text.clientWidth) > maxWidth)) {
+      if ((fontSize > settings.minFontSize) || (truncateLabelAt <= 0)) {
+        fontSize--;
+      } else {
+        truncateLabelAt--;
+        if (truncateLabelAt >= 0) {
+          label = d.label.substring(0, truncateLabelAt) + "...";
+          text.textContent = label;
+        } else {
+          break;
+        }
+      }
+    } else {
+      break;
+    }
+  }
+  document.body.removeChild(text);
+
+  return {label, fontSize};
+};
