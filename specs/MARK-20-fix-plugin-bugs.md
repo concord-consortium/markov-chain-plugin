@@ -96,10 +96,10 @@ Fix the eleven defects that the MARK-7 code review and the MARK-5 runtime check 
 
 ### 7a. Sequence numbers restart at 0 after reopening
 
-- **R7a.1** The first sequence a session outputs, when the output dataset already exists, is numbered one more than the highest `Sequence number` already in the dataset, read with `get dataContext[Sequence Data].itemSearch[*]`. Values are read with `Number()`, and only finite ones count, so a cell a student typed text into is ignored rather than making the next number `NaN`.
-- **R7a.2** When the dataset doesn't exist yet, or the request fails, numbering starts at 0, as today. After the first output, numbering continues from the session's own counter.
+- **R7a.1** The first sequence a session outputs, when the output dataset already exists, is numbered one more than the highest `Sequence number` already in the dataset, read with `get dataContext[Sequence Data].itemSearch[*]`. Values are read with `Number()`, and only finite ones count, so a cell a student typed text into is ignored rather than making the next number `NaN`. The highest is found without spreading the items into `Math.max`, which throws a `RangeError` above roughly 100,000 items.
+- **R7a.2** When the dataset doesn't exist yet, or the request fails, numbering starts at 0, as today. After the first output, numbering continues from the session's own counter. Outputs that overlap (a second one starting while the first waits on CODAP) share the one lookup, so each still gets its own number.
 - **R7a.3** The collections and grouping are unchanged.
-- **R7a.4** Test: with a mocked `itemSearch[*]` reply whose items are numbered 0 to 4, plus one with text in its `Sequence number`, the next two outputs are numbered 5 and 6; with no dataset, they are numbered 0 and 1.
+- **R7a.4** Test: with a mocked `itemSearch[*]` reply whose items are numbered 0 to 4, plus one with text in its `Sequence number`, the next two outputs are numbered 5 and 6; with no dataset, they are numbered 0 and 1; two overlapping outputs are numbered 5 and 6; with 500,000 existing items numbered 0 to 499,999, the next is 500,000.
 - **Visible:** yes: after a reopen, new sequences are numbered after the existing ones. None of the five saved ELA documents has a "Sequence Data" dataset, so a fresh copy is unchanged; the change shows in a student's saved copy that already has outputs.
 
 ## Technical Notes
