@@ -9,6 +9,7 @@ import {
 import codapInterface from "../utils/codap-interface";
 import pkg from "../../package.json";
 import { getAttributeValues } from "../utils/attribute-values";
+import { guaranteeOutputDatasetAndCaseTable, OutputDatasetName } from "../utils/output-dataset";
 
 const PluginName = "Markov Chain";
 const PluginVersion = pkg.version;
@@ -16,7 +17,6 @@ const InitialDimensions = {
   width: 600,
   height: 420
 };
-const OutputDatasetName = "Sequence Data";
 
 export type CODAPAttribute = {
   datasetName: string;
@@ -152,88 +152,8 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
     setSequenceNumber(prev => prev + 1);
   }, [setSequenceNumber]);
 
-  const guaranteeOutputDatasetAndCaseTable = useCallback(async () => {
-    let tFoundValue: any = null;
-    // Verify dataset exists
-    let tListResult: any = await codapInterface.sendRequest({
-      "action": "get",
-      "resource": "dataContextList"
-    }).catch((reason) => {
-      console.log("unable to get data context list because " + reason);
-    });
-    if (tListResult?.success) {
-      tFoundValue = tListResult.values.find((iValue: any) => {
-        return iValue.type === "text" && iValue.name === OutputDatasetName;
-      });
-    }
-    if (!tFoundValue) {
-      // Create output dataset
-      const tCreateResult: any = await codapInterface.sendRequest({
-        "action": "create",
-        "resource": "dataContext",
-        "values": {
-          "name": OutputDatasetName,
-          "title": "Output Sequences",
-          "collections": [
-            {
-              "name": "States",
-              "attrs": [
-                {"name": "State"}
-              ]
-            },
-            {
-              "name": "Sequences",
-              "attrs": [
-                {"name": "Sequence number"}
-              ]
-            }
-          ]
-        }
-      }).catch((reason) => {
-        console.log("unable to create output dataset because " + reason);
-      });
-      if (!(tCreateResult?.success)) {
-        console.log("unable to create output dataset");
-        return;
-      }
-      // setOutputDatasetID(tCreateResult.values.id);
-    } else {
-      // setOutputDatasetID(tFoundValue.id);
-    }
-    // Verify case table exists
-    tListResult = await codapInterface.sendRequest({
-      "action": "get",
-      "resource": "componentList"
-    }).catch((reason) => {
-      console.log("unable to get component list because " + reason);
-    });
-    if (tListResult?.success) {
-      tFoundValue = tListResult.values.find((iValue: any) => {
-        return iValue.type === "caseTable" && iValue.dataContext === OutputDatasetName;
-      });
-    }
-    if (!tFoundValue) {
-      // Create text component
-      const tCreateResult: any = await codapInterface.sendRequest({
-        "action": "create",
-        "resource": "component",
-        values: {
-          type: "caseTable",
-          "name": OutputDatasetName,
-          "title": "Output Sequences",
-          position: "top"
-        }
-      }).catch((reason) => {
-        console.log("unable to create case table because " + reason);
-      });
-      if (!(tCreateResult?.success)) {
-        console.log("unable to create case table");
-      }
-    }
-  }, []);
-
   const outputToDataset = useCallback(async (sequence: Node[]) => {
-    await guaranteeOutputDatasetAndCaseTable();
+    await guaranteeOutputDatasetAndCaseTable(request => codapInterface.sendRequest(request));
     const requests = sequence.map((iState, iIndex) => {
       return {
         "Sequence number": sequenceNumber,
@@ -249,7 +169,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
     });
 
     incrementSequenceNumber();
-  }, [guaranteeOutputDatasetAndCaseTable, sequenceNumber, incrementSequenceNumber]);
+  }, [sequenceNumber, incrementSequenceNumber]);
 
   useEffect(() => {
     codapInterface.on("update", "interactiveState", "", setPluginState);
