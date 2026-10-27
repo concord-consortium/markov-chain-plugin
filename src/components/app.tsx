@@ -15,6 +15,7 @@ import DropdownUpArrowIcon from "../assets/dropdown-up-arrow-icon.svg";
 import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
 import { SpeedToggle } from "./speed-toggle";
 import { ConfirmModal, IConfirmModal } from "./confirm-modal";
+import { compareStateLabels } from "./app-utils";
 
 import "./app.scss";
 
@@ -398,7 +399,7 @@ export const App = () => {
       ? handlePause
       : (generationMode === "paused" ? handleResume : handlePlay);
     const sortedNodes = [...graph.nodes];
-    sortedNodes.sort((a, b) => a.label.localeCompare(a.label));
+    sortedNodes.sort(compareStateLabels);
 
     return (
       <div className="generate">
