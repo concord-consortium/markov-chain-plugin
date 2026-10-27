@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Edge, GraphData, Node } from "../type";
 import {
   // entityInfo,
@@ -9,7 +9,7 @@ import {
 import codapInterface from "../utils/codap-interface";
 import pkg from "../../package.json";
 import { getAttributeValues } from "../utils/attribute-values";
-import { guaranteeOutputDatasetAndCaseTable, OutputDatasetName } from "../utils/output-dataset";
+import { createSequenceOutput } from "../utils/output-dataset";
 
 const PluginName = "Markov Chain";
 const PluginVersion = pkg.version;
@@ -42,7 +42,6 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
   const [initialized, setInitialized] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
-  const [sequenceNumber, setSequenceNumber] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode|undefined>();
   const valuesRef = useRef<string[]>();
 
@@ -148,28 +147,10 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
     }
   }, [attribute, handleDataChanged]);
 
-  const incrementSequenceNumber = useCallback(() => {
-    setSequenceNumber(prev => prev + 1);
-  }, [setSequenceNumber]);
-
-  const outputToDataset = useCallback(async (sequence: Node[]) => {
-    await guaranteeOutputDatasetAndCaseTable(request => codapInterface.sendRequest(request));
-    const requests = sequence.map((iState, iIndex) => {
-      return {
-        "Sequence number": sequenceNumber,
-        State: iState.label
-      };
-    });
-    await codapInterface.sendRequest({
-      action: "create",
-      resource: `dataContext[${OutputDatasetName}].item`,
-      values: requests
-    }).catch((reason) => {
-      console.log("unable to create items because " + reason);
-    });
-
-    incrementSequenceNumber();
-  }, [sequenceNumber, incrementSequenceNumber]);
+  const outputToDataset = useMemo(() => {
+    const outputSequence = createSequenceOutput(request => codapInterface.sendRequest(request));
+    return (sequence: Node[]) => outputSequence(sequence.map(state => state.label));
+  }, []);
 
   useEffect(() => {
     codapInterface.on("update", "interactiveState", "", setPluginState);

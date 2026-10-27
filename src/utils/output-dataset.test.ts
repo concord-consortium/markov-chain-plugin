@@ -1,4 +1,4 @@
-import { guaranteeOutputDatasetAndCaseTable } from "./output-dataset";
+import { createSequenceOutput, guaranteeOutputDatasetAndCaseTable } from "./output-dataset";
 
 // replies captured from CODAP 3.1.2
 const dataContextList = {success: true, values: [
@@ -8,18 +8,23 @@ const componentList = {success: true, values: [
   {hidden: false, id: 3, name: "index", title: "Markov Chain", type: "game"},
   {hidden: false, id: 399498427788315, name: "Sequence Data", title: "Output Sequences", type: "caseTable"}
 ]};
+const itemSearch = {success: true, values: [0, 4, 4, 1, 2, 3, "abc"].map((n, i) => (
+  {id: i, values: {State: "i", "Sequence number": n}}
+))};
 
-const mockCODAP = (datasetExists: boolean, rejectComponentList = false) => jest.fn(async (request: any) => {
-  switch (request.resource) {
-    case "dataContextList": return datasetExists ? dataContextList : {success: true, values: []};
-    case "componentList":
-      if (rejectComponentList) {
-        throw new Error("handleResponse: CODAP request timed out");
-      }
-      return componentList;
-    default: return {success: true, values: {}};
-  }
-});
+const mockCODAP = (datasetExists: boolean, rejectComponentList = false, itemSearchReply: unknown = itemSearch) =>
+  jest.fn(async (request: any) => {
+    switch (request.resource) {
+      case "dataContextList": return datasetExists ? dataContextList : {success: true, values: []};
+      case "componentList":
+        if (rejectComponentList) {
+          throw new Error("handleResponse: CODAP request timed out");
+        }
+        return componentList;
+      case "dataContext[Sequence Data].itemSearch[*]": return itemSearchReply;
+      default: return {success: true, values: {}};
+    }
+  });
 
 const created = (sendRequest: jest.Mock) =>
   sendRequest.mock.calls.map(([request]) => request).filter(r => r.action === "create").map(r => r.resource);
@@ -42,5 +47,35 @@ describe("guaranteeOutputDatasetAndCaseTable", () => {
     const sendRequest = mockCODAP(true, true);
     await guaranteeOutputDatasetAndCaseTable(sendRequest);
     expect(created(sendRequest)).toEqual(["component"]);
+  });
+});
+
+describe("createSequenceOutput", () => {
+  const sequenceNumbers = (sendRequest: jest.Mock) => sendRequest.mock.calls.map(([request]) => request)
+    .filter(r => r.resource === "dataContext[Sequence Data].item")
+    .map(r => r.values[0]["Sequence number"]);
+
+  it("continues after the highest sequence number already in the dataset", async () => {
+    const sendRequest = mockCODAP(true);
+    const output = createSequenceOutput(sendRequest);
+    await output(["i", "love"]);
+    await output(["class"]);
+    expect(sequenceNumbers(sendRequest)).toEqual([5, 6]);
+  });
+
+  it("starts at 0 when the existing numbers can't be read", async () => {
+    const sendRequest = mockCODAP(true, false, {success: false, values: {error: "DataContext not found"}});
+    const output = createSequenceOutput(sendRequest);
+    await output(["i"]);
+    await output(["love"]);
+    expect(sequenceNumbers(sendRequest)).toEqual([0, 1]);
+  });
+
+  it("starts at 0 when there is no dataset", async () => {
+    const sendRequest = mockCODAP(false);
+    const output = createSequenceOutput(sendRequest);
+    await output(["i"]);
+    await output(["love"]);
+    expect(sequenceNumbers(sendRequest)).toEqual([0, 1]);
   });
 });

@@ -16,6 +16,7 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
       return iValue.name === OutputDatasetName;
     });
   }
+  const datasetExisted = !!tFoundValue;
   if (!tFoundValue) {
     // Create output dataset
     const tCreateResult: any = await sendRequest({
@@ -44,7 +45,7 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
     });
     if (!(tCreateResult?.success)) {
       console.log("unable to create output dataset");
-      return;
+      return datasetExisted;
     }
     // setOutputDatasetID(tCreateResult.values.id);
   } else {
@@ -81,4 +82,39 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
       console.log("unable to create case table");
     }
   }
+  return datasetExisted;
+};
+
+const getNextSequenceNumber = async (sendRequest: SendRequest) => {
+  const result: any = await sendRequest({
+    action: "get",
+    resource: `dataContext[${OutputDatasetName}].itemSearch[*]`
+  }).catch(() => undefined);
+  if (!result?.success) {
+    return 0;
+  }
+  // a student can type anything into the table, so only finite numbers count
+  const numbers = (result.values as any[])
+    .map(item => Number(item.values?.["Sequence number"]))
+    .filter(n => Number.isFinite(n));
+  return numbers.length > 0 ? Math.max(...numbers) + 1 : 0;
+};
+
+export const createSequenceOutput = (sendRequest: SendRequest) => {
+  let nextSequenceNumber: number|undefined;
+
+  return async (states: string[]) => {
+    const datasetExisted = await guaranteeOutputDatasetAndCaseTable(sendRequest);
+    if (nextSequenceNumber === undefined) {
+      nextSequenceNumber = datasetExisted ? await getNextSequenceNumber(sendRequest) : 0;
+    }
+    const sequenceNumber = nextSequenceNumber++;
+    await sendRequest({
+      action: "create",
+      resource: `dataContext[${OutputDatasetName}].item`,
+      values: states.map(state => ({"Sequence number": sequenceNumber, State: state}))
+    }).catch((reason) => {
+      console.log("unable to create items because " + reason);
+    });
+  };
 };
