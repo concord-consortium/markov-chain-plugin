@@ -15,7 +15,7 @@ import DropdownUpArrowIcon from "../assets/dropdown-up-arrow-icon.svg";
 import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
 import { SpeedToggle } from "./speed-toggle";
 import { ConfirmModal, IConfirmModal } from "./confirm-modal";
-import { compareStateLabels } from "./app-utils";
+import { compareStateLabels, graphToRestore } from "./app-utils";
 
 import "./app.scss";
 
@@ -100,7 +100,9 @@ export const App = () => {
   const [fitViewAt, setFitViewAt] = useState<number>();
   const [recenterViewAt, setRecenterViewAt] = useState<number>();
   const [resetViewAt, setResetViewAt] = useState<number>();
+  const datasetValuesRef = useRef<string[]>();
   const onCODAPDataChanged = (values: string[]) => {
+    datasetValuesRef.current = values;
     updateGraph(values);
     setFitViewAt(Date.now());
   };
@@ -539,8 +541,9 @@ export const App = () => {
         setGraph({nodes: [], edges: []});
         setResetViewAt(Date.now());
         setTimeout(() => {
-          if (initialGraph) {
-            setGraph(initialGraph);
+          const restoredGraph = graphToRestore(viewMode, initialGraph, datasetValuesRef.current);
+          if (restoredGraph) {
+            setGraph(restoredGraph);
           }
           setFitViewAt(Date.now());
           setGraphOpacity(1);
@@ -548,7 +551,7 @@ export const App = () => {
       },
       onClose: () => setConfirmModal(undefined)
     });
-  }, [initialGraph, setGraph, setSelectedNodeId]);
+  }, [viewMode, initialGraph, setGraph, setSelectedNodeId]);
 
   const handleReturnToMainMenu = () => {
     setConfirmModal({
@@ -557,6 +560,7 @@ export const App = () => {
       onOk: () => {
         setGraph({nodes: [], edges: []});
         setInitialGraph(undefined);
+        datasetValuesRef.current = undefined;
         setViewMode(undefined);
       },
       onClose: () => setConfirmModal(undefined)
