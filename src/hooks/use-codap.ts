@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Edge, GraphData, Node } from "../type";
 import {
-  getValuesForAttribute,
   // entityInfo,
   // getNumChildAttributesInContext,
-  // getValuesForAttribute,
   initializePlugin,
   registerObservers
 } from "../utils/codap-helper";
 import codapInterface from "../utils/codap-interface";
 import pkg from "../../package.json";
+import { getAttributeValues } from "../utils/attribute-values";
 
 const PluginName = "Markov Chain";
 const PluginVersion = pkg.version;
@@ -78,7 +77,11 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
 
   const handleDataChanged = useCallback(async (codapAttribute: CODAPAttribute, viewModeOverride?: ViewMode ) => {
     const {datasetName, collectionName, attributeName} = codapAttribute;
-    const values = await getValuesForAttribute(datasetName, collectionName, attributeName);
+    const values = await getAttributeValues(request => codapInterface.sendRequest(request),
+      datasetName, collectionName, attributeName);
+    if (!values) {
+      return;
+    }
     const valuesChanged = !valuesRef.current || (JSON.stringify(values) !== JSON.stringify(valuesRef.current));
     const currentViewMode = viewModeOverride ?? viewMode;
     if (currentViewMode === "dataset" && valuesChanged) {
