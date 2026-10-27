@@ -6,6 +6,8 @@ const reply = (values: unknown[]) => ({
 });
 
 describe("getAttributeValues and graphFromValues", () => {
+  afterEach(() => jest.restoreAllMocks());
+
   it("turns missing values into chain breaks and other values into strings", async () => {
     const sendRequest = jest.fn().mockResolvedValue(reply(["a", undefined, "b", null, "", 3, "a", 3]));
     const values = await getAttributeValues(sendRequest, "Words", "Cases", "word");
@@ -24,10 +26,9 @@ describe("getAttributeValues and graphFromValues", () => {
   });
 
   it("resolves to undefined when the request is rejected", async () => {
-    const log = jest.spyOn(console, "log").mockImplementation(() => undefined);
+    jest.spyOn(console, "log").mockImplementation(() => undefined);
     const sendRequest = jest.fn().mockRejectedValue("handleResponse: CODAP request timed out");
     await expect(getAttributeValues(sendRequest, "Words", "Cases", "word")).resolves.toBeUndefined();
-    log.mockRestore();
   });
 
   it("gives no values for a failed reply", async () => {
