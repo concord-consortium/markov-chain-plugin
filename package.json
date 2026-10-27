@@ -73,7 +73,7 @@
     "report-dir": "coverage-cypress"
   },
   "devDependencies": {
-    "@cypress/code-coverage": "^3.10.0",
+    "@cypress/code-coverage": "^4.0.3",
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@jsdevtools/coverage-istanbul-loader": "^3.0.5",
     "@svgr/webpack": "^6.2.1",
@@ -90,7 +90,7 @@
     "clean-webpack-plugin": "^4.0.0",
     "cross-env": "^7.0.3",
     "css-loader": "^6.7.1",
-    "cypress": "^10.8.0",
+    "cypress": "^16.2.0",
     "eslint": "^8.19.0",
     "eslint-config-react": "^1.1.7",
     "eslint-import-resolver-typescript": "^3.5.0",
