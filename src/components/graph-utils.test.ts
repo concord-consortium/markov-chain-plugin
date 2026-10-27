@@ -1,4 +1,4 @@
-import { graphSignature, stateEdgeWeights } from "./graph-utils";
+import { arrowHeadReach, graphSignature, nodeLoopPath, pullBackLineEnd, stateEdgeWeights } from "./graph-utils";
 
 describe("stateEdgeWeights", () => {
   it("compares an edge only with the other edges leaving its state", () => {
@@ -33,5 +33,41 @@ describe("graphSignature", () => {
     const node = {id: "a", label: "a", weight: 1, radius: 30, x: 0, y: 0, loopWeight: 0};
     expect(graphSignature({nodes: [node], edges: []}))
       .not.toEqual(graphSignature({nodes: [{...node, loopWeight: 4.5}], edges: []}));
+  });
+});
+
+describe("pullBackLineEnd", () => {
+  it("pulls the end back along the line by 3 line widths", () => {
+    expect(pullBackLineEnd(0, 0, 100, 0, 2)).toEqual({x: 94, y: 0});
+    const end = pullBackLineEnd(0, 0, 30, 40, 4.5);
+    expect(Math.hypot(30 - end.x, 40 - end.y)).toBeCloseTo(13.5);
+  });
+
+  it("never leaves a line shorter than 1 px", () => {
+    expect(pullBackLineEnd(0, 0, 5, 0, 4)).toEqual({x: 1, y: 0});
+    expect(pullBackLineEnd(0, 0, 0.5, 0, 4)).toEqual({x: 0.5, y: 0});
+  });
+});
+
+describe("nodeLoopPath", () => {
+  const endPoint = (d: string) => d.split(" ").pop()?.split(",").map(Number) ?? [];
+  const outlineValue = (node: {x: number, y: number, radius: number}, x: number, y: number) =>
+    ((x - node.x) / node.radius) ** 2 + ((y - node.y) / (node.radius / 2)) ** 2;
+
+  it("ends an untrimmed loop on its state's outline", () => {
+    const node = {x: 10, y: 20, radius: 50};
+    const [x, y] = endPoint(nodeLoopPath(node));
+    expect(outlineValue(node, x, y)).toBeCloseTo(1);
+  });
+
+  it("puts the tip of a trimmed loop's arrowhead on its state's outline", () => {
+    [25, 50, 75].forEach(radius => [2, 4.5].forEach(width => {
+      const node = {x: 10, y: 20, radius};
+      const [x, y] = endPoint(nodeLoopPath(node, width));
+      // the loop's circle is centered rx left of its state and drawn with increasing angle
+      const angle = Math.atan2(y - node.y, x - (node.x - radius));
+      const reach = arrowHeadReach * width;
+      expect(outlineValue(node, x - reach * Math.sin(angle), y + reach * Math.cos(angle))).toBeCloseTo(1, 3);
+    }));
   });
 });

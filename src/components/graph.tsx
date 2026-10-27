@@ -4,7 +4,9 @@ import * as d3 from "d3";
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
 import { ViewMode } from "../hooks/use-codap";
-import { graphSignature, ry, settings, stateEdgeWeights } from "./graph-utils";
+import {
+  graphSignature, nodeLoopPath, pullBackLineEnd, ry, settings, stateEdgeWeights
+} from "./graph-utils";
 
 import PlusIcon from "../assets/plus.svg";
 import MinusIcon from "../assets/minus.svg";
@@ -100,8 +102,6 @@ type FindPointOnEllipseArgs = {
   x1: number, y1: number, x2: number, y2: number, cx: number, cy: number, a: number, b: number, angleDelta: number
 };
 
-const startLoopAngle = 0.25 * Math.PI;
-const endLoopAngle = 1.75 * Math.PI;
 const bidirectionalEdgeAngle = 10 * (Math.PI / 180);
 const Pi2 = Math.PI * 2;
 
@@ -156,28 +156,6 @@ const calculateEdges = (edges: D3Edge[]) => {
   });
 };
 
-const nodeLoopPath = (node: D3Node) => {
-  const a = node.radius;
-  const b = ry(node.radius);
-  const clockwise = false;
-
-  const circle = {x: node.x - a, y: node.y};
-  const radius = b;
-
-  const startX = circle.x + radius * Math.cos(startLoopAngle);
-  const startY = circle.y + radius * Math.sin(startLoopAngle);
-  const endX = circle.x + radius * Math.cos(endLoopAngle);
-  const endY = circle.y + radius * Math.sin(endLoopAngle);
-
-  const largeArc = Math.abs(endLoopAngle - startLoopAngle) <= Math.PI ? "0" : "1";
-  const sweepFlag = clockwise ? "0" : "1";
-
-  const d = "M " + startX + "," + startY + " A " + radius + "," + radius + " 0 " +
-            largeArc + "," + sweepFlag + " " + endX + "," + endY;
-
-  return d;
-};
-
 const calculateNodeFontSize = (d: D3Node) => {
   let label = d.label;
   const maxHeight = ry(d.radius * 2) * settings.marginFactor;
@@ -218,6 +196,9 @@ const calculateNodeFontSize = (d: D3Node) => {
 };
 
 const lineDashArray = (edge: D3Edge) => edge.value ? "" : "4";
+
+const lineEnd = (edge: D3Edge) =>
+  pullBackLineEnd(edge.sourceX, edge.sourceY, edge.targetX, edge.targetY, edge.weight);
 
 export const Graph = (props: Props) => {
   const {graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
@@ -274,13 +255,13 @@ export const Graph = (props: Props) => {
 
     // make all lines have the unselected opacity
     svg
-      .selectAll("line")
+      .selectAll("line.edge")
       .style("opacity", unselectedOpacity)
       .attr("marker-end", unselectedArrowUrl);
 
     // highlight selected incoming edges
     svg
-      .selectAll("line")
+      .selectAll("line.edge")
       .filter((d: any) => ((
         (d.value > 0) && (selectedNodeId === d.target?.id))))
       .attr("stroke", incomingArrowColor)
@@ -289,7 +270,7 @@ export const Graph = (props: Props) => {
 
     // highlight selected outgoing edges
     svg
-      .selectAll("line")
+      .selectAll("line.edge")
       .filter((d: any) => ((
         (d.value > 0) && (selectedNodeId === d.source?.id))))
       .attr("stroke", outgoingArrowColor)
@@ -463,18 +444,16 @@ export const Graph = (props: Props) => {
         .append("svg:defs")
         .append("svg:marker")
         .attr("id", id)
-        .attr("refX", 12)
-        .attr("refY", 6)
-        .attr("markerWidth", 30)
-        .attr("markerHeight", 30)
-        .attr("markerUnits","userSpaceOnUse")
+        .attr("refX", 1)
+        .attr("refY", 2)
+        .attr("markerWidth", 4)
+        .attr("markerHeight", 4)
+        .attr("markerUnits", "strokeWidth")
         .attr("orient", "auto")
         .append("path")
-        .attr("d", "M 0 0 12 6 0 12 3 6 0 0")
-        .attr("stroke", color)
+        .attr("d", "M 0 0 4 2 0 4 1 2 0 0")
         .style("fill", color)
-        .style("fill-opacity", markerOpacity ?? 1)
-        .style("stroke-opacity", markerOpacity ?? 1);
+        .style("fill-opacity", markerOpacity ?? 1);
     };
 
     // add arrows markers
@@ -598,12 +577,12 @@ export const Graph = (props: Props) => {
 
       lines
         .attr("x1", d => d.sourceX)
-        .attr("x2", d => d.targetX)
+        .attr("x2", d => lineEnd(d).x)
         .attr("y1", d => d.sourceY)
-        .attr("y2", d => d.targetY);
+        .attr("y2", d => lineEnd(d).y);
 
-      loopBackgrounds.attr("d", nodeLoopPath);
-      loops.attr("d", nodeLoopPath);
+      loopBackgrounds.attr("d", d => nodeLoopPath(d));
+      loops.attr("d", d => nodeLoopPath(d, d.loopWeight));
     };
 
     if (autoArrange) {
@@ -673,9 +652,9 @@ export const Graph = (props: Props) => {
       .attr("stroke-width", d => d.weight)
       .attr("stroke-dasharray", d => lineDashArray(d))
       .attr("x1", d => d.sourceX)
-      .attr("x2", d => d.targetX)
+      .attr("x2", d => lineEnd(d).x)
       .attr("y1", d => d.sourceY)
-      .attr("y2", d => d.targetY)
+      .attr("y2", d => lineEnd(d).y)
       .attr("marker-end", arrowUrl)
       .attr("style", drawingMode === "delete" ? "pointer-events: none" : "")
       .on("click", (e, d) => {
@@ -693,7 +672,7 @@ export const Graph = (props: Props) => {
       .append("path")
       .lower() // add below nodes
       .attr("class", "loop-background")
-      .attr("d", nodeLoopPath)
+      .attr("d", d => nodeLoopPath(d))
       .attr("stroke", "#000")
       .attr("stroke-opacity", 0)
       .attr("fill-opacity", 0)
@@ -711,7 +690,7 @@ export const Graph = (props: Props) => {
       .append("path")
       .lower() // add below nodes
       .attr("class", "loop")
-      .attr("d", nodeLoopPath)
+      .attr("d", d => nodeLoopPath(d, d.loopWeight))
       .attr("stroke", "#999")
       .attr("stroke-opacity", lineAndLoopOpacity)
       .attr("fill-opacity", 0)
@@ -749,7 +728,7 @@ export const Graph = (props: Props) => {
           .enter()
           .append("path")
           .attr("class", "ghost-loop-background")
-          .attr("d", nodeLoopPath)
+          .attr("d", d => nodeLoopPath(d))
           .attr("stroke", "#000")
           .attr("stroke-opacity", 0)
           .attr("fill-opacity", 0)
@@ -765,7 +744,7 @@ export const Graph = (props: Props) => {
           .enter()
           .append("path")
           .attr("class", "ghost-loop")
-          .attr("d", nodeLoopPath)
+          .attr("d", d => nodeLoopPath(d))
           .attr("stroke", "#999")
           .attr("stroke-opacity", lineAndLoopOpacity)
           .attr("stroke-dasharray", 4)
@@ -810,7 +789,7 @@ export const Graph = (props: Props) => {
 
     // highlight animated edges
     root
-      .selectAll("line")
+      .selectAll("line.edge")
       .attr("stroke", "#999")
       .attr("stroke-dasharray", (d: any) => lineDashArray(d))
       .attr("marker-end", arrowUrl)
