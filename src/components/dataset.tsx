@@ -93,7 +93,7 @@ export const Dataset = (props: Props) => {
         onNodeDoubleClick={handleNodeDoubleClicked}
         animating={animating}
         opacity={graphOpacity}
-        allowDragging={true && !animating}
+        allowDragging={!animating}
         autoArrange={true}
         setSelectedNodeId={setSelectedNodeId}
         fitViewAt={fitViewAt}

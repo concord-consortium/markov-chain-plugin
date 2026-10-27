@@ -43,7 +43,7 @@ describe("guaranteeOutputDatasetAndCaseTable", () => {
   });
 
   it("still requests the table when the component list can't be read", async () => {
-    jest.spyOn(console, "log").mockImplementation(() => undefined);
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
     const sendRequest = mockCODAP(true, true);
     await guaranteeOutputDatasetAndCaseTable(sendRequest);
     expect(created(sendRequest)).toEqual(["component"]);

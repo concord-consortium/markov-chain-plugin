@@ -9,7 +9,7 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
     "action": "get",
     "resource": "dataContextList"
   }).catch((reason) => {
-    console.log("unable to get data context list because " + reason);
+    console.error("unable to get data context list because " + reason);
   });
   if (tListResult?.success) {
     tFoundValue = tListResult.values.find((iValue: any) => {
@@ -41,10 +41,10 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
         ]
       }
     }).catch((reason) => {
-      console.log("unable to create output dataset because " + reason);
+      console.error("unable to create output dataset because " + reason);
     });
     if (!(tCreateResult?.success)) {
-      console.log("unable to create output dataset");
+      console.error("unable to create output dataset");
       return datasetExisted;
     }
     // setOutputDatasetID(tCreateResult.values.id);
@@ -57,7 +57,7 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
     "action": "get",
     "resource": "componentList"
   }).catch((reason) => {
-    console.log("unable to get component list because " + reason);
+    console.error("unable to get component list because " + reason);
   });
   if (tListResult?.success) {
     tFoundValue = tListResult.values.find((iValue: any) => {
@@ -76,10 +76,10 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
         position: "top"
       }
     }).catch((reason) => {
-      console.log("unable to create case table because " + reason);
+      console.error("unable to create case table because " + reason);
     });
     if (!(tCreateResult?.success)) {
-      console.log("unable to create case table");
+      console.error("unable to create case table");
     }
   }
   return datasetExisted;
@@ -118,7 +118,7 @@ export const createSequenceOutput = (sendRequest: SendRequest) => {
       resource: `dataContext[${OutputDatasetName}].item`,
       values: states.map(state => ({"Sequence number": sequenceNumber, State: state}))
     }).catch((reason) => {
-      console.log("unable to create items because " + reason);
+      console.error("unable to create items because " + reason);
     });
   };
 };

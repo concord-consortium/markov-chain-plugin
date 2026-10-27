@@ -203,8 +203,7 @@ export const App = () => {
       prevAnimatedSequenceGroups.current = [...sequenceGroups];
       currentAnimatedSequenceGroup.current =
         prevAnimatedSequenceGroups.current[prevAnimatedSequenceGroups.current.length - 1];
-      if (!currentAnimatedSequenceGroup.current ||
-        (currentAnimatedSequenceGroup.current.delimiter !== delimiter) ||
+      if ((currentAnimatedSequenceGroup.current?.delimiter !== delimiter) ||
         (currentAnimatedSequenceGroup.current.lengthLimit !== limit) ||
         (currentAnimatedSequenceGroup.current.startingState !== startingState)) {
         currentAnimatedSequenceGroup.current =
@@ -395,7 +394,7 @@ export const App = () => {
 
   const toggleHighlightOutput = useCallback((group: SequenceGroup, sequence: Node[]) => {
     setSelectedNodeId();
-    if (!highlightOutput || (highlightOutput.group !== group) || (highlightOutput.sequence !== sequence)) {
+    if ((highlightOutput?.group !== group) || (highlightOutput.sequence !== sequence)) {
       setHighlightOutput({group, sequence});
     } else {
       setHighlightOutput(undefined);
@@ -496,7 +495,7 @@ export const App = () => {
                         className={clsx("sequence", {
                           disabled: animating,
                           highlighted: (
-                            highlightOutput && highlightOutput.group === group && highlightOutput.sequence === s
+                            highlightOutput?.group === group && highlightOutput.sequence === s
                           )
                         })}
                         onClick={animating ? undefined : () => toggleHighlightOutput(group, s)}

@@ -194,7 +194,9 @@ export const ProbabilitySelector = ({viewMode, exactPercentages, edgeLabels, onC
       }
       <div className="percentages">
         {roundPercentages.map((p, i) => (
-          <div key={i} style={{color: isDrawingMode ? getDistinctColor(i) : "#000"}}>To {edgeLabels[i]}: {p}%</div>
+          <div key={i} style={{color: isDrawingMode ? getDistinctColor(i) : "#000"}}>
+            To {edgeLabels[i]}: {p}%
+          </div>
         ))}
       </div>
     </div>

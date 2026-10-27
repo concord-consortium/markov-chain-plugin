@@ -20,7 +20,9 @@ describe("stateEdgeWeights", () => {
   });
 
   it("leaves other states' widths alone when one state's values change", () => {
-    const before = [{from: "a", to: "b", value: 1}, {from: "b", to: "a", value: 1}, {from: "b", to: "c", value: 3}];
+    const before = [
+      {from: "a", to: "b", value: 1}, {from: "b", to: "a", value: 1}, {from: "b", to: "c", value: 3}
+    ];
     const after = [{from: "a", to: "b", value: 100}, ...before.slice(1)];
     expect(after.slice(1).map(stateEdgeWeights(after))).toEqual(before.slice(1).map(stateEdgeWeights(before)));
   });

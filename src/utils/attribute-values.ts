@@ -14,7 +14,7 @@ export const getAttributeValues = async (sendRequest: SendRequest, datasetName: 
       resource: `dataContext[${datasetName}].collection[${collectionName}].caseFormulaSearch[true]`
     });
   } catch (reason) {
-    console.log(`Unable to get cases in ${datasetName} because ${reason}`);
+    console.error(`Unable to get cases in ${datasetName} because ${reason}`);
     return undefined;
   }
   if (!result?.success) {

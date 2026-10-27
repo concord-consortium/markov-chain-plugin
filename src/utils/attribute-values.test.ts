@@ -26,7 +26,7 @@ describe("getAttributeValues and graphFromValues", () => {
   });
 
   it("resolves to undefined when the request is rejected", async () => {
-    jest.spyOn(console, "log").mockImplementation(() => undefined);
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
     const sendRequest = jest.fn().mockRejectedValue("handleResponse: CODAP request timed out");
     await expect(getAttributeValues(sendRequest, "Words", "Cases", "word")).resolves.toBeUndefined();
   });

@@ -79,7 +79,7 @@ export async function datasetExists(iDatasetName: string): Promise<boolean> {
     "action": "get",
     "resource": "dataContextList"
   }).catch((reason) => {
-    console.log("unable to get datacontext list because " + reason);
+    console.error("unable to get datacontext list because " + reason);
   });
   return tContextListResult.values.some((aContext: any) => aContext.name === iDatasetName);
 }
@@ -96,7 +96,7 @@ export async function getNumChildAttributesInContext(iDataContextID: number) {
     }
   )
     .catch(() => {
-      console.log("Error getting collection list");
+      console.error("Error getting collection list");
     });
   const tCollectionID = tListResult?.values && Array.isArray(tListResult.values) &&
     tListResult.values.length > 0 && tListResult.values.pop().id;
@@ -121,7 +121,7 @@ export async function getDatasetInfoWithFilter(iFilter: (value: any) => boolean)
       "action": "get",
       "resource": "dataContextList"
     }).catch((reason) => {
-      console.log("unable to get datacontext list because " + reason);
+      console.error("unable to get datacontext list because " + reason);
     });
   if (!(tContextListResult?.success))
     {return [];}
@@ -147,7 +147,7 @@ export async function guaranteeAttribute(iAttributeInfo: { name: string, hidden:
   const tNamesResult: any = await codapInterface.sendRequest({
     action: "get",
     resource: `dataContext[${iDatasetName}].collection[${iCollectionName}].attributeList`
-  }).catch(reason => console.log(`Unable to get attribute names because ${reason}`));
+  }).catch(reason => console.error(`Unable to get attribute names because ${reason}`));
   if (tNamesResult.success) {
     if (!tNamesResult.values.map((iValue: any) => iValue.name).includes(iAttributeInfo.name)) {
       // The attribute doesn't exist, so create it
@@ -156,7 +156,7 @@ export async function guaranteeAttribute(iAttributeInfo: { name: string, hidden:
         resource: `dataContext[${iDatasetName}].collection[${iCollectionName}].attribute`,
         values: [iAttributeInfo]
       }).catch(reason => {
-        console.log(`could not create attribute because ${reason}`);
+        console.error(`could not create attribute because ${reason}`);
       });
     }
   }
@@ -167,7 +167,7 @@ export async function getAttributeNames(iDatasetName: string, iCollectionName: s
   const tNamesResult: any = await codapInterface.sendRequest({
     action: "get",
     resource: `dataContext[${iDatasetName}].collection[${iCollectionName}].attributeList`
-  }).catch(reason => console.log(`Unable to get attribute names because ${reason}`));
+  }).catch(reason => console.error(`Unable to get attribute names because ${reason}`));
   // console.log('About to return from getAttributeNames')
   return tNamesResult.success ? tNamesResult.values.map((iValue: any) => iValue.name) : [];
 }
@@ -182,7 +182,7 @@ export async function getCaseValues(iDatasetName: string,
   const tResult: any = await codapInterface.sendRequest({
     action: "get",
     resource: `dataContext[${iDatasetName}].collection[${iCollectionName}].caseFormulaSearch[true]`
-  }).catch(reason => console.log(`Unable to get cases in ${iDatasetName} because ${reason}`));
+  }).catch(reason => console.error(`Unable to get cases in ${iDatasetName} because ${reason}`));
   if (tResult.success) {
     return tResult.values.map((iValue: any) => {
       delete iValue.parent;
@@ -240,7 +240,7 @@ export async function getCaseCount(iDatasetName: string | null, iCollectionName:
     }
   )
     .catch(() => {
-      console.log("Error getting case count");
+      console.error("Error getting case count");
     });
   return tCountResult.values;
 }
@@ -257,7 +257,7 @@ export async function getCollectionNames(iDatasetName: string | null): Promise<s
     }
   )
     .catch(() => {
-      console.log("Error getting collection list");
+      console.error("Error getting collection list");
     });
   return tListResult.values.map((aCollection: any) => {
     return aCollection.name;
@@ -273,7 +273,7 @@ export async function getAttributeNameByIndex(iDatasetName: string, iCollectionN
     }
   )
     .catch(() => {
-      console.log("Error getting attribute list");
+      console.error("Error getting attribute list");
     });
   if (tListResult.values.length > iIndex)
     {return tListResult.values[iIndex].name;}
@@ -294,7 +294,7 @@ export async function getComponentByTypeAndTitleOrName(iType: string, iTitle: st
     }
   )
     .catch(() => {
-      console.log("Error getting component list");
+      console.error("Error getting component list");
     });
   // console.log(`tListResult = ${JSON.stringify(tListResult)}`)
   let tID = -1;
@@ -316,7 +316,7 @@ export async function getIdOfCaseTableForDataContext(iDataContextName: string): 
     }
   )
     .catch(() => {
-      console.log("Error getting component list");
+      console.error("Error getting component list");
     });
 
   let tCaseTableID;
@@ -341,7 +341,7 @@ export async function scrollCaseTableToRight(iDataContextName: string): Promise<
         horizontalScrollOffset: 10000 // all the way
       }
     })
-      .catch(() => console.log("error scrolling case table"));
+      .catch(() => console.error("error scrolling case table"));
     return tScrollResult.success;
   }
   return false;
