@@ -63,6 +63,14 @@ describe("createSequenceOutput", () => {
     expect(sequenceNumbers(sendRequest)).toEqual([5, 6]);
   });
 
+  it("continues after the highest sequence number in a very large dataset", async () => {
+    const items = Array.from({length: 500000}, (_, i) => ({id: i, values: {State: "i", "Sequence number": i}}));
+    const sendRequest = mockCODAP(true, false, {success: true, values: items});
+    const output = createSequenceOutput(sendRequest);
+    await output(["i"]);
+    expect(sequenceNumbers(sendRequest)).toEqual([500000]);
+  });
+
   it("starts at 0 when the existing numbers can't be read", async () => {
     const sendRequest = mockCODAP(true, false, {success: false, values: {error: "DataContext not found"}});
     const output = createSequenceOutput(sendRequest);

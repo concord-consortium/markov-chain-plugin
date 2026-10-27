@@ -97,7 +97,8 @@ const getNextSequenceNumber = async (sendRequest: SendRequest) => {
   const numbers = (result.values as any[])
     .map(item => Number(item.values?.["Sequence number"]))
     .filter(n => Number.isFinite(n));
-  return numbers.length > 0 ? Math.max(...numbers) + 1 : 0;
+  // reduce rather than spread, which throws a RangeError on a very large table
+  return numbers.length > 0 ? numbers.reduce((max, n) => Math.max(max, n)) + 1 : 0;
 };
 
 export const createSequenceOutput = (sendRequest: SendRequest) => {
