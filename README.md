@@ -5,8 +5,9 @@
 ### Initial steps
 
 1. Clone this repo and `cd` into it
-2. Run `npm install` to pull dependencies
-3. Run `npm start` to run `webpack-dev-server` in development mode with hot module replacement
+2. Run `nvm use` to switch to the Node version in `.nvmrc` (or install that version another way)
+3. Run `npm install` to pull dependencies
+4. Run `npm start` to run `webpack-dev-server` in development mode with hot module replacement
 
 #### Run using HTTPS
 
