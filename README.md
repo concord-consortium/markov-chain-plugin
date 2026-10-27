@@ -39,33 +39,45 @@ You *do not* need to build to deploy the code, that is automatic.  See more info
 Follow the instructions in this
 [Guide](https://docs.google.com/document/d/1EacCSUhaHXaL8ll8xjcd4svyguEO-ipf5aF980-_q8E)
 to setup an S3 & Cloudfront distribution that can be used with Github actions.
-See also `s3_deploy.sh`, and `./github/ci.yml`.
+See also `.github/workflows/ci.yml` and `.github/workflows/release.yml`.
 
 Production releases to S3 are based on the contents of the /dist folder and are built automatically by GitHub Actions
-for each branch and tag pushed to GitHub.
+for each branch and tag pushed to GitHub, using [s3-deploy-action](https://github.com/concord-consortium/s3-deploy-action).
 
-Branches are deployed to http://markov-chain-plugin.concord.org/branch/<name>.
-If the branch name starts or ends with a number this number is stripped off.
+Branches are deployed to https://models-resources.concord.org/markov-chain-plugin/branch/<name>/index.html.
+A Jira key prefix (`MARK-6-`) or a Pivotal Tracker story number at the start or end of the branch name is stripped off,
+so `MARK-6-deploy-and-release` is deployed to `branch/deploy-and-release/`.
 
-Tags are deployed to http://markov-chain-plugin.concord.org/version/<name>.
+Tags are deployed to https://models-resources.concord.org/markov-chain-plugin/version/<name>/index.html.
+
+Pushing `master` also copies its `index-top.html` to https://models-resources.concord.org/markov-chain-plugin/index-master.html,
+which loads its assets the same way the released `index.html` does.
+
+The released version is https://models-resources.concord.org/markov-chain-plugin/index.html. Only the release workflow below changes it.
+
+To try a deployed build in CODAP, pass its URL in the `di` parameter, for example
+https://codap.concord.org/app/?di=https://models-resources.concord.org/markov-chain-plugin/branch/master/index.html.
+To open an existing document with a branch build in place of the plugin it saved, also add
+`&di-override=markov-chain-plugin` to the CODAP URL.
 
 To deploy a production release:
 
-1. Increment version number in package.json
+1. Increment version number in package.json (the plugin reports this version to CODAP)
 2. Create new entry in CHANGELOG.md
-3. Run `git log --pretty=oneline --reverse <last release tag>...HEAD | grep '#' | grep -v Merge` and add contents (after edits if needed to CHANGELOG.md)
-4. Run `npm run build`
-5. Copy asset size markdown table from previous release and change sizes to match new sizes in `dist`
-6. Create `release-<version>` branch and commit changes, push to GitHub, create PR and merge
-7. Checkout master and pull
-8. Create an annotated tag for the version, of the form `v[x].[y].[z]`, include at least the version in the tag message. On the command line this can be done with a command like `git tag -a v1.2.3 -m "1.2.3 some info about this version"`
-9. Push the tag to github with a command like: `git push origin v1.2.3`.
-10. Use https://github.com/concord-consortium/markov-chain-plugin/releases to make this tag into a GitHub release.
-11. Run the release workflow to update http://markov-chain-plugin.concord.org/index.html.
+3. Run `git log --merges --reverse --format='%s | %b' <last release tag>..HEAD` to list the merged PRs and add contents (after edits if needed to CHANGELOG.md)
+4. Create `release-<version>` branch and commit changes, push to GitHub, create PR and merge
+5. Checkout master and pull
+6. Create an annotated tag for the version, of the form `v[x].[y].[z]`, include at least the version in the tag message. On the command line this can be done with a command like `git tag -a v1.2.3 -m "1.2.3 some info about this version"`
+7. Push the tag to github with a command like: `git push origin v1.2.3`.
+8. Check that the tag's CI run deployed https://models-resources.concord.org/markov-chain-plugin/version/v1.2.3/index-top.html.
+9. Use https://github.com/concord-consortium/markov-chain-plugin/releases to make this tag into a GitHub release.
+10. Run the release workflow to update https://models-resources.concord.org/markov-chain-plugin/index.html.
     1. Navigate to the actions page in GitHub and the click the "Release" workflow. This should take you to this page: https://github.com/concord-consortium/markov-chain-plugin/actions/workflows/release.yml.
     2. Click the "Run workflow" menu button.
     3. Type in the tag name you want to release for example `v1.2.3`.  (Note this won't work until the PR has been merged to master)
     4. Click the `Run Workflow` button.
+
+To roll back a release, run the release workflow again with the previous tag.
 
 ### Testing
 
