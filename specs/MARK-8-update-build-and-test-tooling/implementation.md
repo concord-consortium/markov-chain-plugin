@@ -174,10 +174,11 @@ npm install -D typescript@~6.0.3 ts-loader@^9.6.2
 
 ### Update Jest to 30
 
-**Summary**: Dependency-only commit (R6). `@testing-library/jest-dom` is pinned to 6.9.1, the newest without a peer on `@testing-library/dom` 10.
+**Summary**: Dependency-only commit (R6). `@testing-library/jest-dom` is pinned exactly to 6.9.1, the newest without a peer on `@testing-library/dom` 10, so a caret range cannot let 6.10 in later.
 
 ```bash
-npm install -D jest@^30.5.2 jest-environment-jsdom@^30.5.2 ts-jest@^29.4.15 @types/jest@^30.0.0 @testing-library/jest-dom@6.9.1
+npm install -D jest@^30.5.2 jest-environment-jsdom@^30.5.2 ts-jest@^29.4.15 @types/jest@^30.0.0
+npm install -D --save-exact @testing-library/jest-dom@6.9.1
 ```
 
 **Files affected**: `package.json`, `package-lock.json`
