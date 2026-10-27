@@ -6,17 +6,17 @@ Deploying to S3 is handled by the [S3 Deploy Action](https://github.com/concord-
 
 ## Where to find builds
 
-- **branch builds**: when a developer pushes a branch, GitHub actions will build and deploy it to `markov-chain-plugin/branch/[branch-name]/index.html`. If the branch starts or ends with a number this is automatically stripped off and not included in the folder name.
+- **branch builds**: when a developer pushes a branch, GitHub actions will build and deploy it to `markov-chain-plugin/branch/[branch-name]/index.html`. A Jira key prefix (`MARK-6-`) or a Pivotal Tracker story number at the start or end of the branch name is stripped off, so `MARK-6-deploy-and-release` is deployed to `markov-chain-plugin/branch/deploy-and-release/index.html`.
 - **version builds**: when a developer pushes a tag, GitHub actions will build and deploy it to `markov-chain-plugin/version/[tag-name]/index.html`
 - **released version path**: the released version of the application is available at `markov-chain-plugin/index.html`
-- **master branch**: the master branch build is available at both `markov-chain-plugin/index-master.html` and `markov-chain-plugin/branch/master/index.html`.  The `index-master.html` form is preferred because it verifies the top level deployment is working for the current code. Additional branches can be added to the top level by updating the `topBranches` configuration in `ci.yml`
+- **master branch**: the master branch build is available at both `markov-chain-plugin/index-master.html` and `markov-chain-plugin/branch/master/index.html`.  The `index-master.html` form is preferred because it verifies the top level deployment is working for the current code. Additional branches can be added to the top level by updating the `topBranches` configuration in `.github/workflows/ci.yml`
 - **staging or other top level paths**: additional top level releases can be added so they are available at `markov-chain-plugin/index-[name].html`
 
 ## index-top.html
 
-The key feature of `index-top.html` is that it references the javascript and css assets using relative paths to the version or branch folder. So the javascript url will be something like `version/v1.2.3/index.js`. This way when the `index-top.html` is copied to the top level, the browser can find these assets.
+The key feature of `index-top.html` is that it references the javascript and css assets using relative paths to the version or branch folder. So the javascript url will be something like `version/v1.2.3/assets/index.[contenthash].js`. This way when the `index-top.html` is copied to the top level, the browser can find these assets.
 
-Building a functional index.js that works when it is loaded either by `index.html` or `index-top.html` depends on using Webpack a certain way.  Since Webpack 5, the `publicPath` configuration option's default value is `'auto'`. With this value the public path is computed at runtime based on the path the script was loaded from. So if the script was loaded from `/markov-chain-plugin/version/v1.2.3/index.[hash].js` then at runtime the public path will be set to `/markov-chain-plugin/version/v1.2.3/`. The reason the public path matters has to do with how javascript loads and references assets like images or json files.
+Building a functional index.js that works when it is loaded either by `index.html` or `index-top.html` depends on using Webpack a certain way.  Since Webpack 5, the `publicPath` configuration option's default value is `'auto'`. With this value the public path is computed at runtime based on the path the script was loaded from. So if the script was loaded from `/markov-chain-plugin/version/v1.2.3/assets/index.[contenthash].js` then at runtime the public path will be set to `/markov-chain-plugin/version/v1.2.3/`. The reason the public path matters has to do with how javascript loads and references assets like images or json files.
 
 For example `components/app.tsx` uses:
 ```

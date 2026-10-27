@@ -25,7 +25,7 @@ Alternately, you can run secure without certificates in Chrome:
 
 ### Building
 
-If you want to build a local version run `npm build`, it will create the files in the `dist` folder.
+If you want to build a local version run `npm run build`, it will create the files in the `dist` folder.
 You *do not* need to build to deploy the code, that is automatic.  See more info in the Deployment section below.
 
 ### Notes
@@ -44,11 +44,11 @@ See also `.github/workflows/ci.yml` and `.github/workflows/release.yml`.
 Production releases to S3 are based on the contents of the /dist folder and are built automatically by GitHub Actions
 for each branch and tag pushed to GitHub, using [s3-deploy-action](https://github.com/concord-consortium/s3-deploy-action).
 
-Branches are deployed to https://models-resources.concord.org/markov-chain-plugin/branch/<name>/index.html.
+Branches are deployed to `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/index.html`.
 A Jira key prefix (`MARK-6-`) or a Pivotal Tracker story number at the start or end of the branch name is stripped off,
 so `MARK-6-deploy-and-release` is deployed to `branch/deploy-and-release/`.
 
-Tags are deployed to https://models-resources.concord.org/markov-chain-plugin/version/<name>/index.html.
+Tags are deployed to `https://models-resources.concord.org/markov-chain-plugin/version/<name>/index.html`.
 
 Pushing `master` also copies its `index-top.html` to https://models-resources.concord.org/markov-chain-plugin/index-master.html,
 which loads its assets the same way the released `index.html` does.
