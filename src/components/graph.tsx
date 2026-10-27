@@ -4,6 +4,7 @@ import * as d3 from "d3";
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
 import { ViewMode } from "../hooks/use-codap";
+import { graphSignature, ry, settings, stateEdgeWeights } from "./graph-utils";
 
 import PlusIcon from "../assets/plus.svg";
 import MinusIcon from "../assets/minus.svg";
@@ -31,15 +32,6 @@ const unselectedLoopArrowUrl = "url(#unselectedLoopArrow)";
 export type DrawingMode = "select"|"addNode"|"addEdge"|"delete"|"addText";
 
 export type Transform = d3.ZoomTransform;
-
-export type GraphSettings = {
-  minRadius: number;
-  maxRadius: number;
-  minStroke: number;
-  maxStroke: number;
-  marginFactor: number;
-  minFontSize: number;
-};
 
 export type Point = {x: number, y: number};
 
@@ -113,17 +105,6 @@ const endLoopAngle = 1.75 * Math.PI;
 const bidirectionalEdgeAngle = 10 * (Math.PI / 180);
 const Pi2 = Math.PI * 2;
 
-const settings: GraphSettings = {
-  minRadius: 25,
-  maxRadius: 75,
-  minStroke: 2,
-  maxStroke: 7,
-  marginFactor: 0.8,
-  minFontSize: 10,
-};
-
-const ry = (radius: number) => radius / 2;
-
 const normalizeAngle = (radians: number): number => {
   return radians - Pi2 * Math.floor(radians / Pi2);
 };
@@ -195,12 +176,6 @@ const nodeLoopPath = (node: D3Node) => {
             largeArc + "," + sweepFlag + " " + endX + "," + endY;
 
   return d;
-};
-
-const graphSignature = (graph: D3Graph) => {
-  const nodeSignature = graph.nodes.map(n => `${n.id}/${n.label}/${n.weight}/${n.radius}/${n.x}/${n.y}`);
-  const edgeSignature = graph.edges.map(e => `${e.source.id}/${e.target.id}/${e.weight}`);
-  return `${nodeSignature}::${edgeSignature}`;
 };
 
 const calculateNodeFontSize = (d: D3Node) => {
@@ -400,8 +375,7 @@ export const Graph = (props: Props) => {
 
     // get the sum of all the values
     const totalNodeValue = graph.nodes.reduce((acc, cur) => acc + cur.value, 0);
-    const totalEdgeValue = graph.edges.reduce((acc, cur) => acc + cur.value, 0);
-    const {minRadius, maxRadius, minStroke, maxStroke} = settings;
+    const {minRadius, maxRadius} = settings;
 
     graph.nodes.forEach((node, index) => {
       const oldD3Node = d3Graph.nodes.find(n => n.id === node.id);
@@ -423,16 +397,16 @@ export const Graph = (props: Props) => {
       d3NodeMap[node.id] = d3Node;
     });
 
-    const edgeWeight = (value: number) => minStroke + ((maxStroke - minStroke) * (value / totalEdgeValue));
+    const edgeWeight = stateEdgeWeights(graph.edges);
 
     graph.edges.forEach((edge) => {
       if (edge.from === edge.to) {
         d3NodeMap[edge.from].loops = true;
-        d3NodeMap[edge.from].loopWeight = edgeWeight(edge.value);
+        d3NodeMap[edge.from].loopWeight = edgeWeight(edge);
       } else {
         newD3Graph.edges.push({
           value: edge.value,
-          weight: edgeWeight(edge.value),
+          weight: edgeWeight(edge),
           source: d3NodeMap[edge.from],
           target: d3NodeMap[edge.to],
           sourceX: 0, sourceY: 0, targetX: 0, targetY: 0 // calculated after force layout
