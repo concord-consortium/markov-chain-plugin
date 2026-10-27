@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ProbabilitySelector, percentage, reduceToSum } from "./probability-selector";
 import { Node, Edge, GraphData } from "../../type";
 import { ViewMode } from "../../hooks/use-codap";
+import { applyStatePercentages } from "./state-editor";
 
 export interface NodeModalProps {
   viewMode: ViewMode;
@@ -49,15 +50,7 @@ export const NodeModal = ({ viewMode, node, graph, onChange, onCancel }: NodeMod
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (node) {
-      let valueIndex = 0;
-      const newEdges = graph.edges.map(edge => {
-        if (edge.from === node.id) {
-          const value = sum * exactPercentages[valueIndex++];
-          return { ...edge, value };
-        } else {
-          return edge;
-        }
-      });
+      const newEdges = applyStatePercentages(graph.edges, node.id, sum, exactPercentages);
       onChange(node.id, { ...node, label: label.trim() }, newEdges);
     }
   }, [label, node, exactPercentages, graph.edges, sum, onChange]);
