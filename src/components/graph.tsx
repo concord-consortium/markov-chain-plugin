@@ -145,7 +145,6 @@ const calculateEdges = (edges: D3Edge[]) => {
         x2: edge.target.x,
         y2: edge.target.y,
         r2: edge.target.radius,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         nodeEdgeCount: nodeEdgeCounts.get(getKey(edge))!
       });
     edge.sourceX = sourceEdge.x;

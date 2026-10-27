@@ -1,9 +1,15 @@
 // build/production configuration extends default/development configuration
-module.exports = {
-    extends: "./.eslintrc.js",
+const base = require("./eslint.config.js");
+
+module.exports = [
+  ...base,
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: "warn"
+    },
     rules: {
-      "eslint-comments/no-unused-disable": "warn",
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-debugger": "error"
     }
-};
+  }
+];
