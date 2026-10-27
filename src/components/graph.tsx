@@ -214,7 +214,6 @@ export const Graph = (props: Props) => {
       .filter((d: any) => selectedNodeId === d.id)
       .attr("fill", selectedNodeColor);
 
-    // make all lines have the unselected opacity
     svg
       .selectAll("line.edge")
       .style("opacity", unselectedOpacity)
