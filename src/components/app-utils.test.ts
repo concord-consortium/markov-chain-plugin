@@ -1,4 +1,4 @@
-import { compareStateLabels, graphToRestore } from "./app-utils";
+import { clampLengthLimit, compareStateLabels, graphToRestore } from "./app-utils";
 
 const sortLabels = (labels: unknown[]) => labels.map(label => ({label})).sort(compareStateLabels).map(n => n.label);
 
@@ -28,5 +28,14 @@ describe("graphToRestore", () => {
       edges: [{from: "x", to: "y", value: 1}, {from: "y", to: "x", value: 1}],
     });
     expect(graphToRestore("dataset", initialGraph, undefined)).toBeUndefined();
+  });
+});
+
+describe("clampLengthLimit", () => {
+  it("raises values below 1 to 1 and keeps the rest", () => {
+    expect(clampLengthLimit(0)).toBe(1);
+    expect(clampLengthLimit(-3)).toBe(1);
+    expect(clampLengthLimit(5)).toBe(5);
+    expect(clampLengthLimit(undefined)).toBeUndefined();
   });
 });

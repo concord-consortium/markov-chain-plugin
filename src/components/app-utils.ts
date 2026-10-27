@@ -12,3 +12,6 @@ export const graphToRestore = (viewMode: ViewMode|undefined, initialGraph: Graph
   }
   return initialGraph;
 };
+
+export const clampLengthLimit = (lengthLimit: number|undefined) =>
+  lengthLimit === undefined ? undefined : Math.max(1, lengthLimit);
