@@ -1,31 +1,12 @@
 # Fix the Markov plugin bugs found by the code review
 
 **Jira**: https://concord-consortium.atlassian.net/browse/MARK-20
-**Repo**: https://github.com/concord-consortium/markov-chain-plugin
-**Implementation Spec**: [implementation.md](implementation.md)
-**Status**: **In Development**
+
+**Status**: **Closed**
 
 ## Overview
 
 Fix the eleven defects that the MARK-7 code review and the MARK-5 runtime check marked **Fix**: two crashes, a Reset that empties the graph in dataset mode, a script-injection hole in label measuring, wrong arrow widths and arrowheads, an unsorted Starting State list, a Max Length that accepts 0, a redundant dataset request on every Play, and sequence numbers that restart after a reopen. Each fix lands as its own commit with a unit test that fails without it.
-
-## Project Owner Overview
-
-The Markov plugin is used in the "SY25-26: AI Text Generation for ELA" module, which loads the plugin's top-level address, so every release reaches its students. A code review (MARK-7) and a run of the released plugin in CODAP 3.1.2 with the five ELA documents (MARK-5) found a set of bugs. Typing the word "constructor" blanks the plugin; dataset mode crashes on missing or numeric values; arrow widths look the same in any real drawing, and saving a state in the state editor makes its arrows thick and every other arrow thin; the Starting State list was never sorted; Max Length accepts 0; Reset in Use Data mode leaves the graph empty; and output sequence numbers restart at 0 after a document is reopened.
-
-Rebecca confirmed every visible change on 2026-10-27: the sorted Starting State list, per-state arrow widths from 2 to 4.5 px with arrowheads sized to their lines (Option B with scaled heads), the state editor no longer changing other states' arrows, continued sequence numbers, Max Length's minimum of 1, and the numeric-attribute fix. Reset in Use Data mode was added on 2026-10-27 by Doug; it changes only dataset mode, which ELA doesn't use. Nothing else about how the ELA documents load, restore, draw or generate changes, and the saved document format is untouched.
-
-## Background
-
-The scope comes from one document, `plugin-bugs.md` in the stream's oob folder (`~/oob/global/streams/markov-chain-fy27/`). It combines MARK-7's findings (`mark-7-findings.md`) and MARK-5's results (`mark-5-results.md`) and gives each a status. This story covers exactly the rows marked **Fix**: 1, 2 (with 2b), 3B, 3A, 3C, 4, 8, 9, 11, M3 and 7a. Row 8 was first routed to MARK-12, then moved here on 2026-10-27 (channel #1278), because MARK-12 changes only when Reset requests its fit, not what Reset restores. Its Constraints section applies throughout. The numbers below are that document's row numbers, kept so the commits, the tests and the review can be traced back to it.
-
-This branch, `MARK-20-fix-plugin-bugs`, is cut from MARK-6's branch (`MARK-6-deploy-and-release`, PR #81, in review). MARK-6 changes only docs and `src/hooks/use-codap.ts` (it reads `PluginVersion` from `package.json`), which moves that file's lines down by one against master. Every file and line reference here was checked on this branch; where `plugin-bugs.md` cites master's line in `use-codap.ts`, this spec gives the branch's.
-
-MARK-8 (build and test tooling: Jest 30, TypeScript 6, Node 24) will be rebased onto this story afterward. Its spec is written against a base with no tests, so this story keeps its footprint small: tests import only new pure modules, and nothing changes in packages, the Jest config, `tsconfig.json` or `src/global.d.ts` (MARK-8's channel note #1271).
-
-The plugin has no unit tests today. Jest 28 is configured (`package.json` `jest` block, jsdom, ts-jest), and a throwaway test written for this spec ran under it on this branch (Node 20): a `.ts` test file under `src/` with no imports from components passes. These are the first tests in the repo.
-
-The reviewer is Maureen E. Zitouni (Mau), who is new to the repo, so the PR is one small commit per bug, each readable on its own.
 
 ## Requirements
 
@@ -123,7 +104,9 @@ The reviewer is Maureen E. Zitouni (Mau), who is new to the repo, so the PR is o
 
 ## Technical Notes
 
-### Where each fix lives (checked on this branch)
+### Where each fix lives
+
+Line references are to MARK-6's branch before this story's changes.
 
 | # | Code | Notes |
 |---|---|---|
@@ -158,14 +141,10 @@ Each fix's logic moves into a new module that imports only `src/type.ts` and the
 - the Starting State comparator (4), Reset's choice of what to restore (8) and the Max Length clamp (11);
 - the output dataset check (M3) and the sequence numbering and item output (7a), taking the request function as a parameter.
 
-### Prototype (stage 4)
-
-Every fix was built for real as throwaway code on this branch: the new modules, their tests, and every call site wired. With all of it in place, `tsc --noEmit` and `npm run lint` were clean, `npm run build` passed with `lint:build` at 21 warnings, and 24 tests passed. Each fix was then reverted in its module one at a time (17 mutations, including each half of 2, 3A, 3C, 4, 9 and 7a), and each turned its test red. In CODAP 3.1.2 the wired build drew "the the cat sat on the mat. the constructor built the house" with no crash, a sorted Starting State list, widths of 2.5 px for the five arrows leaving "the" and 4.5 px for single exits, `strokeWidth` markers, no marker on any click target, and a visible loop head. The prototype was deleted.
-
 ### Testing
 
-- `npm test` runs Jest 28 with jsdom and ts-jest. There are no tests today (`npm test` exits 1 with "No tests found").
-- A test file under `src/` that imports a module with no `.scss`, d3 or nanoid import runs as is; nothing in the Jest config needs to change. Checked with a throwaway `*.test.ts` using `describe`, `it`, `expect` and `jest.fn`: it passes `npm run lint`, `lint:build` and `tsc --noEmit` with the current config, and `npm test` picks it up through `testRegex`.
+- `npm test` runs Jest 28 with jsdom and ts-jest. This story's tests are the repo's first; each sits next to its module as `<module>.test.ts`.
+- A test file under `src/` that imports a module with no `.scss`, d3 or nanoid import runs as is, with no Jest config change, and passes `npm run lint`, `lint:build` and `tsc --noEmit`.
 
 ## Out of Scope
 
@@ -180,18 +159,32 @@ From `plugin-bugs.md`:
 - **MARK-16's description**, which needs updating now that per-state widths are the default; not this story's change.
 - **DOM-level tests** of the drawn graph (marker attributes, which lines carry a head): Jest can't load `Graph`, so those belong with MARK-11's Cypress harness.
 
-## Open Questions
+## Decisions
 
-### RESOLVED: Judgment call: how to meet "the test has to exercise the call" when components can't load under Jest
+### Requirements decisions
+
+#### Reset in dataset mode (bug 8) joins the story
+**Context**: `plugin-bugs.md` first routed MARK-7's bug 8 to MARK-12 on the premise that MARK-12's spec changes that Reset branch. MARK-12 changes only when Reset requests its fit, not what Reset restores, so the bug fell between the two stories.
+**Options considered**:
+- A) Move bug 8 into MARK-20 as one more commit.
+- B) Add it to MARK-12 as a new requirement, step and Cypress test.
+
+**Decision**: A (Doug, 2026-10-27, channel #1278). MARK-12's check is "no visible change" and it had no slack. Bug 8 lands after bug 2, whose graph builder it reuses, and leaves Reset's fit and opacity steps as they are so MARK-12 adapts on rebase.
+
+---
+
+#### How to meet "the test has to exercise the call" when components can't load under Jest
 **Context**: `plugin-bugs.md` asks that, where a fix is a helper plus the call that uses it, a test exercise the call. `App`, `Drawing`, `Graph` and `NodeModal` can't load under Jest (`.scss`, d3, nanoid), and tests may import only new pure modules.
 **Options considered**:
 - A) Move each fix's whole logic into the new module, leave a one-line call at the site, and cover that call with the manual check (G2, G6).
 - B) Add a Jest `moduleNameMapper` entry or transform so components load.
 - C) Test the hooks with React Testing Library.
 
-**Decision**: A. B is a Jest config change (G4) and would not fix d3 and nanoid without more config; C needs `render` on a component that imports a hook, which is not a new pure module. For the CODAP code (2, M3, 7a), passing the request function in lets the test run the same function the hook calls. Doug confirmed at stage 8 (2026-10-27) that the manual CODAP check is enough for the component call sites.
+**Decision**: A, confirmed by Doug at stage 8 (2026-10-27). B is a Jest config change (G4) that MARK-8 rebases over, and would not fix d3 and nanoid without more config; C needs `render` on a component that imports a hook, which is not a new pure module. For the CODAP code (2, M3, 7a), passing the request function in lets the test run the same function the hook calls.
 
-### RESOLVED: Judgment call: 3C's tests on marker attributes and click targets
+---
+
+#### 3C's tests on marker attributes and click targets
 **Context**: `plugin-bugs.md` lists "a marker's size follows its line's stroke-width" and "no `line.edge-background` gets a `marker-end`" as extra tests.
 **Options considered**:
 - A) Test only the geometry in Jest (R3C.5) and cover the marker attributes and the click targets in the manual check.
@@ -199,7 +192,9 @@ From `plugin-bugs.md`:
 
 **Decision**: A. B's assertions are true by construction (they restate the constant), so they would not catch a selector reverted in `graph.tsx`. The click-target heads are 60 px black heads across the whole drawing, which the manual check can't miss.
 
-### RESOLVED: Judgment call: where fix 2 converts values
+---
+
+#### Where fix 2 converts values
 **Context**: values could be converted where they are read from CODAP or where the graph is built.
 **Options considered**:
 - A) Convert where they are read, so `valuesRef`, the change check and `onCODAPDataChanged` all see strings, and build the graph from strings.
@@ -207,58 +202,105 @@ From `plugin-bugs.md`:
 
 **Decision**: A. `OnCODAPDataChanged` is already typed `string[]`; converting at the read makes that type true. The graph builder moves into the same module so the test covers the whole chain from reply to states.
 
-### RESOLVED: Low confidence: the exact `itemSearch[*]` reply shape
+---
+
+#### The exact `itemSearch[*]` reply shape
 **Context**: MARK-5 confirmed `itemSearch[*]` returns every item but did not paste the reply. 7a's test fixture and parser depend on where `Sequence number` sits in each item.
 **Options considered**:
 - A) Capture the reply in CODAP 3.1.2 before writing the implementation spec.
 - B) Write the parser to the expected shape and rely on the manual check.
 
-**Decision**: A, done on 2026-10-27 in `https://codap.concord.org/app/` (3.1.2) through CODAP's Data Interactive API Tester plugin, in a new unsaved document. The reply is `{"success":true,"values":[{"id":...,"values":{"State":"i","Sequence number":0}}, ...]}`; a number stays a number, text a student typed stays a string (`"abc"`), and an empty cell is `""`. With no dataset, the reply is `{"success":false,"values":{"error":"DataContext not found"}}`. Recorded under Technical Notes.
+**Decision**: A, captured on 2026-10-27 in `https://codap.concord.org/app/` (3.1.2) through CODAP's Data Interactive API Tester plugin, in a new unsaved document. The shape is under Technical Notes.
 
-### RESOLVED: Low confidence: how a trimmed loop looks
-**Context**: no ELA document has a loop, and MARK-5's previews never drew one. A loop's arc ends slightly inside its state's ellipse (the end point at 1.75 pi on a circle of radius `ry` centered at `x - rx` is inside the ellipse), under the white node fill.
+---
+
+#### Where a loop ends
+**Context**: no ELA document has a loop, and MARK-5's previews never drew one. A loop's arc ended slightly inside its state's ellipse, at `1.75 * PI` on a circle of radius `ry` centered at `x - rx`.
 **Options considered**:
-- A) Trim by the head's reach as `plugin-bugs.md` says and check a drawn loop by eye.
+- A) Trim by the head's reach as `plugin-bugs.md` says.
 - B) Also move the loop's end onto the outline.
 
-**Decision**: B, revised at stage 4. A was first chosen on the reasoning that today's head tip sits on that same inside point. A browser check of a wired prototype build in CODAP 3.1.2 refuted it: today's 12 px head pokes out past the outline and is visible, but the trimmed 4-unit head sat wholly under the node and disappeared. The loop circle (center `x - rx`, radius `ry = rx / 2`) meets the ellipse where `cos(theta) = 2/3`, independent of the state's size, so the untrimmed loop now ends at `2 * PI - acos(2 / 3)` (about 3 degrees past today's end), and the trim puts the tip there. Rechecked in the browser: the loop's head shows on the outline. R3C.3 and R3C.5 say so. Doug confirmed ending loops on the outline at stage 8 (2026-10-27).
+**Decision**: B, confirmed by Doug at stage 8 (2026-10-27). A browser check of a prototype build showed the released 12 px head pokes out past the outline and is visible, but a trimmed 4-unit head sat wholly under the node. The loop circle meets the ellipse where `cos(theta) = 2/3`, independent of the state's size, so the untrimmed loop ends at `2 * PI - acos(2 / 3)`, about 3 degrees past the old end.
 
-### RESOLVED: Low confidence: `lint:build` warning count after the moves
-**Context**: `lint:build` reports no-console warnings; moving `guaranteeOutputDatasetAndCaseTable` and `getValuesForAttribute` moves their `console.log` calls. Measured on this branch: `lint:build` gives 21 warnings (all `no-console`) and `lint` is clean.
+---
+
+#### How far to trim a loop for its arrowhead
+**Context**: trimming the arc by the head's reach measured along the curve (`3 * width / ry`) puts the tip off the outline, because the marker points along the arc's tangent and the tangent cuts the curve short: 6.5 px outside on the smallest state with a full-width loop, 1.5 px on large ones.
+**Options considered**:
+- A) Keep the arc-length trim and say the tip lands near the outline.
+- B) Solve for the trim angle that puts the tip on the ellipse, by bisection between 0 and the arc-length trim.
+- C) Cap the trim on small states only.
+
+**Decision**: B (Doug, 2026-10-27). About ten lines in `nodeLoopPath`; a test puts the tip on the outline for state radii 25, 50 and 75 and widths 2 and 4.5, and fails with the arc-length trim.
+
+---
+
+#### Per-state widths and the redraw signature
+**Context**: `Graph` redraws only when its graph signature changes, and the signature had no loop width. With whole-graph widths, adding a loop changed every other width; with per-state widths, a loop on a state with no other exits changed nothing listed, so it never appeared and a deleted one stayed drawn (confirmed with a throwaway test).
+**Options considered**:
+- A) Add each node's loop width to the signature (R3A.5).
+- B) Leave the signature and accept the missing redraw.
+
+**Decision**: A. The signature moves into `graph-utils.ts` with `loopWeight` added and a test. A browser check confirmed a loop on a state with no other exits now appears and deletes.
+
+---
+
+#### `lint:build` warning count after the moves
+**Context**: `lint:build` reports `no-console` warnings; moving `guaranteeOutputDatasetAndCaseTable` and `getValuesForAttribute` moves their `console.log` calls. The base gives 21 warnings and a clean `lint`.
 **Options considered**:
 - A) Keep the moved `console.log` calls and add none, so the count stays 21.
 - B) Drop them in the moved code.
 
-**Decision**: A. The logs are the plugin's only trace of a failed CODAP request, and changing them is not a bug fix. New code adds no `console` call, so `lint:build` stays at 21 warnings at every commit (G6).
+**Decision**: A. The logs are the plugin's only trace of a failed CODAP request, and changing them is not a bug fix.
 
-## Self-Review
+---
 
-Roles: Senior Engineer, QA Engineer, Commit Reviewer (Mau's view), Security Engineer, Teacher and Student (the ELA module). Each finding below was checked against the code or with a throwaway test before it was written; findings that did not survive were dropped.
+#### Tests that could not fail
+**Context**: two tests as first written passed on the wrong code. `plugin-bugs.md`'s order text `2 7 10 go then and` is already ascending, so a `Map` passes it; and M3's first two cases never make the `componentList` request fail, so the `tFoundValue` reset was untested.
+**Options considered**:
+- A) Change the inputs so each test fails without its fix.
+- B) Keep the tests as written.
 
-### QA Engineer
+**Decision**: A. R1.3 uses `go 10 then 2` (a plain object orders it `2, 10, go, then`, a `Map` `go, 10, then, 2`), and RM3.3 adds a case with the `componentList` request rejected. R1.2 also now says only canonical integer words sort first (`01` and `-1` keep insertion order), and R3C.2 leaves a line already 1 px or shorter alone.
 
-#### RESOLVED: `plugin-bugs.md`'s order test could not fail
-The text `2 7 10 go then and` is already in ascending order, so a `Map` would give the same order and the test would pass on the wrong fix (confirmed with a throwaway test). R1.3 now uses `go 10 then 2`, which a plain object orders `2, 10, go, then` and a `Map` orders `go, 10, then, 2`.
+---
 
-#### RESOLVED: the manual check did not cover dataset mode or the click targets
-Fixes 2 and 4 are dataset-mode crashes and 3C's selector change only shows when a state is selected or a sequence plays. G6 now lists both.
+### Implementation decisions
 
-### Senior Engineer
+#### One module per concern, or one module per fix
+**Context**: eleven fixes could each get their own module, or related fixes could share one.
+**Options considered**:
+- A) Share by concern: `graph-utils.ts` (3A, 3C, 9), `app-utils.ts` (4, 8, 11), `output-dataset.ts` (M3, 7a), and one module each for 1, 2 and 3B.
+- B) One module per fix.
 
-#### RESOLVED: "number-like" was too loose in R1.2
-Only canonical integer keys sort first in a plain object; `01`, `-1` and decimals keep insertion order (the parser splits `1.5` at the period anyway). R1.2 now says so.
+**Decision**: A. The graph's `settings` and `ry` have to live in one place (3A, 3C and 9 all use them), and M3's and 7a's code is one function and its caller. Later steps add to a module an earlier step created, a forward-only dependency.
 
-#### RESOLVED: R3C.2 did not say what happens to a line already shorter than 1 px
-Two overlapping states can give a near-zero line. R3C.2 now leaves such a line alone.
+---
 
-### Commit Reviewer
+#### Where 7a's counter lives
+**Context**: the session counter could stay in React state in `useCODAP` or move into the module.
+**Options considered**:
+- A) A closure in `createSequenceOutput`, created once per hook with `useMemo`.
+- B) Keep `sequenceNumber` state in the hook and pass it in.
 
-#### RESOLVED: would the first test commit need any config?
-Checked: a test file passes lint, `lint:build`, `tsc` and Jest with today's config, so the first commit carries only its fix, its module and its test (Testing notes).
+**Decision**: A. The test runs the same code the plugin runs, from the first reply to the item request, and the hook's `sequenceNumber` state and `incrementSequenceNumber` callback go away. If the memo is ever rebuilt, the new closure reads the dataset again and continues from its highest number, so numbering stays correct.
 
-### Third review
+---
 
-Roles: New Engineer (follows the implementation plan literally), React and Hooks Reviewer, CODAP API Reviewer, Accessibility Reviewer (the Max Length field). Each step was built in order as throwaway code; the findings that touch the implementation only are recorded in the implementation spec's third review.
+#### M3 resets `tFoundValue` instead of splitting the variable
+**Context**: the moved function reuses `tFoundValue` for the dataset and table checks; once the dataset check matches, a failed `componentList` reply would leave the dataset entry in it and skip the table request.
+**Options considered**:
+- A) Reset it before the table check (one line).
+- B) Use two variables.
 
-#### RESOLVED: RM3.3 did not test the table check's reset
-M3's fix starts the table check from nothing (Technical Notes, M3), but RM3.3's two cases never make the `componentList` request fail, so deleting that reset left them green (checked with a throwaway test). RM3.3 now adds the case: the dataset listed and the `componentList` request rejected still sends `create component`.
+**Decision**: A. It keeps the moved block nearly verbatim for review, and the variable's reuse is out of scope. 7a then records whether the dataset existed (`const datasetExisted = !!tFoundValue;`) before that reset.
+
+---
+
+#### Extra tests from the per-step code reviews
+**Context**: the per-step reviews found tests that could pass on wrong code: the state editor's tests used equal percentages, so a percentage applied to the wrong edge passed; 7a's fixture had its highest number last, so "keep the last number" passed; and a failed `itemSearch[*]` read was never exercised.
+**Options considered**:
+- A) Add the cases and record them in the implementation spec's test lists.
+- B) Keep the tests the spec first listed.
+
+**Decision**: A. The state editor test adds `[25, 75]`, giving `[1, 7, 3]`; 7a's fixture orders its numbers `0, 4, 4, 1, 2, 3, "abc"`, and a new case starts at 0 when the read fails. Each was checked by reverting its code and seeing the test fail.
