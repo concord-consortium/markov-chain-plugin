@@ -202,6 +202,7 @@ export const applyStatePercentages = (edges: Edge[], nodeId: string, sum: number
 Test (`state-editor.test.ts`):
 - `[1, 1, 1]` from state `a` with percentages `[100/3, 100/3, 100 - 2*100/3]` (what the editor holds unchanged) and `sum` 3: every value `toBeCloseTo(1)`.
 - edges `a→b` 1, `b→a` 7, `a→c` 3 with `sum` 4 and `[50, 50]`: values `[2, 7, 2]`, and the `b→a` edge is the same object (`toBe`).
+- the same edges with `[25, 75]`: values `[1, 7, 3]`, so a percentage applied to the wrong edge, or repeated, fails.
 
 ---
 
@@ -608,8 +609,9 @@ The item request and its `console.log` are the ones moved from `outputToDataset`
 
 `App` calls `outputToDataset(sequence)` as before, so `app.tsx` doesn't change.
 
-Test, with the same mock plus an `itemSearch[*]` reply shaped as captured for this spec (`{success: true, values: [{id, values: {State, "Sequence number": n}}]}`, numbers 0, 1, 2, 3, 4, 4 and the text `"abc"`):
+Test, with the same mock plus an `itemSearch[*]` reply shaped as captured for this spec (`{success: true, values: [{id, values: {State, "Sequence number": n}}]}`, numbers 0, 4, 4, 1, 2, 3 and the text `"abc"`, with the 4s before smaller numbers so the highest number isn't also the last):
 - dataset listed: two outputs send items numbered 5, then 6.
+- dataset listed but the `itemSearch[*]` reply has `success: false`: 0, then 1.
 - no dataset: 0, then 1.
 
 ### After the last step
