@@ -1,7 +1,7 @@
 import { ellipse } from "../support/graph";
 
 // the browser only fires a click when the press and release land on the same element, which synthetic
-// click events skip, so these tests press the mouse through Chrome's DevTools protocol
+// click events skip, so the click tests press the mouse through Chrome's DevTools protocol
 const mouse = (type: string, x: number, y: number) =>
   Cypress.automation("remote:debugger:protocol", {
     command: "Input.dispatchMouseEvent",
@@ -70,6 +70,16 @@ describe("Clicks on states", () => {
         expect(moved.x).not.to.be.closeTo(saved.x, 1);
         expect(moved.y).not.to.be.closeTo(saved.y, 1);
       });
+    });
+  });
+
+  it("draws the rubber band before the mouse move returns", () => {
+    cy.plugin().find("button[title='Add Transition']").click();
+    cy.clickState("c");
+    cy.plugin().find("line.rubberband").should("not.exist");
+    cy.get<HTMLIFrameElement>("iframe#plugin").its("0.contentWindow").then(win => {
+      win.dispatchEvent(new win.MouseEvent("mousemove", { clientX: 100, clientY: 100 }));
+      expect(win.document.querySelectorAll("line.rubberband")).to.have.length(1);
     });
   });
 });
