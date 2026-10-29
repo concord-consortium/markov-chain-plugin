@@ -2,15 +2,14 @@ import { defineConfig } from 'cypress'
 
 export default defineConfig({
   video: false,
-  fixturesFolder: false,
-  projectId: 'r9de4a',
+  // Cypress rewrites "framebusting" checks such as window.parent === window, which iframe-phone uses
+  // to find CODAP, so the plugin would never connect to the fake CODAP page
+  modifyObstructiveCode: false,
   defaultCommandTimeout: 8000,
-  env: {
+  expose: {
     coverage: false,
   },
   e2e: {
-    // We've imported your old cypress plugins here.
-    // You may want to clean this up later by importing these.
     setupNodeEvents(on, config) {
       return require("@cypress/code-coverage/task")(on, config);
     },
