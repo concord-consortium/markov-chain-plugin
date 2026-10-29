@@ -700,7 +700,7 @@ Mutations, each run against the dev server and reverted: `maxStroke` 7 fails the
 **Files affected**:
 - `cypress/e2e/labels.test.ts`: new.
 
-**Estimated diff size**: 32 lines (+32).
+**Estimated diff size**: 33 lines (+33).
 
 ```ts
 describe("Labels", () => {
@@ -724,11 +724,12 @@ describe("Labels", () => {
       dataset: { name: "Words", collection: "Cases", attributes: { Word: [html, 10, "b", 2, html] } }
     });
     cy.plugin().find("g.node text").should("have.length", 4);
-    cy.plugin().find("img").should("not.exist");
     cy.plugin().find("g.node text").first().invoke("text").should(text => {
       expect(text.endsWith("...")).to.equal(true);
       expect(html.startsWith(text.slice(0, -3))).to.equal(true);
     });
+    // an injected image's onerror runs only once its request fails, which takes a few hundred ms at most
+    cy.wait(1000);
     cy.window().its("labelScriptRan").should("be.undefined");
     cy.plugin().find("select").first().find("option").then(options => {
       expect(options.toArray().map(o => o.textContent)).to.deep.equal(["(any)", html, "2", "10", "b"]);
@@ -738,10 +739,10 @@ describe("Labels", () => {
 ```
 
 - The truncation test reads the sizes the plugin drew; `9nsC6KpuDstv2N9eGndM` truncates six labels, "appreciation" among them.
-- The HTML value is long enough to be truncated too, so the test checks the drawn text is a prefix of it plus "...". Its `onerror` would set a flag on the page's window if it ever ran.
+- The HTML value is long enough to be truncated too, so the test checks the drawn text is a prefix of it plus "...". Its `onerror` would set a flag on the page's window if it ever ran; it runs only once the image's request fails, so the test waits a second before checking. Checking for an `<img>` in the plugin proves nothing: the measuring element is removed as soon as it is measured.
 - The Starting State list holds the labels as `compareStateLabels` sorts them: `<` before digits, `2` before `10`, then letters.
 
-Mutations: `innerHTML` in place of `textContent` in `calculateNodeFontSize` (MARK-20's bug 9) fails the HTML test (the `<img>` is created and its handler runs); the comparator comparing `a` with itself (bug 4) fails the list order.
+Mutations: `innerHTML` in place of `textContent` in `calculateNodeFontSize` (MARK-20's bug 9) fails the HTML test at the truncation check, and, with that check removed, at the script check (5 runs of 5); the comparator comparing `a` with itself (bug 4) fails the list order.
 
 **Commit**: `test: test how state labels are drawn [MARK-11]`
 
