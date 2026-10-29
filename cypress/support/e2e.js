@@ -13,11 +13,15 @@
 // https://on.cypress.io/configuration
 // ***********************************************************
 
-// Import commands.js using ES2015 syntax:
-// import "./commands";
-
-// Alternatively you can use CommonJS syntax:
-// require('./commands')
-
 // add code coverage support
 import "@cypress/code-coverage/support";
+import "./commands";
+
+// errors thrown in the plugin's frame don't reach Cypress, so each test checks the ones the fake CODAP page kept
+afterEach(() => {
+  cy.window().then(win => {
+    if (win.fakeCodap) {
+      expect(win.fakeCodap.errors, "errors in the plugin").to.deep.equal([]);
+    }
+  });
+});
