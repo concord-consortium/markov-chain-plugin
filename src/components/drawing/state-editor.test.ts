@@ -1,4 +1,4 @@
-import { applyStatePercentages } from "./state-editor";
+import { applyStatePercentages, movePairedPercentage } from "./state-editor";
 
 describe("applyStatePercentages", () => {
   it("keeps the state's values when its percentages are unchanged", () => {
@@ -24,5 +24,17 @@ describe("applyStatePercentages", () => {
       { from: "a", to: "b", value: 1 }, { from: "b", to: "a", value: 7 }, { from: "a", to: "c", value: 3 }
     ];
     expect(applyStatePercentages(edges, "a", 4, [25, 75]).map(e => e.value)).toEqual([1, 7, 3]);
+  });
+});
+
+describe("movePairedPercentage", () => {
+  it("trades percentage between a thumb's share and the next, keeping the total", () => {
+    expect(movePairedPercentage([50, 50], 0, 0.25)).toEqual([25, 75]);
+    // the second thumb sits at 60% of the line, after the first share's 20%
+    expect(movePairedPercentage([20, 30, 50], 1, 0.6)).toEqual([20, 40, 40]);
+  });
+
+  it("ignores a move past the next thumb, which would make a share negative", () => {
+    expect(movePairedPercentage([20, 30, 50], 0, 0.6)).toBeUndefined();
   });
 });

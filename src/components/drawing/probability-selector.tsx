@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { ViewMode } from "../../hooks/use-codap";
+import { movePairedPercentage, probability, reduceToSum } from "./state-editor";
 
 import "./probability-selector.scss";
 
@@ -40,10 +41,6 @@ const distinctColors = [
   "#800000", "#aaffc3", "#000075", "#a9a9a9", "#ffffff", "#000000"
 ];
 const getDistinctColor = (i: number) => distinctColors[i % distinctColors.length];
-
-export const percentage = (n: number) => n * 100;
-export const probability = (n: number) => n / 100;
-export const reduceToSum = (a: number[]) => a.reduce((acc, cur) => acc + cur, 0);
 
 export const ProbabilitySelectorThumb = (props: ProbabilitySelectorThumbProps) => {
   const { index, offset, onChange } = props;
@@ -121,20 +118,8 @@ export const ProbabilitySelector = ({ viewMode, exactPercentages, edgeLabels, on
   }, [offsets]);
 
   const handleProbabilitySelectorThumbChange = useCallback((index: number, newProbability: number) => {
-    const prevExactPercentages = exactPercentages
-      .slice(0, index)
-      .reduce((acc, cur) => acc + cur, 0);
-    const pairedPercentageSum = exactPercentages
-      .slice(index, index + 2)
-      .reduce((acc, cur) => acc + cur, 0);
-    const newExactPercentage = Math.min(100, Math.max(0, percentage(newProbability) - prevExactPercentages));
-
-    const newExactPercentages = [...exactPercentages];
-    newExactPercentages[index] = newExactPercentage;
-    newExactPercentages[index+1] = pairedPercentageSum - newExactPercentage;
-
-    const allAboveZero = newExactPercentages.find(n => n < 0) === undefined;
-    if (allAboveZero) {
+    const newExactPercentages = movePairedPercentage(exactPercentages, index, newProbability);
+    if (newExactPercentages) {
       onChange(newExactPercentages);
     }
   }, [exactPercentages, onChange]);
