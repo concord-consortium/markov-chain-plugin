@@ -38,7 +38,7 @@ The branch sits on MARK-11's (rendering tests), which sits on MARK-10's, MARK-9'
 ### Verification
 
 - **R14.** MARK-10's unit tests and MARK-11's rendering tests pass. A test changes only for a testing-library API change, never to accept different plugin behavior. *(No test needed a change.)*
-- **R15.** A manual check in CODAP 3.1.2 covers R11 and R12 against the branch build and R13 against a development build, and is recorded in the PR. *(Partly done before the push; see Not Yet Implemented.)*
+- **R15.** A manual check in CODAP 3.1.2 covers R11 and R12 against the branch build and R13 against a development build, and is recorded in the PR. *(Partly done; see Not Yet Implemented.)*
 - **R16.** Each R9 case has a Cypress test on MARK-11's fake-CODAP page that fails on React 19 without the fix and passes with it, plus one test that fails if Reset's `else` branch is deleted: after Reset on a drawing started in the session, adding a state and resizing the plugin fits the view. Each part of the R9a fix has a test that fails on React 19 without it.
 - **R17.** Dependency and lockfile changes are in commits separate from source changes. The React 19 install commit does not build, and the `createRoot` commit right after it is the first that does.
 
@@ -104,14 +104,13 @@ The click tests press the mouse through Chrome's DevTools protocol (`Cypress.aut
 
 ## Not Yet Implemented
 
-- **CI on GitHub:** the `build_test` and `cypress` jobs, and `s3-deploy` after them, can only run on the first push.
-- **R15 against the branch build:** the branch build exists only after the push. Before the push, the check ran in CODAP 3.1.2 with Playwright, this branch's dev server beside MARK-11's branch build. These matched on both:
+- **R15 against the branch build, in part:** the full check ran in CODAP 3.1.2 with Playwright against this branch's dev server, beside MARK-11's branch build. These matched on both:
   - drawing mode: Create From Text, Fit View after zooming, the state editor and its slider, dragging a state, rename, Add State, Add Transition, deleting a transition and a state, Back to Main
   - generating: Play, Step, Cancel, Pause and Resume, the fast speed, output highlighting
   - dataset mode with Mammals: drop, zoom and Reset, a second drop, editing a case, Play
   - the five ELA documents, apart from the tile-resize race above, and an unversioned drawing
 
-  The plugin's frame logged nothing. Not checked: adding and deleting cases in CODAP, and reopening a saved dataset document.
+  The plugin's frame logged nothing. Against this branch's build and MARK-11's, side by side, adding and deleting cases and reopening a saved dataset document also matched. With Mammals and Diet dropped, a case with a new Diet value added its state and refit the view, and deleting it removed the state and refit. The document, saved as a local file, reopened in dataset mode with the same states and the same fit, and adding and deleting a case still worked there. The rest of the list has not been repeated against the branch build.
 
 ## Decisions
 
