@@ -755,7 +755,7 @@ Mutations: `innerHTML` in place of `textContent` in `calculateNodeFontSize` (MAR
 **Files affected**:
 - `cypress/e2e/highlighting.test.ts`: new.
 
-**Estimated diff size**: 80 lines (+80).
+**Estimated diff size**: 81 lines (+81).
 
 ```ts
 // colors from graph.tsx
@@ -795,7 +795,7 @@ describe("Highlighting", () => {
     ellipse("b").should("have.attr", "fill", "#fff");
     cy.plugin().find(`line.edge[stroke='${incomingArrowColor}'], line.edge[stroke='${outgoingArrowColor}']`)
       .should("not.exist");
-    cy.plugin().find(`g.node ellipse${faded}, line.edge${faded}`).should("not.exist");
+    cy.plugin().find(`g.node ellipse${faded}, line.edge${faded}, g.node text${faded}`).should("not.exist");
   });
 
   it("follows each step of a sequence", () => {
@@ -831,11 +831,12 @@ describe("Highlighting", () => {
     edge("b", "c").should("have.attr", "stroke", animatedArrowColor);
     ellipse("d").should("match", faded);
     edge("d", "a").should("match", faded);
+    cy.plugin().find("g.node text").filter((i, text) => text.textContent === "d").should("match", faded);
 
     cy.plugin().find(".sequence").click();
     cy.plugin().find(".sequence.highlighted").should("not.exist");
     cy.plugin().find(`g.node ellipse[fill='${animatedNodeColor}']`).should("not.exist");
-    cy.plugin().find(`g.node ellipse${faded}`).should("not.exist");
+    cy.plugin().find(`g.node ellipse${faded}, g.node text${faded}`).should("not.exist");
   });
 });
 ```
@@ -844,7 +845,7 @@ describe("Highlighting", () => {
 - With `a` as the starting state, `chain.json`'s run is `a b c` on every draw, five Step presses from start to finish (`app.tsx:357-368`): `a` with its exits dashed, then `a`-to-`b` solid with `b` filled, then `b` with its exits dashed, then `b`-to-`c` with `c` filled, then the output.
 - `d` and its transition are off every path, so they show what fades.
 
-Mutation: the incoming transitions drawn in the outgoing color fails the selection test.
+Mutations: the incoming transitions drawn in the outgoing color fails the selection test; labels left faded once nothing is highlighted (`unhighlightNonOutput` resetting them to 0.35) fails the selection and output tests.
 
 **Commit**: `test: test selection, animation and output highlighting [MARK-11]`
 
