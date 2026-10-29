@@ -1,4 +1,4 @@
-import { getAttributeValues, graphFromValues } from "./attribute-values";
+import { getAttributeValues, graphFromValues, toStateLabel } from "./attribute-values";
 
 const reply = (values: unknown[]) => ({
   success: true,
@@ -34,5 +34,27 @@ describe("getAttributeValues and graphFromValues", () => {
   it("gives no values for a failed reply", async () => {
     const sendRequest = jest.fn().mockResolvedValue({ success: false });
     await expect(getAttributeValues(sendRequest, "Words", "Cases", "word")).resolves.toEqual([]);
+  });
+});
+
+describe("graphFromValues", () => {
+  it("counts back-to-back repeats as a self-loop and adds repeated transitions together", () => {
+    expect(graphFromValues(["a", "a", "b", "a", "b"])).toEqual({
+      nodes: [{ id: "a", label: "a", value: 3 }, { id: "b", label: "b", value: 2 }],
+      edges: [
+        { from: "a", to: "a", value: 1 },
+        { from: "a", to: "b", value: 2 },
+        { from: "b", to: "a", value: 1 },
+      ],
+    });
+  });
+
+  it("keeps 0, false and whitespace-only values as states", () => {
+    const values = [0, false, " "].map(toStateLabel);
+    expect(values).toEqual(["0", "false", " "]);
+    expect(graphFromValues(values).edges).toEqual([
+      { from: "0", to: "false", value: 1 },
+      { from: "false", to: " ", value: 1 },
+    ]);
   });
 });
