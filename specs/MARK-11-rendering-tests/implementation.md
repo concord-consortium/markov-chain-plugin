@@ -917,7 +917,7 @@ describe("Fit and recenter", () => {
 **Files affected**:
 - `cypress/e2e/modes.test.ts`: new.
 
-**Estimated diff size**: 65 lines (+65).
+**Estimated diff size**: 66 lines (+66).
 
 ```ts
 const labels = () => cy.plugin().find("g.node text").then(texts => texts.toArray().map(text => text.textContent));
@@ -969,6 +969,7 @@ describe("Drawing mode", () => {
   it("draws the same graph after saving and reopening", () => {
     cy.getPluginState().then(state => {
       expect(state.nodes).to.have.length(5);
+      expect(state.edges).to.have.length(5);
       cy.restartPlugin(state);
       cy.plugin().find("g.node").should("have.length", 5).each(node => {
         const saved = state.nodes.find((n: any) => n.label === node.text());
