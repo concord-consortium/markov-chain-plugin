@@ -858,7 +858,7 @@ Mutations: the incoming transitions drawn in the outgoing color fails the select
 **Files affected**:
 - `cypress/e2e/fit.test.ts`: new.
 
-**Estimated diff size**: 38 lines (+38).
+**Estimated diff size**: 41 lines (+41).
 
 ```ts
 const rootTransform = () => cy.plugin().find(".graph > svg g.root").invoke("attr", "transform");
@@ -890,18 +890,21 @@ describe("Fit and recenter", () => {
     });
   });
 
-  it("keeps the zoom when recentering", () => {
-    cy.plugin().find(".plusButton").click();
-    rootTransform().then(zoomed => {
-      const scale = /scale\(([^)]+)\)/.exec(zoomed!)![1];
-      cy.plugin().find("button[title='Recenter View']").click();
-      rootTransform().should("contain", `scale(${scale})`);
+  it("recenters the graph and keeps the zoom", () => {
+    rootTransform().then(fitted => {
+      // the wheel zooms about the pointer, so zooming near a corner moves the graph off center
+      cy.plugin().find(".graph > svg").trigger("wheel", 20, 20, { deltaY: -300 });
+      rootTransform().should("not.equal", fitted).then(zoomed => {
+        const scale = /scale\(([^)]+)\)/.exec(zoomed!)![1];
+        cy.plugin().find("button[title='Recenter View']").click();
+        rootTransform().should("contain", `scale(${scale})`).and("not.equal", zoomed);
+      });
     });
   });
 });
 ```
 
-`.graph > svg` is the graph's SVG; the toolbar's icons are SVGs too. A drawing has no force layout, so its fit is the same every time and the Fit View result can be compared with the load's exactly. Mutations: deleting the `svg.call(zoomRef.current.transform, transform)` in `fitOrCenter` fails the suite at its first check, that the loaded drawing has a fitted transform; a fit scale of `* 2` in place of `* 0.8` fails the inside-the-view test.
+`.graph > svg` is the graph's SVG; the toolbar's icons are SVGs too. A drawing has no force layout, so its fit is the same every time and the Fit View result can be compared with the load's exactly. Mutations: deleting the `svg.call(zoomRef.current.transform, transform)` in `fitOrCenter` fails the suite at its first check, that the loaded drawing has a fitted transform; a fit scale of `* 2` in place of `* 0.8` fails the inside-the-view test; a Recenter View that does nothing (the `svg.call` run only for a fit) fails the recenter test, which zooms with the wheel near a corner first so the graph is off center.
 
 **Commit**: `test: test fit and recenter [MARK-11]`
 
