@@ -24,7 +24,7 @@ The Jira description predates MARK-20, MARK-8 and MARK-12's spec. Where it disag
 ### The fake-CODAP page
 
 - **R5.1** The development server (`npm start`) serves `fake-codap.html`, which hosts the plugin (`index.html`, same origin) in an iframe, 600 by 420 px unless a test asks for another size. It talks to the plugin with iframe-phone's parent endpoint on the `data-interactive` channel, as CODAP does.
-- **R5.2** It answers the plugin's requests the way CODAP 3.1.2 does, with reply shapes from MARK-5's captures: `init`'s batch with the saved state in the second reply's `values.savedState`; `notify interactiveFrame {dirty: true}`; `caseFormulaSearch[true]` from the page's dataset; and the output-table requests Play sends (`get dataContextList`, `create dataContext`, `get componentList`, `create component`, `create dataContext[Sequence Data].item`, `get dataContext[Sequence Data].itemSearch[*]`), keeping the items it is sent. Every request is recorded; an unknown one gets `{success: false}`.
+- **R5.2** It answers the plugin's requests the way CODAP 3.1.2 does, with reply shapes from MARK-5's captures: `init`'s batch with the saved state in the second reply's `values.savedState`; `notify interactiveFrame {dirty: true}`; `caseFormulaSearch[true]` from the page's dataset; and the output-table requests Play sends (`get dataContextList`, `create dataContext`, `get componentList`, `create component`, `create dataContext[Sequence Data].item`, `get dataContext[Sequence Data].itemSearch[*]`), keeping the items it is sent. `Sequence Data` exists only once the plugin creates it: it is listed from then on, and writing or reading its items before then fails as in CODAP. Every request is recorded; an unknown one gets `{success: false}`.
 - **R5.3** It starts the plugin with any saved state (a version-2 drawing, an unversioned drawing, dataset mode) or none (the mode menu), and can withhold the `interactiveFrame` reply so a test sees "Loading ...".
 - **R5.4** It holds one small dataset a test can set and change; `caseFormulaSearch[true]` reads the current values. A test can start in dataset mode with one of its attributes without spelling out the saved state.
 - **R5.5** It sends `dragDrop[attribute]` notifications for a drop (`dragstart`, `drop`, `dragend`) and `dataContextChangeNotice[<dataset>]` notifications with `createCases`, `updateCases` or `deleteCases`.
@@ -102,7 +102,7 @@ The page's dataset is `Words`, collection `Cases`, with `Word` (`the cat sat on 
 ### What the tests need to know about the browser
 
 - **`modifyObstructiveCode`** has to be off, or the plugin never sends iframe-phone's `hello` and `init` times out.
-- **Errors in the plugin's frame** don't fail a Cypress test; the page keeps them for the `afterEach` (R5.10).
+- **Errors in the plugin's frame** don't fail a Cypress test; the page keeps them for the `afterEach` (R5.10). It listens on the frame's first window as soon as the frame is added, because loading the same-origin plugin reuses that window, so errors while the plugin starts count too; listening from the frame's `load` event missed them.
 - **`.click()` on a state** makes d3-drag throw `gestures.mouse is not a function` in the nested frame, so states get a lone `click` event. Clicking the graph's background with `.click(x, y)` works.
 - **`invoke` doesn't wait for a promise**; commands that call the page use `then`. **`blur`** fails on an input inside the frame; tests commit with `{enter}`.
 - **`cy.clock`** affects only the top window, so animation timing comes from the plugin's `fastSpeed` and `normalSpeed` parameters.
@@ -188,5 +188,7 @@ The page, its commands, the fixtures, the Cypress config, the error check and th
 - Highlighting checks that labels un-fade, that the selected state and its neighbors stay unfaded, and that an output's own states do.
 - The labels test checks the numeric labels and waits for the injected image's handler.
 - The arrowhead checks first confirm the click targets are drawn.
-- Save and reopen checks the saved transitions.
-- Step checks the exact items sent.
+- Save and reopen checks the saved transitions, and the reopened graph draws exactly those transitions.
+- Play and Step check the exact items sent, in one request.
+- The fake CODAP page rejects items for an output dataset the plugin never created (Copilot's review on the PR).
+- Errors thrown while the plugin starts fail the test (Copilot's review on the PR).

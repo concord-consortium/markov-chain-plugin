@@ -1,4 +1,6 @@
 const itemsSent = () => cy.fakeCodap().its("items");
+const itemRequests = () => cy.fakeCodap().its("requests")
+  .then(requests => requests.filter(r => r.action === "create" && r.resource === "dataContext[Sequence Data].item"));
 
 describe("Generating sequences", () => {
   it("plays a sequence into the output and to CODAP", () => {
@@ -8,6 +10,7 @@ describe("Generating sequences", () => {
     cy.plugin().contains("button", "Play").click();
     cy.plugin().find(".sequence").should("have.text", "a b c");
     itemsSent().should("deep.equal", ["a", "b", "c"].map(State => ({ "Sequence number": 0, State })));
+    itemRequests().should("have.length", 1);
   });
 
   it("steps a sequence one state at a time", () => {
@@ -23,6 +26,7 @@ describe("Generating sequences", () => {
     itemsSent().should("have.length", 0);
     cy.plugin().contains("button", "Step").click();
     itemsSent().should("deep.equal", ["a", "b", "c"].map(State => ({ "Sequence number": 0, State })));
+    itemRequests().should("have.length", 1);
   });
 
   it("pauses and resumes", () => {

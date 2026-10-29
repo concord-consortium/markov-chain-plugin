@@ -34,6 +34,7 @@ let dataset = defaultDataset();
 let iframe: HTMLIFrameElement | undefined;
 let rpc: IframePhoneRpcEndpoint | undefined;
 let heldInit: (() => void) | undefined;
+let outputCreated = false;
 const requests: CodapRequest[] = [];
 const errors: string[] = [];
 const items: Record<string, unknown>[] = [];
@@ -61,12 +62,13 @@ const reply = (request: CodapRequest) => {
   }
   if (action === "get" && resource === "dataContextList") {
     const list = [{ name: dataset.name, title: dataset.name, id: 1, guid: 1 }];
-    if (items.length > 0) {
+    if (outputCreated) {
       list.push({ name: outputDatasetName, title: "Output Sequences", id: 2, guid: 2 });
     }
     return { success: true, values: list };
   }
   if (action === "create" && resource === "dataContext") {
+    outputCreated ||= values?.name === outputDatasetName;
     return { success: true, values: { id: 2, name: values?.name, title: values?.title } };
   }
   if (action === "get" && resource === "componentList") {
@@ -75,14 +77,17 @@ const reply = (request: CodapRequest) => {
   if (action === "create" && resource === "component") {
     return { success: true, values: { id: 3, title: values?.title, type: values?.type } };
   }
+  const isOutputItems = resource === `dataContext[${outputDatasetName}].item`
+    || resource === `dataContext[${outputDatasetName}].itemSearch[*]`;
+  if (isOutputItems && !outputCreated) {
+    return { success: false, values: { error: "DataContext not found" } };
+  }
   if (action === "create" && resource === `dataContext[${outputDatasetName}].item`) {
     items.push(...values);
     return { success: true, values: { caseIDs: [], itemIDs: [] } };
   }
   if (action === "get" && resource === `dataContext[${outputDatasetName}].itemSearch[*]`) {
-    return items.length > 0
-      ? { success: true, values: items.map((item, i) => ({ id: i + 1, values: item })) }
-      : { success: false, values: { error: "DataContext not found" } };
+    return { success: true, values: items.map((item, i) => ({ id: i + 1, values: item })) };
   }
   return { success: false, values: { error: `fake CODAP does not handle ${action} ${resource}` } };
 };
@@ -115,13 +120,12 @@ const start = (startOptions: StartOptions = {}) => {
   iframe.width = String(startOptions.width ?? 600);
   iframe.height = String(startOptions.height ?? 420);
   iframe.src = `index.html${startOptions.query ? `?${startOptions.query}` : ""}`;
-  // Cypress fails a test only on errors in its own window, so errors in the plugin's frame are kept for the tests
-  iframe.addEventListener("load", () => {
-    const pluginWindow = iframe?.contentWindow;
-    pluginWindow?.addEventListener("error", event => errors.push(String(event.error ?? event.message)));
-    pluginWindow?.addEventListener("unhandledrejection", event => errors.push(String(event.reason)));
-  });
   document.body.appendChild(iframe);
+  // Cypress fails a test only on errors in its own window, so errors in the plugin's frame are kept for the tests.
+  // The frame's first window is reused when it loads the same-origin plugin, so these see the plugin's startup too.
+  const pluginWindow = iframe.contentWindow;
+  pluginWindow?.addEventListener("error", event => errors.push(String(event.error ?? event.message)));
+  pluginWindow?.addEventListener("unhandledrejection", event => errors.push(String(event.reason)));
 
   const origin = window.location.origin;
   rpc = new IframePhoneRpcEndpoint(handleRequest as any, "data-interactive", iframe, origin,

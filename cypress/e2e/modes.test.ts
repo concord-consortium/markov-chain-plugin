@@ -54,7 +54,18 @@ describe("Drawing mode", () => {
         expect(Number(node.find("ellipse").attr("cx"))).to.be.closeTo(saved.x, 1e-6);
         expect(Number(node.find("ellipse").attr("cy"))).to.be.closeTo(saved.y, 1e-6);
       });
-      cy.plugin().find("line.edge").should("have.length", state.edges.length);
+      cy.plugin().find("line.edge").should(lines => {
+        const drawn = lines.toArray().map(line => {
+          const { source, target, value } = (line as any).__data__;
+          return { from: source.label, to: target.label, value };
+        });
+        const saved = state.edges.map((e: any) => ({
+          from: state.nodes.find((n: any) => n.id === e.from).label,
+          to: state.nodes.find((n: any) => n.id === e.to).label,
+          value: e.value
+        }));
+        expect(drawn).to.have.deep.members(saved);
+      });
     });
   });
 
