@@ -1,7 +1,6 @@
 import { ellipse } from "../support/graph";
 
-// the browser only fires a click when the press and release land on the same element, which synthetic
-// click events skip, so the click tests press the mouse through Chrome's DevTools protocol
+// press through Chrome's DevTools protocol: a synthetic click skips the browser's same-element check
 const mouse = (type: string, x: number, y: number) =>
   Cypress.automation("remote:debugger:protocol", {
     command: "Input.dispatchMouseEvent",
