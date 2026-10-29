@@ -8,3 +8,6 @@ export const stateWidths = (edges: Edge[]) => {
 };
 
 export const rootTransform = () => cy.plugin().find(".graph > svg g.root").invoke("attr", "transform");
+
+export const ellipse = (label: string) =>
+  cy.plugin().find("g.node").filter((i, node) => node.textContent === label).find("ellipse");

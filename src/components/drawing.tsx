@@ -1,4 +1,5 @@
 import React, { createRef, useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { nanoid } from "nanoid";
 
 import { D3Node, DrawingMode, Graph, Point, RubberBand, Transform } from "./graph";
@@ -96,7 +97,8 @@ export const Drawing = (props: Props) => {
     if (drawingMode === "addEdge" && firstEdgeNode) {
       const updateRubberBand = (e: MouseEvent) => {
         const newRubberBand: RubberBand = { from: firstEdgeNode.id, to: translateToGraphPoint(e) };
-        setRubberBand(newRubberBand);
+        // redraw before the next mouse event, so a press on a state never spans a redraw
+        flushSync(() => setRubberBand(newRubberBand));
       };
       window.addEventListener("mousemove", updateRubberBand);
       return () => window.removeEventListener("mousemove", updateRubberBand);
