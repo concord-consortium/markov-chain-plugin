@@ -1177,7 +1177,7 @@ Mutations: `finishAnimating` sending the output even when canceled fails the Can
 - `doc/cypress-coverage.md`: rewritten.
 - `README.md`: the Testing section.
 
-**Estimated diff size**: 70 lines (+45, -25).
+**Estimated diff size**: 65 lines (+30, -35).
 
 `doc/cypress-coverage.md`, in full:
 
@@ -1188,7 +1188,7 @@ Code coverage of the Cypress tests is off by default. More information about the
 
 ## How it is wired
 
-- **Instrumenting the code.** When the `CODE_COVERAGE` environment variable is set, `webpack.config.js` adds `@jsdevtools/coverage-istanbul-loader` (with `enforce: 'post'`, so it runs last) to the TypeScript and JavaScript rules. To check it: run `CODE_COVERAGE=true npm start`, open the plugin, and look for `window.__coverage__` in the browser console.
+- **Instrumenting the code.** When the `CODE_COVERAGE` environment variable is set, `webpack.config.js` adds a rule that runs `@jsdevtools/coverage-istanbul-loader` on `.ts`, `.tsx`, `.js` and `.jsx` files outside `node_modules`, with `enforce: 'post'` so it runs after `ts-loader`. To check it: run `CODE_COVERAGE=true npm start`, open the plugin, and look for `window.__coverage__` in the browser console.
 - **Collecting it.** `cypress/support/e2e.js` imports `@cypress/code-coverage/support`, which reads `window.__coverage__` after each test and sends it to Cypress's node process with `cy.task`.
 - **Saving it.** `cypress.config.ts` registers `@cypress/code-coverage/task` in `setupNodeEvents`. It merges what each test sends into `.nyc_output/out.json` and, when the tests finish, has nyc write the report.
 - **The report.** The `nyc` section of `package.json` writes it to `coverage-cypress/`, apart from the Jest coverage in `coverage/`, and extends `@istanbuljs/nyc-config-typescript` so nyc reads the TypeScript source maps.
@@ -1199,10 +1199,10 @@ Code coverage of the Cypress tests is off by default. More information about the
 
 ## What it measures
 
-The support module reads `window.__coverage__` from Cypress's application window. The tests load the plugin inside the fake CODAP page's iframe, so that window is the fake page's: the report covers the fake page and the specs, not the plugin's own code.
+The support module reads `window.__coverage__` from Cypress's application window. The tests load the plugin inside the fake CODAP page's iframe, so that window is the fake page's: the report measures only the fake page. Every other source file in the repo, the specs and the plugin's own code among them, is listed with no statements counted, because the `nyc` section sets `all: true`.
 ```
 
-Checked: with `CODE_COVERAGE=true` on the dev server and `--expose coverage=true`, a run wrote `coverage-cypress/` whose files were the fake page and the specs; the plugin's code was not in it. Collecting the plugin's coverage would mean copying `__coverage__` out of the nested frame for the support module, which nothing asks for (coverage is not in CI, requirements Out of Scope).
+Checked: with `CODE_COVERAGE=true` on the dev server and `--expose coverage=true`, a run wrote `coverage-cypress/` with statements counted only for `cypress/fake-codap/fake-codap.ts`; every other source file is listed with none (`all: true`). Collecting the plugin's coverage would mean copying `__coverage__` out of the nested frame for the support module, which nothing asks for (coverage is not in CI, requirements Out of Scope).
 
 `README.md`, the Testing section from `### Testing` to `## License`, replaced with:
 
@@ -1228,13 +1228,13 @@ Pass these to `npx cypress run`:
 1. `--browser browser-name`: the browser to run the tests in (CI uses `chrome`)
 2. `--spec`: the spec files to run
 3. `--headed`: show the browser while the tests run
-4. `--no-exit`: keep the Cypress app open when the tests finish
+4. `--no-exit`: keep the browser open when the tests finish
 5. `--reporter`: a mocha reporter
 
 ##### Cypress Run Examples
 
 1. `npx cypress run --browser chrome` runs the tests in Chrome.
-2. `npx cypress run --headed --no-exit` shows the tests running and leaves the Cypress app open afterward.
+2. `npx cypress run --headed --no-exit` shows the tests running and leaves the browser open afterward.
 3. `npx cypress run --spec 'cypress/e2e/arrows.test.ts'` runs one spec file.
 ````
 
