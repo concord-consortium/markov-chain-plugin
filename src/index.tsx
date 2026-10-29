@@ -1,10 +1,7 @@
 import React from "react";
-import { render } from "react-dom";
+import { createRoot } from "react-dom/client";
 import { App } from "./components/app";
 
 import "./index.scss";
 
-render(
-  <App />,
-  document.getElementById("app")
-);
+createRoot(document.getElementById("app") as HTMLElement).render(<App />);
