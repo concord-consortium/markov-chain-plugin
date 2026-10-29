@@ -6,7 +6,7 @@
 
 ## Overview
 
-Move the plugin's runtime libraries, React above all, from 2022-era versions to current supported ones, with no change a teacher or student can see. The unit tests (MARK-10) and rendering tests (MARK-11) added just before this story are what show nothing changed. Checking the update found one thing it breaks, the graph no longer fitting to view after some changes, and the story fixes it with tests.
+Move the plugin's runtime libraries, React above all, from 2022-era versions to current supported ones, with no change a teacher or student can see. The unit tests (MARK-10) and rendering tests (MARK-11) added just before this story are what show nothing changed. Checking the update found two things it breaks, the graph no longer fitting to view after some changes and clicks on states in drawing mode no longer registering, and the story fixes both with tests.
 
 The branch sits on MARK-11's (rendering tests), which sits on MARK-10's, MARK-9's, MARK-8's, MARK-20's and MARK-6's. Ownership (#1191): MARK-8 owns Node and test tooling, including `@testing-library/jest-dom`; MARK-9 owns ESLint. MARK-12 owns React, React DOM, their types, `@testing-library/react` and its `@testing-library/dom` peer, and the runtime libraries. "As before" means the branch MARK-12 is stacked on, since MARK-20 changed what users see.
 
@@ -26,7 +26,8 @@ The branch sits on MARK-11's (rendering tests), which sits on MARK-10's, MARK-9'
 - **R7.** `src/index.tsx` mounts the app with `createRoot` from `react-dom/client`, not wrapped in `<StrictMode>`.
 - **R8.** Every `useRef` call passes an initial value, so the code type-checks against `@types/react` 19. Ref types and runtime values are unchanged.
 - **R9.** The view fits the graph after it is replaced from outside a React event, as on React 17: loading a drawing saved without a `version`, dataset cases changing, a second attribute dropped on an existing graph, and Reset on a loaded drawing.
-- **R10.** No other source changes beyond R7 to R9 and what the type check, the build or a failing test requires.
+- **R9a.** Clicks on states in drawing mode work as on React 17: a click selects a state, a double-click opens the state editor, a dragged state keeps its new position, and a press in Add Transition mode is never split by the rubber band's redraw. *(Found in the CODAP check: on React 19 no click on a state registered in select mode.)*
+- **R10.** No other source changes beyond R7 to R9a and what the type check, the build or a failing test requires.
 
 ### No visible change
 
@@ -38,10 +39,10 @@ The branch sits on MARK-11's (rendering tests), which sits on MARK-10's, MARK-9'
 
 - **R14.** MARK-10's unit tests and MARK-11's rendering tests pass. A test changes only for a testing-library API change, never to accept different plugin behavior. *(No test needed a change.)*
 - **R15.** A manual check in CODAP 3.1.2 covers R11 and R12 against the branch build and R13 against a development build, and is recorded in the PR. *(Partly done before the push; see Not Yet Implemented.)*
-- **R16.** Each R9 case has a Cypress test on MARK-11's fake-CODAP page that fails on React 19 without the fix and passes with it, plus one test that fails if Reset's `else` branch is deleted: after Reset on a drawing started in the session, adding a state and resizing the plugin fits the view.
+- **R16.** Each R9 case has a Cypress test on MARK-11's fake-CODAP page that fails on React 19 without the fix and passes with it, plus one test that fails if Reset's `else` branch is deleted: after Reset on a drawing started in the session, adding a state and resizing the plugin fits the view. Each part of the R9a fix has a test that fails on React 19 without it.
 - **R17.** Dependency and lockfile changes are in commits separate from source changes. The React 19 install commit does not build, and the `createRoot` commit right after it is the first that does.
 
-*(Head: Jest 56 tests in 9 suites with no `act` warnings; Cypress 32 tests in 8 files, three runs in a row in Chrome and once in Electron; build, both `tsc` commands and the three lint commands silent; clean `npm ci`. Revert check: with the fit commit reverted the four R9 tests fail and Reset-then-resize passes; with only Reset's `else` deleted, only Reset-then-resize fails. Production JavaScript grows from 264,734 to 355,486 bytes.)*
+*(Head: Jest 56 tests in 9 suites with no `act` warnings; Cypress 36 tests in 9 files, three runs in a row in Chrome and once in Electron; build, both `tsc` commands and the three lint commands silent; clean `npm ci`. Revert check: with the fit commit reverted the four R9 tests fail and Reset-then-resize passes; with only Reset's `else` deleted, only Reset-then-resize fails. R9a on React 19: without the drag guard, or with any drag event counted as a drag, the click and double-click tests fail; with `draggedRef` never set, the drag test fails; without `flushSync`, the rubber-band test fails. Production JavaScript grows from 264,734 to 355,544 bytes.)*
 
 ## Technical Notes
 
@@ -53,6 +54,8 @@ The branch sits on MARK-11's (rendering tests), which sits on MARK-10's, MARK-9'
 | `useRef` initial values | `components/app.tsx`, `drawing.tsx`, `graph.tsx`, `hooks/use-codap.ts` (nine calls) |
 | Fit fix | `components/app.tsx`: `fitAfterGraphChangeRef` and its effect on `graph`, set in `onCODAPDataChanged`, `onSetGraph`'s `done` and `handleReset` |
 | Fit tests | `cypress/e2e/fit-view.test.ts`; `rootTransform` shared from `cypress/support/graph.ts` |
+| Click fix | `components/graph.tsx`: `draggedRef` set only when a drag moves, and `onDragStop` only then; `components/drawing.tsx`: the rubber band's update inside `flushSync` |
+| Click tests | `cypress/e2e/clicks.test.ts`; `ellipse` shared from `cypress/support/graph.ts` with the highlighting tests |
 
 ### The fit-to-view regression
 
@@ -65,6 +68,16 @@ Reset with nothing to restore (a drawing started in the session, or dataset mode
 Dataset assertions compare with a transform read earlier, never an expected value, because the force layout races the fit. The two dataset-change tests click Fit View before reading that transform; with the automatic fit as the baseline they sometimes passed without the fix. The unversioned-drawing and Reset tests use `ela/geDiXLf2GyHsWCF2QFnU.json`. In the Reset-then-resize test, Add State stays selected after Reset, so the test clicks the graph again without pressing it.
 
 To check the tests can fail, run `git revert --no-commit` of the fit commit and then `git revert --abort` (the revert stays in progress, so `git checkout -- src` does not undo it). Revert with git rather than by hand, since code that fails lint brings up the dev server's error overlay and fails every test. Wait about 30 s after each edit for the dev server's rebuild.
+
+### Clicks on states
+
+The graph's draw effect removes and redraws every SVG element on each render, and a browser fires `click` only when the press and release land on the same element. React 17 ran a native event's update synchronously and the draw effect after the click. React 19 renders a discrete event's update, effects included, before the next event, and a continuous one (a mouse move) a few milliseconds later. Two updates therefore lost clicks:
+- d3-drag's drag end set the graph on every press, so the redraw removed the pressed state before `click`. A press now redraws only after the pointer moved (`event.dx || event.dy`), since d3 also sends drag events for a move to the same point.
+- In Add Transition mode, every mouse move sets the rubber band. When a move came just before a press, its redraw could land between press and release. `flushSync` renders it inside the move; this matters most on the slower development build and on large drawings.
+
+Measured in CODAP 3.1.2: a double-click opened the state editor 0 of 5 times on React 19 without the fix, 5 of 5 with it and on the base branch. With the drag guard alone, Add Transition failed on the development build; with both fixes, self-loops and new transitions worked 3 of 3, including a self-loop double-click with the mouse jittering between clicks, which fails on the base branch too.
+
+The click tests press the mouse through Chrome's DevTools protocol (`Cypress.automation("remote:debugger:protocol")`, Chrome and Electron), because a synthetic `click` reaches its handler whatever the browser would do. They pass on React 17 with or without the fix, like the fit tests. The rubber-band test checks the line is drawn when the mouse move returns, which holds only on React 18 and later, so it follows the `createRoot` commit. A real-mouse transition test can't fail here: Cypress's gap between commands lets the redraw finish first.
 
 ### Other notes
 
@@ -92,12 +105,13 @@ To check the tests can fail, run `git revert --no-commit` of the fit commit and 
 ## Not Yet Implemented
 
 - **CI on GitHub:** the `build_test` and `cypress` jobs, and `s3-deploy` after them, can only run on the first push.
-- **R15 against the branch build:** the branch build exists only after the push. Before the push, the check ran in CODAP 3.1.2 with this branch's dev server beside MARK-11's branch build. These matched on both:
-  - drawing mode: Create From Text, Fit View after zooming, Play, Step, Reset
-  - dataset mode with Mammals: drop, zoom and Reset, a second drop, Play
-  - the five ELA documents, apart from the tile-resize race above
+- **R15 against the branch build:** the branch build exists only after the push. Before the push, the check ran in CODAP 3.1.2 with Playwright, this branch's dev server beside MARK-11's branch build. These matched on both:
+  - drawing mode: Create From Text, Fit View after zooming, the state editor and its slider, dragging a state, rename, Add State, Add Transition, deleting a transition and a state, Back to Main
+  - generating: Play, Step, Cancel, Pause and Resume, the fast speed, output highlighting
+  - dataset mode with Mammals: drop, zoom and Reset, a second drop, editing a case, Play
+  - the five ELA documents, apart from the tile-resize race above, and an unversioned drawing
 
-  The plugin's frame logged nothing. Not yet checked by hand: the state editor, adding, editing and deleting states and transitions, the probability selector, case edits in CODAP, an unversioned drawing in CODAP, both speeds, output highlighting, and reopening a saved dataset document.
+  The plugin's frame logged nothing. Not checked: adding and deleting cases in CODAP, and reopening a saved dataset document.
 
 ## Decisions
 
@@ -133,6 +147,10 @@ To check the tests can fail, run `git revert --no-commit` of the fit commit and 
 
 ### `rootTransform` moves into the support helpers
 **Decision**: MARK-11's `fit.test.ts` is a script, so a second top-level `rootTransform` fails `tsc -p cypress` with TS2451. Both fit files import it from `cypress/support/graph.ts`. The tests go in their own `fit-view.test.ts`, following MARK-11's one-file-per-area decision.
+
+### The click fix guards the updates, not the redraw
+**Options**: A) stop the needless drag-end update and flush the rubber band's; B) draw the rubber band in its own effect so a mouse move never replaces the states; C) detect clicks from `pointerdown` and `pointerup`.
+**Decision**: A (Doug). It is the smallest change that restores React 17's behavior, and it lands before the React bump, like the fit fix. B would also fix the jittered self-loop on the base branch but restructures the draw effect; C changes how every click is detected.
 
 ### `createRoot` gets a cast, not a guard
 **Options**: A) `document.getElementById("app") as HTMLElement`; B) `if (container) ...`.
