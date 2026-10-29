@@ -1031,7 +1031,7 @@ describe("Generating sequences", () => {
     cy.plugin().find(".sequence").should("have.text", "a b c");
     itemsSent().should("have.length", 0);
     cy.plugin().contains("button", "Step").click();
-    itemsSent().should("have.length", 3);
+    itemsSent().should("deep.equal", ["a", "b", "c"].map(State => ({ "Sequence number": 0, State })));
   });
 
   it("pauses and resumes", () => {
