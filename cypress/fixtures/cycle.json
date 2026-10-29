@@ -1,0 +1,12 @@
+{
+  "viewMode": "drawing",
+  "nodes": [
+    { "id": "a", "label": "a", "value": 1, "x": -100, "y": 0 },
+    { "id": "b", "label": "b", "value": 1, "x": 100, "y": 0 }
+  ],
+  "edges": [
+    { "from": "a", "to": "b", "value": 1 },
+    { "from": "b", "to": "a", "value": 1 }
+  ],
+  "version": 2
+}

@@ -1,0 +1,15 @@
+{
+  "viewMode": "drawing",
+  "nodes": [
+    { "id": "a", "label": "a", "value": 2, "x": -150, "y": 0 },
+    { "id": "b", "label": "b", "value": 1, "x": 0, "y": 0 },
+    { "id": "c", "label": "c", "value": 1, "x": 150, "y": 0 },
+    { "id": "d", "label": "d", "value": 1, "x": -150, "y": 120 }
+  ],
+  "edges": [
+    { "from": "a", "to": "b", "value": 1 },
+    { "from": "b", "to": "c", "value": 1 },
+    { "from": "d", "to": "a", "value": 1 }
+  ],
+  "version": 2
+}
