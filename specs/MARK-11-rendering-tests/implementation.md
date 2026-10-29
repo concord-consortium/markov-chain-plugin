@@ -1081,7 +1081,7 @@ Mutations: `finishAnimating` sending the output even when canceled fails the Can
 **Files affected**:
 - `.github/workflows/ci.yml`: the `cypress` job replaces the commented-out matrix; `s3-deploy` needs it.
 
-**Estimated diff size**: 50 lines (+20, -30, against MARK-10's file).
+**Estimated diff size**: 60 lines (+20, -40, against MARK-10's file).
 
 ```diff
 --- a/.github/workflows/ci.yml
