@@ -406,7 +406,7 @@ How it maps to R5:
 import type { CasesOperation, FakeCodap, StartOptions } from "../fake-codap/fake-codap";
 
 export type StartPluginOptions = StartOptions & {
-  // start in dataset mode with this attribute of the page's dataset dropped
+  /** Starts in dataset mode with this attribute of the page's dataset dropped. */
   attribute?: string;
 };
 
@@ -598,7 +598,7 @@ The first test waits for the page to have received the `init` batch before check
 - `cypress/support/graph.ts`: new, the expected width.
 - `cypress/e2e/arrows.test.ts`: new.
 
-**Estimated diff size**: 71 lines (+71).
+**Estimated diff size**: 73 lines (+73).
 
 `cypress/support/graph.ts`:
 
@@ -626,6 +626,8 @@ const markerIds = [
 ];
 
 const expectHeadsOnlyOnVisibleLines = () => {
+  cy.plugin().find("line.edge-background").should("have.length", 3);
+  cy.plugin().find("path.loop-background").should("have.length", 1);
   cy.plugin().find("line.edge:not([marker-end])").should("not.exist");
   cy.plugin().find("path.loop:not([marker-end])").should("not.exist");
   cy.plugin().find("line.edge-background[marker-end]").should("not.exist");
@@ -700,7 +702,7 @@ Mutations, each run against the dev server and reverted: `maxStroke` 7 fails the
 **Files affected**:
 - `cypress/e2e/labels.test.ts`: new.
 
-**Estimated diff size**: 33 lines (+33).
+**Estimated diff size**: 34 lines (+34).
 
 ```ts
 describe("Labels", () => {
@@ -723,7 +725,8 @@ describe("Labels", () => {
       attribute: "Word",
       dataset: { name: "Words", collection: "Cases", attributes: { Word: [html, 10, "b", 2, html] } }
     });
-    cy.plugin().find("g.node text").should("have.length", 4);
+    cy.plugin().find("g.node text").should("have.length", 4)
+      .then(texts => texts.toArray().map(text => text.textContent)).should("include.members", ["2", "10", "b"]);
     cy.plugin().find("g.node text").first().invoke("text").should(text => {
       expect(text.endsWith("...")).to.equal(true);
       expect(html.startsWith(text.slice(0, -3))).to.equal(true);
@@ -755,7 +758,7 @@ Mutations: `innerHTML` in place of `textContent` in `calculateNodeFontSize` (MAR
 **Files affected**:
 - `cypress/e2e/highlighting.test.ts`: new.
 
-**Estimated diff size**: 81 lines (+81).
+**Estimated diff size**: 87 lines (+87).
 
 ```ts
 // colors from graph.tsx
@@ -773,6 +776,10 @@ const edge = (from: string, to: string) =>
   });
 const ellipse = (label: string) =>
   cy.plugin().find("g.node").filter((i, node) => node.textContent === label).find("ellipse");
+const expectUnfaded = (labels: string[]) => labels.forEach(label => {
+  ellipse(label).should("not.match", faded);
+  cy.plugin().find("g.node text").filter((i, text) => text.textContent === label).should("not.match", faded);
+});
 
 describe("Highlighting", () => {
   beforeEach(() => {
@@ -790,6 +797,7 @@ describe("Highlighting", () => {
     ellipse("d").should("match", faded);
     edge("d", "a").should("match", faded);
     cy.plugin().find("g.node text").filter((i, text) => text.textContent === "d").should("match", faded);
+    expectUnfaded(["a", "b", "c"]);
 
     cy.clickState("b");
     ellipse("b").should("have.attr", "fill", "#fff");
@@ -832,6 +840,7 @@ describe("Highlighting", () => {
     ellipse("d").should("match", faded);
     edge("d", "a").should("match", faded);
     cy.plugin().find("g.node text").filter((i, text) => text.textContent === "d").should("match", faded);
+    expectUnfaded(["a", "b", "c"]);
 
     cy.plugin().find(".sequence").click();
     cy.plugin().find(".sequence.highlighted").should("not.exist");
@@ -845,7 +854,7 @@ describe("Highlighting", () => {
 - With `a` as the starting state, `chain.json`'s run is `a b c` on every draw, five Step presses from start to finish (`app.tsx:357-368`): `a` with its exits dashed, then `a`-to-`b` solid with `b` filled, then `b` with its exits dashed, then `b`-to-`c` with `c` filled, then the output.
 - `d` and its transition are off every path, so they show what fades.
 
-Mutations: the incoming transitions drawn in the outgoing color fails the selection test; labels left faded once nothing is highlighted (`unhighlightNonOutput` resetting them to 0.35) fails the selection and output tests.
+Mutations: the incoming transitions drawn in the outgoing color fails the selection test; labels left faded once nothing is highlighted (`unhighlightNonOutput` resetting them to 0.35) fails the selection and output tests; fading the selected state and its neighbors fails the selection test, and fading the output's own states and labels fails the output test.
 
 **Commit**: `test: test selection, animation and output highlighting [MARK-11]`
 

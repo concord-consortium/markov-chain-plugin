@@ -13,6 +13,10 @@ const edge = (from: string, to: string) =>
   });
 const ellipse = (label: string) =>
   cy.plugin().find("g.node").filter((i, node) => node.textContent === label).find("ellipse");
+const expectUnfaded = (labels: string[]) => labels.forEach(label => {
+  ellipse(label).should("not.match", faded);
+  cy.plugin().find("g.node text").filter((i, text) => text.textContent === label).should("not.match", faded);
+});
 
 describe("Highlighting", () => {
   beforeEach(() => {
@@ -30,6 +34,7 @@ describe("Highlighting", () => {
     ellipse("d").should("match", faded);
     edge("d", "a").should("match", faded);
     cy.plugin().find("g.node text").filter((i, text) => text.textContent === "d").should("match", faded);
+    expectUnfaded(["a", "b", "c"]);
 
     cy.clickState("b");
     ellipse("b").should("have.attr", "fill", "#fff");
@@ -72,6 +77,7 @@ describe("Highlighting", () => {
     ellipse("d").should("match", faded);
     edge("d", "a").should("match", faded);
     cy.plugin().find("g.node text").filter((i, text) => text.textContent === "d").should("match", faded);
+    expectUnfaded(["a", "b", "c"]);
 
     cy.plugin().find(".sequence").click();
     cy.plugin().find(".sequence.highlighted").should("not.exist");

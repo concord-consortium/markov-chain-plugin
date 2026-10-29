@@ -1,7 +1,7 @@
 import type { CasesOperation, FakeCodap, StartOptions } from "../fake-codap/fake-codap";
 
 export type StartPluginOptions = StartOptions & {
-  // start in dataset mode with this attribute of the page's dataset dropped
+  /** Starts in dataset mode with this attribute of the page's dataset dropped. */
   attribute?: string;
 };
 

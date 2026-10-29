@@ -18,7 +18,8 @@ describe("Labels", () => {
       attribute: "Word",
       dataset: { name: "Words", collection: "Cases", attributes: { Word: [html, 10, "b", 2, html] } }
     });
-    cy.plugin().find("g.node text").should("have.length", 4);
+    cy.plugin().find("g.node text").should("have.length", 4)
+      .then(texts => texts.toArray().map(text => text.textContent)).should("include.members", ["2", "10", "b"]);
     cy.plugin().find("g.node text").first().invoke("text").should(text => {
       expect(text.endsWith("...")).to.equal(true);
       expect(html.startsWith(text.slice(0, -3))).to.equal(true);

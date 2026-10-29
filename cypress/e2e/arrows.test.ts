@@ -6,6 +6,8 @@ const markerIds = [
 ];
 
 const expectHeadsOnlyOnVisibleLines = () => {
+  cy.plugin().find("line.edge-background").should("have.length", 3);
+  cy.plugin().find("path.loop-background").should("have.length", 1);
   cy.plugin().find("line.edge:not([marker-end])").should("not.exist");
   cy.plugin().find("path.loop:not([marker-end])").should("not.exist");
   cy.plugin().find("line.edge-background[marker-end]").should("not.exist");
