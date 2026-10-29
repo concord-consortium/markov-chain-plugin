@@ -77,7 +77,7 @@ To roll back a release, run the release workflow again with the previous tag.
 
 ### Testing
 
-Run `npm test` to run jest tests. Run `npm run test:full` to run jest and Cypress tests.
+Run `npm test` to run jest tests. Run `npm run test:full` to run jest and Cypress tests. CI runs the jest tests after the build on every push, and a failing test stops the deploy.
 
 ##### Cypress Run Options
 

@@ -3,8 +3,8 @@ name: Continuous Integration
 on: push
 
 jobs:
-  only_build:
-    name: Build
+  build_test:
+    name: Build and Run Jest Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -14,25 +14,13 @@ jobs:
           cache: npm
       - name: Install Dependencies
         run: npm ci
+        env:
+          # skip installing cypress since it isn't needed for building and running Jest
+          CYPRESS_INSTALL_BINARY: 0
       - name: Build
         run: npm run build
-  # disable tests during early development as the logic and ui will undergo a lot of changes
-  #build_test:
-  #  name: Build and Run Jest Tests
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #    - uses: actions/checkout@v2
-  #    - uses: actions/setup-node@v2
-  #    - name: Install Dependencies
-  #      run: npm ci
-  #    - name: Build
-  #      run: npm run build
-  #    - name: Run Tests
-  #      run: npm run test:coverage -- --runInBand
-  #    - name: Upload coverage to Codecov
-  #      uses: codecov/codecov-action@v1
-  #      with:
-  #        flags: jest
+      - name: Run Tests
+        run: npm test
   #cypress:
   #  runs-on: ubuntu-latest
   #  strategy:
@@ -75,8 +63,7 @@ jobs:
   s3-deploy:
     name: S3 Deploy
     needs:
-      - only_build
-      # - build_test
+      - build_test
       # - cypress
     runs-on: ubuntu-latest
     steps:
