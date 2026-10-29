@@ -9,9 +9,10 @@ import {
   registerObservers
 } from "../utils/codap-helper";
 import codapInterface from "../utils/codap-interface";
+import pkg from "../../package.json";
 
 const PluginName = "Markov Chain";
-const PluginVersion = "0.5.0";
+const PluginVersion = pkg.version;
 const InitialDimensions = {
   width: 600,
   height: 420
