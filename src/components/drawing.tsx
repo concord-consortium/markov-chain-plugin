@@ -50,7 +50,7 @@ export const Drawing = (props: Props) => {
   const [selectedNodeForModal, setSelectedNodeForModal] = useState<Node|undefined>(undefined);
   const widthRef = useRef(0);
   const heightRef = useRef(0);
-  const transformRef = useRef<Transform>();
+  const transformRef = useRef<Transform | undefined>(undefined);
   const [autoArrange, setAutoArrange] = useState(false);
   const [addTextWidth, setAddTextWidth] = useState(0);
   const prevWordsRef = useRef<string[]>([]);

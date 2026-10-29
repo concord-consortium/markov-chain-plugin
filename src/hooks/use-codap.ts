@@ -44,7 +44,7 @@ export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGra
   const [dragging, setDragging] = useState(false);
   const [attribute, setAttribute] = useState<CODAPAttribute|undefined>(undefined);
   const [viewMode, setViewMode] = useState<ViewMode|undefined>();
-  const valuesRef = useRef<string[]>();
+  const valuesRef = useRef<string[] | undefined>(undefined);
 
   const getPluginState = useCallback(() => ({
     success: true,

@@ -175,10 +175,10 @@ export const Graph = (props: Props) => {
   const lastClickTimeRef = useRef<number|undefined>(undefined);
   const lastClickIdRef = useRef<string|undefined>(undefined);
   const draggedRef = useRef(false);
-  const transformRef = useRef<Transform>();
-  const zoomRef = useRef<d3.ZoomBehavior<any, any>>();
-  const lastFitViewAtRef = useRef<number>();
-  const lastRecenterViewAtRef = useRef<number>();
+  const transformRef = useRef<Transform | undefined>(undefined);
+  const zoomRef = useRef<d3.ZoomBehavior<any, any> | undefined>(undefined);
+  const lastFitViewAtRef = useRef<number | undefined>(undefined);
+  const lastRecenterViewAtRef = useRef<number | undefined>(undefined);
 
   // generate an ordered edge list from the highlight output nodes
   const highlightOutputEdges = useMemo(() => {
