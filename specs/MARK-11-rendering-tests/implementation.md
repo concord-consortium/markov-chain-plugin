@@ -598,14 +598,14 @@ The first test waits for the page to have received the `init` batch before check
 - `cypress/support/graph.ts`: new, the expected width.
 - `cypress/e2e/arrows.test.ts`: new.
 
-**Estimated diff size**: 73 lines (+73).
+**Estimated diff size**: 71 lines (+71).
 
 `cypress/support/graph.ts`:
 
 ```ts
 type Edge = { from: string, to: string, value: number };
 
-// the plugin's widths (graph-utils.ts): 2 px plus 2.5 px times the edge's share of its state's outgoing values
+// restates stateEdgeWeights (graph-utils.ts) rather than importing it, so a change to the plugin's rule fails the tests
 export const stateWidths = (edges: Edge[]) => {
   const totals = new Map<string, number>();
   edges.forEach(edge => totals.set(edge.from, (totals.get(edge.from) ?? 0) + edge.value));
@@ -660,10 +660,8 @@ describe("Arrows", () => {
   it("scales every arrowhead with its line and puts none on the click targets", () => {
     cy.fixture("chain.json").then(state => {
       cy.startPlugin({ savedState: state });
-      cy.plugin().find("marker").should("have.length", markerIds.length).each(marker => {
-        expect(markerIds).to.include(marker.attr("id"));
-        expect(marker.attr("markerUnits")).to.equal("strokeWidth");
-      });
+      cy.plugin().find("marker").should(markers => expect([...markers].map(m => m.id)).to.have.members(markerIds))
+        .each(marker => expect(marker.attr("markerUnits")).to.equal("strokeWidth"));
       cy.plugin().find("button[title='Add Transition']").click();
       cy.doubleClickState("b");
       cy.plugin().find("path.loop").should("have.length", 1);
@@ -689,7 +687,7 @@ describe("Arrows", () => {
 - The loop test adds a loop to `a`, which already has one transition, so both draw at 3.25 (half of `a`'s outgoing total each); without the loop counted, `a`'s line would be 4.5.
 - The arrowhead test checks the heads on first draw, with a loop, with a state selected (the selection restyles every `line.edge`), and mid-animation (the animation effect restyles them again), the three places MARK-20's R3C.4 changed. It selects `a` as the starting state, so the second Step always has a transition to draw: with "(any)", a run that starts at `c` ends at once (seen once in nine runs before the fix).
 
-Mutations, each run against the dev server and reverted: `maxStroke` 7 fails the width tests; `markerUnits` `userSpaceOnUse` fails the arrowhead test; the selected-state highlight selecting every `line` again (MARK-20's R3C.4) fails it.
+Mutations, each run against the dev server and reverted: `maxStroke` 7 fails the width tests; `markerUnits` `userSpaceOnUse` fails the arrowhead test; the selected-state highlight selecting every `line` again (MARK-20's R3C.4) fails it; so does renaming one marker, which leaves a head with no marker to draw.
 
 **Commit**: `test: test arrow widths and arrowheads in the browser [MARK-11]`
 
