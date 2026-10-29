@@ -16,6 +16,7 @@ import { SpeedToggle } from "./speed-toggle";
 import { ConfirmModal, IConfirmModal } from "./confirm-modal";
 import { clampLengthLimit, compareStateLabels, graphToRestore } from "./app-utils";
 import { generateSequence } from "../utils/generate-sequence";
+import { moveOriginToCenter } from "../utils/plugin-state";
 
 import "./app.scss";
 
@@ -119,15 +120,7 @@ export const App = () => {
       if (!widthRef.current || !heightRef.current) {
         setTimeout(translateOrigin, 1);
       } else {
-        // the original data was stored with the origin at the top left
-        // but now data is stored with the origin in the center
-        // so we need to translate the points on load to the center
-        const xOffset = -widthRef.current / 2;
-        const yOffset = -heightRef.current / 2;
-        data.nodes.forEach(n => {
-          n.x = (n.x ?? 0) + xOffset;
-          n.y = (n.y ?? 0) + yOffset;
-        });
+        moveOriginToCenter(data.nodes, widthRef.current, heightRef.current);
         done();
       }
     };

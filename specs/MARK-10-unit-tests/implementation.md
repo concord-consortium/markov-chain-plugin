@@ -593,7 +593,7 @@ describe("NodeModal", () => {
 - `src/components/app.tsx`: `translateOrigin` calls `moveOriginToCenter`.
 - `src/utils/plugin-state.test.ts`: new.
 
-**Estimated diff size**: 161 lines (+119, -42). Tests: 56 (+5).
+**Estimated diff size**: 162 lines (+120, -42). Tests: 56 (+5).
 
 `src/utils/plugin-state.ts`:
 
@@ -791,6 +791,7 @@ describe("pluginStateValues and readPluginState", () => {
     expect(readPluginState(undefined)).toEqual({ viewMode: undefined, attribute: undefined });
     expect(readPluginState({ nodes: [], edges: [] }).drawing).toBeUndefined();
     expect(readPluginState({ viewMode: "drawing", nodes: [] }).drawing).toBeUndefined();
+    expect(readPluginState({ viewMode: "drawing", edges: [] }).drawing).toBeUndefined();
   });
 });
 
@@ -875,7 +876,7 @@ Swapping `attribute` and `viewMode` in `pluginStateValues` passes all five tests
 ### Commit Reviewer
 
 #### RESOLVED: the diff sizes were estimates, and two were well off
-The seven commits were replayed in a scratch clone of MARK-9's branch, each passing `npm test`, the three lint commands, `tsc` and a warning-free build on its own, with the head's `src/` byte-identical to the stage 4 build. Measured, the slider commit is 61 lines, not about 100, and the saved-state commit 161, not about 190. Each step now gives its measured size and its running test count (32, 38, 40, 46, 49, 51, 56).
+The seven commits were replayed in a scratch clone of MARK-9's branch, each passing `npm test`, the three lint commands, `tsc` and a warning-free build on its own, with the head's `src/` byte-identical to the stage 4 build. Measured, the slider commit is 61 lines, not about 100, and the saved-state commit 162, not about 190. Each step now gives its measured size and its running test count (32, 38, 40, 46, 49, 51, 56).
 
 ---
 
