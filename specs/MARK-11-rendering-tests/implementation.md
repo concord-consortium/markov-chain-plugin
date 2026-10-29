@@ -161,7 +161,7 @@ for f in sorted(glob.glob(os.path.expanduser('~/oob/global/streams/markov-chain-
 - `cypress/e2e/workspace.test.ts`: deleted.
 - `cypress/e2e/loading.test.ts`: new.
 
-**Estimated diff size**: 337 lines (+324, -13).
+**Estimated diff size**: 347 lines (+328, -19).
 
 `webpack.config.js`:
 
@@ -182,7 +182,7 @@ diff --git a/webpack.config.js b/webpack.config.js
      output: {
        path: path.resolve(__dirname, 'dist'),
 -      filename: 'assets/index.[contenthash].js',
-+      // the plugin's bundle keeps its name, and the CSS keeps the chunk's name, main
++      // the plugin's chunk is main, which names its CSS file, and its script is index.[contenthash].js
 +      filename: ({ chunk }) => (chunk.name === 'main'
 +        ? 'assets/index.[contenthash].js'
 +        : 'assets/[name].[contenthash].js'),
@@ -206,7 +206,7 @@ diff --git a/webpack.config.js b/webpack.config.js
          template: 'src/index.html',
 ```
 
-The plugin's chunk stays `main`, because the CSS file is named after it (`assets/main.[contenthash].css`), and its script keeps `assets/index.[contenthash].js`, so a production build is byte-identical to the base's (R3; checked for `npm run build` and for a `DEPLOY_PATH=branch/x/` build, `index-top.html` included). `excludeChunks` keeps the page's script out of the plugin's `index.html` in development. The page's HTML template has no favicon, so it doesn't copy one.
+The plugin's chunk stays `main`, because the CSS file is named after it (`assets/main.[contenthash].css`), and its script keeps `assets/index.[contenthash].js`, so a production build is byte-identical to the base's apart from the JS source map's `file` field, which step 1's `package.json` edit changes (R3; checked for `npm run build` and for a `DEPLOY_PATH=branch/x/` build, `index-top.html` included). `excludeChunks` keeps the page's script out of the plugin's `index.html` in development. The page's HTML template has no favicon, so it doesn't copy one.
 
 `cypress/fake-codap/index.html`:
 
@@ -341,6 +341,7 @@ const start = (startOptions: StartOptions = {}) => {
   requests.length = 0;
 
   iframe = document.createElement("iframe");
+  iframe.id = "plugin";
   iframe.width = String(startOptions.width ?? 600);
   iframe.height = String(startOptions.height ?? 420);
   iframe.src = `index.html${startOptions.query ? `?${startOptions.query}` : ""}`;
@@ -412,7 +413,10 @@ export type StartPluginOptions = StartOptions & {
 declare global {
   namespace Cypress {
     interface Chainable {
-      /** Opens the fake CODAP page and starts the plugin in it, with the saved state given, or none. */
+      /**
+       * Opens the fake CODAP page and starts the plugin in it with these options: saved state, dataset,
+       * attribute, held init, frame size and URL query.
+       */
       startPlugin(options?: StartPluginOptions): Chainable<void>;
       /** Yields the plugin's document body, to find elements in the plugin. */
       plugin(): Chainable<JQuery<HTMLElement>>;
@@ -468,7 +472,7 @@ Cypress.Commands.add("startPlugin", ({ attribute, ...options }: StartPluginOptio
 });
 
 Cypress.Commands.add("plugin", () =>
-  cy.get("iframe").its("0.contentDocument.body").should("not.be.empty").then(body => cy.wrap(body)));
+  cy.get("iframe#plugin").its("0.contentDocument.body").should("not.be.empty").then(body => cy.wrap(body)));
 
 // commands that wait on the plugin return the page's promise from then(), which Cypress waits for
 Cypress.Commands.add("releaseInit", () => { cy.fakeCodap().then(fake => fake.releaseInit()); });
@@ -508,7 +512,7 @@ Cypress.Commands.add("doubleClickState", (label: string) => {
 });
 ```
 
-- `cy.plugin()` yields the frame's body, so a test writes `cy.plugin().find(...)`; Cypress retries the `find` until the plugin draws.
+- `cy.plugin()` yields the frame's body, so a test writes `cy.plugin().find(...)`; Cypress retries the `find` until the plugin draws. It finds the frame by its id because the dev server's error overlay, when it shows, is another iframe on the page.
 - Commands that call the page go through `then`, which waits for a returned promise; `invoke` does not, and yields the pending promise (measured, R5.9).
 - `clickState` sends only a `click` event to the state's ellipse. Cypress's `click` also sends `mousedown` and `mouseup`, which start d3-drag's gesture handling on the state; in this nested frame that threw `TypeError: gestures.mouse is not a function` from d3-drag's `mouseupped` and `mousemoved` (measured with `.click()` and `.dblclick()` on states; the events' `view` was the plugin's window, so the cause is not that). The plugin's click handler is all a selection or a double-click needs (`graph.tsx:486-503`). Dragging is not tested.
 - `clickState` waits out the plugin's 250 ms double-click window before clicking, so two separate clicks are never read as a double-click; `doubleClickState` clicks twice inside it.
@@ -519,8 +523,16 @@ Cypress.Commands.add("doubleClickState", (label: string) => {
 diff --git a/cypress/support/e2e.js b/cypress/support/e2e.js
 --- a/cypress/support/e2e.js
 +++ b/cypress/support/e2e.js
-@@ -21,3 +21,13 @@
+@@ -13,11 +13,15 @@
+ // https://on.cypress.io/configuration
+ // ***********************************************************
  
+-// Import commands.js using ES2015 syntax:
+-// import "./commands";
+-
+-// Alternatively you can use CommonJS syntax:
+-// require('./commands')
+-
  // add code coverage support
  import "@cypress/code-coverage/support";
 +import "./commands";
@@ -1230,7 +1242,7 @@ The first paragraph is MARK-10's sentence, unchanged. The Cypress Cloud options 
 
 ### Done when
 
-On the head (R16 to R18): `npm ci`; `npm run build` with no warnings; the three lint commands and both `tsc` commands print nothing; `npm test` passes; `npm run test:cypress` (with `npm start` running) passes three runs in a row; the production `dist/` hashes match the ones kept before the first commit; a `git diff --stat` against the rebased base shows nothing under `src/` and no `package-lock.json`. Then CI's `cypress` job on the first push.
+On the head (R16 to R18): `npm ci`; `npm run build` with no warnings; the three lint commands and both `tsc` commands print nothing; `npm test` passes; `npm run test:cypress` (with `npm start` running) passes three runs in a row; the production `dist/` hashes match the ones kept before the first commit, except `index.[contenthash].js.map` (R3); a `git diff --stat` against the rebased base shows nothing under `src/` and no `package-lock.json`. Then CI's `cypress` job on the first push.
 
 ### Checked before this plan was final (stage 7)
 
@@ -1286,5 +1298,5 @@ At the default 1 s step, five states take about 10 s, so the 1 s wait ended long
 ### PR Reviewer
 
 #### RESOLVED: three diff sizes didn't match the files
-Measured with `git diff --numstat` on the plan's files: the configuration step is +12, -6, the fixtures 3,473 lines, and the page step +324, -13 (`webpack.config.js`'s two removed lines were not counted).
+Measured with `git diff --numstat` on the plan's files: the configuration step is +12, -6, the fixtures 3,473 lines, and the page step +328, -19 (`webpack.config.js`'s two removed lines were not counted).
 
