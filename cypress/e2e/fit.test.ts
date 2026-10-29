@@ -1,4 +1,4 @@
-const rootTransform = () => cy.plugin().find(".graph > svg g.root").invoke("attr", "transform");
+import { rootTransform } from "../support/graph";
 
 describe("Fit and recenter", () => {
   beforeEach(() => {

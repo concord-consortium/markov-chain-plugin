@@ -6,3 +6,5 @@ export const stateWidths = (edges: Edge[]) => {
   edges.forEach(edge => totals.set(edge.from, (totals.get(edge.from) ?? 0) + edge.value));
   return (edge: Edge) => 2 + 2.5 * edge.value / totals.get(edge.from)!;
 };
+
+export const rootTransform = () => cy.plugin().find(".graph > svg g.root").invoke("attr", "transform");
