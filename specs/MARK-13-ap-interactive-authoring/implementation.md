@@ -1529,7 +1529,7 @@ The URL test gives three settings that differ from the authored state, two of th
 - `src/interactive/app.tsx`: the `authoring` case.
 - `cypress/e2e/interactive-authoring.test.ts`: new.
 
-**Estimated diff size**: 531 lines (+531), measured.
+**Estimated diff size**: 532 lines (+532), measured.
 
 `src/interactive/authoring.tsx`:
 
@@ -1596,8 +1596,7 @@ interface Props {
   initialState: MarkovAuthoredState;
 }
 
-// Settings that apply only while what they depend on is on are left off the page while it is off, and keep their
-// values, so turning it back on shows them as they were.
+// Settings whose dependency is off are left off the page but keep their values, so they return as they were.
 export const Authoring = ({ initialState }: Props) => {
   const [state, setState] = useState(initialState);
 
@@ -1621,14 +1620,13 @@ export const Authoring = ({ initialState }: Props) => {
     update(current => ({
       ...current, buttons: { ...current.buttons, probabilities: { ...current.buttons.probabilities, ...change } }
     }));
-  // a button with no on or off state, which is only available or not
   const setButton = (id: "sendToCodap" | "downloadTables", available: boolean) =>
     update(current => ({ ...current, buttons: { ...current.buttons, [id]: { available } } }));
   const setOrderMatters = (change: Partial<MarkovAuthoredState["orderMatters"]>) =>
     update(current => ({ ...current, orderMatters: { ...current.orderMatters, ...change } }));
 
   const { useData, draw } = state.modes;
-  const remaining = maxStartingTextLength - state.startingText.length;
+  const remaining = Math.max(maxStartingTextLength - state.startingText.length, 0);
 
   const useDataSettings = (
     <fieldset>
@@ -1664,7 +1662,7 @@ export const Authoring = ({ initialState }: Props) => {
           }} />
         <p id="starting-text-help" className="help">
           Leave it empty if students will generate their own data.
-          { remaining < showRemainingBelow && ` ${Math.max(remaining, 0)} characters left.` }
+          { remaining < showRemainingBelow && ` ${remaining} ${remaining === 1 ? "character" : "characters"} left.` }
         </p>
       </div>
     </fieldset>
@@ -1914,7 +1912,7 @@ describe("the interactive's authoring form", () => {
     cy.interactiveMessages("authoredState").should("have.length", 0);
   });
 
-  it("lays out its sections in Rebecca's order, with Ordering and Send data buttons as groups inside them", () => {
+  it("lays out its sections in order, with Ordering and Send data buttons as groups inside them", () => {
     cy.startInteractive({ mode: "authoring", authoredState: {} });
     cy.interactive().find("legend").then(legends => [...legends].map(legend => legend.textContent))
       .should("deep.equal", ["Modes", "Data settings", "Ordering", "What students can see", "Send data buttons"]);
@@ -1981,7 +1979,9 @@ describe("the interactive's authoring form", () => {
     const nearlyFull = "a".repeat(maxStartingTextLength - 2);
     cy.startInteractive({ mode: "authoring", authoredState: withChange({ startingText: nearlyFull }) });
     cy.interactive().find("#starting-text-help").should("contain.text", "2 characters left");
-    cy.interactive().find("#startingText").type("bcd");
+    cy.interactive().find("#startingText").type("b");
+    cy.interactive().find("#starting-text-help").should("contain.text", "1 character left.");
+    cy.interactive().find("#startingText").type("cd");
     cy.interactive().find("#startingText").invoke("val").should("have.length", maxStartingTextLength);
     lastSaved().its("startingText").should("equal", `${nearlyFull}bc`);
     cy.interactive().find("#starting-text-help").should("contain.text", "0 characters left");
@@ -2034,6 +2034,7 @@ describe("the interactive's authoring form", () => {
     });
     // the form is on the page, so what isn't there was left off rather than not drawn yet
     cy.interactive().find("#pane-inspect-startsOpen").should("exist");
+    cy.interactive().find("#usableModes").should("have.value", "draw");
     ["#inputView", "#capitalization", "#orderMattersStartsOn", "#orderMattersShowSwitch", "#startingText",
       "#pane-input", "#pane-input-startsOpen", "#pane-graph-startsOpen"].forEach(selector => {
       cy.interactive().find(selector).should("not.exist");
