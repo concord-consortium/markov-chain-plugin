@@ -27,5 +27,5 @@ Cypress.Commands.add("frameFitsInteractive", () => {
 });
 
 // then() waits for the page's promise, which resolves with the report item's answer
-Cypress.Commands.add("requestReportItemAnswer", (itemsType: ItemsType) =>
-  cy.fakeAp().then(fake => fake.requestReportItemAnswer(itemsType)));
+Cypress.Commands.add("requestReportItemAnswer", (itemsType: ItemsType, platformUserId?: string) =>
+  cy.fakeAp().then(fake => fake.requestReportItemAnswer(itemsType, platformUserId)));

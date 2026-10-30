@@ -40,4 +40,11 @@ describe("opened outside a host", () => {
     expect(listed("Usable mode(s)")).toHaveTextContent(/^Data$/);
     expect(listed("How students enter their data")).toHaveTextContent(/^Table only$/);
   });
+
+  it("the report item says what it is, and leaves the library alone", async () => {
+    document.body.innerHTML = "<div id=\"app\"></div>";
+    await act(async () => { await import("./report-item"); });
+    expect(screen.getByText(/It shows a student's answer in the class dashboard/)).toBeInTheDocument();
+    expect(warn).not.toHaveBeenCalled();
+  });
 });

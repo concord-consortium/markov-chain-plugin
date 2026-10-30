@@ -73,11 +73,11 @@ const start = (startOptions: StartOptions) => {
 };
 
 // asks the report item for a student's answer, as the class dashboard does, and resolves with the answer
-const requestReportItemAnswer = (itemsType: ItemsType) => new Promise<any>(resolve => {
+const requestReportItemAnswer = (itemsType: ItemsType, platformUserId = "student1") => new Promise<any>(resolve => {
   awaitingAnswer = resolve;
   // the dashboard sends no requestId, and the library's listener answers only a request without one
   phone?.post("getReportItemAnswer", {
-    version: "2.1.0", platformUserId: "student1", itemsType,
+    version: "2.1.0", platformUserId, itemsType,
     interactiveState: options.interactiveState ?? null, authoredState: options.authoredState ?? null
   });
 });
