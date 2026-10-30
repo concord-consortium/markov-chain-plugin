@@ -15,6 +15,7 @@ import DropdownUpArrowIcon from "../assets/dropdown-up-arrow-icon.svg";
 import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
 import { SpeedToggle } from "./speed-toggle";
 import { ConfirmModal, IConfirmModal } from "./confirm-modal";
+import { clampLengthLimit, compareStateLabels, graphToRestore } from "./app-utils";
 
 import "./app.scss";
 
@@ -99,7 +100,9 @@ export const App = () => {
   const [fitViewAt, setFitViewAt] = useState<number>();
   const [recenterViewAt, setRecenterViewAt] = useState<number>();
   const [resetViewAt, setResetViewAt] = useState<number>();
+  const datasetValuesRef = useRef<string[]>();
   const onCODAPDataChanged = (values: string[]) => {
+    datasetValuesRef.current = values;
     updateGraph(values);
     setFitViewAt(Date.now());
   };
@@ -193,7 +196,8 @@ export const App = () => {
     currentSequence.current = [];
     currentSequenceIndex.current = 0;
 
-    if (lengthLimit !== undefined) {
+    const limit = clampLengthLimit(lengthLimit);
+    if (limit !== undefined) {
       const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
 
       prevAnimatedSequenceGroups.current = [...sequenceGroups];
@@ -201,9 +205,10 @@ export const App = () => {
         prevAnimatedSequenceGroups.current[prevAnimatedSequenceGroups.current.length - 1];
       if (!currentAnimatedSequenceGroup.current ||
         (currentAnimatedSequenceGroup.current.delimiter !== delimiter) ||
-        (currentAnimatedSequenceGroup.current.lengthLimit !== lengthLimit) ||
+        (currentAnimatedSequenceGroup.current.lengthLimit !== limit) ||
         (currentAnimatedSequenceGroup.current.startingState !== startingState)) {
-        currentAnimatedSequenceGroup.current = { delimiter, lengthLimit, startingState, startingNode, sequences: [] };
+        currentAnimatedSequenceGroup.current =
+          { delimiter, lengthLimit: limit, startingState, startingNode, sequences: [] };
         setSequenceGroups(prevAnimatedSequenceGroups.current);
       } else {
         prevAnimatedSequenceGroups.current.pop();
@@ -212,7 +217,7 @@ export const App = () => {
       prevSequences.current = [...currentAnimatedSequenceGroup.current.sequences];
       // currentAnimatedSequenceGroup.current.sequences.push("");
 
-      currentSequence.current = await generate(graph, { startingNode, lengthLimit });
+      currentSequence.current = await generate(graph, { startingNode, lengthLimit: limit });
       currentAnimationStep.current = "before";
     }
   }, [generate, graph, lengthLimit, startingState, sequenceGroups, delimiter]);
@@ -310,6 +315,14 @@ export const App = () => {
     setLengthLimit(isNaN(numberValue) ? undefined : numberValue);
   };
 
+  const handleCommitLengthLimit = () => setLengthLimit(prev => clampLengthLimit(prev));
+
+  const handleLengthLimitKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleCommitLengthLimit();
+    }
+  };
+
   const handleChangeDelimiter = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDelimiter(e.target.value);
   };
@@ -398,7 +411,7 @@ export const App = () => {
       ? handlePause
       : (generationMode === "paused" ? handleResume : handlePlay);
     const sortedNodes = [...graph.nodes];
-    sortedNodes.sort((a, b) => a.label.localeCompare(a.label));
+    sortedNodes.sort(compareStateLabels);
 
     return (
       <div className="generate">
@@ -417,6 +430,8 @@ export const App = () => {
               <input className="bordered" type="number"
                 value={lengthLimit}
                 onChange={handleChangeLengthLimit}
+                onBlur={handleCommitLengthLimit}
+                onKeyDown={handleLengthLimitKeyDown}
                 min={1}
                 disabled={animating}
               />
@@ -538,8 +553,9 @@ export const App = () => {
         setGraph({nodes: [], edges: []});
         setResetViewAt(Date.now());
         setTimeout(() => {
-          if (initialGraph) {
-            setGraph(initialGraph);
+          const restoredGraph = graphToRestore(viewMode, initialGraph, datasetValuesRef.current);
+          if (restoredGraph) {
+            setGraph(restoredGraph);
           }
           setFitViewAt(Date.now());
           setGraphOpacity(1);
@@ -547,7 +563,7 @@ export const App = () => {
       },
       onClose: () => setConfirmModal(undefined)
     });
-  }, [initialGraph, setGraph, setSelectedNodeId]);
+  }, [viewMode, initialGraph, setGraph, setSelectedNodeId]);
 
   const handleReturnToMainMenu = () => {
     setConfirmModal({
@@ -556,6 +572,7 @@ export const App = () => {
       onOk: () => {
         setGraph({nodes: [], edges: []});
         setInitialGraph(undefined);
+        datasetValuesRef.current = undefined;
         setViewMode(undefined);
       },
       onClose: () => setConfirmModal(undefined)

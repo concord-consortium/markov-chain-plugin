@@ -193,26 +193,6 @@ export async function getCaseValues(iDatasetName: string,
     {return [];}
 }
 
-/**
- * Return all the cases in the given dataset/collection.
- * @param iDatasetName
- * @param iCollectionName
- * @param iAttributeName
- */
-export async function getValuesForAttribute(iDatasetName: string,
-                                    iCollectionName: string, iAttributeName: string): Promise<string[]> {
-  const tResult: any = await codapInterface.sendRequest({
-    action: "get",
-    resource: `dataContext[${iDatasetName}].collection[${iCollectionName}].caseFormulaSearch[true]`
-  }).catch(reason => console.log(`Unable to get cases in ${iDatasetName} because ${reason}`));
-  if (tResult.success) {
-    return tResult.values.map((iCase: any) => {
-      return iCase.values[iAttributeName];
-    });
-  } else
-    {return [];}
-}
-
 export async function getSelectedCasesFrom(iDatasetName: string | null, iCollectionName: string): Promise<any[]> {
   let tCasesRequest = [],
     tSelectedCases = [],

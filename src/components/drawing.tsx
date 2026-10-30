@@ -8,6 +8,7 @@ import { DragIcon } from "./drawing/drag-icon";
 import { NodeModal } from "./drawing/node-modal";
 import { Tool, Toolbar } from "./toolbar";
 import { AddText } from "./drawing/add-text";
+import { textToWords, wordsToGraph } from "../utils/text-to-graph";
 
 import "./drawing.scss";
 
@@ -37,9 +38,6 @@ interface Props {
   onDimensions?: (dimensions: {width: number, height: number}) => void;
   onClearHighlightOutput?: () => void;
 }
-
-const keepPunctuationRegex = /[.,?!:;]/g;
-const removePunctuationRegex = /["(){}[\]_+=|\\/><]/g;
 
 export const Drawing = (props: Props) => {
   const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
@@ -291,30 +289,10 @@ export const Drawing = (props: Props) => {
   }, [setGraph, handleClearSelectedNode]);
 
   const handleTextChange = useCallback((newText: string) => {
-    const words = newText
-      .replace(keepPunctuationRegex, (match) => ` ${match} `)
-      .replace(removePunctuationRegex, " ")
-      .split(/\s/)
-      .map(w => w.trim().toLocaleLowerCase())
-      .filter(w => w.length > 0);
-
-    const nodes: Record<string, Node> = {};
-    const edges: Record<string, Edge> = {};
-
-    words.forEach((word, index) => {
-      nodes[word] = nodes[word] ?? {id: word, label: word, value: 0};
-      nodes[word].value++;
-
-      if (index > 0) {
-        const lastWord = words[index - 1];
-        const key = `${lastWord}|${word}`;
-        edges[key] = edges[key] ?? {from: lastWord, to: word, value: 0};
-        edges[key].value++;
-      }
-    });
+    const words = textToWords(newText);
 
     if (JSON.stringify(words) !== JSON.stringify(prevWordsRef.current)) {
-      setGraph({ nodes: Object.values(nodes), edges: Object.values(edges) });
+      setGraph(wordsToGraph(words));
     }
     prevWordsRef.current = words;
 
