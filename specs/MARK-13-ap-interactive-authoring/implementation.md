@@ -1514,7 +1514,7 @@ describe("the interactive's placeholder runtime", () => {
 });
 ```
 
-The URL test gives three settings that differ from the authored state, two of them set in it and one left at its default; with the hosted runtime reading its URL, it fails (measured). The "leaves an existing interactive state alone" test waits 2.5 seconds, past the library's 2-second send delay, since it checks that something does not happen. It is the only fixed wait.
+The URL test gives three settings that differ from the authored state, two of them set in it and one left at its default; with the hosted runtime reading its URL, it fails (measured). The "leaves an existing interactive state alone" test waits 2.5 seconds, past the library's 2-second send delay, since it checks that something does not happen. It is the runtime tests' only fixed wait.
 
 **Commit**: `test: add a fake Activity Player page and the runtime's Cypress tests [MARK-13]`
 
@@ -2329,7 +2329,7 @@ The full answer asks for `student1` and the compact answer for `student2`, so a 
 - `src/interactive/demo.tsx`, `src/interactive/demo.scss`, `src/interactive/demo-widths.ts`, `src/interactive/demo-widths.test.ts`: new.
 - `cypress/e2e/interactive-demo.test.ts`: new.
 
-**Estimated diff size**: 444 lines (+444), measured.
+**Estimated diff size**: 469 lines (+469), measured.
 
 `webpack.config.js`:
 
@@ -2372,7 +2372,7 @@ export type DemoWidthId = typeof demoWidths[number]["id"];
 
 export const defaultDemoWidth: DemoWidthId = "1100";
 
-// the demo's ?width= parameter, so a link can open the demo at a width
+// the demo's ?width= value, or the default for a missing or unknown one
 export const readDemoWidth = (search: string): DemoWidthId => {
   const width = new URLSearchParams(search).get("width");
   return demoWidths.find(w => w.id === width)?.id ?? defaultDemoWidth;
@@ -2532,15 +2532,15 @@ const Demo = () => {
     <div className="demo">
       <h1>{ pageTitle }</h1>
       <div className="demo-columns">
-        <section className="demo-authoring" aria-label="Authoring">
-          <h2>Authoring</h2>
+        <section className="demo-authoring" aria-labelledby="demo-authoring-heading">
+          <h2 id="demo-authoring-heading">Authoring</h2>
           <HostedFrame title="Authoring" mode="authoring" authoredState={initialAuthoredState}
             onMessage={handleMessage} width="100%" />
           <StandaloneLink authoredState={authoredState} />
         </section>
-        <section className="demo-runtime" aria-label="Interactive">
+        <section className="demo-runtime" aria-labelledby="demo-runtime-heading">
           <div className="demo-runtime-header">
-            <h2>Interactive</h2>
+            <h2 id="demo-runtime-heading">Interactive</h2>
             <fieldset className="demo-widths">
               <legend>Activity Player page width</legend>
               { demoWidths.map(({ id, label }) => (
@@ -2713,6 +2713,9 @@ $teal: #016082;
 .demo-standalone-warning,
 .demo-standalone-long {
   margin: 5px 0 0;
+}
+
+.demo-standalone-warning {
   color: #737373;
 }
 
@@ -2745,6 +2748,15 @@ const runtimeFrameWidth = () => {
 
 const standaloneLink = () => cy.get(".demo-standalone input");
 
+// iframe-phone posts an object, or its JSON where a browser can only post text
+const messageOf = (data: unknown) => {
+  try {
+    return typeof data === "string" ? JSON.parse(data) : data;
+  } catch {
+    return undefined;
+  }
+};
+
 // each setting the runtime's placeholder lists in a document, as [label, value] pairs
 const listedIn = (doc: Document) => [...doc.querySelectorAll(".runtime-placeholder dt")]
   .map(term => [term.textContent, term.nextElementSibling?.textContent]);
@@ -2767,11 +2779,24 @@ describe("the interactive's demo page", () => {
     });
   });
 
-  it("restarts the runtime with each authoring change", () => {
-    cy.visit("/demo.html");
+  it("restarts the runtime with each authoring change, keeping its interactive state", () => {
+    const savedStates: unknown[] = [];
+    cy.visit("/demo.html", {
+      onBeforeLoad: win => win.addEventListener("message", event => {
+        const message = messageOf(event.data);
+        if (message?.type === "interactiveState") {
+          savedStates.push(message.content);
+        }
+      })
+    });
     frameText("Interactive").should("contain", "are the same word");
+    // the first runtime saves a state, after the library's 2 second pause
+    cy.wrap(savedStates, { timeout: 5000 }).should("have.length", 1);
     frameBody("Authoring").find("#capitalization").select("asTyped");
     frameText("Interactive").should("contain", "are different words").and("not.contain", "are the same word");
+    // started with that state, the restarted runtime has nothing to save
+    cy.wait(2500);
+    cy.wrap(savedStates).should("deep.equal", [{ version: 1 }]);
   });
 
   it("links to the interactive standalone with the settings that differ from the defaults", () => {
@@ -2828,6 +2853,7 @@ describe("the interactive's demo page", () => {
 
 The runtime frame reloads on every restart, so the restart test reads its text through `its`, which re-queries the frame each retry; a body taken with `then` goes stale on the first reload (measured: it failed every run). Measured: the first four tests pass five runs in a row with the rest of the suite; with the restart removed, the restart test fails, and with `?width=` ignored, the link test fails, and with a border inside the frame's width, both width tests fail: `runtimeFrameWidth` reads the width the interactive lays out in, once it is running, not the frame's outer width. All seven pass three runs in a row in Chrome, with the rest of the interactive's tests.
 
+- **The interactive state** is checked in the restart test: the page records the runtime's `interactiveState` messages, the first runtime saves `{ version: 1 }`, and the restarted one, started with it, saves nothing in the 2.5 seconds after (the library waits 2 before it sends). With the runtime started without the kept state, it fails (measured).
 - **The long link** is made by setting the text with `val()`, which records it as the form's current value, and typing one letter, so the form's `onChange` sends the whole text: about 2,000 typed keys would take seconds.
 - **The round trip** compares the hosted runtime's list with the list in a window opened on the link, not with values written in the test, so it checks the link builder against the reader whatever the settings are. With the builder writing `_` between a path's names, it fails (measured). It is Chrome-only: Cypress's Electron returns `null` from `window.open` (measured), and a page in Cypress's own frame is hosted. Electron lists it as pending.
 
