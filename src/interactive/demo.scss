@@ -3,7 +3,12 @@ $authoring-width: 435px;
 // Concord's dark teal, 7:1 against white as text or as a background under white text
 $teal: #016082;
 
+// the header stays in view, and each column scrolls on its own
 .demo {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+
   h1 {
     margin: 0;
     font-size: 20px;
@@ -23,17 +28,29 @@ $teal: #016082;
 
 .demo-columns {
   display: flex;
+  flex: 1 1 auto;
   gap: 20px;
-  padding: 0 10px 10px;
+  min-height: 0;
+  padding: 0 10px;
 }
 
+// as wide as the frame and its scrollbar, so the scrollbar takes none of the frame's width
 .demo-authoring {
-  flex: 0 0 $authoring-width;
+  flex: 0 0 auto;
+  padding-bottom: 10px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+
+  .hosted-frame {
+    width: $authoring-width;
+  }
 }
 
 .demo-runtime {
   flex: 1 1 auto;
   min-width: 0;
+  padding-bottom: 10px;
+  overflow-y: auto;
 }
 
 .demo-runtime-header {
@@ -105,6 +122,7 @@ $teal: #016082;
 // the page's title, with the standalone link's buttons at its right
 .demo-header {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   gap: 20px;

@@ -28,7 +28,8 @@ interface HostedFrameProps {
   authoredState: unknown;
   getInteractiveState?: () => unknown;
   onMessage: (type: "authoredState" | "interactiveState", content: unknown) => void;
-  width: number | string;
+  // the width the page width choice gives, or, left out, the width the page's styles give
+  width?: number | string;
 }
 
 // interactive.html in a frame, started in a mode as LARA or the Activity Player starts it, and sized to the height
@@ -139,7 +140,7 @@ const Demo = () => {
         <section className="demo-authoring" aria-labelledby="demo-authoring-heading">
           <h2 id="demo-authoring-heading">Authoring</h2>
           <HostedFrame title="Authoring" mode="authoring" authoredState={initialAuthoredState}
-            onMessage={handleMessage} width="100%" />
+            onMessage={handleMessage} />
         </section>
         <section className="demo-runtime" aria-labelledby="demo-runtime-heading">
           <div className="demo-runtime-header">

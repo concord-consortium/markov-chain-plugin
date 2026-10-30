@@ -33,6 +33,19 @@ describe("the interactive's demo page", () => {
     runtimeFrameWidth().should("equal", 1044);
   });
 
+  it("scrolls the authoring form on its own, at LARA's authoring column's width", () => {
+    cy.visit("/demo.html");
+    frameBody("Authoring").find("#startingText");
+    cy.get("iframe[title=\"Authoring\"]").invoke("outerWidth").should("equal", 435);
+    // taller than the window once the form has reported its height
+    cy.get(".demo-authoring").should(column => expect(column[0].scrollHeight).to.be.greaterThan(column[0].clientHeight))
+      .scrollTo("bottom");
+    cy.get(".demo-authoring").invoke("scrollTop").should("be.greaterThan", 0);
+    cy.window().its("scrollY").should("equal", 0);
+    cy.get(".demo-runtime").invoke("scrollTop").should("equal", 0);
+    cy.get("h1").should("be.visible");
+  });
+
   it("opens at the width its link names, and puts a chosen width in the link", () => {
     cy.visit("/demo.html?width=960");
     cy.get("input[value=\"960\"]").should("be.checked");
