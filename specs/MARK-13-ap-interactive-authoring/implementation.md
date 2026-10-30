@@ -475,7 +475,7 @@ The expected defaults are written out (R20), and one test checks the code's `def
 - `webpack.config.js`: the `interactive` entry and its `HtmlWebpackPlugin`; the plugin's pages limited to the `main` chunk.
 - `src/interactive/index.html`, `index.tsx`, `app.tsx`, `runtime.tsx`, `interactive-state.ts`, `settings-summary.ts`, `settings-summary.test.ts`, `use-frame-height.ts`, `interactive.scss`, `standalone.test.tsx`, `url-settings.ts`, `url-settings.test.ts`: new.
 
-**Estimated diff size**: 541 lines (+535, -6), measured.
+**Estimated diff size**: 548 lines (+542, -6), measured.
 
 `webpack.config.js`:
 
@@ -586,6 +586,8 @@ const HostedApp = () => {
           <Runtime authoredState={readAuthoredState(initMessage.authoredState)}
             interactiveState={initMessage.interactiveState} />
         );
+      case "report":
+        return <Runtime authoredState={readAuthoredState(initMessage.authoredState)} view="report" />;
       default:
         return (
           <div className="unsupported-mode">
@@ -602,7 +604,7 @@ const HostedApp = () => {
 // so it takes its settings from its link and leaves the library alone, whose client would only warn and hold messages.
 const StandaloneApp = () => (
   <div className="markov-interactive">
-    <Runtime authoredState={authoredStateFromSearch(window.location.search)} standalone={true} />
+    <Runtime authoredState={authoredStateFromSearch(window.location.search)} view="standalone" />
   </div>
 );
 
@@ -611,7 +613,7 @@ export const App = () => inIframe() ? <HostedApp /> : <StandaloneApp />;
 
 - `setSupportedFeatures` must report `authoredState: true`, or LARA never shows the authoring form (`interactive-authoring.tsx:41` in LARA). No `aspectRatio`: the interactive reports its height instead.
 - The authored state is typed `unknown` in `useInitMessage`, since `readAuthoredState` is what makes it a `MarkovAuthoredState`.
-- `report` mode, and any mode the library adds later, gets the message (R13).
+- `report` mode, portal-report's page for one student's answer, shows the runtime's placeholder read-only and saves nothing; any mode the library adds later gets the message (R13).
 - `inIframe()` is the library's own check, true in a frame (requirements, Technical Notes, "Telling a page opened directly from one in a host"). The hosted and standalone views are separate components so that only the hosted one calls the library: at the top level its client never connects, so it would only warn, hold every message, and mark the state unsaved, which makes leaving the page in the next 2 seconds ask "State has not been saved". Only the standalone view reads `window.location.search`; the hosted view's settings come from the init message alone (R14).
 
 `src/interactive/interactive-state.ts`:
@@ -639,27 +641,31 @@ interface Props {
   authoredState: MarkovAuthoredState;
   // the student's saved state, as the Activity Player started the interactive with it
   interactiveState?: MarkovInteractiveState | null;
-  // opened outside a host, so there is nowhere to save
-  standalone?: boolean;
+  // where it runs: hosted in the Activity Player, opened outside a host, or showing a student's work in a report,
+  // and only the first saves
+  view?: "hosted" | "standalone" | "report";
 }
 
 // A placeholder for the student view: it lists the authored settings, so authors can check them.
-export const Runtime = ({ authoredState, interactiveState, standalone }: Props) => {
+export const Runtime = ({ authoredState, interactiveState, view = "hosted" }: Props) => {
   // the class dashboard shows a student only once there is interactive state, and counts {} as none
   const hasState = !!interactiveState && Object.keys(interactiveState).length > 0;
   useEffect(() => {
-    if (!standalone && !hasState) {
+    if (view === "hosted" && !hasState) {
       setInteractiveState<MarkovInteractiveState>({ version: interactiveStateVersion });
     }
-  }, [standalone, hasState]);
+  }, [view, hasState]);
 
   return (
     <div className="runtime-placeholder">
       <h2>Markov interactive: coming soon</h2>
-      { standalone && (
+      { view === "standalone" && (
         <p className="standalone-note">
           Opened outside the Activity Player: the settings come from this page&apos;s link, and nothing is saved.
         </p>
+      ) }
+      { view === "report" && (
+        <p className="report-note">A student&apos;s work, shown read-only in a report: nothing here is saved.</p>
       ) }
       <dl>
         { settingsSummary(authoredState).map(({ label, value }) => (
@@ -912,8 +918,9 @@ body {
   }
 }
 
-// what the interactive and its report item say when opened outside a host
-.standalone-note {
+// what the interactive and its report item say when opened outside a host, or shown in a report
+.standalone-note,
+.report-note {
   margin: 0 0 10px;
   color: #737373;
 
@@ -1167,7 +1174,7 @@ It prints `[ 'file' ]` (measured; the requirements' Technical Notes say why). `r
 - `cypress.config.ts`: the `modifyObstructiveCode` comment names the interactive's reason too.
 - `cypress/e2e/interactive-runtime.test.ts`: new.
 
-**Estimated diff size**: 274 lines (+269, -5), measured.
+**Estimated diff size**: 284 lines (+279, -5), measured.
 
 `webpack.config.js`:
 
@@ -1218,9 +1225,10 @@ It prints `[ 'file' ]` (measured; the requirements' Technical Notes say why). `r
 `src/interactive/host-messages.ts`:
 
 ```ts
-// The initInteractive message a host sends to start the interactive in authoring or runtime mode, as LARA and the
-// Activity Player send it. The demo page and the Cypress tests' fake Activity Player page both start it this way.
-export type HostedMode = "authoring" | "runtime";
+// The initInteractive message a host sends to start the interactive in authoring, runtime or report mode, as LARA,
+// the Activity Player and portal-report send it. The demo page and the Cypress tests' fake Activity Player page both
+// start it this way.
+export type HostedMode = "authoring" | "runtime" | "report";
 
 export const initInteractiveMessage = (mode: HostedMode, authoredState: unknown, interactiveState: unknown) => ({
   version: 1,
@@ -1241,7 +1249,7 @@ export const initInteractiveMessage = (mode: HostedMode, authoredState: unknown,
 import { ParentEndpoint } from "iframe-phone";
 import { initInteractiveMessage } from "../../src/interactive/host-messages";
 
-export type InteractiveMode = "authoring" | "runtime" | "reportItem";
+export type InteractiveMode = "authoring" | "runtime" | "report" | "reportItem";
 
 export type StartOptions = {
   mode: InteractiveMode;
@@ -1434,7 +1442,7 @@ Cypress.Commands.add("requestReportItemAnswer", (itemsType: ItemsType) =>
    modifyObstructiveCode: false,
 ```
 
-The setting is MARK-11's, for the plugin; the interactive's tests depend on it as much (measured: with Cypress's default, 5 of the 7 runtime tests fail), so its comment says so for whoever next considers changing it.
+The setting is MARK-11's, for the plugin; the interactive's tests depend on it as much (measured: with Cypress's default, 6 of the 8 runtime tests fail), so its comment says so for whoever next considers changing it.
 
 `cypress/e2e/interactive-runtime.test.ts`:
 
@@ -1515,6 +1523,15 @@ describe("the interactive's placeholder runtime", () => {
     cy.interactiveMessages("interactiveState").should("have.length", 0);
   });
 
+  it("shows a student's work read-only in a report, and saves nothing", () => {
+    cy.startInteractive({ mode: "report", width: 600, authoredState: { modes: { useData: true, draw: false } } });
+    cy.interactive().should("contain.text", "shown read-only in a report");
+    listedSettings().should("deep.include", ["Usable mode(s)", "Data"]);
+    // past the library's 2 second pause, after which a runtime started with no state would have saved one
+    cy.wait(2500);
+    cy.interactiveMessages("interactiveState").should("have.length", 0);
+  });
+
   it("sizes its frame to the placeholder", () => {
     cy.startInteractive({ mode: "runtime", authoredState: {}, width: 600 });
     cy.interactive().find(".runtime-placeholder dl");
@@ -1525,7 +1542,7 @@ describe("the interactive's placeholder runtime", () => {
 });
 ```
 
-The URL test gives three settings that differ from the authored state, two of them set in it and one left at its default; with the hosted runtime reading its URL, it fails (measured). The "leaves an existing interactive state alone" test waits 2.5 seconds, past the library's 2-second send delay, since it checks that something does not happen. It is the runtime tests' only fixed wait.
+The URL test gives three settings that differ from the authored state, two of them set in it and one left at its default; with the hosted runtime reading its URL, it fails (measured). The "leaves an existing interactive state alone" test and the report test wait 2.5 seconds, past the library's 2-second send delay, since each checks that something does not happen. They are the runtime tests' only fixed waits. The report test starts with no interactive state, so a report view that saved like the hosted one would send one; with it saving, the test fails (measured).
 
 **Commit**: `test: add a fake Activity Player page and the runtime's Cypress tests [MARK-13]`
 
@@ -2147,7 +2164,7 @@ describe("the interactive's authoring form", () => {
 - `cypress/fake-ap/fake-ap.ts`, `cypress/support/fake-ap-commands.ts`, `cypress/support/fake-ap.d.ts`: a request can name its student.
 - `cypress/e2e/interactive-report-item.test.ts`: new.
 
-**Estimated diff size**: 117 lines (+111, -6), measured.
+**Estimated diff size**: 122 lines (+116, -6), measured.
 
 `webpack.config.js`:
 
@@ -2183,11 +2200,15 @@ export const placeholderReportHtml =
   "A summary of their work comes in a later version.</p></div>";
 
 // The grid draws its own answered icon and reads only a score from a compact answer, so a compact answer has no items.
+// A full answer's links item is what makes the dashboard offer "Open in new tab", the student's answer on a page of
+// its own with the answer history; "View Work" would only repeat the placeholder inline, so it is hidden.
 export const reportItemAnswerItems = (itemsType: "fullAnswer" | "compactAnswer"): IReportItemAnswerItem[] =>
-  itemsType === "compactAnswer" ? [] : [{ type: "html", html: placeholderReportHtml }];
+  itemsType === "compactAnswer"
+    ? []
+    : [{ type: "links", hideViewInline: true }, { type: "html", html: placeholderReportHtml }];
 ```
 
-`import type`, so Jest never loads the library.
+`import type`, so Jest never loads the library. With a report item URL, portal-report shows the "Open in new tab" link to a student's answer page only when the full answer has a `links` item (`iframe-answer.tsx`, `iframe-answer-report-item.tsx` in portal-report), as question-interactives' report items send; checked on learn staging's class dashboard.
 
 `src/interactive/report-item.tsx`:
 
@@ -2244,8 +2265,8 @@ Opened directly, the report item says what it is and, like the interactive, leav
 import { reportItemAnswerItems } from "./report-item-answer";
 
 describe("reportItemAnswerItems", () => {
-  it("answers a full answer with the placeholder html, in the report's tall and wide blocks", () => {
-    expect(reportItemAnswerItems("fullAnswer")).toEqual([{
+  it("answers a full answer with a link to its own page, and the placeholder html in the tall and wide blocks", () => {
+    expect(reportItemAnswerItems("fullAnswer")).toEqual([{ type: "links", hideViewInline: true }, {
       type: "html",
       html: "<div class=\"tall\"><p>This student opened the Markov interactive.</p>" +
         "<p>A summary of their work comes in a later version.</p></div>" +
@@ -2322,9 +2343,10 @@ describe("the interactive's report item", () => {
   it("answers a full answer with the placeholder", () => {
     cy.requestReportItemAnswer("fullAnswer").then(answer => {
       expect(answer).to.include({ version: "2.1.0", platformUserId: "student1", itemsType: "fullAnswer" });
-      expect(answer.items).to.have.length(1);
-      expect(answer.items[0].type).to.equal("html");
-      expect(answer.items[0].html).to.contain("This student opened the Markov interactive.");
+      expect(answer.items).to.have.length(2);
+      expect(answer.items[0]).to.deep.equal({ type: "links", hideViewInline: true });
+      expect(answer.items[1].type).to.equal("html");
+      expect(answer.items[1].html).to.contain("This student opened the Markov interactive.");
     });
   });
 
@@ -3008,7 +3030,7 @@ The interactive's tests use a second dev-server page, `fake-ap.html`, which play
 
 ## After the last commit
 
-On the head, run the baseline set from "Before starting" (R22): the build with no warnings, the three lint commands with no output, both `tsc` commands, `npm test` (116 tests: MARK-10's 56 and this story's 60), and `npm run test:cypress` against `npm start`, three runs in a row (80 tests: MARK-11's 27, MARK-12's 9 and this story's 44, one of them pending in Electron), and again with `--browser chrome`, which runs all 80. Then R2's comparison once more for both builds.
+On the head, run the baseline set from "Before starting" (R22): the build with no warnings, the three lint commands with no output, both `tsc` commands, `npm test` (116 tests: MARK-10's 56 and this story's 60), and `npm run test:cypress` against `npm start`, three runs in a row (81 tests: MARK-11's 27, MARK-12's 9 and this story's 45, one of them pending in Electron), and again with `--browser chrome`, which runs all 81. Then R2's comparison once more for both builds.
 
 ## After the first push
 
@@ -3115,11 +3137,11 @@ It used the Graph pane, which the Graph rule makes available with Draw on whatev
 `input:disabled + *` needs an element after the input, and the label's text is a text node, so the disabled Graph pane's label kept the pointer cursor (measured). It is now `label:has(input:disabled)`.
 
 #### RESOLVED: `modifyObstructiveCode`'s comment named only the plugin's reason
-The interactive's tests need it as much: with Cypress's default, 5 of the 7 runtime tests fail (the Technical Notes said 4 of 6, counted before the URL test). The runtime step extends MARK-11's comment.
+The interactive's tests need it as much: with Cypress's default, 6 of the 8 runtime tests fail (the Technical Notes once said 4 of 6, counted before the URL and report tests). The runtime step extends MARK-11's comment.
 
 ---
 
 ### Operator
 
 #### RESOLVED: step sizes re-measured
-Each step's estimate is re-measured after the fixes above; Jest stays at 116 and Cypress at 78 (80 since the Copy and scrolling tests).
+Each step's estimate is re-measured after the fixes above; Jest stays at 116 and Cypress at 78 (81 since the Copy, scrolling and report tests).
