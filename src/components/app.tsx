@@ -90,22 +90,31 @@ export const App = () => {
   const [highlightAllNextNodes, setHighlightAllNextNodes] = useState(false);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("ready");
   const prevAnimatedSequenceGroups = useRef<SequenceGroup[]>([]);
-  const currentAnimatedSequenceGroup = useRef<SequenceGroup>();
+  const currentAnimatedSequenceGroup = useRef<SequenceGroup | undefined>(undefined);
   const currentAnimationStep = useRef<"before" | "after">("before");
   const prevSequences = useRef<Node[][]>([]);
   const currentSequence = useRef<Node[]>([]);
   const currentSequenceIndex = useRef(0);
-  const animationInterval = useRef<number>();
+  const animationInterval = useRef<number | undefined>(undefined);
   const { graph, updateGraph, setGraph } = useGraph();
   const [initialGraph, setInitialGraph] = useState<GraphData>();
   const [fitViewAt, setFitViewAt] = useState<number>();
+  // fit in the render after the graph change, once Graph has drawn the new graph
+  // every graph change must produce a new graph object, or this effect never runs
+  const fitAfterGraphChangeRef = useRef(false);
+  useEffect(() => {
+    if (fitAfterGraphChangeRef.current) {
+      fitAfterGraphChangeRef.current = false;
+      setFitViewAt(Date.now());
+    }
+  }, [graph]);
   const [recenterViewAt, setRecenterViewAt] = useState<number>();
   const [resetViewAt, setResetViewAt] = useState<number>();
-  const datasetValuesRef = useRef<string[]>();
+  const datasetValuesRef = useRef<string[] | undefined>(undefined);
   const onCODAPDataChanged = (values: string[]) => {
     datasetValuesRef.current = values;
     updateGraph(values);
-    setFitViewAt(Date.now());
+    fitAfterGraphChangeRef.current = true;
   };
   const widthRef = useRef(0);
   const heightRef = useRef(0);
@@ -113,7 +122,7 @@ export const App = () => {
 
     const done = () => {
       setGraph(data);
-      setFitViewAt(Date.now());
+      fitAfterGraphChangeRef.current = true;
     };
 
     const translateOrigin = () => {
@@ -547,8 +556,10 @@ export const App = () => {
           const restoredGraph = graphToRestore(viewMode, initialGraph, datasetValuesRef.current);
           if (restoredGraph) {
             setGraph(restoredGraph);
+            fitAfterGraphChangeRef.current = true;
+          } else {
+            setFitViewAt(Date.now());
           }
-          setFitViewAt(Date.now());
           setGraphOpacity(1);
         }, 1);
       },

@@ -49,6 +49,8 @@ module.exports = (env, argv) => {
         {
           test: /\.tsx?$/,
           loader: 'ts-loader',
+          // ts-loader otherwise reads the tsconfig nearest the first file it compiles, which can be cypress/'s
+          options: { configFile: path.resolve(__dirname, 'tsconfig.json') },
         },
         // This code coverage instrumentation should only be added when needed. It makes
         // the code larger and slower

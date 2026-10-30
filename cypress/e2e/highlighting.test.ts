@@ -1,5 +1,6 @@
+import { ellipse, selectedNodeColor } from "../support/graph";
+
 // colors from graph.tsx
-const selectedNodeColor = "#14f49e3f";
 const incomingArrowColor = "#0081ff";
 const outgoingArrowColor = "#ff9900";
 const animatedNodeColor = "#FF00877f";
@@ -11,8 +12,6 @@ const edge = (from: string, to: string) =>
     const { source, target } = (line as any).__data__;
     return source.id === from && target.id === to;
   });
-const ellipse = (label: string) =>
-  cy.plugin().find("g.node").filter((i, node) => node.textContent === label).find("ellipse");
 const expectUnfaded = (labels: string[]) => labels.forEach(label => {
   ellipse(label).should("not.match", faded);
   cy.plugin().find("g.node text").filter((i, text) => text.textContent === label).should("not.match", faded);

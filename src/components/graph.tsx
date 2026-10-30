@@ -175,10 +175,10 @@ export const Graph = (props: Props) => {
   const lastClickTimeRef = useRef<number|undefined>(undefined);
   const lastClickIdRef = useRef<string|undefined>(undefined);
   const draggedRef = useRef(false);
-  const transformRef = useRef<Transform>();
-  const zoomRef = useRef<d3.ZoomBehavior<any, any>>();
-  const lastFitViewAtRef = useRef<number>();
-  const lastRecenterViewAtRef = useRef<number>();
+  const transformRef = useRef<Transform | undefined>(undefined);
+  const zoomRef = useRef<d3.ZoomBehavior<any, any> | undefined>(undefined);
+  const lastFitViewAtRef = useRef<number | undefined>(undefined);
+  const lastRecenterViewAtRef = useRef<number | undefined>(undefined);
 
   // generate an ordered edge list from the highlight output nodes
   const highlightOutputEdges = useMemo(() => {
@@ -441,7 +441,9 @@ export const Graph = (props: Props) => {
     };
 
     const dragging = (event: any, d: any) => {
-      draggedRef.current = true;
+      if (event.dx || event.dy) {
+        draggedRef.current = true;
+      }
       // simulation.alpha(0.5).restart()
       if (autoArrange) {
         d.fx = event.x;
@@ -459,7 +461,10 @@ export const Graph = (props: Props) => {
       simulation?.alphaTarget(0);
       d.fx = null;
       d.fy = null;
-      onDragStop?.(d.subject.id, { x: d.x, y: d.y });
+      // a press without a drag must not redraw, or the click that follows lands on a removed state
+      if (draggedRef.current) {
+        onDragStop?.(d.subject.id, { x: d.x, y: d.y });
+      }
     };
 
     const drag = d3.drag()
