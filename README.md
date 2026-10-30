@@ -120,6 +120,12 @@ A branch build is at `https://models-resources.concord.org/markov-chain-plugin/b
 tag's at `version/<tag>/interactive.html`. The release workflow doesn't copy the interactive anywhere: activities use
 a version's URL.
 
+Until it is released, add it to a LARA page as an Interactive IFrame item with the interactive's URL (in development,
+`http://localhost:8080/interactive.html` works in Chrome, which lets an `https` page frame `localhost`). In the item's
+Advanced Options, check "Enable save state", without which the Activity Player saves nothing and the class dashboard
+never shows the student, and set "Report Item URL" to `report-item.html`. Once released, it becomes a library
+interactive in LARA, which carries these settings itself, so they aren't set on each item.
+
 To try it without LARA or an activity, open `demo.html` beside it, for example
 `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/demo.html`. It shows the authoring form at
 LARA's width and the interactive at the width a full-width item gets in an Activity Player page. `?width=1100` (the
