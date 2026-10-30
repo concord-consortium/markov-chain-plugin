@@ -44,7 +44,7 @@ describe("generateSequence", () => {
     expect(await generateSequence({ nodes: [], edges: [] }, { lengthLimit: 5 })).toEqual([]);
   });
 
-  it("never follows a transition with value 0, and follows a self-loop", async () => {
+  it("never follows a transition with value 0 for a draw above 0, and follows a self-loop", async () => {
     const zero = {
       nodes: [a, b, c],
       edges: [{ from: "a", to: "b", value: 0 }, { from: "a", to: "a", value: 1 }]

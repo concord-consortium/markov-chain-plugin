@@ -41,8 +41,7 @@ Production releases to S3 are based on the contents of the /dist folder and are 
 for each branch and tag pushed to GitHub, using [s3-deploy-action](https://github.com/concord-consortium/s3-deploy-action).
 
 Branches are deployed to `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/index.html`.
-A Jira key prefix (`MARK-6-`) or a Pivotal Tracker story number at the start or end of the branch name is stripped off,
-so `MARK-6-deploy-and-release` is deployed to `branch/deploy-and-release/`.
+A Jira key prefix is stripped from the branch name, so `MARK-123-my-feature` is deployed to `branch/my-feature/`.
 
 Tags are deployed to `https://models-resources.concord.org/markov-chain-plugin/version/<name>/index.html`.
 
