@@ -55,7 +55,7 @@ npm install @concord-consortium/lara-interactive-api@^1.15.0
 - `src/interactive/authored-state.ts`: new.
 - `src/interactive/authored-state.test.ts`: new.
 
-**Estimated diff size**: 373 lines (+373).
+**Estimated diff size**: 383 lines (+383), measured.
 
 `src/interactive/authored-state.ts`:
 
@@ -192,6 +192,16 @@ export const settingLabels = {
 export const startsOpenLabel = (id: PaneId, modes: Record<ModeId, boolean>) =>
   id === "graph" && modes.useData && modes.draw ? settingLabels.graphStartsOpenWithBothModes : settingLabels.startsOpen;
 
+// what the authoring form shows and the runtime's list repeats: a setting is left out while what it depends on is off
+export const showsStartingMode = (modes: Record<ModeId, boolean>) => modes.useData && modes.draw;
+
+// the Input pane is Data mode's
+export const shownPaneIds = (modes: Record<ModeId, boolean>) => paneIds.filter(id => id !== "input" || modes.useData);
+
+// Draw mode always opens its graph, so the Graph pane's starting state only matters with Data mode
+export const showsStartsOpen = (id: PaneId, state: Pick<MarkovAuthoredState, "modes" | "panes">) =>
+  state.panes[id].available && (id !== "graph" || state.modes.useData);
+
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -282,6 +292,7 @@ export const readAuthoredState = (raw: unknown): MarkovAuthoredState => {
 
 - **Keyed records** for modes, panes and buttons: the form loops over `modeIds`, `paneIds` and `buttonIds`, the runtime's list does too, and a later story adds a pane or button by adding an id, a default and a label.
 - **Labels** live here, beside the ids they name (R11's one list), in Rebecca's wording. The settings that aren't a mode, pane or button have theirs in `settingLabels`. `startsOpenLabel` gives a pane's "Open at the start" label, which for the Graph pane with both modes is "Open at the start in Data mode", so the form and the runtime's list can't disagree. `usableModesHelp` and `inputViewHelp` hold the help the form shows under those two selects, one entry per option, so it describes the option chosen.
+- **What is shown** while what it depends on is off: `showsStartingMode`, `shownPaneIds` and `showsStartsOpen` are the rules the form uses to leave a setting off the page, and the runtime's list uses them to leave out the same ones (R12), so the two can't disagree.
 - **Usable modes** are the form's one choice (R5): `modesFor` turns a choice into the two saved booleans and `usableModesOf` reads it back. The saved state, its reader and the URL settings keep the two booleans, and no choice gives a state with no mode.
 - **The Graph rule** (R5, R10) is applied after the panes are read, so a saved `graph.available: false` stays as saved without Draw and reads as available with it.
 - **Send to CODAP and Download data files** are off by default (R6). `downloadTables` is one more button id with only `available`, so the reader, the URL settings and the standalone link take it with no code of their own; MARK-18 builds the button.
@@ -464,7 +475,7 @@ The expected defaults are written out (R20), and one test checks the code's `def
 - `webpack.config.js`: the `interactive` entry and its `HtmlWebpackPlugin`; the plugin's pages limited to the `main` chunk.
 - `src/interactive/index.html`, `index.tsx`, `app.tsx`, `runtime.tsx`, `interactive-state.ts`, `settings-summary.ts`, `settings-summary.test.ts`, `use-frame-height.ts`, `interactive.scss`, `standalone.test.tsx`, `url-settings.ts`, `url-settings.test.ts`: new.
 
-**Estimated diff size**: 539 lines (+533, -6), measured.
+**Estimated diff size**: 541 lines (+535, -6), measured.
 
 `webpack.config.js`:
 
@@ -669,8 +680,8 @@ The runtime decides from the init message's interactive state, not from the libr
 
 ```ts
 import {
-  buttonLabels, capitalizationLabels, inputViewLabels, MarkovAuthoredState, modeLabels, PaneId, paneIds, paneLabels,
-  settingLabels, startsOpenLabel, usableModesLabels, usableModesOf
+  buttonLabels, capitalizationLabels, inputViewLabels, MarkovAuthoredState, modeLabels, PaneId, paneLabels,
+  settingLabels, shownPaneIds, showsStartingMode, showsStartsOpen, startsOpenLabel, usableModesLabels, usableModesOf
 } from "./authored-state";
 
 export interface SettingSummary {
@@ -697,10 +708,10 @@ const startingTextValue = (text: string) => {
 // The authored settings as the runtime's placeholder lists them, in the authoring form's order and with its labels.
 // As in the form, a setting is left out while what it depends on is off.
 export const settingsSummary = (state: MarkovAuthoredState): SettingSummary[] => {
-  const { useData, draw } = state.modes;
+  const { useData } = state.modes;
   const pane = (id: PaneId): SettingSummary[] => {
     const { available, startsOpen } = state.panes[id];
-    const showStartsOpen = available && (id !== "graph" || useData);
+    const showStartsOpen = showsStartsOpen(id, state);
     return [
       { label: paneLabels[id], value: availability(available) },
       ...(showStartsOpen
@@ -710,7 +721,9 @@ export const settingsSummary = (state: MarkovAuthoredState): SettingSummary[] =>
   };
   return [
     { label: settingLabels.usableModes, value: usableModesLabels[usableModesOf(state.modes)] },
-    ...(useData && draw ? [{ label: settingLabels.startingMode, value: modeLabels[state.startingMode] }] : []),
+    ...(showsStartingMode(state.modes)
+      ? [{ label: settingLabels.startingMode, value: modeLabels[state.startingMode] }]
+      : []),
     ...(useData ? [
       { label: settingLabels.inputView, value: inputViewLabels[state.inputView] },
       { label: settingLabels.capitalization, value: capitalizationLabels[state.capitalization] },
@@ -718,7 +731,7 @@ export const settingsSummary = (state: MarkovAuthoredState): SettingSummary[] =>
       { label: settingLabels.orderMattersShowSwitch, value: yesNo(state.orderMatters.showSwitch) },
       { label: settingLabels.startingText, value: startingTextValue(state.startingText) },
     ] : []),
-    ...paneIds.filter(id => id !== "input" || useData).reduce<SettingSummary[]>((all, id) => all.concat(pane(id)), []),
+    ...shownPaneIds(state.modes).reduce<SettingSummary[]>((all, id) => all.concat(pane(id)), []),
     { label: settingLabels.probabilitiesStartsOn, value: yesNo(state.buttons.probabilities.startsOn ?? false) },
     { label: buttonLabels.probabilities, value: availability(state.buttons.probabilities.available) },
     { label: buttonLabels.sendToCodap, value: availability(state.buttons.sendToCodap.available) },
@@ -1154,7 +1167,7 @@ It prints `[ 'file' ]` (measured; the requirements' Technical Notes say why). `r
 - `cypress.config.ts`: the `modifyObstructiveCode` comment names the interactive's reason too.
 - `cypress/e2e/interactive-runtime.test.ts`: new.
 
-**Estimated diff size**: 275 lines (+271, -4), measured.
+**Estimated diff size**: 274 lines (+269, -5), measured.
 
 `webpack.config.js`:
 
@@ -1244,7 +1257,6 @@ export type InteractiveMessage = { type: string, content: unknown };
 
 export type ItemsType = "fullAnswer" | "compactAnswer";
 
-// the messages the interactive and the report item send that the tests read
 const messageTypes = [
   "supportedFeatures", "authoredState", "interactiveState", "height", "reportItemClientReady", "reportItemAnswer"
 ];
@@ -1415,11 +1427,10 @@ Cypress.Commands.add("requestReportItemAnswer", (itemsType: ItemsType) =>
 `cypress.config.ts`:
 
 ```diff
-   // Cypress rewrites "framebusting" checks such as window.parent === window, which iframe-phone uses
+-  // Cypress rewrites "framebusting" checks such as window.parent === window, which iframe-phone uses
 -  // to find CODAP, so the plugin would never connect to the fake CODAP page
-+  // to find CODAP, so the plugin would never connect to the fake CODAP page, and window.self !== window.top,
-+  // which the Markov Interactive uses to tell a host from a page opened directly, so it would run standalone
-+  // in the fake Activity Player page
++  // Cypress rewrites "framebusting" checks such as window.parent === window and window.self !== window.top,
++  // which iframe-phone uses to find CODAP and the Markov Interactive uses to tell a host from a page opened directly
    modifyObstructiveCode: false,
 ```
 
@@ -1529,7 +1540,7 @@ The URL test gives three settings that differ from the authored state, two of th
 - `src/interactive/app.tsx`: the `authoring` case.
 - `cypress/e2e/interactive-authoring.test.ts`: new.
 
-**Estimated diff size**: 532 lines (+532), measured.
+**Estimated diff size**: 544 lines (+544), measured.
 
 `src/interactive/authoring.tsx`:
 
@@ -1538,9 +1549,9 @@ import React, { useState } from "react";
 import { setAuthoredState } from "@concord-consortium/lara-interactive-api";
 import {
   buttonLabels, Capitalization, capitalizationLabels, capitalizations, InputView, inputViewHelp, inputViewLabels,
-  inputViews, MarkovAuthoredState, maxStartingTextLength, ModeId, modeIds, modeLabels, modesFor, PaneId, paneIds,
-  paneLabels, settingLabels, startsOpenLabel, UsableModes, usableModesChoices, usableModesHelp, usableModesLabels,
-  usableModesOf
+  inputViews, MarkovAuthoredState, maxStartingTextLength, ModeId, modeIds, modeLabels, modesFor, PaneId, paneLabels,
+  settingLabels, shownPaneIds, showsStartingMode, showsStartsOpen, startsOpenLabel, UsableModes, usableModesChoices,
+  usableModesHelp, usableModesLabels, usableModesOf
 } from "./authored-state";
 
 import "./authoring.scss";
@@ -1670,8 +1681,7 @@ export const Authoring = ({ initialState }: Props) => {
 
   const pane = (id: PaneId) => {
     const { available, startsOpen } = state.panes[id];
-    // Draw mode always opens its graph, so the Graph pane's starting state only matters with Data mode
-    const showStartsOpen = available && (id !== "graph" || useData);
+    const showStartsOpen = showsStartsOpen(id, state);
     const label = startsOpenLabel(id, state.modes);
     return (
       <div key={id}>
@@ -1699,7 +1709,7 @@ export const Authoring = ({ initialState }: Props) => {
         <Select<UsableModes> id="usableModes" label={settingLabels.usableModes} value={usableModesOf(state.modes)}
           choices={usableModesChoices} labels={usableModesLabels} helpId="modes-help" onChange={setUsableModes} />
         <p id="modes-help" className="help after-select">{ usableModesHelp[usableModesOf(state.modes)] }</p>
-        { useData && draw &&
+        { showsStartingMode(state.modes) &&
           <Select id="startingMode" label={settingLabels.startingMode} value={state.startingMode}
             choices={startingModeChoices} labels={modeLabels}
             onChange={startingMode => update(current => ({ ...current, startingMode }))} /> }
@@ -1709,7 +1719,7 @@ export const Authoring = ({ initialState }: Props) => {
 
       <fieldset>
         <legend>{ settingLabels.whatStudentsSee }</legend>
-        { paneIds.filter(id => id !== "input" || useData).map(pane) }
+        { shownPaneIds(state.modes).map(pane) }
         <Checkbox id="button-probabilities-startsOn" label={settingLabels.probabilitiesStartsOn}
           checked={state.buttons.probabilities.startsOn ?? false} helpId="probabilities-help"
           onChange={startsOn => setProbabilities({ startsOn })} />
@@ -2030,7 +2040,10 @@ describe("the interactive's authoring form", () => {
 
   it("hides the Data settings and the Input pane without Data mode, and shows them as they were", () => {
     cy.startInteractive({
-      mode: "authoring", authoredState: withChange({ modes: { useData: false, draw: true }, inputView: "table" })
+      mode: "authoring", authoredState: withChange({
+        modes: { useData: false, draw: true }, inputView: "table", orderMatters: { startsOn: false, showSwitch: true },
+        panes: { ...defaultAuthoredState.panes, input: { available: true, startsOpen: false } },
+      })
     });
     // the form is on the page, so what isn't there was left off rather than not drawn yet
     cy.interactive().find("#pane-inspect-startsOpen").should("exist");
@@ -2041,15 +2054,25 @@ describe("the interactive's authoring form", () => {
     });
     cy.interactive().find("#usableModes").select("Both (with a toggle switch for students)");
     cy.interactive().find("#inputView").should("have.value", "table");
+    cy.interactive().find("#orderMattersStartsOn").should("not.be.checked");
     cy.interactive().find("#pane-input").should("be.checked");
+    cy.interactive().find("#pane-input-startsOpen").should("not.be.checked");
     cy.interactive().find("#pane-graph-startsOpen").should("be.checked");
   });
 
   it("hides a pane's starting state while it isn't available, but not the probabilities'", () => {
-    cy.startInteractive({ mode: "authoring", authoredState: withChange({ modes: { useData: true, draw: false } }) });
+    cy.startInteractive({
+      mode: "authoring", authoredState: withChange({
+        modes: { useData: true, draw: false },
+        panes: { ...defaultAuthoredState.panes, inspect: { available: true, startsOpen: false } },
+      })
+    });
     cy.interactive().find("#pane-graph-startsOpen").closest("label").should("have.text", "Open at the start");
     cy.interactive().find("#pane-inspect").uncheck();
     cy.interactive().find("#pane-inspect-startsOpen").should("not.exist");
+    cy.interactive().find("#pane-inspect").check();
+    cy.interactive().find("#pane-inspect-startsOpen").should("not.be.checked");
+    cy.interactive().find("#pane-inspect").uncheck();
     cy.interactive().find("#pane-graph").uncheck();
     cy.interactive().find("#pane-graph-startsOpen").should("not.exist");
     cy.interactive().find("#button-probabilities").uncheck();
@@ -2153,13 +2176,13 @@ describe("the interactive's authoring form", () => {
 ```ts
 import type { IReportItemAnswerItem } from "@concord-consortium/lara-interactive-api";
 
-// The grid draws its own answered icon and reads only a score from a compact answer, so a compact answer has no items.
 export const placeholderReportHtml =
   "<div class=\"tall\"><p>This student opened the Markov interactive.</p>" +
   "<p>A summary of their work comes in a later version.</p></div>" +
   "<div class=\"wide\"><p>This student opened the Markov interactive. " +
   "A summary of their work comes in a later version.</p></div>";
 
+// The grid draws its own answered icon and reads only a score from a compact answer, so a compact answer has no items.
 export const reportItemAnswerItems = (itemsType: "fullAnswer" | "compactAnswer"): IReportItemAnswerItem[] =>
   itemsType === "compactAnswer" ? [] : [{ type: "html", html: placeholderReportHtml }];
 ```
@@ -3027,4 +3050,4 @@ The interactive's tests need it as much: with Cypress's default, 5 of the 7 runt
 ### Operator
 
 #### RESOLVED: step sizes re-measured
-The README step is 27 lines, not 28. The fixes above make the runtime-tests step 275, the authoring step 531 and the demo step 444; Jest stays at 116 and Cypress at 78.
+The README step is 27 lines, not 28, and each step's estimate is re-measured after the fixes above; Jest stays at 116 and Cypress at 78.
