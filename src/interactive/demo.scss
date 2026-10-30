@@ -3,6 +3,19 @@ $authoring-width: 435px;
 // Concord's dark teal, 7:1 against white as text or as a background under white text
 $teal: #016082;
 
+// read by a screen reader, but not shown
+%visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.demo-visually-hidden {
+  @extend %visually-hidden;
+}
+
 // the header stays in view, and each column scrolls on its own
 .demo {
   display: flex;
@@ -66,11 +79,7 @@ $teal: #016082;
   border: 0;
 
   legend {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
+    @extend %visually-hidden;
   }
 
   label {
@@ -155,7 +164,8 @@ $teal: #016082;
   }
 }
 
-.demo-standalone-long {
+.demo-standalone-long,
+.demo-standalone-warning {
   margin: 0 5px 0 0;
   font-size: 13px;
 }

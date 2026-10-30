@@ -40,6 +40,7 @@ describe("the interactive's demo page", () => {
     // taller than the window once the form has reported its height
     cy.get(".demo-authoring").should(column => expect(column[0].scrollHeight).to.be.greaterThan(column[0].clientHeight))
       .scrollTo("bottom");
+    cy.get(".demo-authoring").should(column => expect(column[0].scrollWidth).to.equal(column[0].clientWidth));
     cy.get(".demo-authoring").invoke("scrollTop").should("be.greaterThan", 0);
     cy.window().its("scrollY").should("equal", 0);
     cy.get(".demo-runtime").invoke("scrollTop").should("equal", 0);
@@ -89,11 +90,11 @@ describe("the interactive's demo page", () => {
     });
     cy.get("header .demo-standalone").find("button, a").should("have.length", 2).each(control => {
       expect(control).to.have.attr("aria-describedby", "demo-standalone-warning");
-      expect(control.attr("title")).to.contain("Use this link only outside the Activity Player");
     });
-    cy.get("#demo-standalone-warning").should("contain.text", "Use this link only outside the Activity Player");
-    cy.get(".demo-standalone button").should("have.text", "Copy standalone link");
-    standaloneLink().should("have.text", "Open standalone link").and("have.attr", "target", "_blank");
+    cy.get("#demo-standalone-warning").should("be.visible")
+      .and("have.text", "Standalone link to use outside Activity Player:");
+    cy.get(".demo-standalone button").should("have.text", "Copy");
+    standaloneLink().should("have.text", "Open").and("have.attr", "target", "_blank");
     cy.get(".demo-standalone-long").should("not.exist");
   });
 
@@ -104,10 +105,23 @@ describe("the interactive's demo page", () => {
     cy.get(".demo-standalone button").click();
     standaloneLink().invoke("attr", "href").then(link => cy.get("@writeText").should("have.been.calledOnceWith", link));
     cy.get(".demo-standalone button").should("have.text", "Copied");
+    cy.get(".demo-standalone [role=status]").should("have.text", "Standalone link copied");
     cy.tick(1900);
     cy.get(".demo-standalone button").should("have.text", "Copied");
     cy.tick(100);
-    cy.get(".demo-standalone button").should("have.text", "Copy standalone link");
+    cy.get(".demo-standalone button").should("have.text", "Copy");
+    cy.get(".demo-standalone [role=status]").should("have.text", "");
+  });
+
+  it("says when the link couldn't be copied", () => {
+    cy.visit("/demo.html");
+    cy.window().then(win => cy.stub(win.navigator.clipboard, "writeText").rejects(new Error("denied")));
+    cy.clock();
+    cy.get(".demo-standalone button").click();
+    cy.get(".demo-standalone button").should("have.text", "Copy failed");
+    cy.get(".demo-standalone [role=status]").should("have.text", "The standalone link couldn't be copied");
+    cy.tick(2000);
+    cy.get(".demo-standalone button").should("have.text", "Copy");
   });
 
   it("says when the link is long", () => {

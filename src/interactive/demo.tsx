@@ -12,8 +12,7 @@ import "./demo.scss";
 
 // the runtime restarts with the authoring form's latest state once the author pauses this long
 const restartDelay = 500;
-// how long the Copy button says the link was copied
-const copiedDuration = 2000;
+const copyResultDuration = 2000;
 
 const initialAuthoredState = readAuthoredState({ startingText: "the cat sat on the mat. the cat ran." });
 
@@ -58,28 +57,29 @@ const HostedFrame = ({ title, mode, authoredState, getInteractiveState, onMessag
 
 const pageTitle = "Demo and Standalone Authoring";
 
-const standaloneWarning = "Use this link only outside the Activity Player, such as on a collection page. In LARA, " +
-  "add the interactive's plain URL and choose its settings in the Authoring tab: settings in this link are ignored " +
-  "inside an activity.";
+const standaloneWarning = "Standalone link to use outside Activity Player:";
 
 // The interactive opened on its own with the authoring form's settings, for a collection page or any page outside
 // the Activity Player. The link is beside this page, so it names the same branch or version.
 const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
   const link = new URL(`interactive.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
     window.location.href).href;
-  const [copiedAt, setCopiedAt] = useState<number>();
+  // the time is a new value for each click, so each click restarts the timeout
+  const [copyResult, setCopyResult] = useState<{ copied: boolean; at: number }>();
 
   useEffect(() => {
-    if (copiedAt === undefined) {
+    if (copyResult === undefined) {
       return;
     }
-    const timeout = window.setTimeout(() => setCopiedAt(undefined), copiedDuration);
+    const timeout = window.setTimeout(() => setCopyResult(undefined), copyResultDuration);
     return () => window.clearTimeout(timeout);
-  }, [copiedAt]);
+  }, [copyResult]);
 
-  const copy = () => navigator.clipboard.writeText(link).then(() => setCopiedAt(Date.now()));
+  const copy = () => navigator.clipboard.writeText(link).then(
+    () => setCopyResult({ copied: true, at: Date.now() }),
+    () => setCopyResult({ copied: false, at: Date.now() }));
 
-  // the warning is each control's description, read with it by a screen reader and shown on hover
+  // screen readers may not announce the focused button's new text, so the status says it too
   return (
     <div className="demo-standalone" role="group" aria-label="Standalone link">
       { link.length > longLinkLength && (
@@ -88,14 +88,16 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
           some sites and email programs cut long links short.
         </p>
       ) }
-      <button type="button" onClick={copy} title={standaloneWarning} aria-describedby="demo-standalone-warning">
-        { copiedAt === undefined ? "Copy standalone link" : "Copied" }
+      <p id="demo-standalone-warning" className="demo-standalone-warning">{ standaloneWarning }</p>
+      <button type="button" onClick={copy} aria-describedby="demo-standalone-warning">
+        { copyResult === undefined ? "Copy" : copyResult.copied ? "Copied" : "Copy failed" }
       </button>
-      <a href={link} target="_blank" rel="noopener noreferrer" title={standaloneWarning}
-        aria-describedby="demo-standalone-warning">
-        Open standalone link
+      <a href={link} target="_blank" rel="noopener noreferrer" aria-describedby="demo-standalone-warning">
+        Open
       </a>
-      <p id="demo-standalone-warning" hidden={true}>{ standaloneWarning }</p>
+      <span role="status" className="demo-visually-hidden">
+        { copyResult && (copyResult.copied ? "Standalone link copied" : "The standalone link couldn't be copied") }
+      </span>
     </div>
   );
 };
