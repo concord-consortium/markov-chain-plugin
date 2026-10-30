@@ -58,6 +58,7 @@ Expected values are computed from the fixture or the plugin's settings, never co
 
 - **R14.1** `.github/workflows/ci.yml` has a `cypress` job: one container, Node from `.nvmrc`, the dev server started and waited for on port 8080, `cypress run` in Chrome, no Cypress Cloud and no Codecov. The commented-out three-container job is deleted.
 - **R14.2** `s3-deploy` needs both `build_test` and `cypress`.
+- **R14.3** `build_test` runs `npx tsc --noEmit -p cypress` after the build, since Cypress runs the tests without checking their types (Maureen E. Zitouni's review on the PR).
 - **R14.3** The job keeps a failed run's screenshots as a workflow artifact.
 
 ### Documentation
