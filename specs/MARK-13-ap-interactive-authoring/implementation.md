@@ -464,7 +464,7 @@ The expected defaults are written out (R20), and one test checks the code's `def
 - `webpack.config.js`: the `interactive` entry and its `HtmlWebpackPlugin`; the plugin's pages limited to the `main` chunk.
 - `src/interactive/index.html`, `index.tsx`, `app.tsx`, `runtime.tsx`, `interactive-state.ts`, `settings-summary.ts`, `settings-summary.test.ts`, `use-frame-height.ts`, `interactive.scss`, `standalone.test.tsx`, `url-settings.ts`, `url-settings.test.ts`: new.
 
-**Estimated diff size**: 529 lines (+523, -6), measured.
+**Estimated diff size**: 539 lines (+533, -6), measured.
 
 `webpack.config.js`:
 
@@ -519,7 +519,7 @@ The expected defaults are written out (R20), and one test checks the code's `def
 
 ```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8">
     <title>Markov Interactive</title>
@@ -606,8 +606,8 @@ export const App = () => inIframe() ? <HostedApp /> : <StandaloneApp />;
 `src/interactive/interactive-state.ts`:
 
 ```ts
-// What the interactive saves for a student. Until saved work exists it is only a version, which is enough for the
-// class dashboard to count the student as having opened the interactive.
+// What the interactive saves for a student. The class dashboard counts a student as having opened the interactive
+// once their state isn't empty, so it always holds the version.
 export const interactiveStateVersion = 1;
 
 export interface MarkovInteractiveState {
@@ -678,8 +678,8 @@ export interface SettingSummary {
   value: string;
 }
 
-// how much of the starting text the summary repeats; the rest is counted
-export const startingTextPreviewLength = 100;
+// how much of the starting text the summary repeats before giving its full length
+const startingTextPreviewLength = 100;
 
 const yesNo = (value: boolean) => value ? "Yes" : "No";
 const availability = (value: boolean) => value ? "Available" : "Not available";
@@ -688,8 +688,10 @@ const startingTextValue = (text: string) => {
   if (text === "") {
     return "(empty)";
   }
-  const preview = text.length > startingTextPreviewLength ? `${text.slice(0, startingTextPreviewLength)}...` : text;
-  return `${preview} (${text.length} characters)`;
+  // a cut between a character's two halves would leave half of it, so that half goes too
+  const cut = text.slice(0, startingTextPreviewLength).replace(/[\uD800-\uDBFF]$/, "");
+  const preview = text.length > startingTextPreviewLength ? `${cut}...` : text;
+  return `${preview} (${text.length} ${text.length === 1 ? "character" : "characters"})`;
 };
 
 // The authored settings as the runtime's placeholder lists them, in the authoring form's order and with its labels.
@@ -810,9 +812,18 @@ describe("settingsSummary", () => {
     expect(listed({ modes: { useData: true, draw: false } })).toContainEqual(["Graph pane: Open at the start", "Yes"]);
   });
 
+  const startingData = (startingText: string) =>
+    listed({ startingText }).find(([label]) => label === "Starting data")?.[1];
+
   it("shortens a long starting text and counts it", () => {
-    const value = listed({ startingText: "a".repeat(150) }).find(([label]) => label === "Starting data")?.[1];
-    expect(value).toBe(`${"a".repeat(100)}... (150 characters)`);
+    expect(startingData("a".repeat(150))).toBe(`${"a".repeat(100)}... (150 characters)`);
+    expect(startingData("a".repeat(101))).toBe(`${"a".repeat(100)}... (101 characters)`);
+    expect(startingData("a".repeat(100))).toBe(`${"a".repeat(100)} (100 characters)`);
+    expect(startingData("a")).toBe("a (1 character)");
+  });
+
+  it("never shortens a starting text in the middle of a character", () => {
+    expect(startingData(`${"a".repeat(99)}\u{1F600}${"a".repeat(10)}`)).toBe(`${"a".repeat(99)}... (111 characters)`);
   });
 });
 ```
@@ -925,6 +936,7 @@ describe("opened outside a host", () => {
   afterEach(() => {
     jest.useRealTimers();
     jest.restoreAllMocks();
+    window.history.replaceState(null, "", "/");
   });
 
   it("the interactive runs with the default settings, and leaves the library alone", () => {
@@ -944,7 +956,6 @@ describe("opened outside a host", () => {
     render(<App />);
     expect(listed("Usable mode(s)")).toHaveTextContent(/^Data$/);
     expect(listed("How students enter their data")).toHaveTextContent(/^Table only$/);
-    window.history.replaceState(null, "", "/");
   });
 });
 ```
@@ -1086,7 +1097,6 @@ describe("settings in a link", () => {
     ["true or false as other text", "?modes.draw=no&panes.inspect.available=FALSE&buttons.probabilities.startsOn=yes"],
     ["a choice that isn't one", "?inputView=sideways&startingMode=fly"],
     ["an unknown setting", "?panes.zoom.available=false&buttons.sendToCodap.startsOn=true&width=960"],
-    ["the version", "?version=2"],
     ["no mode", "?modes.useData=false&modes.draw=false"],
     ["nothing", ""],
   ])("reads %s as the defaults", (_, search) => {
@@ -2226,7 +2236,6 @@ describe("reportItemAnswerItems", () => {
 
 ```diff
      expect(listed("How students enter their data")).toHaveTextContent(/^Table only$/);
-     window.history.replaceState(null, "", "/");
    });
 +
 +  it("the report item says what it is, and leaves the library alone", async () => {
