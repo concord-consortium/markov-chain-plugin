@@ -3,7 +3,6 @@ $authoring-width: 435px;
 // Concord's dark teal, 7:1 against white as text or as a background under white text
 $teal: #016082;
 
-// read by a screen reader, but not shown
 %visually-hidden {
   position: absolute;
   width: 1px;
@@ -128,7 +127,6 @@ $teal: #016082;
   }
 }
 
-// the page's title, with the standalone link's buttons at its right
 .demo-header {
   display: flex;
   flex: none;

@@ -64,8 +64,8 @@ const standaloneWarning = "Standalone link to use outside Activity Player:";
 const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
   const link = new URL(`interactive.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
     window.location.href).href;
-  // the time is a new value for each click, so each click restarts the timeout
-  const [copyResult, setCopyResult] = useState<{ copied: boolean; at: number }>();
+  // a new object for each click, so each click restarts the timeout
+  const [copyResult, setCopyResult] = useState<{ copied: boolean }>();
 
   useEffect(() => {
     if (copyResult === undefined) {
@@ -76,8 +76,8 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
   }, [copyResult]);
 
   const copy = () => navigator.clipboard.writeText(link).then(
-    () => setCopyResult({ copied: true, at: Date.now() }),
-    () => setCopyResult({ copied: false, at: Date.now() }));
+    () => setCopyResult({ copied: true }),
+    () => setCopyResult({ copied: false }));
 
   // screen readers may not announce the focused button's new text, so the status says it too
   return (

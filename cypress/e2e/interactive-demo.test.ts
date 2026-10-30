@@ -33,7 +33,9 @@ describe("the interactive's demo page", () => {
     runtimeFrameWidth().should("equal", 1044);
   });
 
-  it("scrolls the authoring form on its own, at LARA's authoring column's width", () => {
+  it("scrolls each column on its own, with the authoring form at LARA's authoring column's width", () => {
+    // short enough that both columns are taller than the window
+    cy.viewport(1400, 400);
     cy.visit("/demo.html");
     frameBody("Authoring").find("#startingText");
     cy.get("iframe[title=\"Authoring\"]").invoke("outerWidth").should("equal", 435);
@@ -42,9 +44,8 @@ describe("the interactive's demo page", () => {
       .scrollTo("bottom");
     cy.get(".demo-authoring").should(column => expect(column[0].scrollWidth).to.equal(column[0].clientWidth));
     cy.get(".demo-authoring").invoke("scrollTop").should("be.greaterThan", 0);
-    cy.window().its("scrollY").should("equal", 0);
-    cy.get(".demo-runtime").invoke("scrollTop").should("equal", 0);
-    cy.get("h1").should("be.visible");
+    cy.get(".demo-runtime").should(column => expect(column[0].scrollHeight).to.be.greaterThan(column[0].clientHeight));
+    cy.document().should(doc => expect(doc.documentElement.scrollHeight).to.equal(doc.documentElement.clientHeight));
   });
 
   it("opens at the width its link names, and puts a chosen width in the link", () => {
