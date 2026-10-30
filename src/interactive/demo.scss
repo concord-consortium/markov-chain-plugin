@@ -159,6 +159,12 @@ $teal: #016082;
       outline: 2px solid white;
       outline-offset: 2px;
     }
+
+    &:disabled,
+    &[aria-disabled="true"] {
+      opacity: 0.6;
+      cursor: default;
+    }
   }
 }
 

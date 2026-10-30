@@ -162,6 +162,17 @@ describe("the interactive's demo page", () => {
     frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(1000)).type("b");
     standaloneLink().invoke("attr", "href").its("length").should("be.greaterThan", 2000);
     cy.get(".demo-standalone-long").should("contain.text", "longer than 2,000 characters");
+    cy.get(".demo-standalone button").should("be.enabled");
+  });
+
+  it("offers no link the deployed site would refuse", () => {
+    cy.visit("/demo.html");
+    frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(4100)).type("b");
+    cy.get(".demo-standalone-long").should("contain.text", "too long to open")
+      .and("contain.text", "over 8,192 characters");
+    cy.get(".demo-standalone button").should("be.disabled");
+    standaloneLink().should("have.attr", "aria-disabled", "true");
+    standaloneLink().should("not.have.attr", "href");
   });
 
   // Electron's window.open gives Cypress no window; the CI job runs Chrome

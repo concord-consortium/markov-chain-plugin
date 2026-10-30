@@ -5,7 +5,7 @@ import { readAuthoredState } from "./authored-state";
 import { demoWidths, DemoWidthId, readDemoWidth } from "./demo-widths";
 import { HostedMode, initInteractiveMessage } from "./host-messages";
 import { placeholderReportHtml } from "./report-item-answer";
-import { longLinkLength, searchFromAuthoredState } from "./url-settings";
+import { longLinkLength, maxLinkPathLength, searchFromAuthoredState } from "./url-settings";
 
 import "./interactive.scss";
 import "./demo.scss";
@@ -62,8 +62,10 @@ const standaloneWarning = "Standalone link to use outside Activity Player:";
 // The interactive opened on its own with the authoring form's settings, for a collection page or any page outside
 // the Activity Player. The link is beside this page, so it names the same branch or version.
 const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
-  const link = new URL(`interactive.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
-    window.location.href).href;
+  const url = new URL(`interactive.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
+    window.location.href);
+  const link = url.href;
+  const tooLong = url.pathname.length + url.search.length > maxLinkPathLength;
   const [copyResult, setCopyResult] = useState<{ copied: boolean }>();
 
   useEffect(() => {
@@ -87,17 +89,23 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
   // screen readers may not announce the focused button's new text, so the status says it too
   return (
     <div className="demo-standalone" role="group" aria-label="Standalone link">
-      { link.length > longLinkLength && (
+      { tooLong ? (
+        <p className="demo-standalone-long">
+          This link is too long to open: the deployed site refuses links over
+          { " " }{ maxLinkPathLength.toLocaleString("en-US") } characters. Shorten the starting text to make one.
+        </p>
+      ) : link.length > longLinkLength && (
         <p className="demo-standalone-long">
           This link is longer than { longLinkLength.toLocaleString("en-US") } characters, mostly its starting text, and
           some sites and email programs cut long links short.
         </p>
       ) }
       <p id="demo-standalone-warning" className="demo-standalone-warning">{ standaloneWarning }</p>
-      <button type="button" onClick={copy} aria-describedby="demo-standalone-warning">
+      <button type="button" onClick={copy} disabled={tooLong} aria-describedby="demo-standalone-warning">
         { copyResult === undefined ? "Copy" : copyResult.copied ? "Copied" : "Copy failed" }
       </button>
-      <a href={link} target="_blank" rel="noopener noreferrer" aria-describedby="demo-standalone-warning">
+      <a href={tooLong ? undefined : link} aria-disabled={tooLong || undefined} target="_blank"
+        rel="noopener noreferrer" aria-describedby="demo-standalone-warning">
         Open
       </a>
       <span role="status" className="demo-visually-hidden">

@@ -7,6 +7,8 @@ import { defaultAuthoredState, isRecord, MarkovAuthoredState, readAuthoredState 
 
 // a link longer than this may be cut short by the sites and programs it is pasted into
 export const longLinkLength = 2000;
+// the deployed site refuses a request whose path and query are longer than this, with 414 URI Too Long
+export const maxLinkPathLength = 8192;
 
 type Leaf = [string[], unknown];
 
