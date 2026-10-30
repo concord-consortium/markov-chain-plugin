@@ -139,7 +139,7 @@ MARK-13 is the first of the AP interactive stories (MARK-13 to MARK-19, feature 
 ### CI and documentation
 
 - **R23.** The existing CI jobs build, test and deploy the interactive: `build_test` runs the new Jest tests, `cypress` runs the new Cypress tests, and `s3-deploy` deploys `interactive.html`, `report-item.html` and `demo.html` with the plugin. No job is added or changed.
-- **R24.** The README has a section on the Markov Interactive: its deployed URLs for a branch and a version, the Demo and Standalone Authoring page (`demo.html`) with its `?width=` parameter and its standalone link, settings in a standalone URL and that the Activity Player ignores them, how to open it in development, and how to add it to a LARA page before it is a library interactive (an Interactive IFrame item with "Enable save state" on and `report-item.html` as its report item URL), which a library interactive's own settings replace once it is released.
+- **R24.** The README has a section on the Markov Interactive: its deployed URLs for a branch and a version, the Demo and Standalone Authoring page (`demo.html`) with its `?width=` parameter and its standalone link, settings in a standalone URL and that the Activity Player ignores them, how to open it in development, and how to add it to a LARA page before it is a library interactive (an Interactive IFrame item with "Enable save state" on and the report item's full URL as its report item URL, since the class dashboard reads a relative one against its own address), which a library interactive's own settings replace once it is released.
 - **R25.** Dependency and lockfile changes are in a commit of their own, separate from code changes.
 
 ### Done when
