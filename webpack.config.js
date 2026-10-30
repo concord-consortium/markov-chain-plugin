@@ -31,10 +31,12 @@ module.exports = (env, argv) => {
       allowedHosts: 'all',
     },
     devtool: devMode ? 'eval-cheap-module-source-map' : 'source-map',
-    // the Cypress tests' fake CODAP page is served by the dev server only, never deployed
-    entry: devMode
-      ? { main: './src/index.tsx', 'fake-codap': './cypress/fake-codap/fake-codap.ts' }
-      : './src/index.tsx',
+    entry: {
+      main: './src/index.tsx',
+      interactive: './src/interactive/index.tsx',
+      // the Cypress tests' fake CODAP page is served by the dev server only, never deployed
+      ...(devMode ? { 'fake-codap': './cypress/fake-codap/fake-codap.ts' } : {}),
+    },
     mode: 'development',
     output: {
       path: path.resolve(__dirname, 'dist'),
@@ -152,7 +154,13 @@ module.exports = (env, argv) => {
         template: 'src/index.html',
         favicon: 'src/public/favicon.ico',
         publicPath: '.',
-        excludeChunks: ['fake-codap'],
+        chunks: ['main'],
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'interactive.html',
+        template: 'src/interactive/index.html',
+        publicPath: '.',
+        chunks: ['interactive'],
       }),
       ...(devMode ? [new HtmlWebpackPlugin({
         filename: 'fake-codap.html',
@@ -164,7 +172,8 @@ module.exports = (env, argv) => {
         filename: 'index-top.html',
         template: 'src/index.html',
         favicon: 'src/public/favicon.ico',
-        publicPath: DEPLOY_PATH
+        publicPath: DEPLOY_PATH,
+        chunks: ['main'],
       })] : []),
       new CleanWebpackPlugin(),
     ]
