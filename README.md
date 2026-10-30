@@ -123,8 +123,10 @@ a version's URL.
 Until it is released, add it to a LARA page as an Interactive IFrame item with the interactive's URL (in development,
 `http://localhost:8080/interactive.html` works in Chrome, which lets an `https` page frame `localhost`). In the item's
 Advanced Options, check "Enable save state", without which the Activity Player saves nothing and the class dashboard
-never shows the student, and set "Report Item URL" to `report-item.html`. Once released, it becomes a library
-interactive in LARA, which carries these settings itself, so they aren't set on each item.
+never shows the student, and set "Report Item URL" to the report item's full URL, such as
+`https://models-resources.concord.org/markov-chain-plugin/branch/<name>/report-item.html`: the class dashboard reads a
+relative one against its own address, not the interactive's. Once released, it becomes a library interactive in LARA,
+which carries these settings itself, so they aren't set on each item.
 
 To try it without LARA or an activity, open `demo.html` beside it, for example
 `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/demo.html`. It shows the authoring form at
