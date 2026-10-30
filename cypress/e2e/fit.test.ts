@@ -35,6 +35,12 @@ describe("Fit and recenter", () => {
         const scale = /scale\(([^)]+)\)/.exec(zoomed!)![1];
         cy.plugin().find("button[title='Recenter View']").click();
         rootTransform().should("contain", `scale(${scale})`).and("not.equal", zoomed);
+        cy.plugin().find(".graph > svg").then(svg => {
+          const view = svg[0].getBoundingClientRect();
+          const graph = svg[0].querySelector("g.root")!.getBoundingClientRect();
+          expect(graph.left + graph.width / 2, "graph center x").to.be.closeTo(view.left + view.width / 2, 10);
+          expect(graph.top + graph.height / 2, "graph center y").to.be.closeTo(view.top + view.height / 2, 10);
+        });
       });
     });
   });

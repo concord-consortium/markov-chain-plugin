@@ -17,11 +17,13 @@
 import "@cypress/code-coverage/support";
 import "./commands";
 
-// errors thrown in the plugin's frame don't reach Cypress, so each test checks the ones the fake CODAP page kept
+// errors thrown in the plugin's frame don't reach Cypress, so each test checks the ones the fake CODAP page kept,
+// and the requests it had no reply for, which would otherwise pass unnoticed
 afterEach(() => {
   cy.window().then(win => {
     if (win.fakeCodap) {
       expect(win.fakeCodap.errors, "errors in the plugin").to.deep.equal([]);
+      expect(win.fakeCodap.unhandled, "requests the fake CODAP page does not handle").to.deep.equal([]);
     }
   });
 });

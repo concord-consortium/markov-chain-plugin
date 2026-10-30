@@ -23,6 +23,14 @@ describe("Loading", () => {
         cy.startPlugin({ savedState: state });
         cy.plugin().find("button[title='Add State']").should("exist");
         cy.plugin().find("g.node").should("have.length", state.nodes.length);
+        cy.plugin().find("g.node text").should("have.length", state.nodes.length).then(texts => {
+          const drawn = texts.toArray().map(text => ({ text: text.textContent!, label: (text as any).__data__.label }));
+          expect(drawn.map(d => d.label)).to.have.members(state.nodes.map((n: any) => n.label));
+          drawn.forEach(({ text, label }) => {
+            const shown = text.endsWith("...") ? label.startsWith(text.slice(0, -3)) : text === label;
+            expect(shown, `"${text}" shows "${label}"`).to.equal(true);
+          });
+        });
         cy.plugin().find("line.edge").should("have.length", transitions.length);
       });
     });
