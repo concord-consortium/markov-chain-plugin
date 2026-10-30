@@ -1,47 +1,12 @@
 # The Markov AP Interactive, with Authoring
 
 **Jira**: https://concord-consortium.atlassian.net/browse/MARK-13
-**Repo**: https://github.com/concord-consortium/markov-chain-plugin
-**Implementation Spec**: [implementation.md](implementation.md)
-**Status**: **In Development**
+
+**Status**: **Closed**
 
 ## Overview
 
 Add a second app to this repo, the Markov Interactive, that runs in the Activity Player instead of CODAP. In this story it has an authoring form for every setting in Rebecca's AP spec, a placeholder student view that lists the settings, a placeholder teacher-dashboard answer, and a demo page that shows the form and the student view side by side, so activities can be authored while the student view is designed. The CODAP plugin and its deployed files do not change.
-
-## Project Owner Overview
-
-Rebecca's Markov Tech Specs (AP) doc moves the Markov chain work out of CODAP and into an Activity Player interactive with a new design, while the CODAP plugin stays exactly as it is for the ELA module. This story is the first piece of that interactive: an author can add "Markov Interactive" to an activity page in LARA, choose which modes, panes and buttons students get and which start open, pick the input view and capitalization, set how "Order matters" starts and whether students can change it, and type the starting text (for example a large bag of words). Every choice is saved with the activity.
-
-Students who open the interactive see "Markov interactive: coming soon" with the author's settings listed, so authors and Rebecca can check that each setting was saved. The class dashboard shows the student as having opened it, with a placeholder answer, so the dashboard is wired up for the summary story later. Opened on its own, outside the Activity Player (for example from a link on a collection page), it shows the same placeholder with the settings its link gives, the default for any it doesn't, and saves nothing; inside the Activity Player, settings in its link are ignored. A demo and standalone authoring page shows the authoring form and the student view side by side at the widths the Activity Player gives them, so anyone can try it from a link without LARA or an activity, and a link can open it at a chosen page width. In its header, it gives the standalone link for the current settings, to copy or open, with a warning that the link is for use outside the Activity Player only. The student view itself is designed with Rebecca after this story is built, and built in the stories that follow, for an interactive that spans the full width of an Activity Player page.
-
-## Background
-
-MARK-13 is the first of the AP interactive stories (MARK-13 to MARK-19, feature stories 1 to 7 in the stream's `feature-stories-draft.md`). It stacks on the "before the features" stories: master, MARK-6, MARK-20, MARK-8, MARK-9, MARK-10, MARK-11 and MARK-12. This branch sits on MARK-12's, so all of them are implemented, and MARK-11's and MARK-12's closed specs are in `specs/`. This spec relies on what they landed: React 19.3 with `createRoot` and ts-loader's `configFile` (MARK-12), MARK-11's dev-only `fake-codap.html` webpack entry, fake-CODAP page, Cypress configuration and `cypress` CI job, and MARK-10's `build_test` CI job. Code is cited as it is in this checkout.
-
-### What the Jira story says, checked
-
-- **"A new build entry with its own HTML file, deployed beside the plugin."** Correct, with one condition: the plugin's deployed files must not change, because the ELA module loads them. Adding two production entries (`interactive` and `report-item`) to `webpack.config.js`, with the plugin's two HTML files limited to the plugin's chunk, gave a production `dist/` whose plugin files are byte-identical (measured, Technical Notes). The one difference is a field inside the plugin's source map, which nothing loads.
-- **"Initialized with `@concord-consortium/lara-interactive-api` (runtime and authoring modes, authored and interactive state)."** Correct. The newest release, 1.15.0, works with React 19.3.1 and the versions MARK-12 installed (Technical Notes). LARA shows an interactive's authoring form only after the interactive reports `authoredState` among its supported features (`interactive-authoring.tsx:41` in LARA), so that call is required, not optional. The Activity Player only sends `runtime` and `report` modes. Authoring mode comes from LARA alone.
-- **"Every setting from the spec saved in authored state."** Correct. The settings come from Rebecca's doc ("AP aspects needed"; "Refactor the two modes", item 1), her answers (capitalization is an author setting, first choice; the starting text, from "Decided unless you object") and her Slack thread of 2026-10-27 ("Order matters" starts on or off and the author decides whether students see the switch; a "Data / Draw" switch appears when both modes are on). The tracker records all of these. The doc does not list the panes and buttons by name. The list here (R6) is taken from the doc's layout and features.
-- **"The runtime shows a placeholder with the authored settings listed."** Correct. For the student to appear in the dashboard at all, the runtime must also save interactive state. An answer exists only after the interactive sends interactive state, and an empty `{}` counts as no answer (portal-report `answer-utils.ts:180-202`). So the placeholder saves a small, non-empty state (R12).
-- **"A report-item build entry that answers the class dashboard with placeholder compact and full answers."** Partly correct. The interactive does not declare its report item's URL; LARA holds it with the interactive's own URL. The dashboard grid draws its own answered or not-answered icon and uses only a `score` item from a compact answer (portal-report `answer-compact.tsx:56-57, 82-85`), so a placeholder compact answer shows nothing extra. A placeholder full answer shows when a teacher opens the student's answer. Both are still answered, so the wiring is in place for MARK-19.
-- **"Opened directly, outside the Activity Player, the interactive runs with the settings given in its URL, one readable parameter per setting, and the default for any not given, and saves nothing. Inside the Activity Player, URL settings are ignored."** Correct, as a requirement of its own: an interactive that waits for its host's init message shows "Loading..." forever when opened directly, and the library logs "Interactive API is meant to be used in iframe" (measured in Chrome). So the interactive tells the two cases apart before it renders, and only the standalone case reads its URL (R14, Technical Notes).
-- **"Demo and standalone authoring page ... a link to the interactive running standalone with the current settings, to copy or open."** Correct (R16). The link is built from the same list of settings the URL is read with, so the two can't disagree, and a Cypress test opens it to check (R21).
-- **"Logs the interactions it adds and starts `LOGGED-EVENTS.md`."** This story adds no interaction to log: the runtime is a placeholder, and authoring isn't logged. `LOGGED-EVENTS.md` starts with the first story that logs an event (R19).
-
-### Prior art looked at
-
-- **question-interactives** (`~/projects/question-interactives`, lara-interactive-api 1.14.0, React 17): the base app's mode switch, `setSupportedFeatures({interactiveState: true, authoredState: true})`, a `version` field on every authored state, a separate report-item entry per package using `useReportItem`, saving authored state on every change, and a container-based height hook. Its authoring forms are react-jsonschema-form with Bootstrap 3 styles. Taken: the layout conventions (Technical Notes, "Authoring form layout"), not the form framework.
-- **sensor-interactive** (`~/projects/sensor-interactive`): a plain React authoring form with one exported `defaultAuthoredState` shared by authoring and runtime, and a small update helper using `setAuthoredState`'s updater form. The simplest fitting pattern, and the one followed here, with controlled inputs throughout.
-- **tecrock-table**: its report-item entry uses `useReportItem`, cleaner than sensor-interactive's hand-written listener. **vortex**: a runtime `version` check and a defensive parse of authored state delivered as a JSON string. **hurricane-model** and **mass-sims**: lara-interactive-api already runs on React 19 in Concord repos.
-- **Also looked at**, with nothing to take for authoring: activity-player (the host; it never sends authoring mode), dynamic-text and collaborative-learning (no authoring), alaskan-simulations and erosion-interactive (stubs), tecrock-simulation (a page that builds a URL to paste), geocode and sage-modeler-site (raw iframe-phone), wildfire, flooding and forestfire (URL parameters only). No model repo has a Cypress test with a fake Activity Player parent. question-interactives' `wrapper` package is the only one, and the fake AP page here follows its approach.
-
-### Where the next stories build
-
-- **MARK-14** (shared components) splits the plugin's UI and logic from its CODAP wiring. MARK-13 imports nothing from the plugin's components and changes none of them, so MARK-14's split starts from the plugin as it is.
-- **MARK-15 to MARK-18** read the authored state (R4 to R9) and add settings to it without breaking saved activities (R10). The runtime placeholder is replaced by the real student view, whose design is settled with Rebecca after this story is built.
-- **MARK-16** adds the "Data / Draw" switch and the "Order matters" switch, both driven by settings here, and opens Draw mode with the Graph pane open whatever its Data starting state (R6). **MARK-17** replaces the placeholder interactive state with saved work and adds the history scrubber's read-only view. **MARK-19** fills in the report item's placeholder answers.
 
 ## Requirements
 
@@ -138,13 +103,13 @@ MARK-13 is the first of the AP interactive stories (MARK-13 to MARK-19, feature 
 
 ### CI and documentation
 
-- **R23.** The existing CI jobs build, test and deploy the interactive: `build_test` runs the new Jest tests, `cypress` runs the new Cypress tests, and `s3-deploy` deploys `interactive.html`, `report-item.html` and `demo.html` with the plugin. No job is added or changed.
+- **R23.** The existing CI jobs build, test and deploy the interactive: `build_test` runs the new Jest tests, `cypress` runs the new Cypress tests, and `s3-deploy` deploys `interactive.html`, `report-item.html` and `demo.html` with the plugin. No job is added or changed. *(After the first push; see Not Yet Implemented.)*
 - **R24.** The README has a section on the Markov Interactive: its deployed URLs for a branch and a version, the Demo and Standalone Authoring page (`demo.html`) with its `?width=` parameter and its standalone link, settings in a standalone URL and that the Activity Player ignores them, how to open it in development, and how to add it to a LARA page before it is a library interactive (an Interactive IFrame item with "Enable save state" on and the report item's full URL as its report item URL, since the class dashboard reads a relative one against its own address), which a library interactive's own settings replace once it is released, and that the class dashboard needs "Activity Player Class Dashboard" chosen as an external report in the activity's portal settings either way.
 - **R25.** Dependency and lockfile changes are in a commit of their own, separate from code changes.
 
 ### Done when
 
-- **R26.** On the branch deploy: an author adds "Markov Interactive" to an activity page, sets every option, saves, and on reopening sees every setting as saved; a student run in the Activity Player shows the placeholder with those settings; and the class dashboard shows that student as having answered, with the placeholder full answer when the answer is opened. Opened directly from the branch deploy, `interactive.html` shows the placeholder with the default settings, a link copied from the demo page opens it with that link's settings, and `report-item.html` shows its message. *(Checked by hand on the branch deploy, recorded in the PR.)*
+- **R26.** On the branch deploy: an author adds "Markov Interactive" to an activity page, sets every option, saves, and on reopening sees every setting as saved; a student run in the Activity Player shows the placeholder with those settings; and the class dashboard shows that student as having answered, with the placeholder full answer when the answer is opened. Opened directly from the branch deploy, `interactive.html` shows the placeholder with the default settings, a link copied from the demo page opens it with that link's settings, and `report-item.html` shows its message. *(Partial: everything but the direct opens was checked on learn staging against the local dev server; the branch-deploy checks follow the push. See Not Yet Implemented.)*
 
 ## Technical Notes
 
@@ -233,6 +198,18 @@ Taken from question-interactives' forms (react-jsonschema-form's markup with Boo
 | The library's hooks and `setAuthoredState` (sent at once) vs `setInteractiveState` (debounced 2 s) | `~/projects/lara/lara-typescript/src/interactive-api-client/hooks.ts`, `api.ts:83-154` |
 | The dashboard's compact and full report item requests | `~/projects/portal-report/js/containers/portal-dashboard/answer-compact.tsx`, `js/reducers/report-reducer.ts:307-348`, `js/components/report/iframe-answer.tsx` |
 
+### On LARA, the Activity Player and the class dashboard (checked on learn staging, 2026-10-30)
+
+Activity 1521 on LARA staging, "MARK-13 Markov Interactive authoring test (localhost)", an Interactive IFrame item pointed at the local dev server (Chrome lets an `https` page frame `localhost`):
+
+- **Authoring:** the form loads in LARA's Authoring tab, each change saves, and the settings come back after a reload. The authoring frame was 415 px wide in a narrow window.
+- **Runtime:** the Activity Player gives a full-width Standard item 1,044 px, and the frame is exactly the reported height; the space under the placeholder is the Activity Player's wrapper (16 px) and the placeholder's own padding.
+- **Saving:** a plain Interactive IFrame needs "Enable save state" in Advanced Options; without it the Activity Player never hands back the state, and the runtime saves `{ version: 1 }` on every visit. With it, one save on the first visit and none after, for an author preview with a `runKey` and for a logged-in student.
+- **The dashboard:** the activity needs "Activity Player Class Dashboard" as an external report in the portal; the student shows as answered and the full answer shows the placeholder. The item's Report Item URL must be a full URL: portal-report resolved `report-item.html` against its own address. With the `links` item, "Open in new tab" opens portal-report's answer page, which starts the interactive in `report` mode.
+- LARA's narrow Preview pane (261 px) squeezes the placeholder's two-column list badly; the Activity Player isn't affected, and R18 only asks the placeholder to be fluid.
+
+The README's Markov Interactive section records the item and portal settings, and that a library interactive will carry the item settings once released.
+
 ## Out of Scope
 
 - **The student view** (MARK-15 onward): its layout, the input text and table, the tokenizer, the graph, Inspect, the generator, the two switches and every behavior the settings will control. Its design is mocked up and settled with Rebecca after this story is built.
@@ -247,119 +224,168 @@ Taken from question-interactives' forms (react-jsonschema-form's markup with Boo
 - **The plugin's version number and the release process.**
 - **Authoring for drawing mode's tools**: Rebecca's answer is all tools on, so there is nothing to set.
 
-## Open Questions
+## Not Yet Implemented
 
-<!-- Requirements-focused questions only (scope, acceptance criteria, business rules).
-     Implementation questions go in implementation.md. -->
+- **R23, CI on the first push:** `build_test`, `cypress` and `s3-deploy` on GitHub, and `interactive.html`, `report-item.html` and `demo.html` returning 200 from `https://models-resources.concord.org/markov-chain-plugin/branch/ap-interactive-authoring/`. The branch isn't pushed yet.
+- **R26, on the branch deploy:** opening `interactive.html` and `report-item.html` directly from the branch URL, and a link copied from the branch's demo page. The rest of R26 (authoring, saving and reopening, the Activity Player runtime, a student run and the class dashboard with its full answer) was checked on learn staging against the local dev server, not the branch deploy.
 
-### RESOLVED: Judgment call: where the interactive's pages are deployed
-**Context**: question-interactives deploys each interactive in its own folder with a `report-item/` subfolder. This repo deploys the plugin's `index.html` at the root of `dist/`.
+## Decisions
+
+### Where the interactive's pages are deployed
+**Context**: question-interactives deploys each interactive in its own folder with a `report-item/` subfolder; this repo deploys the plugin's `index.html` at the root of `dist/`.
 **Options considered**:
 - A) `interactive.html` and `report-item.html` at the root of `dist/`, beside `index.html`.
 - B) An `interactive/` folder with `index.html` and `report-item/index.html`.
 
-**Decision**: A. The pages load `./assets/...` with the same `publicPath: '.'` the plugin's page uses, the report item's URL is a sibling of the interactive's, so LARA's "relative to the base URL" works if it ever does, and nothing about the plugin's deploy moves. B needs a different `publicPath` per folder and gains nothing a reader would notice.
+**Decision**: A. The pages load `./assets/...` with the plugin's `publicPath: '.'`, the report item is a sibling of the interactive, and nothing about the plugin's deploy moves. B needs a `publicPath` per folder for no visible gain.
 
-### RESOLVED: Judgment call: panes and buttons as keyed records
-**Context**: the student view isn't designed yet, so the list of panes and buttons may grow (R6).
+---
+
+### Panes and buttons as keyed records
+**Context**: the student view isn't designed yet, so the panes and buttons may change (R6).
 **Options considered**:
-- A) `panes` and `buttons` as records keyed by id, each `{ available, startsOpen }` or `{ available, startsOn }`, read with defaults per key (R10).
-- B) A flat field per setting (`inspectAvailable`, `inspectStartsOpen`, ...).
+- A) `panes` and `buttons` as records keyed by id, read with a default per key (R10).
+- B) A flat field per setting.
 
-**Decision**: A. A new pane or button is one key with a default, needs no version change, and the form and the runtime list both draw from the same list of ids and labels.
+**Decision**: A. A new pane or button is one key with a default and needs no version change, and the form and the runtime list draw from one list of ids and labels.
 
-### RESOLVED: Judgment call: what the runtime saves as interactive state
-**Context**: the dashboard shows a student only once interactive state exists and isn't empty (Background).
+---
+
+### What the runtime saves as interactive state
+**Context**: the dashboard shows a student only once interactive state exists and isn't empty.
 **Options considered**:
 - A) `{ version: 1 }` when the interactive opens with none.
-- B) Nothing, and the dashboard shows the student as not answered until MARK-17.
+- B) Nothing, so the student shows as not answered until MARK-17.
 - C) Something richer, such as an "opened at" time.
 
-**Decision**: A. The Jira story's done condition needs the student to appear; B fails it, and C is saved work MARK-17 owns. `version` lets MARK-17 tell its own state from this placeholder.
+**Decision**: A. The story's done condition needs the student to appear; C is saved work, which is MARK-17's. `version` lets MARK-17 tell its state from this placeholder. Checked on learn staging: one save on a student's first visit, none after.
 
-### RESOLVED: Judgment call: the demo ships in production builds
-**Context**: question-interactives builds a `demo.html` for every interactive into its deploys. The Cypress tests already have a dev-only page that hosts the interactive.
+---
+
+### The demo ships in production builds
+**Context**: question-interactives builds a `demo.html` into every deploy; the Cypress tests already have a dev-only host page.
 **Options considered**:
-- A) `demo.html` in every build, beside the interactive, with the fake Activity Player page kept for the tests and the init message they both send built in one shared module.
+- A) `demo.html` in every build, with the fake Activity Player page kept for the tests and the init message built in one shared module.
 - B) A dev-only demo.
 - C) One page for both, with test hooks in it.
 
-**Decision**: A (Doug, 2026-10-29). The project team opens it from any branch or version URL, as with question-interactives. The fake page records messages and starts one mode at a time, which the tests need and a demo shouldn't carry.
+**Decision**: A (Doug). The project team opens it from any branch or version URL. The fake page records messages and starts one mode at a time, which tests need and a demo shouldn't carry.
 
-### RESOLVED: Low confidence: the list of panes and buttons
-**Context**: R6 names four panes and two buttons from the doc's layout and features, but the doc never lists them as authoring settings, and the student view's design is settled with Rebecca after this story. If a pane is merged, renamed or dropped, activities authored on the branch carry a setting that means nothing.
+---
+
+### The list of panes and buttons
+**Context**: R6's four panes and buttons come from the doc's layout and features, not a list of authoring settings, and the student view is designed after this story.
 **Options considered**:
-- A) Ship R6's list; Rebecca checks it when she tries the branch build, before code review (the tracker's rule for feature stories). Changes before release are free, since nothing is released.
+- A) Ship R6's list; Rebecca checks it on the branch build before code review.
 - B) Ask Rebecca for the list before implementation.
-- C) Leave panes and buttons out of MARK-13 and add them in MARK-15 with the layout.
+- C) Leave panes and buttons to MARK-15.
 
-**Decision**: A. The doc's "AP aspects needed" asks for exactly these two choices per pane and button ("will be available", "will start selected"), and its layout names the four panes and the probabilities toggle; Send to CODAP comes from Rebecca's answers. B holds up a story whose settings are reversible until release, and C leaves the Jira story's first authoring bullet undone. Because R10 reads each key with its default, MARK-15 can add a key (for example the generator's collapsible controls, which the doc says students can hide) or drop one before release without a version change. Rebecca sees the list in the form when she tries the branch build.
+**Decision**: A. The doc asks for exactly these two choices per pane and button, R10 reads each key with its default so one can be added or dropped before release without a version change, and C would leave the story's first authoring bullet undone.
 
-### RESOLVED: Low confidence: whether the Graph pane can be made unavailable
-**Context**: R6 lets an author make any pane unavailable, including the Graph, which is the point of the interactive. The doc says the top three panels are collapsible and the author chooses which panes are available, without exceptions.
+---
+
+### Whether the Graph pane can be made unavailable
+**Context**: the doc lets authors choose which panes are available, with no exception, but Draw can't work without the graph.
 **Options considered**:
-- A) The Graph is always available; the author only chooses whether it starts open.
-- B) Every pane, the Graph included, can be unavailable, as the doc says.
+- A) The Graph is always available.
+- B) Every pane can be unavailable.
 
-**Decision**: B, except while Draw is available (Doug, 2026-10-29). The doc puts no exception on "which panes ... will be available", and a Data activity can lean on the Graph's absence (a black box first, or counts only in Inspect): the sequence generator generates from the chain's data, so without the Graph only its animation is lost. Draw can't work without it, since students draw on the graph, so R5 keeps it available while Draw is, and R10 reads a state that breaks that as the Graph available.
-
-### RESOLVED: Decided with Doug: the authoring form's wording, layout and defaults (2026-10-29)
-**Context**: Doug reviewed the form as a clickable mockup in LARA's edit sidebar before it was built.
-**Decision**: settings hide rather than disable (R11). Rebecca then set the wording and layout in her doc's "Authoring" section: one choice of usable modes (Draw, Data, Both) in place of two mode checkboxes, Data settings as a section of their own, an Ordering group, "Starting data", and one "What students can see" section for the panes and buttons (R11). Her comment asking what "Text with a linked table" meant is answered by the label "Linked table and text" and its help text. In a second pass she renamed the mode "Use data" to "Data" wherever authors or students see it (the saved key, URL parameters and code keep `useData`), put each "both" choice last and the table before the text, led the Ordering help with "Order matters" on, and added the Send data buttons group, with the Download data files setting and a plain note on Send to CODAP in place of a warning. Also:
-- The probabilities' starting state stands apart from the toggle, as "Order matters" does, so an author can keep probabilities on without a toggle (R6).
-- Capitalization says whether "The" and "the" are the same word rather than "lowercase", which would promise the student's text is rewritten (R8).
-- Send to CODAP is off by default, with a note, since it needs CODAP on the page (R6).
-
-Rebecca confirmed the defaults on Slack (2026-10-29): both modes, starting in Data, and Send to CODAP off. A changed default later is one value in `defaultAuthoredState` and the tests that write the defaults out.
-
-## Self-Review
-
-Roles: senior engineer, author (education material developer), WCAG accessibility expert, test writer, the PR's reviewer (a developer newer to the repo), and the developer of the stories that build on the authored state. Each finding was checked against the code in this checkout, LARA, the Activity Player or portal-report before it was written.
-
-### Senior Engineer
-
-#### RESOLVED: the starting text could make an activity unsavable
-LARA stores authored state in a MySQL `text` column, 65,535 bytes at most (`db/schema.rb:433`). A pasted book would fail to save or be cut off into JSON that no longer parses. R9 now limits the starting text to 20,000 characters, R11 stops typing at the limit and shows the count near it, and R10 keeps any longer text it is given rather than dropping it. The arithmetic is in Technical Notes.
-
-#### RESOLVED: "with none" didn't say what an empty interactive state is
-portal-report counts `{}` as no answer (`answer-utils.ts:180-202`), so a runtime that only saved on `null` would leave a student stuck at `{}` with no answer. R12 now saves on either.
+**Decision**: B, except while Draw is available (Doug). A Data activity can lean on the Graph's absence; R5 keeps it available with Draw, and R10 reads a state that breaks that as available.
 
 ---
 
-### Author
-
-#### RESOLVED: the Input pane stayed editable with Data off
-R6 makes the Input pane apply to Data only, but R11 only covered the settings grouped under Data, and the Input pane sits under Panes. R11 now leaves the Input pane's row off the page without Data too.
-
-#### RESOLVED: the starting text's effect in table only view was unstated
-An author choosing "table only" would not know whether the starting text applies. R9 now says it applies in every input view, and how it fills the table is MARK-15's.
+### The authoring form's wording, layout and defaults
+**Context**: Doug reviewed the form as a clickable mockup in LARA's edit sidebar; Rebecca then set its wording and layout in her doc's "Authoring" section in two passes.
+**Decision**: settings that don't apply are left off the page rather than disabled (R11). One "Usable mode(s)" choice (Draw, Data, Both) replaces two mode checkboxes; Data settings is a section of its own with an Ordering group and "Starting data"; one "What students can see" section holds the panes and buttons, with a Send data buttons group. The mode is "Data" wherever authors or students see it (the saved key, URL parameters and code keep `useData`). "Both" choices come last and the table before the text. The probabilities' starting state stands apart from the toggle, capitalization says whether "The" and "the" are the same word, and Send to CODAP is off by default with a note. Rebecca confirmed the defaults (2026-10-29): both modes, starting in Data, Send to CODAP off.
 
 ---
 
-### WCAG Accessibility Expert
-
-#### RESOLVED: R11 asked for visible labels but not for labels a screen reader announces
-A label beside a checkbox that isn't tied to it reads as nothing. R11 now ties each label and each help text to its control and requires the form to work from the keyboard in display order. The help text color, `#737373` on white, is 4.7:1, above WCAG AA's 4.5:1.
-
----
-
-### Test Writer
-
-#### RESOLVED: a defaults test could pass by construction
-A Jest test comparing a read of `{}` with the code's own `defaultAuthoredState` passes whatever the defaults are. R20 now writes the expected values out in the test.
+### The standalone link is two buttons in the demo's header
+**Context**: the link was first a read-only field with Copy and Open under the authoring form.
+**Decision**: Doug moved it out of the edit column: "Copy standalone link" and "Open standalone link" at the right of the page's header. The warning is each button's description and hover text, the long-link note sits beside them, and Copy says "Copied" for 2 seconds after each click (R16).
 
 ---
 
-### PR Reviewer
+### The demo's columns scroll on their own
+**Decision**: Doug asked for the edit sidebar to scroll independently. The page is the window's height with the header in view, each column scrolls on its own, and the authoring column's scrollbar takes none of the frame's 435 px (R16).
 
-#### RESOLVED: the form's labels and the runtime's list could drift apart
-R12 says the runtime uses "the same label the authoring form uses", which two hand-written lists would only keep true by care. R11 now takes the labels from one list both use.
+---
 
-### Stage 8: Cross-reference with the implementation spec
+### Report mode shows the placeholder read-only, in MARK-13
+**Context**: the class dashboard's "Open in new tab" opens portal-report's page for one student's answer, which starts the interactive in `report` mode. The spec had left report mode out of scope, so that page showed only "doesn't support report mode yet".
+**Decision**: Doug chose to do it in MARK-13. Report mode shows R12's placeholder with a note that it is a student's work shown read-only, and saves nothing (R13). The real read-only view of saved work stays MARK-17's.
 
-#### RESOLVED: no requirement said the interactive reports its supported features
-The plan's `setSupportedFeatures({ authoredState: true, interactiveState: true })`, and the Cypress test for it, traced to the Background only. LARA shows the authoring form only after it (`interactive-authoring.tsx:41`), so R11 now requires it.
+---
 
-#### RESOLVED: no requirement said how the runtime lists the starting text
-The plan lists the first 100 characters and the length, which R12 didn't ask for. R12 now does, since a 20,000-character text would otherwise fill the placeholder.
+### The library's state hooks, or its plain functions
+**Context**: question-interactives and sensor-interactive use `useAuthoredState` and `useInteractiveState`.
+**Options considered**:
+- A) Read both states from the init message, keep the form's state in React, and send with `setAuthoredState` and `setInteractiveState`.
+- B) The hooks.
 
+**Decision**: A. Both hooks return `null` on their first render, which made the runtime save over an existing state and would flash the defaults in the form. The init message carries both states already.
+
+---
+
+### A fake Activity Player page beside MARK-11's, or one page for both
+**Options considered**:
+- A) A second dev-only page, `fake-ap.html`, sharing MARK-11's configuration, error check and CI job.
+- B) Teach the fake-CODAP page to host the interactive too.
+
+**Decision**: A. The two speak different protocols, so one page would be two in one file. The setup that matters is reused: the dev-only entry, `modifyObstructiveCode: false`, the `afterEach` error check, `cypress/tsconfig.json` and the `cypress` job.
+
+---
+
+### How the round trip opens the standalone link
+**Context**: Cypress runs every page in its runner's frame, where the interactive is hosted and ignores its URL.
+**Options considered**:
+- A) Open the link with `window.open`, a top-level window, in Chrome only.
+- B) Read the link's query with `authoredStateFromSearch` in the test.
+- C) Leave the round trip to Jest.
+
+**Decision**: A. It loads the real page as a collection page's link would. Chrome is the CI job's browser; Electron returns `null` from `window.open` and lists the test as pending.
+
+---
+
+### The report item's CSS
+**Options considered**:
+- A) Share `interactive.scss`.
+- B) A separate stylesheet with only the body rules.
+
+**Decision**: A. The extra rules are a few hundred bytes; MARK-19 can split it when the report item gets its own layout.
+
+---
+
+### URL settings come from the authored state's defaults
+**Decision**: the standalone link's parameters are the leaves of `defaultAuthoredState`, with each default giving its type, and the values go through `readAuthoredState`, so a bad, unknown or missing value reads as its default and a setting added later needs no URL code. Not tecrock-simulation's way, which guesses types from how values look.
+
+---
+
+### Standalone detection is the library's `inIframe()`, not a timeout
+**Decision**: the check answers on the first render, so a page opened directly never shows "Loading..." and a slow host can't be taken for none. The standalone view never calls the library, whose top-level client would warn, hold messages and mark the state unsaved.
+
+---
+
+### The frame height is measured from the root element
+**Decision**: the library's `useAutoSetHeight` includes the frame's own height, so it never shrinks the frame. `useFrameHeight` observes the root element; the body margin is 0 and the root is `display: flow-root`, so the reported height includes everything (on the Activity Player the report matched the root's height exactly).
+
+---
+
+### The report item's full answer has a `links` item
+**Context**: on learn staging the dashboard showed the placeholder but no link to the student's answer page, where the history scrubber is.
+**Decision**: with a Report Item URL set, portal-report offers "Open in new tab" only when the full answer has a `links` item (`iframe-answer.tsx` in portal-report), as question-interactives' report items send. The full answer is `[{ type: "links", hideViewInline: true }, { type: "html", ... }]`; "View Work" stays hidden, since inline it would only repeat the placeholder (R15).
+
+---
+
+### The form and the runtime list share their visibility rules
+**Decision**: `showsStartingMode`, `shownPaneIds` and `showsStartsOpen` in `authored-state.ts` decide what the form leaves off the page and the runtime list leaves out (R12), so the two can't disagree; found in the whole-branch review.
+
+---
+
+### A shortened starting text never splits a character
+**Decision**: the runtime list's 100-character preview drops a trailing lone high surrogate, so an emoji at the cut is left out rather than shown half (R12); the one correctness defect the step reviews found.
+
+---
+
+### Demo colors and focus
+**Decision**: the demo uses Concord's dark teal `#016082` (7:1) from one `$teal` variable, the authoring form keeps the browser's focus ring under its glow (the `#66afe9` border alone is 2.4:1), the disabled checkbox's cursor uses `label:has(input:disabled)`, and the demo frame's edge is an outline so the interactive gets the full 1,044 px.
