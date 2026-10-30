@@ -7,7 +7,7 @@ export type GenerateOptions = {
 
 export const useGenerator = () => {
   const generate = async (graph: GraphData, options: GenerateOptions) => {
-    const {startingNode, lengthLimit} = options;
+    const { startingNode, lengthLimit } = options;
     const generatedResult: Node[] = [];
 
     const chooseRandomNode = () => {

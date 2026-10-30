@@ -37,7 +37,7 @@ export type UseCODAPOptions = {
   setInitialGraph: React.Dispatch<React.SetStateAction<GraphData|undefined>>
 };
 
-export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGraph}: UseCODAPOptions) => {
+export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGraph }: UseCODAPOptions) => {
   const [loadState, setLoadState] = useState<"loading"|"loaded">("loading");
   const [initialized, setInitialized] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -55,7 +55,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
     };
 
     if (viewMode === "drawing") {
-      const {nodes, edges} = getGraph();
+      const { nodes, edges } = getGraph();
       state.values.nodes = nodes;
       state.values.edges = edges;
       state.values.version = 2; // there was no version 1 but set graph returns 1 if there is no version
@@ -75,7 +75,7 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
   };
 
   const handleDataChanged = useCallback(async (codapAttribute: CODAPAttribute, viewModeOverride?: ViewMode ) => {
-    const {datasetName, collectionName, attributeName} = codapAttribute;
+    const { datasetName, collectionName, attributeName } = codapAttribute;
     const values = await getAttributeValues(request => codapInterface.sendRequest(request),
       datasetName, collectionName, attributeName);
     if (!values) {
@@ -96,11 +96,11 @@ export const useCODAP = ({onCODAPDataChanged, getGraph, setGraph, setInitialGrap
       setViewMode(values.viewMode);
 
       if (values.viewMode === "drawing") {
-        const {nodes, edges, version} = values;
+        const { nodes, edges, version } = values;
         if (nodes !== undefined && edges !== undefined) {
-          setGraph({nodes, edges}, version ?? 1);
+          setGraph({ nodes, edges }, version ?? 1);
           // save a copy of the graph
-          setInitialGraph({nodes: nodes.map((n: Node) => ({...n})), edges: edges.map((e: Edge) => ({...e}))});
+          setInitialGraph({ nodes: nodes.map((n: Node) => ({ ...n })), edges: edges.map((e: Edge) => ({ ...e })) });
         }
       } else {
         if (values?.attribute) {

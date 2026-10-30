@@ -56,22 +56,22 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
     return (
       <div className="header expanded" onClick={handleToggleExpanded}>
         <div className="firstItem">
-          <div>Starting State: {startingState}</div>
+          <div>Starting State: { startingState }</div>
           <span className="collapse"><DropdownUpArrowIcon /></span>
         </div>
-        <div>Max Length: {lengthLimit}</div>
-        <div>Delimiter: {delimiter}</div>
+        <div>Max Length: { lengthLimit }</div>
+        <div>Delimiter: { delimiter }</div>
       </div>
     );
   }
 
   return (
     <div className="header collapsed" onClick={handleToggleExpanded}>
-      <span>{startingState}</span>
+      <span>{ startingState }</span>
       <span>/</span>
-      <span>{lengthLimit}</span>
+      <span>{ lengthLimit }</span>
       <span>/</span>
-      <span>{delimiter}</span>
+      <span>{ delimiter }</span>
       <span className="expand"><DropdownDownArrowIcon /></span>
     </div>
   );
@@ -154,7 +154,7 @@ export const App = () => {
   const [confirmModal, setConfirmModal] = useState<IConfirmModal|undefined>(undefined);
   const [graphOpacity, setGraphOpacity] = useState(1);
 
-  const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
+  const handleDimensionChange = ({ width, height }: {width: number, height: number}) => {
     widthRef.current = width;
     heightRef.current = height;
   };
@@ -203,8 +203,7 @@ export const App = () => {
       prevAnimatedSequenceGroups.current = [...sequenceGroups];
       currentAnimatedSequenceGroup.current =
         prevAnimatedSequenceGroups.current[prevAnimatedSequenceGroups.current.length - 1];
-      if (!currentAnimatedSequenceGroup.current ||
-        (currentAnimatedSequenceGroup.current.delimiter !== delimiter) ||
+      if ((currentAnimatedSequenceGroup.current?.delimiter !== delimiter) ||
         (currentAnimatedSequenceGroup.current.lengthLimit !== limit) ||
         (currentAnimatedSequenceGroup.current.startingState !== startingState)) {
         currentAnimatedSequenceGroup.current =
@@ -395,8 +394,8 @@ export const App = () => {
 
   const toggleHighlightOutput = useCallback((group: SequenceGroup, sequence: Node[]) => {
     setSelectedNodeId();
-    if (!highlightOutput || (highlightOutput.group !== group) || (highlightOutput.sequence !== sequence)) {
-      setHighlightOutput({group, sequence});
+    if ((highlightOutput?.group !== group) || (highlightOutput.sequence !== sequence)) {
+      setHighlightOutput({ group, sequence });
     } else {
       setHighlightOutput(undefined);
     }
@@ -419,8 +418,8 @@ export const App = () => {
           <div>
             <label>Starting State:</label>
             <select onChange={handleChangeStartingState} value={startingState} disabled={animating}>
-              <option value="">{AnyStartingState}</option>
-              {sortedNodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+              <option value="">{ AnyStartingState }</option>
+              { sortedNodes.map(n => <option key={n.id} value={n.id}>{ n.label }</option>) }
             </select>
           </div>
 
@@ -444,14 +443,14 @@ export const App = () => {
                 <option value="space">space</option>
                 <option value="other">other ...</option>
               </select>
-              {delimiterType === "other" && <input className="bordered" type="text"
+              { delimiterType === "other" && <input className="bordered" type="text"
                 onChange={handleChangeDelimiter}
                 value={delimiter}
                 placeholder="delimiter"
                 disabled={animating}
-                style={{width: 75, marginTop: 5}}
+                style={{ width: 75, marginTop: 5 }}
                 autoFocus={true}
-              />}
+              /> }
             </div>
           </div>
 
@@ -464,7 +463,7 @@ export const App = () => {
             onClick={onPlayClick}
             disabled={graphEmpty || lengthLimit === undefined}>
             <PlayOrPauseIcon />
-            {playLabel}
+            { playLabel }
           </button>
           <button
             type="button"
@@ -485,29 +484,29 @@ export const App = () => {
         <label>Output:</label>
         <div className="output">
           <div className="inner-output" ref={innerOutputRef}>
-            {sequenceGroups.map((group, i) => {
+            { sequenceGroups.map((group, i) => {
               return (
                 <div className="group" key={i}>
                   <SequenceOutputHeader group={group} />
                   <div className="sequences">
-                    {group.sequences.map((s, j) => (
+                    { group.sequences.map((s, j) => (
                       <div
                         key={j}
                         className={clsx("sequence", {
                           disabled: animating,
                           highlighted: (
-                            highlightOutput && highlightOutput.group === group && highlightOutput.sequence === s
+                            highlightOutput?.group === group && highlightOutput.sequence === s
                           )
                         })}
                         onClick={animating ? undefined : () => toggleHighlightOutput(group, s)}
                       >
-                        {s.map(n => n.label).join(group.delimiter)}
+                        { s.map(n => n.label).join(group.delimiter) }
                       </div>
-                    ))}
+                    )) }
                   </div>
                 </div>
               );
-            })}
+            }) }
           </div>
         </div>
         <div className="buttons">
@@ -550,7 +549,7 @@ export const App = () => {
         setFastSimulation(defaultFastSimulation);
         setGraphOpacity(0);
         setSelectedNodeId();
-        setGraph({nodes: [], edges: []});
+        setGraph({ nodes: [], edges: [] });
         setResetViewAt(Date.now());
         setTimeout(() => {
           const restoredGraph = graphToRestore(viewMode, initialGraph, datasetValuesRef.current);
@@ -570,7 +569,7 @@ export const App = () => {
       title: "Back To Main Menu?",
       message: <>Are you sure you want to go back to the main menu?<br/>Any changes you have made will be lost.</>,
       onOk: () => {
-        setGraph({nodes: [], edges: []});
+        setGraph({ nodes: [], edges: [] });
         setInitialGraph(undefined);
         datasetValuesRef.current = undefined;
         setViewMode(undefined);
@@ -622,8 +621,8 @@ export const App = () => {
 
     return (
       <div className="right">
-        {uiForGenerate()}
-        {sequenceOutput()}
+        { uiForGenerate() }
+        { sequenceOutput() }
       </div>
     );
   };
@@ -632,7 +631,7 @@ export const App = () => {
     <div className={clsx("app", { dragging })}>
       <div className="split">
         <div className="left">
-          {viewMode === "drawing"
+          { viewMode === "drawing"
             ?
               <Drawing
                 graph={graph}
@@ -680,8 +679,8 @@ export const App = () => {
               />
           }
         </div>
-        {maybeRenderRightBar()}
-        {confirmModal && <ConfirmModal {...confirmModal} />}
+        { maybeRenderRightBar() }
+        { confirmModal && <ConfirmModal {...confirmModal} /> }
       </div>
     </div>
   );

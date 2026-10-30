@@ -14,7 +14,7 @@ export const getAttributeValues = async (sendRequest: SendRequest, datasetName: 
       resource: `dataContext[${datasetName}].collection[${collectionName}].caseFormulaSearch[true]`
     });
   } catch (reason) {
-    console.log(`Unable to get cases in ${datasetName} because ${reason}`);
+    console.error(`Unable to get cases in ${datasetName} because ${reason}`);
     return undefined;
   }
   if (!result?.success) {
@@ -34,7 +34,7 @@ export const graphFromValues = (values: string[]): GraphData => {
       if (value !== "") {
         let node = nodes.find(element => element?.label === value);
         if (!node) {
-          node = {id: value, label: value, value: 0};
+          node = { id: value, label: value, value: 0 };
           nodes.push(node);
         }
         node.value++;
@@ -58,5 +58,5 @@ export const graphFromValues = (values: string[]): GraphData => {
     });
   }
 
-  return {nodes, edges};
+  return { nodes, edges };
 };

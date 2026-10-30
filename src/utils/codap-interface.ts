@@ -41,7 +41,7 @@
  *
  */
 
-import {IframePhoneRpcEndpoint} from "iframe-phone";
+import { IframePhoneRpcEndpoint } from "iframe-phone";
 
 let connection: { call: (arg0: any, arg1: (response: any) => void) => void; } | null = null;
 
@@ -115,7 +115,7 @@ function notificationHandler(request: CODAP_Notification, callback: (arg0: { suc
   const action = request.action;
   const resource = request.resource;
   let requestValues = request.values;
-  let returnMessage = {success: true};
+  let returnMessage = { success: true };
 
   connectionState = "active";
   stats.countCodapReq += 1;
@@ -165,7 +165,7 @@ function notificationHandler(request: CODAP_Notification, callback: (arg0: { suc
           (!subscription.operation || subscription.operation === value.operation || (
             Array.isArray(subscription.operation) && subscription.operation.includes(value.operation)
           )) && subscription.handler) {
-          const rtn = subscription.handler({action, resource, values: value});
+          const rtn = subscription.handler({ action, resource, values: value });
           if (rtn?.success) {
             stats.countCodapRplSuccess++;
           } else {
@@ -231,7 +231,7 @@ const codapInterface = {
         }
       }
 
-      const getFrameReq = {action: "get", resource: "interactiveFrame"};
+      const getFrameReq = { action: "get", resource: "interactiveFrame" };
       const newFrame = {
         name: iConfig.name,
         title: iConfig.title,
@@ -260,7 +260,7 @@ const codapInterface = {
 
       if (!config.customInteractiveStateHandler) {
         this_.on("get", "interactiveState", function () {
-          return ({success: true, values: this_.getInteractiveState()});
+          return ({ success: true, values: this_.getInteractiveState() });
         });
       }
 

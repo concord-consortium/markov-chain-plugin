@@ -40,10 +40,10 @@ interface Props {
 }
 
 export const Drawing = (props: Props) => {
-  const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
+  const { highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId,
          fitViewAt, recenterViewAt, onClearHighlightOutput, graphOpacity, resetViewAt,
-         selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
+         selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView } = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
@@ -62,13 +62,13 @@ export const Drawing = (props: Props) => {
     }
   }, [drawingMode, _setSelectedNodeId]);
 
-  const handleDimensionChange = ({width, height}: {width: number, height: number}) => {
+  const handleDimensionChange = ({ width, height }: {width: number, height: number}) => {
     widthRef.current = width;
     heightRef.current = height;
     setAddTextWidth(width - 40); // for 10px margin and padding
 
     // also tell the app so that it can translate the origin of any loaded data if needed
-    props.onDimensions?.({width, height});
+    props.onDimensions?.({ width, height });
   };
 
   const handleTransformed = (transform: Transform) => {
@@ -77,7 +77,7 @@ export const Drawing = (props: Props) => {
 
   const translateToGraphPoint = (e: MouseEvent|React.MouseEvent<HTMLDivElement>): Point => {
     // the offsets were determined visually to put the state centered on the mouse
-    const {x, y, k} = transformRef.current ?? {x: 0, y: 0, k: 1};
+    const { x, y, k } = transformRef.current ?? { x: 0, y: 0, k: 1 };
     return {
       x: ((e.clientX - 50 - (widthRef.current / 2)) - x) / k,
       y: ((e.clientY - 10 - (heightRef.current / 2)) - y) / k,
@@ -95,7 +95,7 @@ export const Drawing = (props: Props) => {
   useEffect(() => {
     if (drawingMode === "addEdge" && firstEdgeNode) {
       const updateRubberBand = (e: MouseEvent) => {
-        const newRubberBand: RubberBand = {from: firstEdgeNode.id, to: translateToGraphPoint(e)};
+        const newRubberBand: RubberBand = { from: firstEdgeNode.id, to: translateToGraphPoint(e) };
         setRubberBand(newRubberBand);
       };
       window.addEventListener("mousemove", updateRubberBand);
@@ -130,11 +130,11 @@ export const Drawing = (props: Props) => {
     }
   };
 
-  const addNode = useCallback(({x, y}: {x: number, y: number}) => {
+  const addNode = useCallback(({ x, y }: {x: number, y: number}) => {
     setGraph(prev => {
       const id = nanoid();
       const label = `State ${prev.nodes.length + 1}`;
-      const newNode: Node = {id, label, value: 1, x, y};
+      const newNode: Node = { id, label, value: 1, x, y };
       return {
         nodes: [...prev.nodes, newNode],
         edges: prev.edges
@@ -142,9 +142,9 @@ export const Drawing = (props: Props) => {
     });
   }, [setGraph]);
 
-  const addEdge = useCallback(({from, to}: {from: string, to: string}) => {
+  const addEdge = useCallback(({ from, to }: {from: string, to: string}) => {
     setGraph(prev => {
-      const newEdge: Edge = {from, to, value: 1};
+      const newEdge: Edge = { from, to, value: 1 };
       const prevEdge = prev.edges.find(e => e.from === from && e.to === to);
       if (!prevEdge) {
         return {
@@ -178,7 +178,7 @@ export const Drawing = (props: Props) => {
       if (!firstEdgeNode) {
         setFirstEdgeNode(node);
       } else {
-        addEdge({from: firstEdgeNode.id, to: node.id});
+        addEdge({ from: firstEdgeNode.id, to: node.id });
         setFirstEdgeNode(undefined);
         setRubberBand(undefined);
       }
@@ -217,20 +217,20 @@ export const Drawing = (props: Props) => {
       setSelectedNodeForModal(getNode(id));
     }
     if (drawingMode === "addEdge") {
-      addEdge({from: id, to: id});
+      addEdge({ from: id, to: id });
       setFirstEdgeNode(undefined);
       setRubberBand(undefined);
     }
   }, [drawingMode, addEdge, getNode]);
 
-  const handleEdgeClicked = useCallback(({from, to}: {from: string, to: string}) => {
+  const handleEdgeClicked = useCallback(({ from, to }: {from: string, to: string}) => {
     if (drawingMode === "delete") {
       setGraph(prev => {
         const edges = [...prev.edges];
         const edgeIndex = prev.edges.findIndex(e => e.from === from && e.to === to);
         if (edgeIndex !== -1) {
           edges.splice(edgeIndex, 1);
-          return {...prev, edges};
+          return { ...prev, edges };
         } else {
           return prev;
         }
@@ -238,16 +238,16 @@ export const Drawing = (props: Props) => {
     }
   }, [setGraph, drawingMode]);
 
-  const handleDragStop = useCallback((id: string, {x, y}: Point) => {
+  const handleDragStop = useCallback((id: string, { x, y }: Point) => {
     setGraph(prev => {
       const nodeIndex = prev.nodes.findIndex(n => n.id === id);
       if (nodeIndex !== -1) {
-        const node = {...prev.nodes[nodeIndex]};
+        const node = { ...prev.nodes[nodeIndex] };
         const nodes = [...prev.nodes];
         node.x = x;
         node.y = y;
         nodes.splice(nodeIndex, 1, node);
-        return {...prev, nodes};
+        return { ...prev, nodes };
       }
       return prev;
     });

@@ -28,10 +28,10 @@ interface Props {
 }
 
 export const Dataset = (props: Props) => {
-  const {highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
+  const { highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, graphEmpty, setSelectedNodeId, selectedNodeId, animating,
          fitViewAt, recenterViewAt, graphOpacity,
-         onReset, onReturnToMainMenu, onFitView, onRecenterView} = props;
+         onReset, onReturnToMainMenu, onFitView, onRecenterView } = props;
   const [selectedNodeForModal, setSelectedNodeForModal] = useState<Node|undefined>(undefined);
 
   const handleToolSelected = (tool: Tool) => {
@@ -93,7 +93,7 @@ export const Dataset = (props: Props) => {
         onNodeDoubleClick={handleNodeDoubleClicked}
         animating={animating}
         opacity={graphOpacity}
-        allowDragging={true && !animating}
+        allowDragging={!animating}
         autoArrange={true}
         setSelectedNodeId={setSelectedNodeId}
         fitViewAt={fitViewAt}
