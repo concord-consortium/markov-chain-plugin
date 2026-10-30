@@ -5,8 +5,9 @@
 ### Initial steps
 
 1. Clone this repo and `cd` into it
-2. Run `npm install` to pull dependencies
-3. Run `npm start` to run `webpack-dev-server` in development mode with hot module replacement
+2. Run `nvm use` to switch to the Node version in `.nvmrc` (or install that version another way)
+3. Run `npm install` to pull dependencies
+4. Run `npm start` to run `webpack-dev-server` in development mode with hot module replacement
 
 #### Run using HTTPS
 
@@ -17,11 +18,6 @@ Additional steps are required to run using HTTPS.
 3. Ensure you have a `.localhost-ssl` certificate directory in your home directory (create if needed, typically `C:\Users\UserName` on Windows) and cd into that directory
 4. Make the cert files: `mkcert -cert-file localhost.pem -key-file localhost.key localhost 127.0.0.1 ::1`
 5. Run `npm run start:secure` to run `webpack-dev-server` in development mode with hot module replacement
-
-Alternately, you can run secure without certificates in Chrome:
-1. Enter `chrome://flags/#allow-insecure-localhost` in Chrome URL bar
-2. Change flag from disabled to enabled
-3. Run `npm run start:secure:no-certs` to run `webpack-dev-server` in development mode with hot module replacement
 
 ### Building
 

@@ -21,9 +21,12 @@ module.exports = (env, argv) => {
     devServer: {
       static: 'dist',
       hot: true,
-      https: {
-        key: path.resolve(os.homedir(), '.localhost-ssl/localhost.key'),
-        cert: path.resolve(os.homedir(), '.localhost-ssl/localhost.pem'),
+      server: {
+        type: 'https',
+        options: {
+          key: path.resolve(os.homedir(), '.localhost-ssl/localhost.key'),
+          cert: path.resolve(os.homedir(), '.localhost-ssl/localhost.pem'),
+        },
       },
       allowedHosts: 'all',
     },
@@ -101,14 +104,11 @@ module.exports = (env, argv) => {
                       params: {
                         overrides: {
                           // don't minify "id"s (i.e. turn randomly-generated unique ids into "a", "b", ...)
-                          // https://github.com/svg/svgo/blob/master/plugins/cleanupIDs.js
-                          cleanupIDs: { minify: false },
+                          // https://github.com/svg/svgo/blob/master/plugins/cleanupIds.js
+                          cleanupIds: { minify: false },
                           // leave <line>s, <rect>s and <circle>s alone
                           // https://github.com/svg/svgo/blob/master/plugins/convertShapeToPath.js
                           convertShapeToPath: false,
-                          // leave "class"es and "id"s alone
-                          // https://github.com/svg/svgo/blob/master/plugins/prefixIds.js
-                          prefixIds: false,
                           // leave "stroke"s and "fill"s alone
                           // https://github.com/svg/svgo/blob/master/plugins/removeUnknownsAndDefaults.js
                           removeUnknownsAndDefaults: { defaultAttrs: false },
