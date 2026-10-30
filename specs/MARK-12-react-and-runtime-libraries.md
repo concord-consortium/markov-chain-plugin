@@ -37,12 +37,12 @@ The branch sits on MARK-11's (rendering tests), which sits on MARK-10's, MARK-9'
 
 ### Verification
 
-- **R14.** MARK-10's unit tests and MARK-11's rendering tests pass. A test changes only for a testing-library API change, never to accept different plugin behavior. *(No test needed a change.)*
+- **R14.** MARK-10's unit tests and MARK-11's rendering tests pass. A test changes only for a testing-library API change, never to accept different plugin behavior. *(No test assertion changed; two files only import the moved helpers.)*
 - **R15.** A manual check in CODAP 3.1.2 covers R11 and R12 against the branch build and R13 against a development build, and is recorded in the PR. *(Partly done; see Not Yet Implemented.)*
 - **R16.** Each R9 case has a Cypress test on MARK-11's fake-CODAP page that fails on React 19 without the fix and passes with it, plus one test that fails if Reset's `else` branch is deleted: after Reset on a drawing started in the session, adding a state and resizing the plugin fits the view. Each part of the R9a fix has a test that fails on React 19 without it.
 - **R17.** Dependency and lockfile changes are in commits separate from source changes. The React 19 install commit does not build, and the `createRoot` commit right after it is the first that does.
 
-*(Head: Jest 56 tests in 9 suites with no `act` warnings; Cypress 36 tests in 9 files, three runs in a row in Chrome and once in Electron; build, both `tsc` commands and the three lint commands silent; clean `npm ci`. Revert check: with the fit commit reverted the four R9 tests fail and Reset-then-resize passes; with only Reset's `else` deleted, only Reset-then-resize fails. R9a on React 19: without the drag guard, or with any drag event counted as a drag, the click and double-click tests fail; with `draggedRef` never set, the drag test fails; without `flushSync`, the rubber-band test fails. Production JavaScript grows from 264,734 to 355,544 bytes.)*
+*(Head: Jest 57 tests in 9 suites with no `act` warnings; Cypress 36 tests in 9 files, three runs in a row in Chrome and once in Electron; build, both `tsc` commands and the three lint commands silent; clean `npm ci`. Revert check: with the fit commit reverted the four R9 tests fail and Reset-then-resize passes; with only Reset's `else` deleted, only Reset-then-resize fails. R9a on React 19: without the drag guard, or with any drag event counted as a drag, the click and double-click tests fail; with `draggedRef` never set, the drag test fails; without `flushSync`, the rubber-band test fails. Production JavaScript grows from 264,734 to 355,544 bytes.)*
 
 ## Technical Notes
 
@@ -142,7 +142,7 @@ The click tests press the mouse through Chrome's DevTools protocol (`Cypress.aut
 
 ### Dataset-mode Reset has no fit test
 **Options**: A) drop it; B) keep it outside the revert check; C) keep it and have the revert check fail.
-**Decision**: A (Doug). Reset unmounts `Graph` in dataset mode, so the test passes without the fix, even with Reset's fit request deleted. The behavior stays in R11's manual check and MARK-11's modes test.
+**Decision**: A (Doug). Reset unmounts `Graph` in dataset mode, so the test passes without the fix, even with Reset's fit request deleted. The fit stays in R11's manual check; MARK-11's modes test covers only the rebuild.
 
 ### `rootTransform` moves into the support helpers
 **Decision**: MARK-11's `fit.test.ts` is a script, so a second top-level `rootTransform` fails `tsc -p cypress` with TS2451. Both fit files import it from `cypress/support/graph.ts`. The tests go in their own `fit-view.test.ts`, following MARK-11's one-file-per-area decision.
