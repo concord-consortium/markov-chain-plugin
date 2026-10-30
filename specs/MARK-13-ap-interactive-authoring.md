@@ -98,7 +98,7 @@ Add a second app to this repo, the Markov Interactive, that runs in the Activity
   - **Authoring:** a new interactive shows the defaults; each control saves its setting, and only that setting changes; the starting text stops at its limit; a saved state opens showing its values; the sections come in R11's order; the help under the usable modes and the input view follows the option chosen; the starting mode is offered only with both modes and moves to a mode students have; settings R11 hides are hidden and come back as they were; the Graph pane is checked, disabled and explained while Draw is on, turning Draw on saves it as available, and its starting state's label names Data only with both modes; the probabilities' starting state stays with the toggle off; the Send to CODAP note is always tied to its checkbox; the download setting saves; and the reported height follows the form.
   - **Runtime:** the placeholder lists every setting with its saved value; settings in the interactive's URL that differ from the authored state are ignored; it saves `{ version: 1 }` when there is no interactive state, and nothing when there is one; in `report` mode it shows the placeholder with its read-only note and saves nothing.
   - **Report item:** a full-answer request gets the `links` item and the placeholder `html` item, and a compact one gets no items.
-  - **Demo** (on `demo.html` itself): the Standard width by default, a width from the link, a chosen width put in the link, the authoring form at 435 px scrolling on its own while the page and the runtime stay put, an authoring change reaching the runtime, the report item's answer, the page's title, the standalone link with only the changed settings and its visible warning, the Copy button saying "Copied" for 2 seconds or "Copy failed", with its status, the long-link note, and a round trip: settings chosen in the form, the link opened in a window of its own, and its placeholder listing the same settings as the hosted runtime. The round trip runs in Chrome, as the CI job does (Technical Notes).
+  - **Demo** (on `demo.html` itself): the Standard width by default, a width from the link, a chosen width put in the link, the authoring form at 435 px, and each column scrolling on its own while the page stays put, an authoring change reaching the runtime, the report item's answer, the page's title, the standalone link with only the changed settings and its visible warning, the Copy button saying "Copied" for 2 seconds or "Copy failed", with its status, the long-link note, and a round trip: settings chosen in the form, the link opened in a window of its own, and its placeholder listing the same settings as the hosted runtime. The round trip runs in Chrome, as the CI job does (Technical Notes).
 - **R22.** On Node 24 after `npm ci`, on every commit and on the head: `npm run build` compiles with no warnings; `npm run lint`, `lint:build` and `lint:style` print nothing; `npx tsc --noEmit -p .` and `npx tsc --noEmit -p cypress` pass; `npm test` and `npm run test:cypress` (against `npm start`) pass, including MARK-10's, MARK-11's and MARK-12's tests unchanged, and the Cypress tests also pass with `--browser chrome`, the CI job's browser, which the round trip needs.
 
 ### CI and documentation
@@ -120,7 +120,7 @@ Add a second app to this repo, the Markov Interactive, that runs in the Activity
 - A throwaway interactive using `useInitMessage`, `useAuthoredState`, `useInteractiveState`, `setSupportedFeatures`, `useReportItem` and `sendReportItemAnswer` type-checks with `tsc` under TypeScript 6.0.3 and builds with webpack. In Chromium, on a throwaway fake Activity Player page using iframe-phone's `ParentEndpoint`: authoring mode rendered its form and posted `supportedFeatures`, then an `authoredState` for each change; runtime mode rendered the placeholder and posted `interactiveState` after the library's 2-second debounce; the report item posted `reportItemClientReady` with `compactAnswerReportItemsAvailable: true`, then a `reportItemAnswer` for a full and a compact request. No React warnings or errors were logged.
 - **Height:** the library's `useAutoSetHeight` reports the largest of the body's and the document's heights, including `documentElement.clientHeight`, the frame's own height. So it can grow the frame but never shrink it (it reported 150 px, the frame's default height, for a shorter page). R11 asks for a frame that shrinks too, so the interactive measures its own root element instead, as question-interactives' `useAutoHeight` does. A throwaway hook that observes the root element with a `ResizeObserver` and sends `setHeight` with its height reported 360, then 40 after a 300 px block was hidden, then 360 again. With the browser's default 8 px body margin, the frame was 16 px shorter than the page and clipped it (LARA's frame doesn't scroll), so the interactive's pages set the body's margin to 0.
 - **Cypress on a fake Activity Player page:** a throwaway Cypress 16 test, on a dev-server page hosting the interactive through iframe-phone's `ParentEndpoint` and recording every message the interactive posts in a window variable, clicked an authoring checkbox and read the one `authoredState` it caused, read the runtime's `interactiveState`, and read the report item's compact answer. It passed twice in Chrome. The dev server's lint-warning overlay covers the page when the code has lint warnings, which R22's clean lint rules out.
-- **The report item request has no `requestId`.** portal-report posts `getReportItemAnswer` without one (`report-reducer.ts:338-348`), and the library's listener only calls handlers whose `requestId` matches, so a test page that adds one gets no answer. Found the hard way in the throwaway page.
+- **The report item request has no `requestId`.** portal-report posts `getReportItemAnswer` without one (`report-reducer.ts:338-348`), and the library's listener only calls handlers whose `requestId` matches, so a test page that adds one gets no answer.
 
 ### The deployed build (measured 2026-10-29, a scratch copy of this branch on MARK-12's)
 
@@ -226,7 +226,7 @@ The README's Markov Interactive section records the item and portal settings, an
 
 ## Not Yet Implemented
 
-- **R23, CI on the first push:** `build_test`, `cypress` and `s3-deploy` on GitHub, and `interactive.html`, `report-item.html` and `demo.html` returning 200 from `https://models-resources.concord.org/markov-chain-plugin/branch/ap-interactive-authoring/`. The branch isn't pushed yet.
+- **R23, CI on the first push:** `build_test`, `cypress` and `s3-deploy` on GitHub, and `interactive.html`, `report-item.html` and `demo.html` returning 200 from `https://models-resources.concord.org/markov-chain-plugin/branch/ap-interactive-authoring/`.
 - **R26, on the branch deploy:** opening `interactive.html` and `report-item.html` directly from the branch URL, and a link copied from the branch's demo page. The rest of R26 (authoring, saving and reopening, the Activity Player runtime, a student run and the class dashboard with its full answer) was checked on learn staging against the local dev server, not the branch deploy.
 
 ## Decisions
@@ -312,7 +312,7 @@ The README's Markov Interactive section records the item and portal settings, an
 ---
 
 ### Report mode shows the placeholder read-only, in MARK-13
-**Context**: the class dashboard's "Open in new tab" opens portal-report's page for one student's answer, which starts the interactive in `report` mode. The spec had left report mode out of scope, so that page showed only "doesn't support report mode yet".
+**Context**: the class dashboard's "Open in new tab" opens portal-report's page for one student's answer, which starts the interactive in `report` mode.
 **Decision**: Doug chose to do it in MARK-13. Report mode shows R12's placeholder with a note that it is a student's work shown read-only, and saves nothing (R13). The real read-only view of saved work stays MARK-17's.
 
 ---
@@ -378,12 +378,12 @@ The README's Markov Interactive section records the item and portal settings, an
 ---
 
 ### The form and the runtime list share their visibility rules
-**Decision**: `showsStartingMode`, `shownPaneIds` and `showsStartsOpen` in `authored-state.ts` decide what the form leaves off the page and the runtime list leaves out (R12), so the two can't disagree; found in the whole-branch review.
+**Decision**: `showsStartingMode`, `shownPaneIds` and `showsStartsOpen` in `authored-state.ts` decide what the form leaves off the page and the runtime list leaves out (R12), so the two can't disagree.
 
 ---
 
 ### A shortened starting text never splits a character
-**Decision**: the runtime list's 100-character preview drops a trailing lone high surrogate, so an emoji at the cut is left out rather than shown half (R12); the one correctness defect the step reviews found.
+**Decision**: the runtime list's 100-character preview drops a trailing lone high surrogate, so an emoji at the cut is left out rather than shown half (R12).
 
 ---
 
