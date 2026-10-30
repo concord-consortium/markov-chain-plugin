@@ -34,8 +34,11 @@ module.exports = (env, argv) => {
     entry: {
       main: './src/index.tsx',
       interactive: './src/interactive/index.tsx',
-      // the Cypress tests' fake CODAP page is served by the dev server only, never deployed
-      ...(devMode ? { 'fake-codap': './cypress/fake-codap/fake-codap.ts' } : {}),
+      // the Cypress tests' fake CODAP and Activity Player pages are served by the dev server only, never deployed
+      ...(devMode ? {
+        'fake-codap': './cypress/fake-codap/fake-codap.ts',
+        'fake-ap': './cypress/fake-ap/fake-ap.ts',
+      } : {}),
     },
     mode: 'development',
     output: {
@@ -166,6 +169,11 @@ module.exports = (env, argv) => {
         filename: 'fake-codap.html',
         template: 'cypress/fake-codap/index.html',
         chunks: ['fake-codap'],
+        publicPath: '.',
+      }), new HtmlWebpackPlugin({
+        filename: 'fake-ap.html',
+        template: 'cypress/fake-ap/index.html',
+        chunks: ['fake-ap'],
         publicPath: '.',
       })] : []),
       ...(DEPLOY_PATH ? [new HtmlWebpackPlugin({

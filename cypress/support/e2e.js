@@ -16,12 +16,17 @@
 // add code coverage support
 import "@cypress/code-coverage/support";
 import "./commands";
+import "./fake-ap-commands";
 
-// errors thrown in the plugin's frame don't reach Cypress, so each test checks the ones the fake CODAP page kept
+// errors thrown in a frame don't reach Cypress, so each test checks the ones the fake CODAP or Activity Player
+// page kept
 afterEach(() => {
   cy.window().then(win => {
     if (win.fakeCodap) {
       expect(win.fakeCodap.errors, "errors in the plugin").to.deep.equal([]);
+    }
+    if (win.fakeAp) {
+      expect(win.fakeAp.errors, "errors in the interactive").to.deep.equal([]);
     }
   });
 });
