@@ -55,7 +55,7 @@ npm install @concord-consortium/lara-interactive-api@^1.15.0
 - `src/interactive/authored-state.ts`: new.
 - `src/interactive/authored-state.test.ts`: new.
 
-**Estimated diff size**: 371 lines (+371).
+**Estimated diff size**: 373 lines (+373).
 
 `src/interactive/authored-state.ts`:
 
@@ -103,7 +103,7 @@ export interface PaneSettings {
 
 export interface ButtonSettings {
   available: boolean;
-  // only for a toggle button; Send to CODAP has no on or off
+  // only for a toggle button
   startsOn?: boolean;
 }
 
@@ -143,7 +143,7 @@ export const defaultAuthoredState: MarkovAuthoredState = {
 // the labels the authoring form shows, and the runtime's list of settings repeats
 export const modeLabels: Record<ModeId, string> = { useData: "Data", draw: "Draw" };
 export const usableModesLabels: Record<UsableModes, string> = {
-  draw: "Draw", useData: "Data", both: "Both (with a toggle switch for students)"
+  draw: modeLabels.draw, useData: modeLabels.useData, both: "Both (with a toggle switch for students)"
 };
 // the help the form shows under a choice, for the option chosen
 export const usableModesHelp: Record<UsableModes, string> = {
@@ -385,12 +385,14 @@ describe("readAuthoredState", () => {
   it("fills in the settings a state doesn't have and keeps the ones it does", () => {
     const read = readAuthoredState({
       version: 1,
+      startingMode: "draw",
       panes: { inspect: { available: false } },
       buttons: { probabilities: { startsOn: true } },
       capitalization: "asTyped",
     });
     expect(read).toEqual({
       ...expectedDefaults,
+      startingMode: "draw",
       panes: { ...expectedDefaults.panes, inspect: { available: false, startsOpen: true } },
       buttons: { ...expectedDefaults.buttons, probabilities: { available: true, startsOn: true } },
       capitalization: "asTyped",
@@ -400,7 +402,7 @@ describe("readAuthoredState", () => {
   it.each([
     ["modes", { modes: "both" }],
     ["a mode", { modes: { useData: "yes", draw: true } }],
-    ["the starting mode", { startingMode: "drawing" }],
+    ["the starting mode", { startingMode: "toString" }],
     ["panes", { panes: [] }],
     ["a pane", { panes: { graph: null } }],
     ["a pane's availability", { panes: { inspect: { available: 0 } } }],
@@ -442,7 +444,7 @@ describe("readAuthoredState", () => {
     expect(readAuthoredState({ modes, startingMode }).startingMode).toBe(expected);
   });
 
-  it("writes the version it reads", () => {
+  it("writes the current version, whatever version it reads", () => {
     expect(readAuthoredState({ version: 0 }).version).toBe(1);
   });
 });
