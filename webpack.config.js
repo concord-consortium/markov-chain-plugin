@@ -35,6 +35,7 @@ module.exports = (env, argv) => {
       main: './src/index.tsx',
       interactive: './src/interactive/index.tsx',
       'report-item': './src/interactive/report-item.tsx',
+      demo: './src/interactive/demo.tsx',
       // the Cypress tests' fake CODAP and Activity Player pages are served by the dev server only, never deployed
       ...(devMode ? {
         'fake-codap': './cypress/fake-codap/fake-codap.ts',
@@ -171,6 +172,12 @@ module.exports = (env, argv) => {
         template: 'src/interactive/index.html',
         publicPath: '.',
         chunks: ['report-item'],
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'demo.html',
+        template: 'src/interactive/index.html',
+        publicPath: '.',
+        chunks: ['demo'],
       }),
       ...(devMode ? [new HtmlWebpackPlugin({
         filename: 'fake-codap.html',
