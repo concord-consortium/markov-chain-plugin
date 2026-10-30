@@ -100,6 +100,7 @@ export const App = () => {
   const [initialGraph, setInitialGraph] = useState<GraphData>();
   const [fitViewAt, setFitViewAt] = useState<number>();
   // fit in the render after the graph change, once Graph has drawn the new graph
+  // every graph change must produce a new graph object, or this effect never runs
   const fitAfterGraphChangeRef = useRef(false);
   useEffect(() => {
     if (fitAfterGraphChangeRef.current) {

@@ -92,7 +92,7 @@ CYPRESS_baseUrl=http://localhost:8081 npm run test:cypress
 ##### Cypress Run Options
 
 Pass these to `npx cypress run`:
-1. `--browser browser-name`: the browser to run the tests in (CI uses `chrome`)
+1. `--browser browser-name`: the browser to run the tests in (CI uses `chrome`). The click tests in `clicks.test.ts` press the mouse through Chrome's DevTools protocol, so they need Chrome or Electron.
 2. `--spec`: the spec files to run
 3. `--headed`: show the browser while the tests run
 4. `--no-exit`: keep the browser open when the tests finish
