@@ -126,7 +126,9 @@ Advanced Options, check "Enable save state", without which the Activity Player s
 never shows the student, and set "Report Item URL" to the report item's full URL, such as
 `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/report-item.html`: the class dashboard reads a
 relative one against its own address, not the interactive's. Once released, it becomes a library interactive in LARA,
-which carries these settings itself, so they aren't set on each item.
+which carries these settings itself, so they aren't set on each item. Whichever it is, the class dashboard shows the
+activity only when "Activity Player Class Dashboard" is chosen as an external report in the activity's settings in the
+portal.
 
 To try it without LARA or an activity, open `demo.html` beside it, for example
 `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/demo.html`. It shows the authoring form at
