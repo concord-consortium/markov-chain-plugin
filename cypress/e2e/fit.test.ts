@@ -1,4 +1,4 @@
-import { rootTransform } from "../support/graph";
+import { graphInsideView, rootTransform } from "../support/graph";
 
 describe("Fit and recenter", () => {
   beforeEach(() => {
@@ -7,14 +7,7 @@ describe("Fit and recenter", () => {
   });
 
   it("fits a loaded drawing inside the view", () => {
-    cy.plugin().find(".graph > svg").then(svg => {
-      const view = svg[0].getBoundingClientRect();
-      const graph = svg[0].querySelector("g.root")!.getBoundingClientRect();
-      expect(graph.left).to.be.at.least(view.left);
-      expect(graph.right).to.be.at.most(view.right);
-      expect(graph.top).to.be.at.least(view.top);
-      expect(graph.bottom).to.be.at.most(view.bottom);
-    });
+    graphInsideView();
   });
 
   it("returns to the fitted view after zooming in", () => {
