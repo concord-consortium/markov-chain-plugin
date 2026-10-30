@@ -44,7 +44,9 @@ describe("the interactive's demo page", () => {
       .scrollTo("bottom");
     cy.get(".demo-authoring").should(column => expect(column[0].scrollWidth).to.equal(column[0].clientWidth));
     cy.get(".demo-authoring").invoke("scrollTop").should("be.greaterThan", 0);
-    cy.get(".demo-runtime").should(column => expect(column[0].scrollHeight).to.be.greaterThan(column[0].clientHeight));
+    cy.get(".demo-runtime").should(column => expect(column[0].scrollHeight).to.be.greaterThan(column[0].clientHeight))
+      .scrollTo("bottom");
+    cy.get(".demo-runtime").invoke("scrollTop").should("be.greaterThan", 0);
     cy.document().should(doc => expect(doc.documentElement.scrollHeight).to.equal(doc.documentElement.clientHeight));
   });
 
@@ -123,6 +125,14 @@ describe("the interactive's demo page", () => {
     cy.get(".demo-standalone [role=status]").should("have.text", "The standalone link couldn't be copied");
     cy.tick(2000);
     cy.get(".demo-standalone button").should("have.text", "Copy");
+  });
+
+  it("says the link couldn't be copied where the browser has no clipboard", () => {
+    cy.visit("/demo.html", {
+      onBeforeLoad: win => Object.defineProperty(win.navigator, "clipboard", { value: undefined })
+    });
+    cy.get(".demo-standalone button").click();
+    cy.get(".demo-standalone button").should("have.text", "Copy failed");
   });
 
   it("says when the link is long", () => {

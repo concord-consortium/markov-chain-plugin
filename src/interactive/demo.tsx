@@ -75,7 +75,8 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
     return () => window.clearTimeout(timeout);
   }, [copyResult]);
 
-  const copy = () => navigator.clipboard.writeText(link).then(
+  // outside a secure context navigator.clipboard is undefined, and the first then makes that a rejection
+  const copy = () => Promise.resolve().then(() => navigator.clipboard.writeText(link)).then(
     () => setCopyResult({ copied: true }),
     () => setCopyResult({ copied: false }));
 
