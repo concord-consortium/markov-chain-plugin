@@ -1,4 +1,4 @@
-import { ellipse } from "../support/graph";
+import { ellipse, selectedNodeColor } from "../support/graph";
 
 // press through Chrome's DevTools protocol: a synthetic click skips the browser's same-element check
 const mouse = (type: string, x: number, y: number) =>
@@ -43,14 +43,14 @@ describe("Clicks on states", () => {
   it("selects a state on a click", () => {
     ellipse("a").should("have.attr", "fill", "#fff");
     stateCenter("a").then(pressAndRelease);
-    ellipse("a").should("not.have.attr", "fill", "#fff");
+    ellipse("a").should("have.attr", "fill", selectedNodeColor);
   });
 
   it("opens the state editor on a double-click", () => {
     cy.plugin().find(".nodeModal").should("not.exist");
     stateCenter("a").then(point => {
       pressAndRelease(point);
-      cy.wait(100);
+      cy.wait(20);
       pressAndRelease(point);
     });
     cy.plugin().find(".nodeModal").should("exist");
@@ -66,8 +66,8 @@ describe("Clicks on states", () => {
         .then(() => mouse("mouseReleased", x + 50, y + 25))));
       cy.getPluginState().then(after => {
         const moved = after.nodes.find((n: any) => n.label === "a");
-        expect(moved.x).not.to.be.closeTo(saved.x, 1);
-        expect(moved.y).not.to.be.closeTo(saved.y, 1);
+        expect(moved.x).to.be.above(saved.x + 1);
+        expect(moved.y).to.be.above(saved.y + 1);
       });
     });
   });

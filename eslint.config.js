@@ -56,7 +56,6 @@ module.exports = defineConfig(
       "@stylistic/semi": ["warn", "always"],
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-confusing-non-null-assertion": "error",
-      "@typescript-eslint/no-empty-interface": "off",
       "@typescript-eslint/no-empty-object-type": ["error", { allowInterfaces: "always" }],
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-require-imports": "error",

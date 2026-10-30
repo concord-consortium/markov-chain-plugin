@@ -41,8 +41,7 @@ Production releases to S3 are based on the contents of the /dist folder and are 
 for each branch and tag pushed to GitHub, using [s3-deploy-action](https://github.com/concord-consortium/s3-deploy-action).
 
 Branches are deployed to `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/index.html`.
-A Jira key prefix (`MARK-6-`) or a Pivotal Tracker story number at the start or end of the branch name is stripped off,
-so `MARK-6-deploy-and-release` is deployed to `branch/deploy-and-release/`.
+A Jira key prefix is stripped from the branch name, so `MARK-123-my-feature` is deployed to `branch/my-feature/`.
 
 Tags are deployed to `https://models-resources.concord.org/markov-chain-plugin/version/<name>/index.html`.
 
@@ -95,7 +94,7 @@ CYPRESS_baseUrl=http://localhost:8081 npm run test:cypress
 ##### Cypress Run Options
 
 Pass these to `npx cypress run`:
-1. `--browser browser-name`: the browser to run the tests in (CI uses `chrome`)
+1. `--browser browser-name`: the browser to run the tests in (CI uses `chrome`). The click tests in `clicks.test.ts` press the mouse through Chrome's DevTools protocol, so they need Chrome or Electron.
 2. `--spec`: the spec files to run
 3. `--headed`: show the browser while the tests run
 4. `--no-exit`: keep the browser open when the tests finish

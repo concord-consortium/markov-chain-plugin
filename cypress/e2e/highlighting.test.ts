@@ -1,7 +1,6 @@
-import { ellipse } from "../support/graph";
+import { ellipse, selectedNodeColor } from "../support/graph";
 
 // colors from graph.tsx
-const selectedNodeColor = "#14f49e3f";
 const incomingArrowColor = "#0081ff";
 const outgoingArrowColor = "#ff9900";
 const animatedNodeColor = "#FF00877f";

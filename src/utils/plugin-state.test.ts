@@ -18,7 +18,7 @@ const elaState = {
 const attribute = { datasetName: "Mammals", collectionName: "Mammals", attributeName: "Diet" };
 
 describe("pluginStateValues and readPluginState", () => {
-  it("saves a restored drawing exactly as it was saved", () => {
+  it("re-saves a restored drawing with the same JSON", () => {
     const saved = JSON.parse(JSON.stringify(elaState));
     const { viewMode, drawing } = readPluginState(saved);
     expect(drawing?.version).toBe(2);

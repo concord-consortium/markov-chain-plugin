@@ -1,4 +1,4 @@
-import { rootTransform } from "../support/graph";
+import { graphInsideView, rootTransform } from "../support/graph";
 
 describe("Fit and recenter", () => {
   beforeEach(() => {
@@ -7,14 +7,7 @@ describe("Fit and recenter", () => {
   });
 
   it("fits a loaded drawing inside the view", () => {
-    cy.plugin().find(".graph > svg").then(svg => {
-      const view = svg[0].getBoundingClientRect();
-      const graph = svg[0].querySelector("g.root")!.getBoundingClientRect();
-      expect(graph.left).to.be.at.least(view.left);
-      expect(graph.right).to.be.at.most(view.right);
-      expect(graph.top).to.be.at.least(view.top);
-      expect(graph.bottom).to.be.at.most(view.bottom);
-    });
+    graphInsideView();
   });
 
   it("returns to the fitted view after zooming in", () => {
@@ -35,6 +28,12 @@ describe("Fit and recenter", () => {
         const scale = /scale\(([^)]+)\)/.exec(zoomed!)![1];
         cy.plugin().find("button[title='Recenter View']").click();
         rootTransform().should("contain", `scale(${scale})`).and("not.equal", zoomed);
+        cy.plugin().find(".graph > svg").then(svg => {
+          const view = svg[0].getBoundingClientRect();
+          const graph = svg[0].querySelector("g.root")!.getBoundingClientRect();
+          expect(graph.left + graph.width / 2, "graph center x").to.be.closeTo(view.left + view.width / 2, 10);
+          expect(graph.top + graph.height / 2, "graph center y").to.be.closeTo(view.top + view.height / 2, 10);
+        });
       });
     });
   });

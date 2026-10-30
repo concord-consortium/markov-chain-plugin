@@ -50,6 +50,7 @@ describe("graphFromValues", () => {
   });
 
   it("keeps 0, false and whitespace-only values as states", () => {
+    // today's behavior, not a requirement: a whitespace-only value becomes a blank state
     const values = [0, false, " "].map(toStateLabel);
     expect(values).toEqual(["0", "false", " "]);
     expect(graphFromValues(values).edges).toEqual([

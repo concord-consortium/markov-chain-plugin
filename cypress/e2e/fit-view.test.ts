@@ -1,4 +1,4 @@
-import { rootTransform } from "../support/graph";
+import { graphInsideView, rootTransform } from "../support/graph";
 
 const fixture = "ela/geDiXLf2GyHsWCF2QFnU.json";
 
@@ -52,15 +52,17 @@ describe("Fit view after the graph changes", () => {
     cy.startPlugin();
     cy.plugin().contains("button", "Drawing").click();
     cy.plugin().find("button[title='Add State']").click();
-    cy.plugin().find(".graph > svg").click(300, 200);
+    cy.plugin().find(".graph > svg").click();
     cy.plugin().find("g.node").should("have.length", 1);
     cy.plugin().find("button[title='Reset']").click();
     cy.plugin().contains("button", "Ok").click();
     cy.plugin().find("g.node").should("not.exist");
     // Add State stays selected after Reset, and pressing it again would turn it off
-    cy.plugin().find(".graph > svg").click(300, 200);
+    cy.plugin().find(".graph > svg").click();
     cy.plugin().find("g.node").should("have.length", 1);
     cy.resizePlugin(700, 500);
     rootTransform().should("match", /scale/);
+    // the state is drawn at the view's center, so this checks the fit's scale and not its centering
+    graphInsideView();
   });
 });

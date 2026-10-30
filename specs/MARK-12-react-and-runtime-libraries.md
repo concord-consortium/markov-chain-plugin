@@ -8,7 +8,7 @@
 
 Move the plugin's runtime libraries, React above all, from 2022-era versions to current supported ones, with no change a teacher or student can see. The unit tests (MARK-10) and rendering tests (MARK-11) added just before this story are what show nothing changed. Checking the update found two things it breaks, the graph no longer fitting to view after some changes and clicks on states in drawing mode no longer registering, and the story fixes both with tests.
 
-The branch sits on MARK-11's (rendering tests), which sits on MARK-10's, MARK-9's, MARK-8's, MARK-20's and MARK-6's. Ownership (#1191): MARK-8 owns Node and test tooling, including `@testing-library/jest-dom`; MARK-9 owns ESLint. MARK-12 owns React, React DOM, their types, `@testing-library/react` and its `@testing-library/dom` peer, and the runtime libraries. "As before" means the branch MARK-12 is stacked on, since MARK-20 changed what users see.
+The branch was stacked on MARK-11's (rendering tests), which sat on MARK-10's, MARK-9's, MARK-8's, MARK-20's and MARK-6's; with those merged, its base is master. Ownership (#1191): MARK-8 owns Node and test tooling, including `@testing-library/jest-dom`; MARK-9 owns ESLint. MARK-12 owns React, React DOM, their types, `@testing-library/react` and its `@testing-library/dom` peer, and the runtime libraries. "As before" means the branch MARK-12 is stacked on, since MARK-20 changed what users see.
 
 ## Requirements
 
@@ -37,12 +37,12 @@ The branch sits on MARK-11's (rendering tests), which sits on MARK-10's, MARK-9'
 
 ### Verification
 
-- **R14.** MARK-10's unit tests and MARK-11's rendering tests pass. A test changes only for a testing-library API change, never to accept different plugin behavior. *(No test needed a change.)*
-- **R15.** A manual check in CODAP 3.1.2 covers R11 and R12 against the branch build and R13 against a development build, and is recorded in the PR. *(Partly done; see Not Yet Implemented.)*
+- **R14.** MARK-10's unit tests and MARK-11's rendering tests pass. A test changes only for a testing-library API change, never to accept different plugin behavior. *(No test assertion changed; two files only import the moved helpers.)*
+- **R15.** A manual check in CODAP 3.1.2 covers R11 and R12 against the branch build and R13 against a development build, and is recorded in the PR. *(Done with headless Playwright: R11 and R12 against the branch build beside master's, with the same results apart from the jittered self-loop that R9a's fix also fixes; R13 against `npm start`, which logged no React warning or error.)*
 - **R16.** Each R9 case has a Cypress test on MARK-11's fake-CODAP page that fails on React 19 without the fix and passes with it, plus one test that fails if Reset's `else` branch is deleted: after Reset on a drawing started in the session, adding a state and resizing the plugin fits the view. Each part of the R9a fix has a test that fails on React 19 without it.
 - **R17.** Dependency and lockfile changes are in commits separate from source changes. The React 19 install commit does not build, and the `createRoot` commit right after it is the first that does.
 
-*(Head: Jest 56 tests in 9 suites with no `act` warnings; Cypress 36 tests in 9 files, three runs in a row in Chrome and once in Electron; build, both `tsc` commands and the three lint commands silent; clean `npm ci`. Revert check: with the fit commit reverted the four R9 tests fail and Reset-then-resize passes; with only Reset's `else` deleted, only Reset-then-resize fails. R9a on React 19: without the drag guard, or with any drag event counted as a drag, the click and double-click tests fail; with `draggedRef` never set, the drag test fails; without `flushSync`, the rubber-band test fails. Production JavaScript grows from 264,734 to 355,544 bytes.)*
+*(Head: Jest 57 tests in 9 suites with no `act` warnings; Cypress 36 tests in 9 files, three runs in a row in Chrome and once in Electron; build, both `tsc` commands and the three lint commands silent; clean `npm ci`. Revert check: with the fit commit reverted the four R9 tests fail and Reset-then-resize passes; with only Reset's `else` deleted, only Reset-then-resize fails. R9a on React 19: without the drag guard, or with any drag event counted as a drag, the click and double-click tests fail; with `draggedRef` never set, the drag test fails; without `flushSync`, the rubber-band test fails. Production JavaScript grows from 264,734 to 355,544 bytes.)*
 
 ## Technical Notes
 
@@ -91,7 +91,8 @@ The click tests press the mouse through Chrome's DevTools protocol (`Cypress.aut
 - **Not regressions seen in CODAP:**
   - On an empty dataset view the first drop's fit varies between two zoom levels from run to run, on both builds.
   - The plugin renames its tile and resizes it to 600x420 on load, as every version does.
-  - A document's load fit can run before CODAP shrinks the tile, leaving a fit for the larger frame until Fit View is clicked. It was seen with `lr1YsZHAZ1KYXxk67jD2`: on the base the zoom varied from 0.66 to 0.83, here it was 0.85 every run, and Fit View gives 0.51 on both.
+  - A document's load fit can run before CODAP shrinks the tile, leaving a fit for the larger frame until Fit View is clicked. It was seen with `lr1YsZHAZ1KYXxk67jD2`: on the base the zoom varied from 0.66 to 0.83, here it was 0.83 to 0.85, and Fit View gives 0.51 on both.
+  - The plugin's frame logs "Form submission canceled because the form is not connected" during the state editor checks, on master's build too.
 
 ## Out of Scope
 
@@ -101,16 +102,6 @@ The click tests press the mouse through Chrome's DevTools protocol (`Cypress.aut
 - Designing for the later split into components shared with an Activity Player interactive.
 - Bumping the plugin version or the release process (MARK-6).
 - Publishing an iframe-phone release with a `types` condition and moving to it: a separate story.
-
-## Not Yet Implemented
-
-- **R15 against the branch build, in part:** the full check ran in CODAP 3.1.2 with Playwright against this branch's dev server, beside MARK-11's branch build. These matched on both:
-  - drawing mode: Create From Text, Fit View after zooming, the state editor and its slider, dragging a state, rename, Add State, Add Transition, deleting a transition and a state, Back to Main
-  - generating: Play, Step, Cancel, Pause and Resume, the fast speed, output highlighting
-  - dataset mode with Mammals: drop, zoom and Reset, a second drop, editing a case, Play
-  - the five ELA documents, apart from the tile-resize race above, and an unversioned drawing
-
-  The plugin's frame logged nothing. Against this branch's build and MARK-11's, side by side, adding and deleting cases and reopening a saved dataset document also matched. With Mammals and Diet dropped, a case with a new Diet value added its state and refit the view, and deleting it removed the state and refit. The document, saved as a local file, reopened in dataset mode with the same states and the same fit, and adding and deleting a case still worked there. The rest of the list has not been repeated against the branch build.
 
 ## Decisions
 
@@ -142,7 +133,7 @@ The click tests press the mouse through Chrome's DevTools protocol (`Cypress.aut
 
 ### Dataset-mode Reset has no fit test
 **Options**: A) drop it; B) keep it outside the revert check; C) keep it and have the revert check fail.
-**Decision**: A (Doug). Reset unmounts `Graph` in dataset mode, so the test passes without the fix, even with Reset's fit request deleted. The behavior stays in R11's manual check and MARK-11's modes test.
+**Decision**: A (Doug). Reset unmounts `Graph` in dataset mode, so the test passes without the fix, even with Reset's fit request deleted. The fit stays in R11's manual check; MARK-11's modes test covers only the rebuild.
 
 ### `rootTransform` moves into the support helpers
 **Decision**: MARK-11's `fit.test.ts` is a script, so a second top-level `rootTransform` fails `tsc -p cypress` with TS2451. Both fit files import it from `cypress/support/graph.ts`. The tests go in their own `fit-view.test.ts`, following MARK-11's one-file-per-area decision.
@@ -162,4 +153,4 @@ The click tests press the mouse through Chrome's DevTools protocol (`Cypress.aut
 **Decision**: the branch deploy is a production build, whose React logs no warnings, so R13 is checked on `npm start` loaded into CODAP.
 
 ### The manual check compares against the base branch, not master
-**Decision**: MARK-20 changed what users see, so "as before" means the branch MARK-12 is stacked on. The check uses CODAP 3.1.2, the version MARK-5 found the classes use.
+**Decision**: MARK-20 changed what users see, so "as before" means the branch MARK-12 is based on: MARK-11's branch until it merged, then master. The check uses CODAP 3.1.2, the version MARK-5 found the classes use.
