@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { setAuthoredState } from "@concord-consortium/lara-interactive-api";
 import {
   buttonLabels, Capitalization, capitalizationLabels, capitalizations, InputView, inputViewHelp, inputViewLabels,
-  inputViews, MarkovAuthoredState, maxStartingTextLength, ModeId, modeIds, modeLabels, modesFor, PaneId, paneIds,
-  paneLabels, settingLabels, startsOpenLabel, UsableModes, usableModesChoices, usableModesHelp, usableModesLabels,
-  usableModesOf
+  inputViews, MarkovAuthoredState, maxStartingTextLength, ModeId, modeIds, modeLabels, modesFor, PaneId, paneLabels,
+  settingLabels, shownPaneIds, showsStartingMode, showsStartsOpen, startsOpenLabel, UsableModes, usableModesChoices,
+  usableModesHelp, usableModesLabels, usableModesOf
 } from "./authored-state";
 
 import "./authoring.scss";
@@ -134,8 +134,7 @@ export const Authoring = ({ initialState }: Props) => {
 
   const pane = (id: PaneId) => {
     const { available, startsOpen } = state.panes[id];
-    // Draw mode always opens its graph, so the Graph pane's starting state only matters with Data mode
-    const showStartsOpen = available && (id !== "graph" || useData);
+    const showStartsOpen = showsStartsOpen(id, state);
     const label = startsOpenLabel(id, state.modes);
     return (
       <div key={id}>
@@ -163,7 +162,7 @@ export const Authoring = ({ initialState }: Props) => {
         <Select<UsableModes> id="usableModes" label={settingLabels.usableModes} value={usableModesOf(state.modes)}
           choices={usableModesChoices} labels={usableModesLabels} helpId="modes-help" onChange={setUsableModes} />
         <p id="modes-help" className="help after-select">{ usableModesHelp[usableModesOf(state.modes)] }</p>
-        { useData && draw &&
+        { showsStartingMode(state.modes) &&
           <Select id="startingMode" label={settingLabels.startingMode} value={state.startingMode}
             choices={startingModeChoices} labels={modeLabels}
             onChange={startingMode => update(current => ({ ...current, startingMode }))} /> }
@@ -173,7 +172,7 @@ export const Authoring = ({ initialState }: Props) => {
 
       <fieldset>
         <legend>{ settingLabels.whatStudentsSee }</legend>
-        { paneIds.filter(id => id !== "input" || useData).map(pane) }
+        { shownPaneIds(state.modes).map(pane) }
         <Checkbox id="button-probabilities-startsOn" label={settingLabels.probabilitiesStartsOn}
           checked={state.buttons.probabilities.startsOn ?? false} helpId="probabilities-help"
           onChange={startsOn => setProbabilities({ startsOn })} />

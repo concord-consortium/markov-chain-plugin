@@ -1,6 +1,6 @@
 import {
-  buttonLabels, capitalizationLabels, inputViewLabels, MarkovAuthoredState, modeLabels, PaneId, paneIds, paneLabels,
-  settingLabels, startsOpenLabel, usableModesLabels, usableModesOf
+  buttonLabels, capitalizationLabels, inputViewLabels, MarkovAuthoredState, modeLabels, PaneId, paneLabels,
+  settingLabels, shownPaneIds, showsStartingMode, showsStartsOpen, startsOpenLabel, usableModesLabels, usableModesOf
 } from "./authored-state";
 
 export interface SettingSummary {
@@ -27,10 +27,10 @@ const startingTextValue = (text: string) => {
 // The authored settings as the runtime's placeholder lists them, in the authoring form's order and with its labels.
 // As in the form, a setting is left out while what it depends on is off.
 export const settingsSummary = (state: MarkovAuthoredState): SettingSummary[] => {
-  const { useData, draw } = state.modes;
+  const { useData } = state.modes;
   const pane = (id: PaneId): SettingSummary[] => {
     const { available, startsOpen } = state.panes[id];
-    const showStartsOpen = available && (id !== "graph" || useData);
+    const showStartsOpen = showsStartsOpen(id, state);
     return [
       { label: paneLabels[id], value: availability(available) },
       ...(showStartsOpen
@@ -40,7 +40,9 @@ export const settingsSummary = (state: MarkovAuthoredState): SettingSummary[] =>
   };
   return [
     { label: settingLabels.usableModes, value: usableModesLabels[usableModesOf(state.modes)] },
-    ...(useData && draw ? [{ label: settingLabels.startingMode, value: modeLabels[state.startingMode] }] : []),
+    ...(showsStartingMode(state.modes)
+      ? [{ label: settingLabels.startingMode, value: modeLabels[state.startingMode] }]
+      : []),
     ...(useData ? [
       { label: settingLabels.inputView, value: inputViewLabels[state.inputView] },
       { label: settingLabels.capitalization, value: capitalizationLabels[state.capitalization] },
@@ -48,7 +50,7 @@ export const settingsSummary = (state: MarkovAuthoredState): SettingSummary[] =>
       { label: settingLabels.orderMattersShowSwitch, value: yesNo(state.orderMatters.showSwitch) },
       { label: settingLabels.startingText, value: startingTextValue(state.startingText) },
     ] : []),
-    ...paneIds.filter(id => id !== "input" || useData).reduce<SettingSummary[]>((all, id) => all.concat(pane(id)), []),
+    ...shownPaneIds(state.modes).reduce<SettingSummary[]>((all, id) => all.concat(pane(id)), []),
     { label: settingLabels.probabilitiesStartsOn, value: yesNo(state.buttons.probabilities.startsOn ?? false) },
     { label: buttonLabels.probabilities, value: availability(state.buttons.probabilities.available) },
     { label: buttonLabels.sendToCodap, value: availability(state.buttons.sendToCodap.available) },

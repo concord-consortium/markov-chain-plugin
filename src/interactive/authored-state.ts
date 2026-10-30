@@ -130,6 +130,16 @@ export const settingLabels = {
 export const startsOpenLabel = (id: PaneId, modes: Record<ModeId, boolean>) =>
   id === "graph" && modes.useData && modes.draw ? settingLabels.graphStartsOpenWithBothModes : settingLabels.startsOpen;
 
+// what the authoring form shows and the runtime's list repeats: a setting is left out while what it depends on is off
+export const showsStartingMode = (modes: Record<ModeId, boolean>) => modes.useData && modes.draw;
+
+// the Input pane is Data mode's
+export const shownPaneIds = (modes: Record<ModeId, boolean>) => paneIds.filter(id => id !== "input" || modes.useData);
+
+// Draw mode always opens its graph, so the Graph pane's starting state only matters with Data mode
+export const showsStartsOpen = (id: PaneId, state: Pick<MarkovAuthoredState, "modes" | "panes">) =>
+  state.panes[id].available && (id !== "graph" || state.modes.useData);
+
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 

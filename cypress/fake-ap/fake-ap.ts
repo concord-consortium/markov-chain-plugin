@@ -21,7 +21,6 @@ export type InteractiveMessage = { type: string, content: unknown };
 
 export type ItemsType = "fullAnswer" | "compactAnswer";
 
-// the messages the interactive and the report item send that the tests read
 const messageTypes = [
   "supportedFeatures", "authoredState", "interactiveState", "height", "reportItemClientReady", "reportItemAnswer"
 ];

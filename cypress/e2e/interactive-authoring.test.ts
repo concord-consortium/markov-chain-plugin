@@ -157,7 +157,10 @@ describe("the interactive's authoring form", () => {
 
   it("hides the Data settings and the Input pane without Data mode, and shows them as they were", () => {
     cy.startInteractive({
-      mode: "authoring", authoredState: withChange({ modes: { useData: false, draw: true }, inputView: "table" })
+      mode: "authoring", authoredState: withChange({
+        modes: { useData: false, draw: true }, inputView: "table", orderMatters: { startsOn: false, showSwitch: true },
+        panes: { ...defaultAuthoredState.panes, input: { available: true, startsOpen: false } },
+      })
     });
     // the form is on the page, so what isn't there was left off rather than not drawn yet
     cy.interactive().find("#pane-inspect-startsOpen").should("exist");
@@ -168,15 +171,25 @@ describe("the interactive's authoring form", () => {
     });
     cy.interactive().find("#usableModes").select("Both (with a toggle switch for students)");
     cy.interactive().find("#inputView").should("have.value", "table");
+    cy.interactive().find("#orderMattersStartsOn").should("not.be.checked");
     cy.interactive().find("#pane-input").should("be.checked");
+    cy.interactive().find("#pane-input-startsOpen").should("not.be.checked");
     cy.interactive().find("#pane-graph-startsOpen").should("be.checked");
   });
 
   it("hides a pane's starting state while it isn't available, but not the probabilities'", () => {
-    cy.startInteractive({ mode: "authoring", authoredState: withChange({ modes: { useData: true, draw: false } }) });
+    cy.startInteractive({
+      mode: "authoring", authoredState: withChange({
+        modes: { useData: true, draw: false },
+        panes: { ...defaultAuthoredState.panes, inspect: { available: true, startsOpen: false } },
+      })
+    });
     cy.interactive().find("#pane-graph-startsOpen").closest("label").should("have.text", "Open at the start");
     cy.interactive().find("#pane-inspect").uncheck();
     cy.interactive().find("#pane-inspect-startsOpen").should("not.exist");
+    cy.interactive().find("#pane-inspect").check();
+    cy.interactive().find("#pane-inspect-startsOpen").should("not.be.checked");
+    cy.interactive().find("#pane-inspect").uncheck();
     cy.interactive().find("#pane-graph").uncheck();
     cy.interactive().find("#pane-graph-startsOpen").should("not.exist");
     cy.interactive().find("#button-probabilities").uncheck();
