@@ -31,11 +31,17 @@ module.exports = (env, argv) => {
       allowedHosts: 'all',
     },
     devtool: devMode ? 'eval-cheap-module-source-map' : 'source-map',
-    entry: './src/index.tsx',
+    // the Cypress tests' fake CODAP page is served by the dev server only, never deployed
+    entry: devMode
+      ? { main: './src/index.tsx', 'fake-codap': './cypress/fake-codap/fake-codap.ts' }
+      : './src/index.tsx',
     mode: 'development',
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: 'assets/index.[contenthash].js',
+      // the plugin's chunk is main, which names its CSS file, and its script is index.[contenthash].js
+      filename: ({ chunk }) => (chunk.name === 'main'
+        ? 'assets/index.[contenthash].js'
+        : 'assets/[name].[contenthash].js'),
     },
     performance: { hints: false },
     module: {
@@ -144,7 +150,14 @@ module.exports = (env, argv) => {
         template: 'src/index.html',
         favicon: 'src/public/favicon.ico',
         publicPath: '.',
+        excludeChunks: ['fake-codap'],
       }),
+      ...(devMode ? [new HtmlWebpackPlugin({
+        filename: 'fake-codap.html',
+        template: 'cypress/fake-codap/index.html',
+        chunks: ['fake-codap'],
+        publicPath: '.',
+      })] : []),
       ...(DEPLOY_PATH ? [new HtmlWebpackPlugin({
         filename: 'index-top.html',
         template: 'src/index.html',

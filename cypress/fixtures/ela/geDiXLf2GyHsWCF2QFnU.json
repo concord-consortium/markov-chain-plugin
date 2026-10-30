@@ -1,0 +1,702 @@
+{
+  "viewMode": "drawing",
+  "nodes": [
+    {
+      "id": "i",
+      "label": "i",
+      "value": 5,
+      "x": 86.47669644202176,
+      "y": -220.94465829570643
+    },
+    {
+      "id": "met",
+      "label": "met",
+      "value": 1,
+      "x": -24.5282522305646,
+      "y": -151.43309075081373
+    },
+    {
+      "id": "ajax",
+      "label": "ajax",
+      "value": 2,
+      "x": -148.00663375937643,
+      "y": -70.94182406218307
+    },
+    {
+      "id": "on",
+      "label": "on",
+      "value": 5,
+      "x": -79.48113130429843,
+      "y": 65.27922158576322
+    },
+    {
+      "id": "a",
+      "label": "a",
+      "value": 1,
+      "x": -67.33383855923755,
+      "y": 156.8190262061194
+    },
+    {
+      "id": "warm",
+      "label": "warm",
+      "value": 2,
+      "x": -32.84092195803777,
+      "y": 66.29683166981549
+    },
+    {
+      "id": ",",
+      "label": ",",
+      "value": 5,
+      "x": -192.97119724146143,
+      "y": 12.012155141586474
+    },
+    {
+      "id": "sunny",
+      "label": "sunny",
+      "value": 3,
+      "x": -31.655147703414716,
+      "y": 1.7416579494291125
+    },
+    {
+      "id": "day",
+      "label": "day",
+      "value": 1,
+      "x": 83.5360513999929,
+      "y": 80.24655665924988
+    },
+    {
+      "id": "in",
+      "label": "in",
+      "value": 1,
+      "x": 197.40209229609073,
+      "y": 130.91256106374064
+    },
+    {
+      "id": "september",
+      "label": "september",
+      "value": 1,
+      "x": 220.27040256391376,
+      "y": 35.35310735821583
+    },
+    {
+      "id": ".",
+      "label": ".",
+      "value": 6,
+      "x": 146.85958834145737,
+      "y": -43.4575515005359
+    },
+    {
+      "id": "he",
+      "label": "he",
+      "value": 1,
+      "x": 269.79851327493805,
+      "y": 0.23315343079961173
+    },
+    {
+      "id": "was",
+      "label": "was",
+      "value": 1,
+      "x": 320.9269649702538,
+      "y": 102.90847501737665
+    },
+    {
+      "id": "sitting",
+      "label": "sitting",
+      "value": 1,
+      "x": 272.0928524907513,
+      "y": 203.9804004268597
+    },
+    {
+      "id": "so",
+      "label": "so",
+      "value": 1,
+      "x": 162.4588827233931,
+      "y": 239.7783632009759
+    },
+    {
+      "id": "still",
+      "label": "still",
+      "value": 1,
+      "x": 29.12178708582465,
+      "y": 172.97788074732972
+    },
+    {
+      "id": "the",
+      "label": "the",
+      "value": 1,
+      "x": 21.220473088885566,
+      "y": 90.24003280828934
+    },
+    {
+      "id": "bench",
+      "label": "bench",
+      "value": 2,
+      "x": 81.35151279694078,
+      "y": 8.95790501503609
+    },
+    {
+      "id": "that",
+      "label": "that",
+      "value": 2,
+      "x": 24.451279973353607,
+      "y": -67.29099762300326
+    },
+    {
+      "id": "didn’t",
+      "label": "didn’t",
+      "value": 1,
+      "x": 186.37641319179258,
+      "y": -265.1602230033422
+    },
+    {
+      "id": "notice",
+      "label": "notice",
+      "value": 1,
+      "x": 274.780635006996,
+      "y": -207.24287155183816
+    },
+    {
+      "id": "him",
+      "label": "him",
+      "value": 1,
+      "x": 253.0279394213367,
+      "y": -102.47933506434505
+    },
+    {
+      "id": "after",
+      "label": "after",
+      "value": 1,
+      "x": 180.32149912552924,
+      "y": -159.14647807023093
+    },
+    {
+      "id": "brought",
+      "label": "brought",
+      "value": 1,
+      "x": -41.75909918948096,
+      "y": -262.838958768945
+    },
+    {
+      "id": "treats",
+      "label": "treats",
+      "value": 2,
+      "x": -144.86154098332975,
+      "y": -164.96035902199566
+    },
+    {
+      "id": "we",
+      "label": "we",
+      "value": 1,
+      "x": -148.60721733609688,
+      "y": 141.58924911314722
+    },
+    {
+      "id": "quickly",
+      "label": "quickly",
+      "value": 1,
+      "x": -30.114342958617552,
+      "y": 246.3265957524048
+    },
+    {
+      "id": "became",
+      "label": "became",
+      "value": 1,
+      "x": 90.63273257015514,
+      "y": 224.10565242286177
+    },
+    {
+      "id": "friends",
+      "label": "friends",
+      "value": 1,
+      "x": 151.41836345925626,
+      "y": 89.08198163754763
+    },
+    {
+      "id": "days",
+      "label": "days",
+      "value": 2,
+      "x": -109.46394446312294,
+      "y": -41.729821243078604
+    },
+    {
+      "id": "we’d",
+      "label": "we’d",
+      "value": 1,
+      "x": -283.7121629720986,
+      "y": 101.08029057486274
+    },
+    {
+      "id": "sit",
+      "label": "sit",
+      "value": 2,
+      "x": -215.1538181817744,
+      "y": 108.98758653782163
+    },
+    {
+      "id": "together",
+      "label": "together",
+      "value": 1,
+      "x": -282.5641334897117,
+      "y": 19.95758073095052
+    },
+    {
+      "id": "eating",
+      "label": "eating",
+      "value": 1,
+      "x": -226.8428848268056,
+      "y": -139.2399722498159
+    },
+    {
+      "id": "while",
+      "label": "while",
+      "value": 1,
+      "x": -25.307001997199936,
+      "y": -224.31947834710493
+    },
+    {
+      "id": "read",
+      "label": "read",
+      "value": 1,
+      "x": 144.3282005123454,
+      "y": -144.0234993211378
+    },
+    {
+      "id": "when",
+      "label": "when",
+      "value": 1,
+      "x": 51.47442304972759,
+      "y": -146.89444986829184
+    },
+    {
+      "id": "it",
+      "label": "it",
+      "value": 1,
+      "x": -113.39644103160457,
+      "y": -236.97927922765444
+    },
+    {
+      "id": "got",
+      "label": "got",
+      "value": 1,
+      "x": -240.45325072936598,
+      "y": -209.40703080848925
+    },
+    {
+      "id": "cold",
+      "label": "cold",
+      "value": 1,
+      "x": -267.7120820427353,
+      "y": -85.61384592860695
+    },
+    {
+      "id": "he’d",
+      "label": "he’d",
+      "value": 1,
+      "x": -292.67665715372243,
+      "y": 58.9267259823649
+    },
+    {
+      "id": "me",
+      "label": "me",
+      "value": 2,
+      "x": -111.74446782128864,
+      "y": 211.90729878450003
+    },
+    {
+      "id": "to",
+      "label": "to",
+      "value": 1,
+      "x": -101.62327028745432,
+      "y": 317.34000711461687
+    },
+    {
+      "id": "keep",
+      "label": "keep",
+      "value": 1,
+      "x": -178.05604430866782,
+      "y": 290.02493100138304
+    },
+    {
+      "id": "miss",
+      "label": "miss",
+      "value": 1,
+      "x": 16.62529402371461,
+      "y": -288.43398499907346
+    },
+    {
+      "id": "those",
+      "label": "those",
+      "value": 1,
+      "x": -76.78965527465884,
+      "y": -174.38312936385327
+    }
+  ],
+  "edges": [
+    {
+      "from": "i",
+      "to": "met",
+      "value": 1
+    },
+    {
+      "from": "met",
+      "to": "ajax",
+      "value": 1
+    },
+    {
+      "from": "ajax",
+      "to": "on",
+      "value": 1
+    },
+    {
+      "from": "on",
+      "to": "a",
+      "value": 1
+    },
+    {
+      "from": "a",
+      "to": "warm",
+      "value": 1
+    },
+    {
+      "from": "warm",
+      "to": ",",
+      "value": 1
+    },
+    {
+      "from": ",",
+      "to": "sunny",
+      "value": 1
+    },
+    {
+      "from": "sunny",
+      "to": "day",
+      "value": 1
+    },
+    {
+      "from": "day",
+      "to": "in",
+      "value": 1
+    },
+    {
+      "from": "in",
+      "to": "september",
+      "value": 1
+    },
+    {
+      "from": "september",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "he",
+      "value": 1
+    },
+    {
+      "from": "he",
+      "to": "was",
+      "value": 1
+    },
+    {
+      "from": "was",
+      "to": "sitting",
+      "value": 1
+    },
+    {
+      "from": "sitting",
+      "to": "so",
+      "value": 1
+    },
+    {
+      "from": "so",
+      "to": "still",
+      "value": 1
+    },
+    {
+      "from": "still",
+      "to": "on",
+      "value": 1
+    },
+    {
+      "from": "on",
+      "to": "the",
+      "value": 1
+    },
+    {
+      "from": "the",
+      "to": "bench",
+      "value": 1
+    },
+    {
+      "from": "bench",
+      "to": "that",
+      "value": 1
+    },
+    {
+      "from": "that",
+      "to": "i",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "didn’t",
+      "value": 1
+    },
+    {
+      "from": "didn’t",
+      "to": "notice",
+      "value": 1
+    },
+    {
+      "from": "notice",
+      "to": "him",
+      "value": 1
+    },
+    {
+      "from": "him",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "after",
+      "value": 1
+    },
+    {
+      "from": "after",
+      "to": "i",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "brought",
+      "value": 1
+    },
+    {
+      "from": "brought",
+      "to": "treats",
+      "value": 1
+    },
+    {
+      "from": "treats",
+      "to": ",",
+      "value": 1
+    },
+    {
+      "from": ",",
+      "to": "we",
+      "value": 1
+    },
+    {
+      "from": "we",
+      "to": "quickly",
+      "value": 1
+    },
+    {
+      "from": "quickly",
+      "to": "became",
+      "value": 1
+    },
+    {
+      "from": "became",
+      "to": "friends",
+      "value": 1
+    },
+    {
+      "from": "friends",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "on",
+      "value": 1
+    },
+    {
+      "from": "on",
+      "to": "sunny",
+      "value": 1
+    },
+    {
+      "from": "sunny",
+      "to": "days",
+      "value": 1
+    },
+    {
+      "from": "days",
+      "to": ",",
+      "value": 1
+    },
+    {
+      "from": ",",
+      "to": "we’d",
+      "value": 1
+    },
+    {
+      "from": "we’d",
+      "to": "sit",
+      "value": 1
+    },
+    {
+      "from": "sit",
+      "to": "together",
+      "value": 1
+    },
+    {
+      "from": "together",
+      "to": ",",
+      "value": 1
+    },
+    {
+      "from": ",",
+      "to": "ajax",
+      "value": 1
+    },
+    {
+      "from": "ajax",
+      "to": "eating",
+      "value": 1
+    },
+    {
+      "from": "eating",
+      "to": "treats",
+      "value": 1
+    },
+    {
+      "from": "treats",
+      "to": "while",
+      "value": 1
+    },
+    {
+      "from": "while",
+      "to": "i",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "read",
+      "value": 1
+    },
+    {
+      "from": "read",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "when",
+      "value": 1
+    },
+    {
+      "from": "when",
+      "to": "it",
+      "value": 1
+    },
+    {
+      "from": "it",
+      "to": "got",
+      "value": 1
+    },
+    {
+      "from": "got",
+      "to": "cold",
+      "value": 1
+    },
+    {
+      "from": "cold",
+      "to": ",",
+      "value": 1
+    },
+    {
+      "from": ",",
+      "to": "he’d",
+      "value": 1
+    },
+    {
+      "from": "he’d",
+      "to": "sit",
+      "value": 1
+    },
+    {
+      "from": "sit",
+      "to": "on",
+      "value": 1
+    },
+    {
+      "from": "on",
+      "to": "me",
+      "value": 1
+    },
+    {
+      "from": "me",
+      "to": "to",
+      "value": 1
+    },
+    {
+      "from": "to",
+      "to": "keep",
+      "value": 1
+    },
+    {
+      "from": "keep",
+      "to": "me",
+      "value": 1
+    },
+    {
+      "from": "me",
+      "to": "warm",
+      "value": 1
+    },
+    {
+      "from": "warm",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "i",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "miss",
+      "value": 1
+    },
+    {
+      "from": "miss",
+      "to": "those",
+      "value": 1
+    },
+    {
+      "from": "those",
+      "to": "days",
+      "value": 1
+    },
+    {
+      "from": "days",
+      "to": "on",
+      "value": 1
+    },
+    {
+      "from": "on",
+      "to": "that",
+      "value": 1
+    },
+    {
+      "from": "that",
+      "to": "sunny",
+      "value": 1
+    },
+    {
+      "from": "sunny",
+      "to": "bench",
+      "value": 1
+    },
+    {
+      "from": "bench",
+      "to": ".",
+      "value": 1
+    }
+  ],
+  "version": 2
+}

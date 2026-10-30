@@ -1,0 +1,46 @@
+{
+  "viewMode": "drawing",
+  "nodes": [
+    {
+      "id": "tAtJ9i49ucYSlhkXy0ag8",
+      "label": "i",
+      "value": 1,
+      "x": -230.23797607421875,
+      "y": -65.748046875
+    },
+    {
+      "id": "PTVhrTsYJnWs8ubsCdzbh",
+      "label": "love",
+      "value": 1,
+      "x": -96.16904640197754,
+      "y": -63.09892272949219
+    },
+    {
+      "id": "Yfaoh2IH1AthwJiM3OtJd",
+      "label": "class",
+      "value": 1,
+      "x": 91.7048110961914,
+      "y": -52.528053283691406
+    },
+    {
+      "id": "9QBp3NJN_89cIVDqUD8AT",
+      "label": "!",
+      "value": 1,
+      "x": 219.72821044921875,
+      "y": -50.11452507972717
+    }
+  ],
+  "edges": [
+    {
+      "from": "tAtJ9i49ucYSlhkXy0ag8",
+      "to": "PTVhrTsYJnWs8ubsCdzbh",
+      "value": 1
+    },
+    {
+      "from": "Yfaoh2IH1AthwJiM3OtJd",
+      "to": "9QBp3NJN_89cIVDqUD8AT",
+      "value": 1
+    }
+  ],
+  "version": 2
+}

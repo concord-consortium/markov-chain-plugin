@@ -78,23 +78,31 @@ To roll back a release, run the release workflow again with the previous tag.
 
 Run `npm test` to run jest tests. Run `npm run test:full` to run jest and Cypress tests. CI runs the jest tests after the build on every push, and a failing test stops the deploy.
 
+The Cypress tests run against the dev server. Start it with `npm start`, then run `npm run test:cypress` to run them all headless, or `npm run test:cypress:open` to open the Cypress app. `npm run test:full` needs the dev server running too. CI runs the Cypress tests in Chrome on every push, a failing test stops the deploy, and a failed run keeps its screenshots as a workflow artifact.
+
+The tests load the plugin into `fake-codap.html`, a stand-in for CODAP that the dev server serves and production builds leave out. It answers the plugin's requests the way CODAP 3.1.2 does and sends it CODAP's notifications. Its code is in `cypress/fake-codap/`, and the custom commands that drive it (`cy.startPlugin`, `cy.dropAttribute`, `cy.getPluginState` and the rest) are listed with their descriptions in `cypress/support/index.d.ts`. `cypress/fixtures/ela/` holds the saved plugin states of the five ELA module documents.
+
+The tests expect the dev server on port 8080. If that port is taken, run the server on another one and point Cypress at it:
+
+```
+npm start -- --port 8081
+CYPRESS_baseUrl=http://localhost:8081 npm run test:cypress
+```
+
 ##### Cypress Run Options
 
-Inside of your `package.json` file:
-1. `--browser browser-name`: define browser for running tests
-2. `--group group-name`: assign a group name for tests running
-3. `--spec`: define the spec files to run
-4. `--headed`: show cypress test runner GUI while running test (will exit by default when done)
-5. `--no-exit`: keep cypress test runner GUI open when done running
-6. `--record`: decide whether or not tests will have video recordings
-7. `--key`: specify your secret record key
-8. `--reporter`: specify a mocha reporter
+Pass these to `npx cypress run`:
+1. `--browser browser-name`: the browser to run the tests in (CI uses `chrome`)
+2. `--spec`: the spec files to run
+3. `--headed`: show the browser while the tests run
+4. `--no-exit`: keep the browser open when the tests finish
+5. `--reporter`: a mocha reporter
 
 ##### Cypress Run Examples
 
-1. `cypress run --browser chrome` will run cypress in a chrome browser
-2. `cypress run --headed --no-exit` will open cypress test runner when tests begin to run, and it will remain open when tests are finished running.
-3. `cypress run --spec 'cypress/integration/examples/smoke-test.js'` will point to a smoke-test file rather than running all of the test files for a project.
+1. `npx cypress run --browser chrome` runs the tests in Chrome.
+2. `npx cypress run --headed --no-exit` shows the tests running and leaves the browser open afterward.
+3. `npx cypress run --spec 'cypress/e2e/arrows.test.ts'` runs one spec file.
 
 ## License
 

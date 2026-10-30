@@ -1,0 +1,2356 @@
+{
+  "viewMode": "drawing",
+  "nodes": [
+    {
+      "id": "thanks",
+      "label": "thanks",
+      "value": 12,
+      "x": -125.00242643690748,
+      "y": -149.3183297039364
+    },
+    {
+      "id": "so",
+      "label": "so",
+      "value": 20,
+      "x": -12.888877577560901,
+      "y": -99.10222276595746
+    },
+    {
+      "id": "much",
+      "label": "much",
+      "value": 16,
+      "x": 19.916478904089917,
+      "y": 66.33072368788905
+    },
+    {
+      "id": ".",
+      "label": ".",
+      "value": 68,
+      "x": -104.78990957159583,
+      "y": 28.658819228318638
+    },
+    {
+      "id": "you're",
+      "label": "you're",
+      "value": 8,
+      "x": -80.55837528116518,
+      "y": 101.16170501742023
+    },
+    {
+      "id": "the",
+      "label": "the",
+      "value": 20,
+      "x": 133.0981552945712,
+      "y": 188.37696799999188
+    },
+    {
+      "id": "best",
+      "label": "best",
+      "value": 7,
+      "x": -8.07914224194242,
+      "y": -216.27871052261239
+    },
+    {
+      "id": "for",
+      "label": "for",
+      "value": 43,
+      "x": 244.39528658846518,
+      "y": -83.48386982315712
+    },
+    {
+      "id": "everything",
+      "label": "everything",
+      "value": 6,
+      "x": 154.8929658099187,
+      "y": 140.43467580140486
+    },
+    {
+      "id": "my",
+      "label": "my",
+      "value": 10,
+      "x": -202.34232242102172,
+      "y": -85.33650087339447
+    },
+    {
+      "id": "sincere",
+      "label": "sincere",
+      "value": 1,
+      "x": -253.3879020003559,
+      "y": -214.5800643562209
+    },
+    {
+      "id": "a",
+      "label": "a",
+      "value": 4,
+      "x": -209.48272268939425,
+      "y": -45.28216944149168
+    },
+    {
+      "id": "bunch",
+      "label": "bunch",
+      "value": 1,
+      "x": -280.22127875392283,
+      "y": 2.690067693331615
+    },
+    {
+      "id": "your",
+      "label": "your",
+      "value": 20,
+      "x": 8.687224858721002,
+      "y": 324.74618113749887
+    },
+    {
+      "id": "help",
+      "label": "help",
+      "value": 6,
+      "x": 30.52721428027383,
+      "y": 140.81532735098585
+    },
+    {
+      "id": "i",
+      "label": "i",
+      "value": 18,
+      "x": -307.9650309143825,
+      "y": 235.1949374496946
+    },
+    {
+      "id": "appreciate",
+      "label": "appreciate",
+      "value": 10,
+      "x": -59.133676237772164,
+      "y": 341.9781291560046
+    },
+    {
+      "id": "million",
+      "label": "million",
+      "value": 1,
+      "x": -246.96079978957172,
+      "y": 35.51052571033362
+    },
+    {
+      "id": "thank",
+      "label": "thank",
+      "value": 28,
+      "x": -10.06901226973507,
+      "y": 99.19033278331267
+    },
+    {
+      "id": "you",
+      "label": "you",
+      "value": 41,
+      "x": 181.93575580930928,
+      "y": 54.40891372338757
+    },
+    {
+      "id": "very",
+      "label": "very",
+      "value": 7,
+      "x": 141.6561178994034,
+      "y": 250.46630209727212
+    },
+    {
+      "id": "deepest",
+      "label": "deepest",
+      "value": 1,
+      "x": -284.04496504542675,
+      "y": -179.0124952431004
+    },
+    {
+      "id": "and",
+      "label": "and",
+      "value": 3,
+      "x": 94.6279724198623,
+      "y": 78.99229558421298
+    },
+    {
+      "id": "appreciation",
+      "label": "appreciation",
+      "value": 1,
+      "x": 2.88551950055197,
+      "y": 16.434536853297192
+    },
+    {
+      "id": "i'm",
+      "label": "i'm",
+      "value": 5,
+      "x": -98.5507152320788,
+      "y": -212.17471006590802
+    },
+    {
+      "id": "grateful",
+      "label": "grateful",
+      "value": 6,
+      "x": 53.318912326762906,
+      "y": -225.5976715335175
+    },
+    {
+      "id": "support",
+      "label": "support",
+      "value": 4,
+      "x": -2.5409316753884577,
+      "y": 219.42915111944583
+    },
+    {
+      "id": "to",
+      "label": "to",
+      "value": 9,
+      "x": 141.0709859788839,
+      "y": -60.32927018982208
+    },
+    {
+      "id": "have",
+      "label": "have",
+      "value": 4,
+      "x": 319.78995375841663,
+      "y": -80.67932966168473
+    },
+    {
+      "id": "in",
+      "label": "in",
+      "value": 4,
+      "x": 254.97729815151217,
+      "y": 63.38717496235424
+    },
+    {
+      "id": "life",
+      "label": "life",
+      "value": 2,
+      "x": -289.1080062313362,
+      "y": -50.99313690058362
+    },
+    {
+      "id": "do",
+      "label": "do",
+      "value": 2,
+      "x": -65.45034417841349,
+      "y": 153.56687297466001
+    },
+    {
+      "id": "time",
+      "label": "time",
+      "value": 2,
+      "x": -176.40866328336506,
+      "y": 111.54505995637685
+    },
+    {
+      "id": "birthday",
+      "label": "birthday",
+      "value": 5,
+      "x": -204.1117911405163,
+      "y": 368.0469463713687
+    },
+    {
+      "id": "message",
+      "label": "message",
+      "value": 3,
+      "x": -75.5106884545818,
+      "y": 278.7532261038765
+    },
+    {
+      "id": "card",
+      "label": "card",
+      "value": 3,
+      "x": -103.26040543897582,
+      "y": 298.3732444305016
+    },
+    {
+      "id": "gift",
+      "label": "gift",
+      "value": 7,
+      "x": -28.832296896386097,
+      "y": 387.18448527245374
+    },
+    {
+      "id": "made",
+      "label": "made",
+      "value": 4,
+      "x": -236.81274290541313,
+      "y": 273.2592810693641
+    },
+    {
+      "id": "day",
+      "label": "day",
+      "value": 4,
+      "x": -254.62500243337385,
+      "y": -42.75025851071824
+    },
+    {
+      "id": "!",
+      "label": "!",
+      "value": 5,
+      "x": -107.59457563756044,
+      "y": -41.8454666173434
+    },
+    {
+      "id": "thinking",
+      "label": "thinking",
+      "value": 1,
+      "x": 347.9603287892879,
+      "y": -252.9800367737095
+    },
+    {
+      "id": "of",
+      "label": "of",
+      "value": 1,
+      "x": 267.2269523454083,
+      "y": -347.32809315841024
+    },
+    {
+      "id": "me",
+      "label": "me",
+      "value": 11,
+      "x": 135.07960009741862,
+      "y": -226.31744595610755
+    },
+    {
+      "id": "absolutely",
+      "label": "absolutely",
+      "value": 1,
+      "x": -167.1797113404324,
+      "y": 370.98069758987253
+    },
+    {
+      "id": "love",
+      "label": "love",
+      "value": 2,
+      "x": 61.585282488106024,
+      "y": 344.9326204146508
+    },
+    {
+      "id": "thoughtful",
+      "label": "thoughtful",
+      "value": 2,
+      "x": 109.75158014105799,
+      "y": 372.75255477461604
+    },
+    {
+      "id": "lovely",
+      "label": "lovely",
+      "value": 1,
+      "x": -106.9498474945101,
+      "y": 450.9844673033818
+    },
+    {
+      "id": "wishes",
+      "label": "wishes",
+      "value": 1,
+      "x": -195.95794761288727,
+      "y": 225.0898937853578
+    },
+    {
+      "id": "really",
+      "label": "really",
+      "value": 9,
+      "x": -327.1111332019075,
+      "y": 347.51559781290837
+    },
+    {
+      "id": "always",
+      "label": "always",
+      "value": 3,
+      "x": 230.974733530656,
+      "y": -207.57399775250929
+    },
+    {
+      "id": "being",
+      "label": "being",
+      "value": 12,
+      "x": 92.23149443396983,
+      "y": -154.14346711279646
+    },
+    {
+      "id": "there",
+      "label": "there",
+      "value": 4,
+      "x": 161.787279399839,
+      "y": -169.04630822529876
+    },
+    {
+      "id": "wishing",
+      "label": "wishing",
+      "value": 1,
+      "x": 258.6093704823494,
+      "y": -252.94773743097255
+    },
+    {
+      "id": "happy",
+      "label": "happy",
+      "value": 1,
+      "x": -277.0752344094814,
+      "y": 199.43951649177004
+    },
+    {
+      "id": "friendship",
+      "label": "friendship",
+      "value": 1,
+      "x": -105.42281809859166,
+      "y": 218.14458480824058
+    },
+    {
+      "id": "making",
+      "label": "making",
+      "value": 1,
+      "x": 30.108710248443668,
+      "y": -125.77038143489078
+    },
+    {
+      "id": "heart",
+      "label": "heart",
+      "value": 1,
+      "x": -167.54150400141006,
+      "y": -194.28389473423837
+    },
+    {
+      "id": "full",
+      "label": "full",
+      "value": 1,
+      "x": -150.56231882021672,
+      "y": -76.81031131690028
+    },
+    {
+      "id": "beautiful",
+      "label": "beautiful",
+      "value": 1,
+      "x": 19.416230371295264,
+      "y": 477.6364953531887
+    },
+    {
+      "id": "it",
+      "label": "it",
+      "value": 1,
+      "x": -238.5849892475919,
+      "y": 151.71961633925235
+    },
+    {
+      "id": "generous",
+      "label": "generous",
+      "value": 1,
+      "x": 107.49837157651771,
+      "y": 428.31090457971595
+    },
+    {
+      "id": "mom",
+      "label": "mom",
+      "value": 2,
+      "x": 71.23579611866494,
+      "y": -468.9577035899968
+    },
+    {
+      "id": "one",
+      "label": "one",
+      "value": 5,
+      "x": -75.6021856765612,
+      "y": -516.3364001567896
+    },
+    {
+      "id": "could",
+      "label": "could",
+      "value": 5,
+      "x": 5.9447563853659435,
+      "y": -550.6537724114377
+    },
+    {
+      "id": "ever",
+      "label": "ever",
+      "value": 10,
+      "x": -0.6823645635136578,
+      "y": -405.951636129726
+    },
+    {
+      "id": "ask",
+      "label": "ask",
+      "value": 5,
+      "x": 174.53041998382133,
+      "y": -314.4984551563123
+    },
+    {
+      "id": "dad",
+      "label": "dad",
+      "value": 2,
+      "x": 22.379272550015777,
+      "y": -477.07193968261527
+    },
+    {
+      "id": "brother",
+      "label": "brother",
+      "value": 3,
+      "x": -70.42399979399877,
+      "y": -312.85027067085974
+    },
+    {
+      "id": "sister",
+      "label": "sister",
+      "value": 3,
+      "x": -145.74012923888372,
+      "y": -332.0890421269355
+    },
+    {
+      "id": "friend",
+      "label": "friend",
+      "value": 3,
+      "x": -103.44964554710293,
+      "y": -366.0832764987273
+    },
+    {
+      "id": "am",
+      "label": "am",
+      "value": 1,
+      "x": -198.63899341722592,
+      "y": 60.25746444264322
+    },
+    {
+      "id": "don't",
+      "label": "don't",
+      "value": 2,
+      "x": -453.3268357710668,
+      "y": 203.9798772134928
+    },
+    {
+      "id": "know",
+      "label": "know",
+      "value": 2,
+      "x": -423.83317331142285,
+      "y": -30.74887094263722
+    },
+    {
+      "id": "what",
+      "label": "what",
+      "value": 1,
+      "x": -501.8136607776132,
+      "y": 72.49109199664838
+    },
+    {
+      "id": "i'd",
+      "label": "i'd",
+      "value": 1,
+      "x": -347.910249519933,
+      "y": 167.0772349183442
+    },
+    {
+      "id": "without",
+      "label": "without",
+      "value": 1,
+      "x": 89.52961666138181,
+      "y": 199.6073011539924
+    },
+    {
+      "id": "an",
+      "label": "an",
+      "value": 3,
+      "x": 2.5550474021136744,
+      "y": -341.06147853080415
+    },
+    {
+      "id": "awesome",
+      "label": "awesome",
+      "value": 3,
+      "x": -141.4381115963305,
+      "y": -452.3087271971553
+    },
+    {
+      "id": "just",
+      "label": "just",
+      "value": 1,
+      "x": -346.9225491464854,
+      "y": 84.01691563399382
+    },
+    {
+      "id": "wanted",
+      "label": "wanted",
+      "value": 1,
+      "x": -77.4235357892319,
+      "y": -68.84305296962094
+    },
+    {
+      "id": "say",
+      "label": "say",
+      "value": 1,
+      "x": 67.96680231967304,
+      "y": -6.604350411311558
+    },
+    {
+      "id": "all",
+      "label": "all",
+      "value": 2,
+      "x": 193.14132163407075,
+      "y": 246.0659725297461
+    },
+    {
+      "id": "most",
+      "label": "most",
+      "value": 5,
+      "x": 104.99486357676919,
+      "y": -95.33568837733111
+    },
+    {
+      "id": "supportive",
+      "label": "supportive",
+      "value": 5,
+      "x": 59.989912290204494,
+      "y": -384.1746150334535
+    },
+    {
+      "id": "rock",
+      "label": "rock",
+      "value": 1,
+      "x": -278.1488764056211,
+      "y": -125.80790738945183
+    },
+    {
+      "id": "helping",
+      "label": "helping",
+      "value": 2,
+      "x": 285.4717195882062,
+      "y": -1.576575590481492
+    },
+    {
+      "id": "that",
+      "label": "that",
+      "value": 2,
+      "x": -48.45699876122943,
+      "y": 46.847187192592486
+    },
+    {
+      "id": "gave",
+      "label": "gave",
+      "value": 1,
+      "x": 190.90359368957024,
+      "y": -104.81783881002511
+    },
+    {
+      "id": "pitching",
+      "label": "pitching",
+      "value": 1,
+      "x": 380.72090668245283,
+      "y": -30.12124771349415
+    },
+    {
+      "id": "us",
+      "label": "us",
+      "value": 4,
+      "x": 340.61471071786735,
+      "y": 199.74573489640196
+    },
+    {
+      "id": "out",
+      "label": "out",
+      "value": 1,
+      "x": 119.2226364835467,
+      "y": 128.33801296801477
+    },
+    {
+      "id": "can't",
+      "label": "can't",
+      "value": 2,
+      "x": -179.9815743184459,
+      "y": 318.67634729713836
+    },
+    {
+      "id": "enough",
+      "label": "enough",
+      "value": 1,
+      "x": 335.15076853464257,
+      "y": 14.75796652489412
+    },
+    {
+      "id": "did",
+      "label": "did",
+      "value": 2,
+      "x": 243.26957915904728,
+      "y": -29.373060714691952
+    },
+    {
+      "id": "no",
+      "label": "no",
+      "value": 1,
+      "x": 374.0266563029197,
+      "y": -226.32807230136623
+    },
+    {
+      "id": "idea",
+      "label": "idea",
+      "value": 1,
+      "x": 162.0986072476619,
+      "y": -277.72300471476007
+    },
+    {
+      "id": "how",
+      "label": "how",
+      "value": 2,
+      "x": -43.427647086712305,
+      "y": -150.49769357284873
+    },
+    {
+      "id": "has",
+      "label": "has",
+      "value": 2,
+      "x": 123.61628758977079,
+      "y": 230.94150364741458
+    },
+    {
+      "id": "meant",
+      "label": "meant",
+      "value": 2,
+      "x": 182.92703192226716,
+      "y": 99.93492443672933
+    },
+    {
+      "id": "during",
+      "label": "during",
+      "value": 1,
+      "x": -26.2378220348909,
+      "y": -371.85663993180475
+    },
+    {
+      "id": "this",
+      "label": "this",
+      "value": 1,
+      "x": -248.50495684346183,
+      "y": -378.95524285990416
+    },
+    {
+      "id": "difficult",
+      "label": "difficult",
+      "value": 1,
+      "x": -322.47066166760885,
+      "y": -190.0985580308729
+    },
+    {
+      "id": "done",
+      "label": "done",
+      "value": 2,
+      "x": 168.66703088818738,
+      "y": 7.576383916327841
+    },
+    {
+      "id": "helped",
+      "label": "helped",
+      "value": 1,
+      "x": 222.51817921419575,
+      "y": -123.24620352998018
+    },
+    {
+      "id": ",",
+      "label": ",",
+      "value": 1,
+      "x": -174.51717937288112,
+      "y": 176.8020996407003
+    },
+    {
+      "id": "possibly",
+      "label": "possibly",
+      "value": 1,
+      "x": -32.474692793354606,
+      "y": 440.5335543922515
+    },
+    {
+      "id": "repay",
+      "label": "repay",
+      "value": 1,
+      "x": 157.54226537784805,
+      "y": 297.8124415696324
+    },
+    {
+      "id": "are",
+      "label": "are",
+      "value": 1,
+      "x": 385.8953282314133,
+      "y": -146.44040218307057
+    },
+    {
+      "id": "people",
+      "label": "people",
+      "value": 1,
+      "x": 444.36241250803505,
+      "y": 11.819388118591192
+    },
+    {
+      "id": "world",
+      "label": "world",
+      "value": 2,
+      "x": 253.42748342232684,
+      "y": 118.629091294764
+    },
+    {
+      "id": "like",
+      "label": "like",
+      "value": 1,
+      "x": 341.5215537727595,
+      "y": 146.72094837976672
+    },
+    {
+      "id": "you've",
+      "label": "you've",
+      "value": 1,
+      "x": 274.9032144533678,
+      "y": 161.8875543308537
+    },
+    {
+      "id": "welcoming",
+      "label": "welcoming",
+      "value": 1,
+      "x": 388.6748636517789,
+      "y": 69.21410191299444
+    },
+    {
+      "id": "into",
+      "label": "into",
+      "value": 1,
+      "x": 217.25096072436398,
+      "y": 348.0873022696298
+    },
+    {
+      "id": "home",
+      "label": "home",
+      "value": 1,
+      "x": -70.34692040879797,
+      "y": 210.66958674998844
+    },
+    {
+      "id": "looking",
+      "label": "looking",
+      "value": 1,
+      "x": 445.90772832654886,
+      "y": -32.72373236889668
+    },
+    {
+      "id": "after",
+      "label": "after",
+      "value": 1,
+      "x": 480.99661093373317,
+      "y": 145.827280390396
+    },
+    {
+      "id": "well",
+      "label": "well",
+      "value": 1,
+      "x": -129.24473503185035,
+      "y": -105.04708247292787
+    },
+    {
+      "id": "make",
+      "label": "make",
+      "value": 1,
+      "x": 308.0680416651629,
+      "y": 67.13279204504678
+    },
+    {
+      "id": "feel",
+      "label": "feel",
+      "value": 1,
+      "x": 284.35588107907193,
+      "y": 304.22088114763443
+    },
+    {
+      "id": "welcome",
+      "label": "welcome",
+      "value": 1,
+      "x": 44.16364742584862,
+      "y": 194.55585728768122
+    },
+    {
+      "id": "wonderful",
+      "label": "wonderful",
+      "value": 1,
+      "x": -382.0215498463607,
+      "y": -13.393551293948882
+    },
+    {
+      "id": "host",
+      "label": "host",
+      "value": 1,
+      "x": -288.70559182406816,
+      "y": 55.45630122352535
+    },
+    {
+      "id": "beyond",
+      "label": "beyond",
+      "value": 1,
+      "x": -88.42229978760602,
+      "y": -324.2446880836286
+    },
+    {
+      "id": "was",
+      "label": "was",
+      "value": 1,
+      "x": -308.56357584225947,
+      "y": 107.3673821132516
+    },
+    {
+      "id": "able",
+      "label": "able",
+      "value": 1,
+      "x": -52.77073057795416,
+      "y": -30.760484365858094
+    },
+    {
+      "id": "stay",
+      "label": "stay",
+      "value": 1,
+      "x": 287.88263552715006,
+      "y": -145.19422031153286
+    },
+    {
+      "id": "with",
+      "label": "with",
+      "value": 1,
+      "x": 324.69011577397856,
+      "y": -35.09313158288859
+    },
+    {
+      "id": "hosting",
+      "label": "hosting",
+      "value": 1,
+      "x": 283.3470049085055,
+      "y": -225.954135637874
+    }
+  ],
+  "edges": [
+    {
+      "from": "thanks",
+      "to": "so",
+      "value": 1
+    },
+    {
+      "from": "so",
+      "to": "much",
+      "value": 14
+    },
+    {
+      "from": "much",
+      "to": ".",
+      "value": 2
+    },
+    {
+      "from": ".",
+      "to": "you're",
+      "value": 8
+    },
+    {
+      "from": "you're",
+      "to": "the",
+      "value": 7
+    },
+    {
+      "from": "the",
+      "to": "best",
+      "value": 2
+    },
+    {
+      "from": "best",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "thanks",
+      "value": 8
+    },
+    {
+      "from": "thanks",
+      "to": "for",
+      "value": 7
+    },
+    {
+      "from": "for",
+      "to": "everything",
+      "value": 3
+    },
+    {
+      "from": "everything",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "my",
+      "value": 2
+    },
+    {
+      "from": "my",
+      "to": "sincere",
+      "value": 1
+    },
+    {
+      "from": "sincere",
+      "to": "thanks",
+      "value": 1
+    },
+    {
+      "from": "thanks",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "thanks",
+      "to": "a",
+      "value": 2
+    },
+    {
+      "from": "a",
+      "to": "bunch",
+      "value": 1
+    },
+    {
+      "from": "bunch",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "your",
+      "value": 10
+    },
+    {
+      "from": "your",
+      "to": "help",
+      "value": 4
+    },
+    {
+      "from": "help",
+      "to": ".",
+      "value": 5
+    },
+    {
+      "from": ".",
+      "to": "i",
+      "value": 16
+    },
+    {
+      "from": "i",
+      "to": "appreciate",
+      "value": 2
+    },
+    {
+      "from": "appreciate",
+      "to": "your",
+      "value": 3
+    },
+    {
+      "from": "a",
+      "to": "million",
+      "value": 1
+    },
+    {
+      "from": "million",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "thank",
+      "value": 21
+    },
+    {
+      "from": "thank",
+      "to": "you",
+      "value": 28
+    },
+    {
+      "from": "you",
+      "to": "very",
+      "value": 1
+    },
+    {
+      "from": "very",
+      "to": "much",
+      "value": 1
+    },
+    {
+      "from": "my",
+      "to": "deepest",
+      "value": 1
+    },
+    {
+      "from": "deepest",
+      "to": "thanks",
+      "value": 1
+    },
+    {
+      "from": "thanks",
+      "to": "and",
+      "value": 1
+    },
+    {
+      "from": "and",
+      "to": "appreciation",
+      "value": 1
+    },
+    {
+      "from": "appreciation",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "i'm",
+      "value": 5
+    },
+    {
+      "from": "i'm",
+      "to": "grateful",
+      "value": 1
+    },
+    {
+      "from": "grateful",
+      "to": "for",
+      "value": 2
+    },
+    {
+      "from": "you",
+      "to": "for",
+      "value": 14
+    },
+    {
+      "from": "your",
+      "to": "support",
+      "value": 3
+    },
+    {
+      "from": "support",
+      "to": ".",
+      "value": 2
+    },
+    {
+      "from": "i'm",
+      "to": "so",
+      "value": 3
+    },
+    {
+      "from": "so",
+      "to": "grateful",
+      "value": 4
+    },
+    {
+      "from": "grateful",
+      "to": "to",
+      "value": 2
+    },
+    {
+      "from": "to",
+      "to": "have",
+      "value": 2
+    },
+    {
+      "from": "have",
+      "to": "you",
+      "value": 2
+    },
+    {
+      "from": "you",
+      "to": "in",
+      "value": 2
+    },
+    {
+      "from": "in",
+      "to": "my",
+      "value": 2
+    },
+    {
+      "from": "my",
+      "to": "life",
+      "value": 2
+    },
+    {
+      "from": "life",
+      "to": ".",
+      "value": 2
+    },
+    {
+      "from": "appreciate",
+      "to": "everything",
+      "value": 3
+    },
+    {
+      "from": "everything",
+      "to": "you",
+      "value": 4
+    },
+    {
+      "from": "you",
+      "to": "do",
+      "value": 1
+    },
+    {
+      "from": "do",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "your",
+      "to": "time",
+      "value": 1
+    },
+    {
+      "from": "time",
+      "to": ".",
+      "value": 2
+    },
+    {
+      "from": "you",
+      "to": "so",
+      "value": 12
+    },
+    {
+      "from": "much",
+      "to": "for",
+      "value": 11
+    },
+    {
+      "from": "your",
+      "to": "birthday",
+      "value": 3
+    },
+    {
+      "from": "birthday",
+      "to": "message",
+      "value": 1
+    },
+    {
+      "from": "message",
+      "to": ".",
+      "value": 2
+    },
+    {
+      "from": "birthday",
+      "to": "card",
+      "value": 1
+    },
+    {
+      "from": "card",
+      "to": ".",
+      "value": 2
+    },
+    {
+      "from": "birthday",
+      "to": "gift",
+      "value": 1
+    },
+    {
+      "from": "gift",
+      "to": ".",
+      "value": 6
+    },
+    {
+      "from": ".",
+      "to": "your",
+      "value": 4
+    },
+    {
+      "from": "your",
+      "to": "gift",
+      "value": 1
+    },
+    {
+      "from": "gift",
+      "to": "made",
+      "value": 1
+    },
+    {
+      "from": "made",
+      "to": "my",
+      "value": 4
+    },
+    {
+      "from": "my",
+      "to": "day",
+      "value": 4
+    },
+    {
+      "from": "day",
+      "to": ".",
+      "value": 3
+    },
+    {
+      "from": "your",
+      "to": "message",
+      "value": 1
+    },
+    {
+      "from": "message",
+      "to": "made",
+      "value": 1
+    },
+    {
+      "from": "your",
+      "to": "card",
+      "value": 1
+    },
+    {
+      "from": "card",
+      "to": "made",
+      "value": 1
+    },
+    {
+      "from": "much",
+      "to": "!",
+      "value": 1
+    },
+    {
+      "from": "!",
+      "to": "thank",
+      "value": 4
+    },
+    {
+      "from": "for",
+      "to": "thinking",
+      "value": 1
+    },
+    {
+      "from": "thinking",
+      "to": "of",
+      "value": 1
+    },
+    {
+      "from": "of",
+      "to": "me",
+      "value": 1
+    },
+    {
+      "from": "me",
+      "to": ".",
+      "value": 8
+    },
+    {
+      "from": "i",
+      "to": "absolutely",
+      "value": 1
+    },
+    {
+      "from": "absolutely",
+      "to": "love",
+      "value": 1
+    },
+    {
+      "from": "love",
+      "to": "the",
+      "value": 1
+    },
+    {
+      "from": "the",
+      "to": "thoughtful",
+      "value": 2
+    },
+    {
+      "from": "thoughtful",
+      "to": "gift",
+      "value": 2
+    },
+    {
+      "from": "your",
+      "to": "lovely",
+      "value": 1
+    },
+    {
+      "from": "lovely",
+      "to": "birthday",
+      "value": 1
+    },
+    {
+      "from": "birthday",
+      "to": "wishes",
+      "value": 1
+    },
+    {
+      "from": "wishes",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "really",
+      "value": 9
+    },
+    {
+      "from": "really",
+      "to": "appreciate",
+      "value": 8
+    },
+    {
+      "from": "appreciate",
+      "to": "the",
+      "value": 3
+    },
+    {
+      "from": "the",
+      "to": "message",
+      "value": 1
+    },
+    {
+      "from": "the",
+      "to": "card",
+      "value": 1
+    },
+    {
+      "from": "the",
+      "to": "gift",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "always",
+      "value": 3
+    },
+    {
+      "from": "always",
+      "to": "being",
+      "value": 3
+    },
+    {
+      "from": "being",
+      "to": "there",
+      "value": 3
+    },
+    {
+      "from": "there",
+      "to": "for",
+      "value": 2
+    },
+    {
+      "from": "for",
+      "to": "me",
+      "value": 3
+    },
+    {
+      "from": "for",
+      "to": "wishing",
+      "value": 1
+    },
+    {
+      "from": "wishing",
+      "to": "me",
+      "value": 1
+    },
+    {
+      "from": "me",
+      "to": "a",
+      "value": 1
+    },
+    {
+      "from": "a",
+      "to": "happy",
+      "value": 1
+    },
+    {
+      "from": "happy",
+      "to": "birthday",
+      "value": 1
+    },
+    {
+      "from": "birthday",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "your",
+      "to": "friendship",
+      "value": 1
+    },
+    {
+      "from": "friendship",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "making",
+      "value": 1
+    },
+    {
+      "from": "making",
+      "to": "my",
+      "value": 1
+    },
+    {
+      "from": "my",
+      "to": "heart",
+      "value": 1
+    },
+    {
+      "from": "heart",
+      "to": "so",
+      "value": 1
+    },
+    {
+      "from": "so",
+      "to": "full",
+      "value": 1
+    },
+    {
+      "from": "full",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "the",
+      "value": 1
+    },
+    {
+      "from": "your",
+      "to": "beautiful",
+      "value": 1
+    },
+    {
+      "from": "beautiful",
+      "to": "gift",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "it",
+      "value": 1
+    },
+    {
+      "from": "it",
+      "to": "made",
+      "value": 1
+    },
+    {
+      "from": "day",
+      "to": "!",
+      "value": 1
+    },
+    {
+      "from": "your",
+      "to": "very",
+      "value": 1
+    },
+    {
+      "from": "very",
+      "to": "generous",
+      "value": 1
+    },
+    {
+      "from": "generous",
+      "to": "gift",
+      "value": 1
+    },
+    {
+      "from": "the",
+      "to": "very",
+      "value": 5
+    },
+    {
+      "from": "very",
+      "to": "best",
+      "value": 5
+    },
+    {
+      "from": "best",
+      "to": "mom",
+      "value": 1
+    },
+    {
+      "from": "mom",
+      "to": "one",
+      "value": 1
+    },
+    {
+      "from": "one",
+      "to": "could",
+      "value": 5
+    },
+    {
+      "from": "could",
+      "to": "ever",
+      "value": 5
+    },
+    {
+      "from": "ever",
+      "to": "ask",
+      "value": 5
+    },
+    {
+      "from": "ask",
+      "to": "for",
+      "value": 5
+    },
+    {
+      "from": "for",
+      "to": ".",
+      "value": 5
+    },
+    {
+      "from": "best",
+      "to": "dad",
+      "value": 1
+    },
+    {
+      "from": "dad",
+      "to": "one",
+      "value": 1
+    },
+    {
+      "from": "best",
+      "to": "brother",
+      "value": 1
+    },
+    {
+      "from": "brother",
+      "to": "one",
+      "value": 1
+    },
+    {
+      "from": "best",
+      "to": "sister",
+      "value": 1
+    },
+    {
+      "from": "sister",
+      "to": "one",
+      "value": 1
+    },
+    {
+      "from": "best",
+      "to": "friend",
+      "value": 1
+    },
+    {
+      "from": "friend",
+      "to": "one",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "am",
+      "value": 1
+    },
+    {
+      "from": "am",
+      "to": "so",
+      "value": 1
+    },
+    {
+      "from": "really",
+      "to": "don't",
+      "value": 1
+    },
+    {
+      "from": "don't",
+      "to": "know",
+      "value": 2
+    },
+    {
+      "from": "know",
+      "to": "what",
+      "value": 1
+    },
+    {
+      "from": "what",
+      "to": "i'd",
+      "value": 1
+    },
+    {
+      "from": "i'd",
+      "to": "do",
+      "value": 1
+    },
+    {
+      "from": "do",
+      "to": "without",
+      "value": 1
+    },
+    {
+      "from": "without",
+      "to": "you",
+      "value": 1
+    },
+    {
+      "from": "you",
+      "to": "!",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "being",
+      "value": 9
+    },
+    {
+      "from": "being",
+      "to": "an",
+      "value": 3
+    },
+    {
+      "from": "an",
+      "to": "awesome",
+      "value": 3
+    },
+    {
+      "from": "awesome",
+      "to": "brother",
+      "value": 1
+    },
+    {
+      "from": "brother",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "awesome",
+      "to": "sister",
+      "value": 1
+    },
+    {
+      "from": "sister",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "awesome",
+      "to": "friend",
+      "value": 1
+    },
+    {
+      "from": "friend",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "just",
+      "value": 1
+    },
+    {
+      "from": "just",
+      "to": "wanted",
+      "value": 1
+    },
+    {
+      "from": "wanted",
+      "to": "to",
+      "value": 1
+    },
+    {
+      "from": "to",
+      "to": "say",
+      "value": 1
+    },
+    {
+      "from": "say",
+      "to": "thank",
+      "value": 1
+    },
+    {
+      "from": "appreciate",
+      "to": "all",
+      "value": 1
+    },
+    {
+      "from": "all",
+      "to": "your",
+      "value": 1
+    },
+    {
+      "from": "your",
+      "to": "love",
+      "value": 1
+    },
+    {
+      "from": "love",
+      "to": "and",
+      "value": 1
+    },
+    {
+      "from": "and",
+      "to": "support",
+      "value": 1
+    },
+    {
+      "from": "best",
+      "to": "!",
+      "value": 1
+    },
+    {
+      "from": "!",
+      "to": "thanks",
+      "value": 1
+    },
+    {
+      "from": "being",
+      "to": "the",
+      "value": 5
+    },
+    {
+      "from": "the",
+      "to": "most",
+      "value": 5
+    },
+    {
+      "from": "most",
+      "to": "supportive",
+      "value": 5
+    },
+    {
+      "from": "supportive",
+      "to": "mom",
+      "value": 1
+    },
+    {
+      "from": "mom",
+      "to": "ever",
+      "value": 1
+    },
+    {
+      "from": "ever",
+      "to": ".",
+      "value": 5
+    },
+    {
+      "from": "supportive",
+      "to": "dad",
+      "value": 1
+    },
+    {
+      "from": "dad",
+      "to": "ever",
+      "value": 1
+    },
+    {
+      "from": "supportive",
+      "to": "brother",
+      "value": 1
+    },
+    {
+      "from": "brother",
+      "to": "ever",
+      "value": 1
+    },
+    {
+      "from": "supportive",
+      "to": "sister",
+      "value": 1
+    },
+    {
+      "from": "sister",
+      "to": "ever",
+      "value": 1
+    },
+    {
+      "from": "supportive",
+      "to": "friend",
+      "value": 1
+    },
+    {
+      "from": "friend",
+      "to": "ever",
+      "value": 1
+    },
+    {
+      "from": "there",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "you're",
+      "to": "my",
+      "value": 1
+    },
+    {
+      "from": "my",
+      "to": "rock",
+      "value": 1
+    },
+    {
+      "from": "rock",
+      "to": "!",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "helping",
+      "value": 1
+    },
+    {
+      "from": "helping",
+      "to": "me",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "all",
+      "value": 1
+    },
+    {
+      "from": "all",
+      "to": "the",
+      "value": 1
+    },
+    {
+      "from": "the",
+      "to": "help",
+      "value": 1
+    },
+    {
+      "from": "help",
+      "to": "that",
+      "value": 1
+    },
+    {
+      "from": "that",
+      "to": "you",
+      "value": 1
+    },
+    {
+      "from": "you",
+      "to": "gave",
+      "value": 1
+    },
+    {
+      "from": "gave",
+      "to": "me",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "pitching",
+      "value": 1
+    },
+    {
+      "from": "pitching",
+      "to": "in",
+      "value": 1
+    },
+    {
+      "from": "in",
+      "to": "and",
+      "value": 1
+    },
+    {
+      "from": "and",
+      "to": "helping",
+      "value": 1
+    },
+    {
+      "from": "helping",
+      "to": "us",
+      "value": 1
+    },
+    {
+      "from": "us",
+      "to": "out",
+      "value": 1
+    },
+    {
+      "from": "out",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "can't",
+      "value": 2
+    },
+    {
+      "from": "can't",
+      "to": "thank",
+      "value": 1
+    },
+    {
+      "from": "you",
+      "to": "enough",
+      "value": 1
+    },
+    {
+      "from": "enough",
+      "to": "for",
+      "value": 1
+    },
+    {
+      "from": "you",
+      "to": "did",
+      "value": 2
+    },
+    {
+      "from": "did",
+      "to": "to",
+      "value": 2
+    },
+    {
+      "from": "to",
+      "to": "help",
+      "value": 1
+    },
+    {
+      "from": ".",
+      "to": "you",
+      "value": 2
+    },
+    {
+      "from": "you",
+      "to": "have",
+      "value": 2
+    },
+    {
+      "from": "have",
+      "to": "no",
+      "value": 1
+    },
+    {
+      "from": "no",
+      "to": "idea",
+      "value": 1
+    },
+    {
+      "from": "idea",
+      "to": "how",
+      "value": 1
+    },
+    {
+      "from": "how",
+      "to": "much",
+      "value": 1
+    },
+    {
+      "from": "much",
+      "to": "your",
+      "value": 1
+    },
+    {
+      "from": "support",
+      "to": "has",
+      "value": 2
+    },
+    {
+      "from": "has",
+      "to": "meant",
+      "value": 2
+    },
+    {
+      "from": "meant",
+      "to": "to",
+      "value": 1
+    },
+    {
+      "from": "to",
+      "to": "me",
+      "value": 2
+    },
+    {
+      "from": "me",
+      "to": "during",
+      "value": 1
+    },
+    {
+      "from": "during",
+      "to": "this",
+      "value": 1
+    },
+    {
+      "from": "this",
+      "to": "difficult",
+      "value": 1
+    },
+    {
+      "from": "difficult",
+      "to": "time",
+      "value": 1
+    },
+    {
+      "from": "have",
+      "to": "done",
+      "value": 1
+    },
+    {
+      "from": "done",
+      "to": "for",
+      "value": 1
+    },
+    {
+      "from": "you",
+      "to": "helped",
+      "value": 1
+    },
+    {
+      "from": "helped",
+      "to": "me",
+      "value": 1
+    },
+    {
+      "from": "me",
+      "to": "so",
+      "value": 1
+    },
+    {
+      "from": "much",
+      "to": ",",
+      "value": 1
+    },
+    {
+      "from": ",",
+      "to": "i",
+      "value": 1
+    },
+    {
+      "from": "can't",
+      "to": "possibly",
+      "value": 1
+    },
+    {
+      "from": "possibly",
+      "to": "repay",
+      "value": 1
+    },
+    {
+      "from": "repay",
+      "to": "you",
+      "value": 1
+    },
+    {
+      "from": "you",
+      "to": ".",
+      "value": 3
+    },
+    {
+      "from": "grateful",
+      "to": "there",
+      "value": 1
+    },
+    {
+      "from": "there",
+      "to": "are",
+      "value": 1
+    },
+    {
+      "from": "are",
+      "to": "people",
+      "value": 1
+    },
+    {
+      "from": "people",
+      "to": "in",
+      "value": 1
+    },
+    {
+      "from": "in",
+      "to": "the",
+      "value": 1
+    },
+    {
+      "from": "the",
+      "to": "world",
+      "value": 2
+    },
+    {
+      "from": "world",
+      "to": "like",
+      "value": 1
+    },
+    {
+      "from": "like",
+      "to": "you",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "don't",
+      "value": 1
+    },
+    {
+      "from": "know",
+      "to": "how",
+      "value": 1
+    },
+    {
+      "from": "how",
+      "to": "to",
+      "value": 1
+    },
+    {
+      "from": "to",
+      "to": "thank",
+      "value": 1
+    },
+    {
+      "from": "everything",
+      "to": "you've",
+      "value": 1
+    },
+    {
+      "from": "you've",
+      "to": "done",
+      "value": 1
+    },
+    {
+      "from": "done",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "meant",
+      "to": "the",
+      "value": 1
+    },
+    {
+      "from": "world",
+      "to": "to",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "welcoming",
+      "value": 1
+    },
+    {
+      "from": "welcoming",
+      "to": "us",
+      "value": 1
+    },
+    {
+      "from": "us",
+      "to": "into",
+      "value": 1
+    },
+    {
+      "from": "into",
+      "to": "your",
+      "value": 1
+    },
+    {
+      "from": "your",
+      "to": "home",
+      "value": 1
+    },
+    {
+      "from": "home",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "looking",
+      "value": 1
+    },
+    {
+      "from": "looking",
+      "to": "after",
+      "value": 1
+    },
+    {
+      "from": "after",
+      "to": "us",
+      "value": 1
+    },
+    {
+      "from": "us",
+      "to": "so",
+      "value": 1
+    },
+    {
+      "from": "so",
+      "to": "well",
+      "value": 1
+    },
+    {
+      "from": "well",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "to",
+      "to": "make",
+      "value": 1
+    },
+    {
+      "from": "make",
+      "to": "us",
+      "value": 1
+    },
+    {
+      "from": "us",
+      "to": "feel",
+      "value": 1
+    },
+    {
+      "from": "feel",
+      "to": "welcome",
+      "value": 1
+    },
+    {
+      "from": "welcome",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "being",
+      "to": "a",
+      "value": 1
+    },
+    {
+      "from": "a",
+      "to": "wonderful",
+      "value": 1
+    },
+    {
+      "from": "wonderful",
+      "to": "host",
+      "value": 1
+    },
+    {
+      "from": "host",
+      "to": ".",
+      "value": 1
+    },
+    {
+      "from": "i'm",
+      "to": "beyond",
+      "value": 1
+    },
+    {
+      "from": "beyond",
+      "to": "grateful",
+      "value": 1
+    },
+    {
+      "from": "grateful",
+      "to": "that",
+      "value": 1
+    },
+    {
+      "from": "that",
+      "to": "i",
+      "value": 1
+    },
+    {
+      "from": "i",
+      "to": "was",
+      "value": 1
+    },
+    {
+      "from": "was",
+      "to": "able",
+      "value": 1
+    },
+    {
+      "from": "able",
+      "to": "to",
+      "value": 1
+    },
+    {
+      "from": "to",
+      "to": "stay",
+      "value": 1
+    },
+    {
+      "from": "stay",
+      "to": "with",
+      "value": 1
+    },
+    {
+      "from": "with",
+      "to": "you",
+      "value": 1
+    },
+    {
+      "from": "for",
+      "to": "hosting",
+      "value": 1
+    },
+    {
+      "from": "hosting",
+      "to": "me",
+      "value": 1
+    }
+  ],
+  "version": 2
+}
