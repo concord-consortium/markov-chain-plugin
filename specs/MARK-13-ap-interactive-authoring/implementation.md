@@ -2957,7 +2957,7 @@ The runtime frame reloads on every restart, so the restart test reads its text t
 **Files affected**:
 - `README.md`: a Markov Interactive section, and a line in Testing.
 
-**Estimated diff size**: 27 lines (+27), measured.
+**Estimated diff size**: 33 lines (+33), measured.
 
 `README.md`, a new section after "Deployment" and its subsections, before "License":
 
@@ -2974,6 +2974,12 @@ beside the plugin:
 A branch build is at `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/interactive.html`, and a
 tag's at `version/<tag>/interactive.html`. The release workflow doesn't copy the interactive anywhere: activities use
 a version's URL.
+
+Until it is released, add it to a LARA page as an Interactive IFrame item with the interactive's URL (in development,
+`http://localhost:8080/interactive.html` works in Chrome, which lets an `https` page frame `localhost`). In the item's
+Advanced Options, check "Enable save state", without which the Activity Player saves nothing and the class dashboard
+never shows the student, and set "Report Item URL" to `report-item.html`. Once released, it becomes a library
+interactive in LARA, which carries these settings itself, so they aren't set on each item.
 
 To try it without LARA or an activity, open `demo.html` beside it, for example
 `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/demo.html`. It shows the authoring form at
@@ -3114,4 +3120,4 @@ The interactive's tests need it as much: with Cypress's default, 5 of the 7 runt
 ### Operator
 
 #### RESOLVED: step sizes re-measured
-The README step is 27 lines, not 28, and each step's estimate is re-measured after the fixes above; Jest stays at 116 and Cypress at 78 (80 since the Copy and scrolling tests).
+Each step's estimate is re-measured after the fixes above; Jest stays at 116 and Cypress at 78 (80 since the Copy and scrolling tests).
