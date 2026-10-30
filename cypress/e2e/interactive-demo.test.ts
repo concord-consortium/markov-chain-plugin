@@ -120,11 +120,17 @@ describe("the interactive's demo page", () => {
   it("announces a second copy that repeats the first", () => {
     cy.visit("/demo.html");
     cy.window().then(win => cy.stub(win.navigator.clipboard, "writeText").resolves());
-    // each text the status shows, in order
+    // each text the status shows in a rendered frame, in order: a screen reader sees only what a frame shows
     const announced: string[] = [];
-    cy.get(".demo-standalone [role=status]").then(([status]) => {
-      new MutationObserver(() => announced.push(status.textContent ?? ""))
-        .observe(status, { childList: true, characterData: true, subtree: true });
+    cy.window().then(win => {
+      const sample = () => {
+        const text = win.document.querySelector(".demo-standalone [role=status]")?.textContent ?? "";
+        if (text !== (announced[announced.length - 1] ?? "")) {
+          announced.push(text);
+        }
+        win.requestAnimationFrame(sample);
+      };
+      win.requestAnimationFrame(sample);
     });
     cy.get(".demo-standalone button").click();
     cy.get(".demo-standalone button").should("have.text", "Copied").click();

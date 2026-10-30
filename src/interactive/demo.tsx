@@ -74,8 +74,7 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
     return () => window.clearTimeout(timeout);
   }, [copyResult]);
 
-  // the result is emptied first and shown a frame later, so the status changes and is announced even when a click
-  // repeats the last result
+  // emptied first and shown a frame later, so a repeated result is announced again
   const showCopyResult = (copied: boolean) => window.requestAnimationFrame(() => setCopyResult({ copied }));
 
   // outside a secure context navigator.clipboard is undefined, and the first then makes that a rejection
