@@ -5,7 +5,7 @@
 import { ParentEndpoint } from "iframe-phone";
 import { initInteractiveMessage } from "../../src/interactive/host-messages";
 
-export type InteractiveMode = "authoring" | "runtime" | "reportItem";
+export type InteractiveMode = "authoring" | "runtime" | "report" | "reportItem";
 
 export type StartOptions = {
   mode: InteractiveMode;

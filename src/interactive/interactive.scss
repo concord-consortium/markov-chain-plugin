@@ -38,8 +38,9 @@ body {
   }
 }
 
-// what the interactive and its report item say when opened outside a host
-.standalone-note {
+// what the interactive and its report item say when opened outside a host, or shown in a report
+.standalone-note,
+.report-note {
   margin: 0 0 10px;
   color: #737373;
 

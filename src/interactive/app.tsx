@@ -31,6 +31,8 @@ const HostedApp = () => {
           <Runtime authoredState={readAuthoredState(initMessage.authoredState)}
             interactiveState={initMessage.interactiveState} />
         );
+      case "report":
+        return <Runtime authoredState={readAuthoredState(initMessage.authoredState)} view="report" />;
       default:
         return (
           <div className="unsupported-mode">
@@ -47,7 +49,7 @@ const HostedApp = () => {
 // so it takes its settings from its link and leaves the library alone, whose client would only warn and hold messages.
 const StandaloneApp = () => (
   <div className="markov-interactive">
-    <Runtime authoredState={authoredStateFromSearch(window.location.search)} standalone={true} />
+    <Runtime authoredState={authoredStateFromSearch(window.location.search)} view="standalone" />
   </div>
 );
 

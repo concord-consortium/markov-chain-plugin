@@ -74,6 +74,15 @@ describe("the interactive's placeholder runtime", () => {
     cy.interactiveMessages("interactiveState").should("have.length", 0);
   });
 
+  it("shows a student's work read-only in a report, and saves nothing", () => {
+    cy.startInteractive({ mode: "report", width: 600, authoredState: { modes: { useData: true, draw: false } } });
+    cy.interactive().should("contain.text", "shown read-only in a report");
+    listedSettings().should("deep.include", ["Usable mode(s)", "Data"]);
+    // past the library's 2 second pause, after which a runtime started with no state would have saved one
+    cy.wait(2500);
+    cy.interactiveMessages("interactiveState").should("have.length", 0);
+  });
+
   it("sizes its frame to the placeholder", () => {
     cy.startInteractive({ mode: "runtime", authoredState: {}, width: 600 });
     cy.interactive().find(".runtime-placeholder dl");
