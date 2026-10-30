@@ -2352,7 +2352,7 @@ The full answer asks for `student1` and the compact answer for `student2`, so a 
 - `src/interactive/demo.tsx`, `src/interactive/demo.scss`, `src/interactive/demo-widths.ts`, `src/interactive/demo-widths.test.ts`: new.
 - `cypress/e2e/interactive-demo.test.ts`: new.
 
-**Estimated diff size**: 469 lines (+469), measured.
+**Estimated diff size**: 500 lines (+500), measured.
 
 `webpack.config.js`:
 
@@ -2445,6 +2445,8 @@ import "./demo.scss";
 
 // the runtime restarts with the authoring form's latest state once the author pauses this long
 const restartDelay = 500;
+// how long the Copy button says the link was copied
+const copiedDuration = 2000;
 
 const initialAuthoredState = readAuthoredState({ startingText: "the cat sat on the mat. the cat ran." });
 
@@ -2488,36 +2490,45 @@ const HostedFrame = ({ title, mode, authoredState, getInteractiveState, onMessag
 
 const pageTitle = "Demo and Standalone Authoring";
 
+const standaloneWarning = "Use this link only outside the Activity Player, such as on a collection page. In LARA, " +
+  "add the interactive's plain URL and choose its settings in the Authoring tab: settings in this link are ignored " +
+  "inside an activity.";
+
 // The interactive opened on its own with the authoring form's settings, for a collection page or any page outside
 // the Activity Player. The link is beside this page, so it names the same branch or version.
 const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
   const link = new URL(`interactive.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
     window.location.href).href;
-  const [copiedLink, setCopiedLink] = useState<string>();
+  const [copiedAt, setCopiedAt] = useState<number>();
 
-  const copy = () => navigator.clipboard.writeText(link).then(() => setCopiedLink(link));
+  useEffect(() => {
+    if (copiedAt === undefined) {
+      return;
+    }
+    const timeout = window.setTimeout(() => setCopiedAt(undefined), copiedDuration);
+    return () => window.clearTimeout(timeout);
+  }, [copiedAt]);
 
+  const copy = () => navigator.clipboard.writeText(link).then(() => setCopiedAt(Date.now()));
+
+  // the warning is each control's description, read with it by a screen reader and shown on hover
   return (
-    <section className="demo-standalone" aria-labelledby="demo-standalone-heading">
-      <h2 id="demo-standalone-heading">Standalone link</h2>
-      <div className="demo-standalone-row">
-        <input type="text" readOnly={true} value={link} aria-labelledby="demo-standalone-heading"
-          aria-describedby="demo-standalone-warning" onFocus={event => event.target.select()} />
-        <button type="button" onClick={copy}>{ copiedLink === link ? "Copied" : "Copy" }</button>
-        <a href={link} target="_blank" rel="noopener noreferrer">Open</a>
-      </div>
-      <p id="demo-standalone-warning" className="demo-standalone-warning">
-        Use this link only outside the Activity Player, such as on a collection page. In LARA, add the
-        interactive&apos;s plain URL and choose its settings in the Authoring tab: settings in this link are ignored
-        inside an activity.
-      </p>
+    <div className="demo-standalone" role="group" aria-label="Standalone link">
       { link.length > longLinkLength && (
         <p className="demo-standalone-long">
           This link is longer than { longLinkLength.toLocaleString("en-US") } characters, mostly its starting text, and
           some sites and email programs cut long links short.
         </p>
       ) }
-    </section>
+      <button type="button" onClick={copy} title={standaloneWarning} aria-describedby="demo-standalone-warning">
+        { copiedAt === undefined ? "Copy standalone link" : "Copied" }
+      </button>
+      <a href={link} target="_blank" rel="noopener noreferrer" title={standaloneWarning}
+        aria-describedby="demo-standalone-warning">
+        Open standalone link
+      </a>
+      <p id="demo-standalone-warning" hidden={true}>{ standaloneWarning }</p>
+    </div>
   );
 };
 
@@ -2553,13 +2564,15 @@ const Demo = () => {
 
   return (
     <div className="demo">
-      <h1>{ pageTitle }</h1>
+      <header className="demo-header">
+        <h1>{ pageTitle }</h1>
+        <StandaloneLink authoredState={authoredState} />
+      </header>
       <div className="demo-columns">
         <section className="demo-authoring" aria-labelledby="demo-authoring-heading">
           <h2 id="demo-authoring-heading">Authoring</h2>
           <HostedFrame title="Authoring" mode="authoring" authoredState={initialAuthoredState}
             onMessage={handleMessage} width="100%" />
-          <StandaloneLink authoredState={authoredState} />
         </section>
         <section className="demo-runtime" aria-labelledby="demo-runtime-heading">
           <div className="demo-runtime-header">
@@ -2596,7 +2609,7 @@ createRoot(document.getElementById("app") as HTMLElement).render(<Demo />);
 - **Width:** the frame takes the chosen width (or `100%` for Responsive), and the area around it scrolls sideways when it is narrower. The frame's dashed edge is an outline, which takes no room, so the interactive gets the whole width and the whole reported height; a border inside a `border-box` frame would take 2 px of each, and the lost height makes the interactive scroll, with a scrollbar that leaves it 1,027 px of Standard's 1,044 (measured). Choosing a width calls `history.replaceState`, so the address bar holds a link to that width without adding a history entry.
 - **The report item's answer** is the same `placeholderReportHtml` `report-item.html` sends, shown in a `srcDoc` frame with the report's wide-layout style. It is a constant, so no author or student text reaches the frame's HTML.
 - **Title:** the template's title is the interactive's, so the page sets its own, from the same constant as its heading.
-- **The standalone link** is built from the form's latest authored state, before the runtime's half-second wait, with `searchFromAuthoredState`, the inverse of what the standalone interactive reads, and resolved against the page's own URL, so it names the same branch or version. **Copy** writes it with the Clipboard API, which `localhost` and the deployed `https` pages allow, and says "Copied" until the link changes; **Open** is a link with `target="_blank"`. The field's description is the warning, so a screen reader reads it with the field. The long-link note takes its number from `longLinkLength`.
+- **The standalone link** is built from the form's latest authored state, before the runtime's half-second wait, with `searchFromAuthoredState`, the inverse of what the standalone interactive reads, and resolved against the page's own URL, so it names the same branch or version. The two buttons sit in the page's header, the link out of the way of the form. **Copy standalone link** writes it with the Clipboard API, which `localhost` and the deployed `https` pages allow, and says "Copied" for `copiedDuration`, 2 seconds, after each click; **Open standalone link** is a link with `target="_blank"`, whose `href` is the link. The warning is a hidden paragraph that both buttons name with `aria-describedby`, so a screen reader reads it with each, and their `title`, so hovering shows it. The long-link note, white on the header's teal, takes its number from `longLinkLength`.
 
 `src/interactive/demo.scss`:
 
@@ -2609,10 +2622,7 @@ $teal: #016082;
 .demo {
   h1 {
     margin: 0;
-    padding: 10px;
     font-size: 20px;
-    color: white;
-    background-color: $teal;
   }
 
   h2 {
@@ -2708,42 +2718,44 @@ $teal: #016082;
   }
 }
 
-.demo-standalone-row {
+// the page's title, with the standalone link's buttons at its right
+.demo-header {
   display: flex;
-  gap: 5px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px;
+  color: white;
+  background-color: $teal;
+}
 
-  input {
-    flex: 1 1 auto;
-    min-width: 0;
-    padding: 4px 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
+.demo-standalone {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 
   button,
   a {
     padding: 4px 10px;
-    border: 1px solid $teal;
+    border: 1px solid white;
     border-radius: 4px;
     font: inherit;
     color: $teal;
     background-color: white;
     text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid white;
+      outline-offset: 2px;
+    }
   }
 }
 
-.demo-standalone-warning,
 .demo-standalone-long {
-  margin: 5px 0 0;
-}
-
-.demo-standalone-warning {
-  color: #737373;
-}
-
-.demo-standalone-long {
-  color: #8a4b00;
+  margin: 0 5px 0 0;
+  font-size: 13px;
 }
 
 .demo-report-item {
@@ -2769,7 +2781,8 @@ const runtimeFrameWidth = () => {
   return cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument.documentElement.clientWidth");
 };
 
-const standaloneLink = () => cy.get(".demo-standalone input");
+// the Open button, whose href is the standalone link
+const standaloneLink = () => cy.get(".demo-standalone a");
 
 // iframe-phone posts an object, or its JSON where a browser can only post text
 const messageOf = (data: unknown) => {
@@ -2828,20 +2841,38 @@ describe("the interactive's demo page", () => {
     cy.get("h1").should("have.text", "Demo and Standalone Authoring");
     cy.location("origin").then(origin => {
       const startingText = "startingText=the+cat+sat+on+the+mat.+the+cat+ran.";
-      standaloneLink().should("have.value", `${origin}/interactive.html?${startingText}`);
+      standaloneLink().should("have.attr", "href", `${origin}/interactive.html?${startingText}`);
       frameBody("Authoring").find("#capitalization").select("asTyped");
-      standaloneLink().should("have.value", `${origin}/interactive.html?capitalization=asTyped&${startingText}`);
+      standaloneLink().should("have.attr", "href", `${origin}/interactive.html?capitalization=asTyped&${startingText}`);
     });
-    cy.get(".demo-standalone").should("contain.text", "Use this link only outside the Activity Player")
-      .find("a").should("have.attr", "target", "_blank");
+    cy.get("header .demo-standalone").find("button, a").should("have.length", 2).each(control => {
+      expect(control).to.have.attr("aria-describedby", "demo-standalone-warning");
+      expect(control.attr("title")).to.contain("Use this link only outside the Activity Player");
+    });
+    cy.get("#demo-standalone-warning").should("contain.text", "Use this link only outside the Activity Player");
+    cy.get(".demo-standalone button").should("have.text", "Copy standalone link");
+    standaloneLink().should("have.text", "Open standalone link").and("have.attr", "target", "_blank");
     cy.get(".demo-standalone-long").should("not.exist");
+  });
+
+  it("copies the link, and says so for 2 seconds", () => {
+    cy.visit("/demo.html");
+    cy.window().then(win => cy.stub(win.navigator.clipboard, "writeText").as("writeText").resolves());
+    cy.clock();
+    cy.get(".demo-standalone button").click();
+    standaloneLink().invoke("attr", "href").then(link => cy.get("@writeText").should("have.been.calledOnceWith", link));
+    cy.get(".demo-standalone button").should("have.text", "Copied");
+    cy.tick(1900);
+    cy.get(".demo-standalone button").should("have.text", "Copied");
+    cy.tick(100);
+    cy.get(".demo-standalone button").should("have.text", "Copy standalone link");
   });
 
   it("says when the link is long", () => {
     cy.visit("/demo.html");
     // val() sets the text without the form noticing, and the typed letter makes the form save all of it
     frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(1000)).type("b");
-    standaloneLink().invoke("val").its("length").should("be.greaterThan", 2000);
+    standaloneLink().invoke("attr", "href").its("length").should("be.greaterThan", 2000);
     cy.get(".demo-standalone-long").should("contain.text", "longer than 2,000 characters");
   });
 
@@ -2855,7 +2886,7 @@ describe("the interactive's demo page", () => {
     cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").then(runtime => {
       const hosted = listedIn(runtime);
       // a window of its own, not in a frame, as a link from a collection page opens it
-      standaloneLink().invoke("val").then(link => {
+      standaloneLink().invoke("attr", "href").then(link => {
         cy.window().then(win => win.open(String(link))).as("standalone");
       });
       cy.get<Window>("@standalone").its("document.body.innerText").should("contain", "coming soon")
@@ -2874,7 +2905,7 @@ describe("the interactive's demo page", () => {
 });
 ```
 
-The runtime frame reloads on every restart, so the restart test reads its text through `its`, which re-queries the frame each retry; a body taken with `then` goes stale on the first reload (measured: it failed every run). Measured: the first four tests pass five runs in a row with the rest of the suite; with the restart removed, the restart test fails, and with `?width=` ignored, the link test fails, and with a border inside the frame's width, both width tests fail: `runtimeFrameWidth` reads the width the interactive lays out in, once it is running, not the frame's outer width. All seven pass three runs in a row in Chrome, with the rest of the interactive's tests.
+The runtime frame reloads on every restart, so the restart test reads its text through `its`, which re-queries the frame each retry; a body taken with `then` goes stale on the first reload (measured: it failed every run). Measured: the first four tests pass five runs in a row with the rest of the suite; with the restart removed, the restart test fails, and with `?width=` ignored, the link test fails, and with a border inside the frame's width, both width tests fail: `runtimeFrameWidth` reads the width the interactive lays out in, once it is running, not the frame's outer width. All eight pass three runs in a row in Chrome, with the rest of the interactive's tests. The Copy test stubs the clipboard's `writeText` and drives the 2 seconds with `cy.clock`; with the button left on "Copied", it fails (measured).
 
 - **The interactive state** is checked in the restart test: the page records the runtime's `interactiveState` messages, the first runtime saves `{ version: 1 }`, and the restarted one, started with it, saves nothing in the 2.5 seconds after (the library waits 2 before it sends). With the runtime started without the kept state, it fails (measured).
 - **The long link** is made by setting the text with `val()`, which records it as the form's current value, and typing one letter, so the form's `onChange` sends the whole text: about 2,000 typed keys would take seconds.
@@ -2936,7 +2967,7 @@ The interactive's tests use a second dev-server page, `fake-ap.html`, which play
 
 ## After the last commit
 
-On the head, run the baseline set from "Before starting" (R22): the build with no warnings, the three lint commands with no output, both `tsc` commands, `npm test` (116 tests: MARK-10's 56 and this story's 60), and `npm run test:cypress` against `npm start`, three runs in a row (78 tests: MARK-11's 27, MARK-12's 9 and this story's 42, one of them pending in Electron), and again with `--browser chrome`, which runs all 78. Then R2's comparison once more for both builds.
+On the head, run the baseline set from "Before starting" (R22): the build with no warnings, the three lint commands with no output, both `tsc` commands, `npm test` (116 tests: MARK-10's 56 and this story's 60), and `npm run test:cypress` against `npm start`, three runs in a row (79 tests: MARK-11's 27, MARK-12's 9 and this story's 43, one of them pending in Electron), and again with `--browser chrome`, which runs all 79. Then R2's comparison once more for both builds.
 
 ## After the first push
 
@@ -3050,4 +3081,4 @@ The interactive's tests need it as much: with Cypress's default, 5 of the 7 runt
 ### Operator
 
 #### RESOLVED: step sizes re-measured
-The README step is 27 lines, not 28, and each step's estimate is re-measured after the fixes above; Jest stays at 116 and Cypress at 78.
+The README step is 27 lines, not 28, and each step's estimate is re-measured after the fixes above; Jest stays at 116 and Cypress at 78 (79 since the Copy test).
