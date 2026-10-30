@@ -2121,9 +2121,10 @@ describe("the interactive's authoring form", () => {
 - `webpack.config.js`: the `report-item` entry and its page.
 - `src/interactive/report-item.tsx`, `src/interactive/report-item-answer.ts`, `src/interactive/report-item-answer.test.ts`: new.
 - `src/interactive/standalone.test.tsx`: the report item's test.
+- `cypress/fake-ap/fake-ap.ts`, `cypress/support/fake-ap-commands.ts`, `cypress/support/fake-ap.d.ts`: a request can name its student.
 - `cypress/e2e/interactive-report-item.test.ts`: new.
 
-**Estimated diff size**: 100 lines (+100), measured.
+**Estimated diff size**: 117 lines (+111, -6), measured.
 
 `webpack.config.js`:
 
@@ -2152,8 +2153,7 @@ describe("the interactive's authoring form", () => {
 ```ts
 import type { IReportItemAnswerItem } from "@concord-consortium/lara-interactive-api";
 
-// The dashboard's report items are placeholders until the dashboard summary story. The grid draws its own
-// answered icon and only reads a score from a compact answer, so a compact answer has no items.
+// The grid draws its own answered icon and reads only a score from a compact answer, so a compact answer has no items.
 export const placeholderReportHtml =
   "<div class=\"tall\"><p>This student opened the Markov interactive.</p>" +
   "<p>A summary of their work comes in a later version.</p></div>" +
@@ -2218,13 +2218,17 @@ Opened directly, the report item says what it is and, like the interactive, leav
 `src/interactive/report-item-answer.test.ts`:
 
 ```ts
-import { placeholderReportHtml, reportItemAnswerItems } from "./report-item-answer";
+import { reportItemAnswerItems } from "./report-item-answer";
 
 describe("reportItemAnswerItems", () => {
   it("answers a full answer with the placeholder html, in the report's tall and wide blocks", () => {
-    expect(reportItemAnswerItems("fullAnswer")).toEqual([{ type: "html", html: placeholderReportHtml }]);
-    expect(placeholderReportHtml).toContain("<div class=\"tall\">");
-    expect(placeholderReportHtml).toContain("<div class=\"wide\">");
+    expect(reportItemAnswerItems("fullAnswer")).toEqual([{
+      type: "html",
+      html: "<div class=\"tall\"><p>This student opened the Markov interactive.</p>" +
+        "<p>A summary of their work comes in a later version.</p></div>" +
+        "<div class=\"wide\"><p>This student opened the Markov interactive. " +
+        "A summary of their work comes in a later version.</p></div>"
+    }]);
   });
 
   it("answers a compact answer with no items", () => {
@@ -2250,6 +2254,38 @@ describe("reportItemAnswerItems", () => {
 
 It fails when the report item always waits for the dashboard, and when its standalone view reports a height (measured).
 
+A request names its student, `student1` unless a test gives another, so a test can check the answer is for the student asked about:
+
+`cypress/fake-ap/fake-ap.ts`:
+
+```diff
+-const requestReportItemAnswer = (itemsType: ItemsType) => new Promise<any>(resolve => {
++const requestReportItemAnswer = (itemsType: ItemsType, platformUserId = "student1") => new Promise<any>(resolve => {
+   awaitingAnswer = resolve;
+   // the dashboard sends no requestId, and the library's listener answers only a request without one
+   phone?.post("getReportItemAnswer", {
+-    version: "2.1.0", platformUserId: "student1", itemsType,
++    version: "2.1.0", platformUserId, itemsType,
+```
+
+`cypress/support/fake-ap-commands.ts`:
+
+```diff
+-Cypress.Commands.add("requestReportItemAnswer", (itemsType: ItemsType) =>
+-  cy.fakeAp().then(fake => fake.requestReportItemAnswer(itemsType)));
++Cypress.Commands.add("requestReportItemAnswer", (itemsType: ItemsType, platformUserId?: string) =>
++  cy.fakeAp().then(fake => fake.requestReportItemAnswer(itemsType, platformUserId)));
+```
+
+`cypress/support/fake-ap.d.ts`:
+
+```diff
+-      /** Asks the report item for the student's answer, as the class dashboard does, and yields the answer. */
+-      requestReportItemAnswer(itemsType: ItemsType): Chainable<any>;
++      /** Asks the report item for a student's answer (student1's by default), as the class dashboard does. */
++      requestReportItemAnswer(itemsType: ItemsType, platformUserId?: string): Chainable<any>;
+```
+
 `cypress/e2e/interactive-report-item.test.ts`:
 
 ```ts
@@ -2257,6 +2293,7 @@ describe("the interactive's report item", () => {
   beforeEach(() => {
     cy.startInteractive({ mode: "reportItem", interactiveState: { version: 1 } });
     cy.interactiveMessages("reportItemClientReady").should("deep.equal", [{ compactAnswerReportItemsAvailable: true }]);
+    cy.interactiveMessages("height").should("have.length.greaterThan", 0);
   });
 
   it("answers a full answer with the placeholder", () => {
@@ -2268,11 +2305,14 @@ describe("the interactive's report item", () => {
     });
   });
 
-  it("answers a compact answer with no items", () => {
-    cy.requestReportItemAnswer("compactAnswer").should("deep.include", { itemsType: "compactAnswer", items: [] });
+  it("answers a compact answer with no items, for the student the request names", () => {
+    cy.requestReportItemAnswer("compactAnswer", "student2")
+      .should("deep.include", { platformUserId: "student2", itemsType: "compactAnswer", items: [] });
   });
 });
 ```
+
+The full answer asks for `student1` and the compact answer for `student2`, so a handler that answered for a fixed student fails one; and `beforeEach` waits for a height, which fails with the root's `ref` removed (both measured).
 
 **Check R2 again** with the same commands as the runtime step: the new files now include `report-item.html` and `assets/report-item.*`, and the plugin's files are unchanged but for the map's `file`.
 
