@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { inIframe, setSupportedFeatures, useInitMessage } from "@concord-consortium/lara-interactive-api";
 import { readAuthoredState } from "./authored-state";
+import { Authoring } from "./authoring";
 import { MarkovInteractiveState } from "./interactive-state";
 import { Runtime } from "./runtime";
 import { authoredStateFromSearch } from "./url-settings";
@@ -23,6 +24,8 @@ const HostedApp = () => {
       return <div className="loading">Loading...</div>;
     }
     switch (initMessage.mode) {
+      case "authoring":
+        return <Authoring initialState={readAuthoredState(initMessage.authoredState)} />;
       case "runtime":
         return (
           <Runtime authoredState={readAuthoredState(initMessage.authoredState)}
