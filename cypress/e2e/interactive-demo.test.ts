@@ -104,7 +104,8 @@ describe("the interactive's demo page", () => {
   it("copies the link, and says so for 2 seconds", () => {
     cy.visit("/demo.html");
     cy.window().then(win => cy.stub(win.navigator.clipboard, "writeText").as("writeText").resolves());
-    cy.clock();
+    // the result shows on a real animation frame, and only the 2 seconds are faked
+    cy.clock(0, ["setTimeout", "clearTimeout"]);
     cy.get(".demo-standalone button").click();
     standaloneLink().invoke("attr", "href").then(link => cy.get("@writeText").should("have.been.calledOnceWith", link));
     cy.get(".demo-standalone button").should("have.text", "Copied");
@@ -116,10 +117,24 @@ describe("the interactive's demo page", () => {
     cy.get(".demo-standalone [role=status]").should("have.text", "");
   });
 
+  it("announces a second copy that repeats the first", () => {
+    cy.visit("/demo.html");
+    cy.window().then(win => cy.stub(win.navigator.clipboard, "writeText").resolves());
+    // each text the status shows, in order
+    const announced: string[] = [];
+    cy.get(".demo-standalone [role=status]").then(([status]) => {
+      new MutationObserver(() => announced.push(status.textContent ?? ""))
+        .observe(status, { childList: true, characterData: true, subtree: true });
+    });
+    cy.get(".demo-standalone button").click();
+    cy.get(".demo-standalone button").should("have.text", "Copied").click();
+    cy.wrap(announced).should("deep.equal", ["Standalone link copied", "", "Standalone link copied"]);
+  });
+
   it("says when the link couldn't be copied", () => {
     cy.visit("/demo.html");
     cy.window().then(win => cy.stub(win.navigator.clipboard, "writeText").rejects(new Error("denied")));
-    cy.clock();
+    cy.clock(0, ["setTimeout", "clearTimeout"]);
     cy.get(".demo-standalone button").click();
     cy.get(".demo-standalone button").should("have.text", "Copy failed");
     cy.get(".demo-standalone [role=status]").should("have.text", "The standalone link couldn't be copied");

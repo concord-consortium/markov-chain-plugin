@@ -64,7 +64,6 @@ const standaloneWarning = "Standalone link to use outside Activity Player:";
 const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
   const link = new URL(`interactive.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
     window.location.href).href;
-  // a new object for each click, so each click restarts the timeout
   const [copyResult, setCopyResult] = useState<{ copied: boolean }>();
 
   useEffect(() => {
@@ -75,10 +74,16 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
     return () => window.clearTimeout(timeout);
   }, [copyResult]);
 
+  // the result is emptied first and shown a frame later, so the status changes and is announced even when a click
+  // repeats the last result
+  const showCopyResult = (copied: boolean) => window.requestAnimationFrame(() => setCopyResult({ copied }));
+
   // outside a secure context navigator.clipboard is undefined, and the first then makes that a rejection
-  const copy = () => Promise.resolve().then(() => navigator.clipboard.writeText(link)).then(
-    () => setCopyResult({ copied: true }),
-    () => setCopyResult({ copied: false }));
+  const copy = () => {
+    setCopyResult(undefined);
+    Promise.resolve().then(() => navigator.clipboard.writeText(link))
+      .then(() => showCopyResult(true), () => showCopyResult(false));
+  };
 
   // screen readers may not announce the focused button's new text, so the status says it too
   return (
