@@ -37,4 +37,8 @@ describe("movePairedPercentage", () => {
   it("ignores a move past the next thumb, which would make a share negative", () => {
     expect(movePairedPercentage([20, 30, 50], 0, 0.6)).toBeUndefined();
   });
+
+  it("gives a thumb moved back past the thumb before it a share of 0", () => {
+    expect(movePairedPercentage([20, 30, 50], 1, 0.1)).toEqual([20, 0, 80]);
+  });
 });

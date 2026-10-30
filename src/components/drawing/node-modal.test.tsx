@@ -41,8 +41,9 @@ describe("NodeModal", () => {
     const single = { nodes: [state("a"), state("b")], edges: [{ from: "a", to: "b", value: 7 }] };
     const onChange = jest.fn();
     renderEditor(single, onChange);
-    fireEvent.click(await screen.findByRole("button", { name: "Save" }));
+    const save = await screen.findByRole("button", { name: "Save" });
     expect(screen.queryByText(/^To /)).not.toBeInTheDocument();
+    fireEvent.click(save);
     expect(onChange.mock.calls[0][2][0].value).toBeCloseTo(7);
   });
 });
