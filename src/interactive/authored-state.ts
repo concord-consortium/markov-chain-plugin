@@ -100,8 +100,8 @@ export const inputViewLabels: Record<InputView, string> = {
   table: "Table only", text: "Text only", textAndTable: "Linked table and text"
 };
 export const inputViewHelp: Record<InputView, string> = {
-  table: "Students work only in the table and never see the text.",
-  text: "Students work only in the text box and never see a table.",
+  table: "Students type their words into the table; there's no text box.",
+  text: "Students type their words into the text box; there's no table.",
   textAndTable: "Students see their text and a table of its words; changing one changes the other.",
 };
 export const capitalizationLabels: Record<Capitalization, string> = {

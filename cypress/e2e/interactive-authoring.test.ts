@@ -55,7 +55,7 @@ describe("the interactive's authoring form", () => {
     cy.interactive().find("#usableModes").select("Data");
     cy.interactive().find("#inputView").select("Table only");
     cy.interactive().find("#input-view-help")
-      .should("have.text", "Students work only in the table and never see the text.");
+      .should("have.text", "Students type their words into the table; there's no text box.");
   });
 
   const changes: Array<[string, () => void, MarkovAuthoredState]> = [
