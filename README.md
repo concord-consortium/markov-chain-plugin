@@ -112,7 +112,8 @@ Pass these to `npx cypress run`:
 The repo also builds the Markov Interactive, an Activity Player interactive with its own authoring, deployed
 beside the plugin:
 
-- `interactive.html`: the interactive, in LARA's authoring and the Activity Player's runtime.
+- `interactive.html`: the interactive, in LARA's authoring, the Activity Player's runtime, and the class dashboard's
+  read-only page for one student's answer.
 - `report-item.html`: its report item, which answers the class dashboard.
 - `demo.html`: the Demo and Standalone Authoring page, with the authoring form beside the interactive.
 
