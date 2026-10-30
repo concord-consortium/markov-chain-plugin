@@ -2352,7 +2352,7 @@ The full answer asks for `student1` and the compact answer for `student2`, so a 
 - `src/interactive/demo.tsx`, `src/interactive/demo.scss`, `src/interactive/demo-widths.ts`, `src/interactive/demo-widths.test.ts`: new.
 - `cypress/e2e/interactive-demo.test.ts`: new.
 
-**Estimated diff size**: 500 lines (+500), measured.
+**Estimated diff size**: 532 lines (+532), measured.
 
 `webpack.config.js`:
 
@@ -2461,7 +2461,8 @@ interface HostedFrameProps {
   authoredState: unknown;
   getInteractiveState?: () => unknown;
   onMessage: (type: "authoredState" | "interactiveState", content: unknown) => void;
-  width: number | string;
+  // the width the page width choice gives, or, left out, the width the page's styles give
+  width?: number | string;
 }
 
 // interactive.html in a frame, started in a mode as LARA or the Activity Player starts it, and sized to the height
@@ -2572,7 +2573,7 @@ const Demo = () => {
         <section className="demo-authoring" aria-labelledby="demo-authoring-heading">
           <h2 id="demo-authoring-heading">Authoring</h2>
           <HostedFrame title="Authoring" mode="authoring" authoredState={initialAuthoredState}
-            onMessage={handleMessage} width="100%" />
+            onMessage={handleMessage} />
         </section>
         <section className="demo-runtime" aria-labelledby="demo-runtime-heading">
           <div className="demo-runtime-header">
@@ -2606,6 +2607,7 @@ createRoot(document.getElementById("app") as HTMLElement).render(<Demo />);
 
 - **Hosting:** each frame gets its own iframe-phone `ParentEndpoint`, as LARA and the Activity Player give one to each interactive, and starts with the same `initInteractiveMessage` the fake Activity Player page sends. `HostedFrame`'s effect reloads its frame whenever its `authoredState` changes, which is how the runtime restarts; the authoring frame is given the starting state once, so typing in it never restarts it.
 - **State:** the latest authored state from the form waits half a second before it reaches the runtime, so typing restarts it once per pause, not once per key. The interactive state is held in a ref and read when the runtime starts, so the runtime's own save doesn't restart it.
+- **Scrolling:** the page is the window's height, with the header in view and each column scrolling on its own, so an author can scroll the form while the runtime stays put. The authoring column sizes to its frame, whose width is `$authoring-width` from the stylesheet alone, plus a scrollbar gutter, so the scrollbar takes none of the frame's 435 px; `HostedFrame`'s `width` is left out for it.
 - **Width:** the frame takes the chosen width (or `100%` for Responsive), and the area around it scrolls sideways when it is narrower. The frame's dashed edge is an outline, which takes no room, so the interactive gets the whole width and the whole reported height; a border inside a `border-box` frame would take 2 px of each, and the lost height makes the interactive scroll, with a scrollbar that leaves it 1,027 px of Standard's 1,044 (measured). Choosing a width calls `history.replaceState`, so the address bar holds a link to that width without adding a history entry.
 - **The report item's answer** is the same `placeholderReportHtml` `report-item.html` sends, shown in a `srcDoc` frame with the report's wide-layout style. It is a constant, so no author or student text reaches the frame's HTML.
 - **Title:** the template's title is the interactive's, so the page sets its own, from the same constant as its heading.
@@ -2619,7 +2621,12 @@ $authoring-width: 435px;
 // Concord's dark teal, 7:1 against white as text or as a background under white text
 $teal: #016082;
 
+// the header stays in view, and each column scrolls on its own
 .demo {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+
   h1 {
     margin: 0;
     font-size: 20px;
@@ -2639,17 +2646,29 @@ $teal: #016082;
 
 .demo-columns {
   display: flex;
+  flex: 1 1 auto;
   gap: 20px;
-  padding: 0 10px 10px;
+  min-height: 0;
+  padding: 0 10px;
 }
 
+// as wide as the frame and its scrollbar, so the scrollbar takes none of the frame's width
 .demo-authoring {
-  flex: 0 0 $authoring-width;
+  flex: 0 0 auto;
+  padding-bottom: 10px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+
+  .hosted-frame {
+    width: $authoring-width;
+  }
 }
 
 .demo-runtime {
   flex: 1 1 auto;
   min-width: 0;
+  padding-bottom: 10px;
+  overflow-y: auto;
 }
 
 .demo-runtime-header {
@@ -2721,6 +2740,7 @@ $teal: #016082;
 // the page's title, with the standalone link's buttons at its right
 .demo-header {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
@@ -2802,6 +2822,19 @@ describe("the interactive's demo page", () => {
     cy.visit("/demo.html");
     cy.get("input[value=\"1100\"]").should("be.checked");
     runtimeFrameWidth().should("equal", 1044);
+  });
+
+  it("scrolls the authoring form on its own, at LARA's authoring column's width", () => {
+    cy.visit("/demo.html");
+    frameBody("Authoring").find("#startingText");
+    cy.get("iframe[title=\"Authoring\"]").invoke("outerWidth").should("equal", 435);
+    // taller than the window once the form has reported its height
+    cy.get(".demo-authoring").should(column => expect(column[0].scrollHeight).to.be.greaterThan(column[0].clientHeight))
+      .scrollTo("bottom");
+    cy.get(".demo-authoring").invoke("scrollTop").should("be.greaterThan", 0);
+    cy.window().its("scrollY").should("equal", 0);
+    cy.get(".demo-runtime").invoke("scrollTop").should("equal", 0);
+    cy.get("h1").should("be.visible");
   });
 
   it("opens at the width its link names, and puts a chosen width in the link", () => {
@@ -2905,7 +2938,7 @@ describe("the interactive's demo page", () => {
 });
 ```
 
-The runtime frame reloads on every restart, so the restart test reads its text through `its`, which re-queries the frame each retry; a body taken with `then` goes stale on the first reload (measured: it failed every run). Measured: the first four tests pass five runs in a row with the rest of the suite; with the restart removed, the restart test fails, and with `?width=` ignored, the link test fails, and with a border inside the frame's width, both width tests fail: `runtimeFrameWidth` reads the width the interactive lays out in, once it is running, not the frame's outer width. All eight pass three runs in a row in Chrome, with the rest of the interactive's tests. The Copy test stubs the clipboard's `writeText` and drives the 2 seconds with `cy.clock`; with the button left on "Copied", it fails (measured).
+The runtime frame reloads on every restart, so the restart test reads its text through `its`, which re-queries the frame each retry; a body taken with `then` goes stale on the first reload (measured: it failed every run). Measured: the first four tests pass five runs in a row with the rest of the suite; with the restart removed, the restart test fails, and with `?width=` ignored, the link test fails, and with a border inside the frame's width, both width tests fail: `runtimeFrameWidth` reads the width the interactive lays out in, once it is running, not the frame's outer width. All nine pass three runs in a row in Chrome, with the rest of the interactive's tests. The scrolling test fails with the page's fixed height removed or the authoring frame at the column's width (measured). The Copy test stubs the clipboard's `writeText` and drives the 2 seconds with `cy.clock`; with the button left on "Copied", it fails (measured).
 
 - **The interactive state** is checked in the restart test: the page records the runtime's `interactiveState` messages, the first runtime saves `{ version: 1 }`, and the restarted one, started with it, saves nothing in the 2.5 seconds after (the library waits 2 before it sends). With the runtime started without the kept state, it fails (measured).
 - **The long link** is made by setting the text with `val()`, which records it as the form's current value, and typing one letter, so the form's `onChange` sends the whole text: about 2,000 typed keys would take seconds.
@@ -2967,7 +3000,7 @@ The interactive's tests use a second dev-server page, `fake-ap.html`, which play
 
 ## After the last commit
 
-On the head, run the baseline set from "Before starting" (R22): the build with no warnings, the three lint commands with no output, both `tsc` commands, `npm test` (116 tests: MARK-10's 56 and this story's 60), and `npm run test:cypress` against `npm start`, three runs in a row (79 tests: MARK-11's 27, MARK-12's 9 and this story's 43, one of them pending in Electron), and again with `--browser chrome`, which runs all 79. Then R2's comparison once more for both builds.
+On the head, run the baseline set from "Before starting" (R22): the build with no warnings, the three lint commands with no output, both `tsc` commands, `npm test` (116 tests: MARK-10's 56 and this story's 60), and `npm run test:cypress` against `npm start`, three runs in a row (80 tests: MARK-11's 27, MARK-12's 9 and this story's 44, one of them pending in Electron), and again with `--browser chrome`, which runs all 80. Then R2's comparison once more for both builds.
 
 ## After the first push
 
@@ -3081,4 +3114,4 @@ The interactive's tests need it as much: with Cypress's default, 5 of the 7 runt
 ### Operator
 
 #### RESOLVED: step sizes re-measured
-The README step is 27 lines, not 28, and each step's estimate is re-measured after the fixes above; Jest stays at 116 and Cypress at 78 (79 since the Copy test).
+The README step is 27 lines, not 28, and each step's estimate is re-measured after the fixes above; Jest stays at 116 and Cypress at 78 (80 since the Copy and scrolling tests).
