@@ -3,7 +3,6 @@ import { clsx } from "clsx";
 
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
-import { useGenerator } from "../hooks/use-generator";
 import { Edge, GraphData, Node } from "../type";
 import { Drawing } from "./drawing";
 import { Dataset } from "./dataset";
@@ -16,6 +15,8 @@ import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
 import { SpeedToggle } from "./speed-toggle";
 import { ConfirmModal, IConfirmModal } from "./confirm-modal";
 import { clampLengthLimit, compareStateLabels, graphToRestore } from "./app-utils";
+import { generateSequence } from "../utils/generate-sequence";
+import { moveOriginToCenter } from "../utils/plugin-state";
 
 import "./app.scss";
 
@@ -119,15 +120,7 @@ export const App = () => {
       if (!widthRef.current || !heightRef.current) {
         setTimeout(translateOrigin, 1);
       } else {
-        // the original data was stored with the origin at the top left
-        // but now data is stored with the origin in the center
-        // so we need to translate the points on load to the center
-        const xOffset = -widthRef.current / 2;
-        const yOffset = -heightRef.current / 2;
-        data.nodes.forEach(n => {
-          n.x = (n.x ?? 0) + xOffset;
-          n.y = (n.y ?? 0) + yOffset;
-        });
+        moveOriginToCenter(data.nodes, widthRef.current, heightRef.current);
         done();
       }
     };
@@ -144,7 +137,6 @@ export const App = () => {
     setGraph: onSetGraph,
     setInitialGraph
   });
-  const { generate } = useGenerator();
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
   const [fastSimulation, setFastSimulation] = useState(defaultFastSimulation);
   const fastSimulationRef = useRef(false);
@@ -216,10 +208,10 @@ export const App = () => {
       prevSequences.current = [...currentAnimatedSequenceGroup.current.sequences];
       // currentAnimatedSequenceGroup.current.sequences.push("");
 
-      currentSequence.current = await generate(graph, { startingNode, lengthLimit: limit });
+      currentSequence.current = await generateSequence(graph, { startingNode, lengthLimit: limit });
       currentAnimationStep.current = "before";
     }
-  }, [generate, graph, lengthLimit, startingState, sequenceGroups, delimiter]);
+  }, [graph, lengthLimit, startingState, sequenceGroups, delimiter]);
 
   const currentSequenceAnimating = () => currentSequenceIndex.current < currentSequence.current.length - 1;
 

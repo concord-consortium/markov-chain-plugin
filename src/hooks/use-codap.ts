@@ -10,6 +10,7 @@ import codapInterface from "../utils/codap-interface";
 import pkg from "../../package.json";
 import { getAttributeValues } from "../utils/attribute-values";
 import { createSequenceOutput } from "../utils/output-dataset";
+import { pluginStateValues, readPluginState } from "../utils/plugin-state";
 
 const PluginName = "Markov Chain";
 const PluginVersion = pkg.version;
@@ -45,24 +46,10 @@ export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGra
   const [viewMode, setViewMode] = useState<ViewMode|undefined>();
   const valuesRef = useRef<string[]>();
 
-  const getPluginState = useCallback(() => {
-    const state: any = {
-      success: true,
-      values: {
-        attribute,
-        viewMode,
-      }
-    };
-
-    if (viewMode === "drawing") {
-      const { nodes, edges } = getGraph();
-      state.values.nodes = nodes;
-      state.values.edges = edges;
-      state.values.version = 2; // there was no version 1 but set graph returns 1 if there is no version
-    }
-
-    return state;
-  }, [attribute, viewMode, getGraph]);
+  const getPluginState = useCallback(() => ({
+    success: true,
+    values: pluginStateValues(viewMode, attribute, getGraph)
+  }), [attribute, viewMode, getGraph]);
 
   const notifyStateIsDirty = async () => {
     await codapInterface.sendRequest([{
@@ -92,21 +79,18 @@ export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGra
   const setPluginState = useCallback((values: any) => {
     setLoadState("loaded");
 
-    if (values?.viewMode) {
-      setViewMode(values.viewMode);
+    const saved = readPluginState(values);
+    if (saved.viewMode) {
+      setViewMode(saved.viewMode);
 
-      if (values.viewMode === "drawing") {
-        const { nodes, edges, version } = values;
-        if (nodes !== undefined && edges !== undefined) {
-          setGraph({ nodes, edges }, version ?? 1);
-          // save a copy of the graph
-          setInitialGraph({ nodes: nodes.map((n: Node) => ({ ...n })), edges: edges.map((e: Edge) => ({ ...e })) });
-        }
-      } else {
-        if (values?.attribute) {
-          setAttribute(values.attribute);
-          handleDataChanged(values.attribute, values.viewMode);
-        }
+      if (saved.drawing) {
+        const { nodes, edges } = saved.drawing.graph;
+        setGraph(saved.drawing.graph, saved.drawing.version);
+        // save a copy of the graph
+        setInitialGraph({ nodes: nodes.map((n: Node) => ({ ...n })), edges: edges.map((e: Edge) => ({ ...e })) });
+      } else if (saved.attribute) {
+        setAttribute(saved.attribute);
+        handleDataChanged(saved.attribute, saved.viewMode);
       }
     }
   }, [setAttribute, handleDataChanged, setGraph, setInitialGraph]);
