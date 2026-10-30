@@ -1,7 +1,7 @@
 import { GraphData, Node } from "../type";
 import type { CODAPAttribute, ViewMode } from "../hooks/use-codap";
 
-// the saved shape has to stay as it is, so documents students have already saved keep loading
+// keep this shape: documents saved now must also load in older versions of the plugin, such as after a rollback
 export const pluginStateValues = (viewMode: ViewMode|undefined, attribute: CODAPAttribute|undefined,
                                   getGraph: () => GraphData) => {
   const values: Record<string, unknown> = { attribute, viewMode };

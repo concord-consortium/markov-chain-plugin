@@ -24,7 +24,7 @@ The Jira description predates MARK-20, MARK-8 and MARK-12's spec. Where it disag
 ### The fake-CODAP page
 
 - **R5.1** The development server (`npm start`) serves `fake-codap.html`, which hosts the plugin (`index.html`, same origin) in an iframe, 600 by 420 px unless a test asks for another size. It talks to the plugin with iframe-phone's parent endpoint on the `data-interactive` channel, as CODAP does.
-- **R5.2** It answers the plugin's requests the way CODAP 3.1.2 does, with reply shapes from MARK-5's captures: `init`'s batch with the saved state in the second reply's `values.savedState`; `notify interactiveFrame {dirty: true}`; `caseFormulaSearch[true]` from the page's dataset; and the output-table requests Play sends (`get dataContextList`, `create dataContext`, `get componentList`, `create component`, `create dataContext[Sequence Data].item`, `get dataContext[Sequence Data].itemSearch[*]`), keeping the items it is sent. `Sequence Data` exists only once the plugin creates it: it is listed from then on, and writing or reading its items before then fails as in CODAP. Every request is recorded; an unknown one gets `{success: false}`.
+- **R5.2** It answers the plugin's requests the way CODAP 3.1.2 does, with reply shapes from MARK-5's captures: `init`'s batch with the saved state in the second reply's `values.savedState`; `notify interactiveFrame {dirty: true}`; `caseFormulaSearch[true]` from the page's dataset; and the output-table requests Play sends (`get dataContextList`, `create dataContext`, `get componentList`, `create component`, `create dataContext[Sequence Data].item`, `get dataContext[Sequence Data].itemSearch[*]`), keeping the items it is sent. `Sequence Data` exists only once the plugin creates it: it is listed from then on, and writing or reading its items before then fails as in CODAP. Every request is recorded; an unknown one gets `{success: false}` and is kept for R5.10.
 - **R5.3** It starts the plugin with any saved state (a version-2 drawing, an unversioned drawing, dataset mode) or none (the mode menu), and can withhold the `interactiveFrame` reply so a test sees "Loading ...".
 - **R5.4** It holds one small dataset a test can set and change; `caseFormulaSearch[true]` reads the current values. A test can start in dataset mode with one of its attributes without spelling out the saved state.
 - **R5.5** It sends `dragDrop[attribute]` notifications for a drop (`dragstart`, `drop`, `dragend`) and `dataContextChangeNotice[<dataset>]` notifications with `createCases`, `updateCases` or `deleteCases`.
@@ -32,7 +32,7 @@ The Jira description predates MARK-20, MARK-8 and MARK-12's spec. Where it disag
 - **R5.7** It resizes the plugin's iframe on request.
 - **R5.8** It passes URL parameters to the plugin, so a test can shorten the animation with `fastSpeed` and `normalSpeed`.
 - **R5.9** Its API is a set of typed Cypress custom commands, each with a doc comment. A command that waits on the page yields only once the plugin has replied.
-- **R5.10** It records every uncaught error and unhandled promise rejection in the plugin's frame, and any test during which one happens fails. Cypress doesn't see errors thrown in a nested iframe.
+- **R5.10** It records every uncaught error and unhandled promise rejection in the plugin's frame, and every request it has no reply for, and any test during which one happens fails. Cypress doesn't see errors thrown in a nested iframe.
 
 ### Cypress configuration
 
@@ -46,11 +46,11 @@ The Jira description predates MARK-20, MARK-8 and MARK-12's spec. Where it disag
 
 Expected values are computed from the fixture or the plugin's settings, never copied from a run.
 
-- **R7. Loading and drawing (risk area 6).** "Loading ..." shows while `interactiveFrame` is unanswered, and the plugin draws once it is answered. Each of the five ELA documents draws one `g.node` per state and one `line.edge` per non-loop transition; `4gqlICXB3YqN3AfivyZZ` (empty) shows the drawing tools with no states. The template test is deleted.
+- **R7. Loading and drawing (risk area 6).** "Loading ..." shows while `interactiveFrame` is unanswered, and the plugin draws once it is answered. Each of the five ELA documents draws one `g.node` per state and one `line.edge` per non-loop transition, and labels each state with its fixture label, whole or truncated with "..."; `4gqlICXB3YqN3AfivyZZ` (empty) shows the drawing tools with no states. The template test is deleted.
 - **R8. Arrow widths and heads (risk area 1).** Every `line.edge`'s `stroke-width` in `9nsC6KpuDstv2N9eGndM` is `2 + 2.5 * value / stateTotal`; a loop drawn in the plugin follows the same rule, counted among its state's outgoing transitions. All eight markers exist and use `markerUnits="strokeWidth"`; every `line.edge` and `path.loop` has a `marker-end` and no click target has one, on first draw, with a state selected and mid-animation.
-- **R9. Labels (risk area 2).** A long label is truncated only once its font size is above 9 and at most 10 px. An HTML-like dataset value is drawn as text and runs no script (MARK-20's bug 9). A numeric value draws as its digits, and the Starting State list is sorted (bug 4).
+- **R9. Labels (risk area 2).** A long label is truncated only once its font size is above 9 and at most 10 px. An HTML-like dataset value is drawn as text (MARK-20's bug 9). A numeric value draws as its digits, and the Starting State list is sorted (bug 4).
 - **R10. Highlighting (risk area 3).** A selected state fills with the selected color, its incoming and outgoing transitions draw in blue and orange with their heads, and unconnected states, transitions and labels fade to 0.35 while the connected ones stay at full opacity; a second click, later than the 250 ms double-click window, clears it. A Step run fills the current state and draws the transition taken in the animation color; a finished run clears it. A selected output highlights its path and fades the rest, and a second click clears it.
-- **R11. Fit and recenter (risk area 4).** A loaded drawing has a fitted transform and lies inside the SVG; zooming in, then Fit View, returns to it; Recenter View moves an off-center graph back to the center at the same scale. *(Tested on a nearly origin-centered drawing; bug 10, the off-center fit, is MARK-21's.)*
+- **R11. Fit and recenter (risk area 4).** A loaded drawing has a fitted transform and lies inside the SVG; zooming in, then Fit View, returns to it; Recenter View moves an off-center graph back to within 10 px of the SVG's center at the same scale. *(Tested on a nearly origin-centered drawing; bug 10, the off-center fit, is MARK-21's.)*
 - **R12. Mode flows (risk area 5).** Dataset mode: a drop builds the graph, `createCases` after a value change rebuilds it, renaming the attribute then `updateCases` leaves the plugin running (bug 2), and Reset rebuilds from the data (bug 8). Drawing mode: Create From Text builds one state per distinct word. Save and reload draws the same states and transitions at the same positions. Back To Main Menu returns to the mode menu.
 - **R13. Generation flows.** Play fills the output and sends one item request whose states match. Step advances one state per press and ends with the same output and items. Pause stops the output growing, and Resume finishes it. Cancel stops the run with no item request.
 
@@ -58,6 +58,7 @@ Expected values are computed from the fixture or the plugin's settings, never co
 
 - **R14.1** `.github/workflows/ci.yml` has a `cypress` job: one container, Node from `.nvmrc`, the dev server started and waited for on port 8080, `cypress run` in Chrome, no Cypress Cloud and no Codecov. The commented-out three-container job is deleted.
 - **R14.2** `s3-deploy` needs both `build_test` and `cypress`.
+- **R14.3** `build_test` runs `npx tsc --noEmit -p cypress` after the build, since Cypress runs the tests without checking their types (Maureen E. Zitouni's review on the PR).
 - **R14.3** The job keeps a failed run's screenshots as a workflow artifact.
 
 ### Documentation
@@ -67,7 +68,7 @@ Expected values are computed from the fixture or the plugin's settings, never co
 
 ### Done when
 
-- **R16.** On Node 24 after `npm ci`, at every commit and on the head: the build has no warnings, the three lint commands print nothing, both `tsc` commands pass, `npm test` passes, and from the commit that replaces the template test on, `npm run test:cypress` passes. On the head, the Cypress suite passes three runs in a row, and production `dist/` matches the base. *(Head: Jest 56 tests, Cypress 27 tests in 7 files, three runs in a row in Chrome, and once in Electron through `npm run test:cypress` before the last test fix-up; `dist/` matches except R3's source-map field.)*
+- **R16.** On Node 24 after `npm ci`, at every commit and on the head: the build has no warnings, the three lint commands print nothing, both `tsc` commands pass, `npm test` passes, and from the commit that replaces the template test on, `npm run test:cypress` passes. On the head, the Cypress suite passes three runs in a row, and production `dist/` matches the base. *(Head: Jest 57 tests, Cypress 27 tests in 7 files, three runs in a row in Chrome, and once in Electron through `npm run test:cypress` before the last test fix-up; `dist/` matches except R3's source-map field.)*
 - **R17.** Each of MARK-7's six rendering risk areas has a test (R7 to R12), and Play, Step, Pause and Cancel have one each (R13).
 - **R18.** CI's `cypress` job runs green on the first push and `s3-deploy` runs after it. *(Checked at the first push.)*
 
@@ -107,12 +108,11 @@ The page's dataset is `Words`, collection `Cases`, with `Word` (`the cat sat on 
 - **`invoke` doesn't wait for a promise**; commands that call the page use `then`. **`blur`** fails on an input inside the frame; tests commit with `{enter}`.
 - **`cy.clock`** affects only the top window, so animation timing comes from the plugin's `fastSpeed` and `normalSpeed` parameters.
 - **The dev server's rebuild can lag** behind an edit to `src/`. A run that starts too soon tests the old code, so a mutation check waits about 30 s. A lint warning or runtime error brings up the overlay, which covers the plugin.
-- **An injected image's `onerror`** runs only once its request fails, so the labels test waits a second before checking that no script ran.
 - **Coverage** counts statements only for the fake page: the plugin runs in a nested frame, and the `nyc` section's `all: true` lists every other file with nothing counted.
 
 ### Bug 10, measured
 
-A two-state drawing centered on the origin fits exactly centered. The same drawing moved by (300, 150) fits 200 px right of and 100 px below center: the fit translates by `scale * -center / 2` (`graph.tsx:803-804`) where centering needs `scale * -center`. In the ELA documents the fitted graph sits up to 24 px off center. `geDiXLf2GyHsWCF2QFnU`, which the fit tests use, is off by about 3 px, and no test asserts centering.
+A two-state drawing centered on the origin fits exactly centered. The same drawing moved by (300, 150) fits 200 px right of and 100 px below center: the fit translates by `scale * -center / 2` (`graph.tsx:803-804`) where centering needs `scale * -center`. In the ELA documents the fitted graph sits up to 24 px off center. `geDiXLf2GyHsWCF2QFnU`, which the fit tests use, is off by about 3 px, so the recenter test's 10 px tolerance holds before and after MARK-21's fix.
 
 ### What MARK-12 and MARK-13 inherit
 
@@ -126,10 +126,6 @@ The page, its commands, the fixtures, the Cypress config, the error check and th
 - Code coverage in CI and Codecov; Cypress Cloud; Cypress component tests.
 - Checking against the real CODAP: the page mirrors CODAP 3.1.2's captured replies, and the CODAP checks stay manual (MARK-5).
 - Dragging a state: the tests drive the plugin's click handling only.
-
-## Not Yet Implemented
-
-- R18, CI's `cypress` job on GitHub: it can only run on the first push.
 
 ## Decisions
 
@@ -186,7 +182,10 @@ The page, its commands, the fixtures, the Cypress config, the error check and th
 **Decision**: each was shown failing on a mutation before it was kept.
 - The marker check compares the full id set.
 - Highlighting checks that labels un-fade, that the selected state and its neighbors stay unfaded, and that an output's own states do.
-- The labels test checks the numeric labels and waits for the injected image's handler.
+- The labels test checks the numeric labels. Its text check is what fails when a label is drawn as HTML, since the truncated value never holds a whole tag, so it has no separate script check.
+- Recenter checks that the graph's center is within 10 px of the SVG's (Ethan McElroy's review on the PR).
+- The ELA load tests check each drawn label against the fixture's labels (Ethan McElroy's review on the PR).
+- A request the fake CODAP page has no reply for fails the test, as frame errors do (Ethan McElroy's review on the PR).
 - The arrowhead checks first confirm the click targets are drawn.
 - Save and reopen checks the saved transitions, and the reopened graph draws exactly those transitions.
 - Play and Step check the exact items sent, in one request.

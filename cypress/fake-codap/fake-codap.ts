@@ -37,6 +37,7 @@ let heldInit: (() => void) | undefined;
 let outputCreated = false;
 const requests: CodapRequest[] = [];
 const errors: string[] = [];
+const unhandled: CodapRequest[] = [];
 const items: Record<string, unknown>[] = [];
 
 const caseFormulaSearchReply = () => {
@@ -89,6 +90,7 @@ const reply = (request: CodapRequest) => {
   if (action === "get" && resource === `dataContext[${outputDatasetName}].itemSearch[*]`) {
     return { success: true, values: items.map((item, i) => ({ id: i + 1, values: item })) };
   }
+  unhandled.push(request);
   return { success: false, values: { error: `fake CODAP does not handle ${action} ${resource}` } };
 };
 
@@ -135,6 +137,7 @@ const start = (startOptions: StartOptions = {}) => {
 const fakeCodap = {
   requests,
   errors,
+  unhandled,
   items,
   start,
   restart: (savedState: unknown) => start({ ...options, savedState, holdInit: false }),

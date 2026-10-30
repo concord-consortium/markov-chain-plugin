@@ -6,7 +6,7 @@ Deploying to S3 is handled by the [S3 Deploy Action](https://github.com/concord-
 
 ## Where to find builds
 
-- **branch builds**: when a developer pushes a branch, GitHub actions will build and deploy it to `markov-chain-plugin/branch/[branch-name]/index.html`. A Jira key prefix (`MARK-6-`) or a Pivotal Tracker story number at the start or end of the branch name is stripped off, so `MARK-6-deploy-and-release` is deployed to `markov-chain-plugin/branch/deploy-and-release/index.html`.
+- **branch builds**: when a developer pushes a branch, GitHub actions will build and deploy it to `markov-chain-plugin/branch/[branch-name]/index.html`. A Jira key prefix is stripped from the branch name, so `MARK-123-my-feature` is deployed to `markov-chain-plugin/branch/my-feature/index.html`.
 - **version builds**: when a developer pushes a tag, GitHub actions will build and deploy it to `markov-chain-plugin/version/[tag-name]/index.html`
 - **released version path**: the released version of the application is available at `markov-chain-plugin/index.html`
 - **master branch**: the master branch build is available at both `markov-chain-plugin/index-master.html` and `markov-chain-plugin/branch/master/index.html`.  The `index-master.html` form is preferred because it verifies the top level deployment is working for the current code. Additional branches can be added to the top level by updating the `topBranches` configuration in `.github/workflows/ci.yml`

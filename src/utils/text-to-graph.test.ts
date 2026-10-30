@@ -31,7 +31,7 @@ describe("textToWords", () => {
       .toEqual(["hello", ",", "world", "!", "hi", ":", "there", ";", "ok", "?", "yes", "."]);
   });
 
-  it("treats brackets, quotes, slashes and other symbols as spaces", () => {
+  it("treats \" ( ) { } [ ] _ + = | \\ / < > as spaces", () => {
     expect(textToWords(`"a" (b) {c} [d] e_f g+h=i j|k l\\m n/o <p>`))
       .toEqual(["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p"]);
   });

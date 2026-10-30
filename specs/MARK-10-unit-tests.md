@@ -10,7 +10,7 @@ Add Jest unit tests for the plugin's logic that MARK-20's tests don't yet cover 
 
 The branch sits on MARK-9's (ESLint 9), which sits on MARK-8's, MARK-20's and MARK-6's. MARK-11 (Cypress rendering tests) and MARK-12 (React 19) build on it. Ownership: logic that runs without a real browser is MARK-10's; anything that needs layout, the drawn SVG, iframe messaging, or the play, step, pause and cancel flows is MARK-11's; the `graph.tsx` split and the `app.tsx` state machine are MARK-14's.
 
-The Jira description predates MARK-20 and MARK-8. Where it disagrees with the code: MARK-20 had already added six test files (32 tests) and pulled the text parser and arrow widths out; generation was in `hooks/use-generator.ts`, not `graph.tsx` or `app.tsx`; and of `codap-helper.ts`'s 19 exports the plugin calls only `initializePlugin` (a one-line pass-through) and `registerObservers` (dead code MARK-14 deletes), so no CODAP helper tests were added.
+The Jira description predates MARK-20 and MARK-8. Where it disagrees with the code: MARK-20 had already added six test files (32 tests) and pulled the text parser and arrow widths out; generation was in `hooks/use-generator.ts`, not `graph.tsx` or `app.tsx`; and of `codap-helper.ts`'s 19 exported functions the plugin calls only `initializePlugin` (a one-line pass-through) and `registerObservers` (dead code MARK-14 deletes), so no CODAP helper tests were added.
 
 ## Requirements
 
@@ -18,13 +18,13 @@ The Jira description predates MARK-20 and MARK-8. Where it disagrees with the co
 
 - **R1. No tooling change.** No package, Jest config, lockfile, `tsconfig.json`, `src/global.d.ts` or ESLint config changes.
 - **R2. Lint-clean tests.** Every new or changed file passes `npm run lint`, `lint:build` and `lint:style` with no output and no `eslint-disable`, and `npx tsc --noEmit -p .` passes.
-- **R3. Tests survive MARK-12 unchanged.** Component tests query through `screen`, wait with `findBy*` or `waitFor` for anything that appears after effects run, never touch the container or DOM nodes, and don't use `renderHook`. *(Verified: all 56 tests pass on React 19.3.1 and Testing Library 16.3.3 with no change and no `act` warnings.)*
+- **R3. Tests survive MARK-12 unchanged.** Component tests query through `screen`, wait with `findBy*` or `waitFor` for anything that appears after effects run, never touch the container or DOM nodes, and don't use `renderHook`. *(Verified: all 57 tests pass on React 19.3.1 and Testing Library 16.3.3 with no change and no `act` warnings.)*
 - **R4. Production code changes only to make logic testable, with no behavior change.** Logic moves only when a test can't reach it where it is. No change to the rendered DOM, class names, marker ids, the saved state, or anything visible.
 - **R5. Tests cover code the plugin runs.** Nothing MARK-14 deletes is tested.
 
 ### 1. The text parser
 
-- **R6.** Tests of `textToWords` and `wordsToGraph` (`utils/text-to-graph.ts`) pin: splitting on any whitespace run (newlines and tabs included); `. , ? ! : ;` each becoming a state; `" ( ) { } [ ] _ + = | \ / < >` separating words without becoming states; apostrophes and hyphens kept inside words, and `3.5` splitting at its point; lowercasing, accented letters included; empty and blank text giving no states; and a back-to-back repeat giving a self-loop counted once per repeat.
+- **R6.** Tests of `textToWords` and `wordsToGraph` (`utils/text-to-graph.ts`) pin: splitting on any whitespace run (newlines and tabs included); `. , ? ! : ;` each becoming a state; `" ( ) { } [ ] _ + = | \ / < >` separating words without becoming states; apostrophes and hyphens kept inside words, and `3.5` splitting at its point, as the parser splits at every `.` (the shared text and table tokenizer is MARK-15's); lowercasing, accented letters included; empty and blank text giving no states; and a back-to-back repeat giving a self-loop counted once per repeat.
 
 ### 2. The graph built from CODAP values
 
@@ -38,7 +38,7 @@ The Jira description predates MARK-20 and MARK-8. Where it disagrees with the co
 ### 4. The state editor
 
 - **R9.1** `NodeModal` render tests: three equal transitions show `33%`, `33%`, `34%`; Save with nothing changed keeps each value within floating-point tolerance, leaves other states' edges untouched and trims the label; one transition shows no percentages and Save keeps its value.
-- **R9.2** The slider's paired update moves into `components/drawing/state-editor.ts` (`movePairedPercentage`), with `percentage`, `probability` and `reduceToSum`, which `ProbabilitySelector` and `NodeModal` now import from there. Tests: a move changes only that share and the next, keeps the total, and a move past the next thumb is ignored.
+- **R9.2** The slider's paired update moves into `components/drawing/state-editor.ts` (`movePairedPercentage`), with `percentage`, `probability` and `reduceToSum`, which `ProbabilitySelector` and `NodeModal` now import from there. Tests: a move changes only that share and the next, keeps the total, a move past the next thumb is ignored, and a move back past the thumb before gives the share 0.
 - **R9.3** `setExactPercentages`' last-share fix-up is not tested: it only absorbs floating-point drift, and removing it fails nothing.
 
 ### 5. The saved state
@@ -59,10 +59,10 @@ The Jira description predates MARK-20 and MARK-8. Where it disagrees with the co
 
 ### Done when
 
-- **R13.** At every commit and on the head (Node 24, after `npm ci`): tests pass, the three lint commands print nothing, `tsc` passes, the build has no warnings. *(Head: 9 suites, 56 tests: MARK-20's 32 plus 24 new.)*
+- **R13.** At every commit and on the head (Node 24, after `npm ci`): tests pass, the three lint commands print nothing, `tsc` passes, the build has no warnings. *(Head: 9 suites, 57 tests: MARK-20's 32 plus 25 new.)*
 - **R14.** Each of MARK-7's six risk areas has a test: 1 `text-to-graph.test.ts`, 2 `attribute-values.test.ts`, 3 `generate-sequence.test.ts`, 4 `node-modal.test.tsx` and `state-editor.test.ts`, 5 `plugin-state.test.ts`, 6 MARK-20's `attribute-values.test.ts` and `output-dataset.test.ts`.
 - **R15.** In the released CODAP 3.1.2, served by the dev server: Create From Text, Play and Step fill the output table; the state editor shows the same percentages, a slider trades within its pair, and Save leaves the values; pnRU reopens with its drawing; a Mammals document with Diet dropped reopens with its graph. *(Passed. Also checked: an unversioned drawing opens and resets to the same positions as on MARK-9's head; re-saving pnRU and the Mammals document gives byte-identical plugin state; Play and Step work in dataset mode.)*
-- **R16.** CI's `build_test` runs Jest green on the first push, and `s3-deploy` runs after it. *(Checked at the first push.)*
+- **R16.** CI's `build_test` runs Jest green on the first push, and `s3-deploy` runs after it. *(Passed at the first push.)*
 
 ## Technical Notes
 
@@ -82,6 +82,7 @@ The Jira description predates MARK-20 and MARK-8. Where it disagrees with the co
 
 - A draw of exactly 0 picks the first transition even when its value is 0 (`>=` in `generateSequence`); a test would pin a defect.
 - A starting node not in the graph is emitted once and ends the sequence; `App` never passes one.
+- Curly quotes and symbols the parser doesn't list, such as `% @ # &`, stay part of a word, so `“hi”` and `hi` are different states; text pasted from Word or Google Docs has curly quotes.
 - A whitespace-only CODAP value becomes a blank state in dataset mode (pinned by R7 as today's behavior; a marvin todo tracks whether to fix it).
 - A state whose outgoing values sum to 0 shows `NaN%`; no editor or drawing path produces one.
 - Reset on an unversioned drawing restores the untranslated top-left positions, because `setPluginState` copies the graph for Reset before `translateOrigin` moves it. Found by the manual checks, identical on MARK-9's head, and kept by R10.1; the fix is in MARK-21.
@@ -99,7 +100,7 @@ The two fixes MARK-8 recorded: a `transformIgnorePatterns` that lets ts-jest com
 
 - `react-hooks/rules-of-hooks` rejects calling `useGenerator()` in a test, which is why generation moved out of the hook.
 - `testing-library/no-node-access` and `no-container` rule out reaching the slider's `<circle>` thumbs, which is why the slider arithmetic moved.
-- `testing-library/render-result-naming-convention` requires a `render*` helper to return the render result, so each `NodeModal` test makes its own `onChange` mock.
+- `testing-library/render-result-naming-convention` requires a `render*` helper to return the render result, so each `NodeModal` test that checks `onChange` makes its own mock.
 
 ### What MARK-11 and MARK-12 inherit
 
@@ -113,10 +114,6 @@ After MARK-10, the bare `useRef` calls MARK-12 fixes are at `app.tsx:93, 98, 104
 - Dead code, including `registerObservers` and the unused `codap-helper.ts` exports (MARK-14 removes it).
 - Fixing the quirks above (Doug, 2026-10-28), apart from the Reset bug, which went to MARK-21.
 - Coverage reporting and Codecov, and the Cypress job (MARK-11).
-
-## Not Yet Implemented
-
-- R16, CI's `build_test` job on GitHub: it can only run on the first push.
 
 ## Decisions
 
@@ -148,7 +145,7 @@ After MARK-10, the bare `useRef` calls MARK-12 fixes are at `app.tsx:93, 98, 104
 **Decision**: A (Doug, 2026-10-28). A marvin todo keeps the whitespace-only state open for Rebecca to confirm. The later Reset finding went to MARK-21.
 
 ### The CI commit first, or last
-**Decision**: first, so every later commit's tests run in CI and Mau reads the CI change on its own.
+**Decision**: first, so the CI change is reviewed on its own and the tests run in CI from the first push.
 
 ### Move the generator in one commit, or a pure rename first
 **Decision**: one commit. Git shows a delete and an add because every line loses one indentation level; `diff -w` of the old `hooks/use-generator.ts` against `utils/generate-sequence.ts` shows only the hook wrapper removed.
