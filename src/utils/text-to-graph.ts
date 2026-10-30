@@ -12,7 +12,8 @@ export const textToWords = (text: string) => {
     .filter(w => w.length > 0);
 };
 
-// objects without a prototype, so a word like "constructor" can't find an inherited property
+// objects without a prototype, so a word like "constructor" can't find an inherited property;
+// not a Map, whose insertion order would change the order of states (integer words sort first here)
 export const wordsToGraph = (words: string[]): GraphData => {
   const nodes: Record<string, Node> = Object.create(null);
   const edges: Record<string, Edge> = Object.create(null);

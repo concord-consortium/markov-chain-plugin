@@ -47,9 +47,6 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
       console.log("unable to create output dataset");
       return datasetExisted;
     }
-    // setOutputDatasetID(tCreateResult.values.id);
-  } else {
-    // setOutputDatasetID(tFoundValue.id);
   }
   // Verify case table exists
   tFoundValue = null;
@@ -60,12 +57,13 @@ export const guaranteeOutputDatasetAndCaseTable = async (sendRequest: SendReques
     console.log("unable to get component list because " + reason);
   });
   if (tListResult?.success) {
+    // CODAP's componentList reply has no dataContext, so this never matches and every Play reopens the table
     tFoundValue = tListResult.values.find((iValue: any) => {
       return iValue.type === "caseTable" && iValue.dataContext === OutputDatasetName;
     });
   }
   if (!tFoundValue) {
-    // Create text component
+    // Create case table
     const tCreateResult: any = await sendRequest({
       "action": "create",
       "resource": "component",
