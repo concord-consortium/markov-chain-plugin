@@ -10,7 +10,8 @@ const runtimeFrameWidth = () => {
   return cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument.documentElement.clientWidth");
 };
 
-const standaloneLink = () => cy.get(".demo-standalone input");
+// the Open button, whose href is the standalone link
+const standaloneLink = () => cy.get(".demo-standalone a");
 
 // iframe-phone posts an object, or its JSON where a browser can only post text
 const messageOf = (data: unknown) => {
@@ -69,20 +70,38 @@ describe("the interactive's demo page", () => {
     cy.get("h1").should("have.text", "Demo and Standalone Authoring");
     cy.location("origin").then(origin => {
       const startingText = "startingText=the+cat+sat+on+the+mat.+the+cat+ran.";
-      standaloneLink().should("have.value", `${origin}/interactive.html?${startingText}`);
+      standaloneLink().should("have.attr", "href", `${origin}/interactive.html?${startingText}`);
       frameBody("Authoring").find("#capitalization").select("asTyped");
-      standaloneLink().should("have.value", `${origin}/interactive.html?capitalization=asTyped&${startingText}`);
+      standaloneLink().should("have.attr", "href", `${origin}/interactive.html?capitalization=asTyped&${startingText}`);
     });
-    cy.get(".demo-standalone").should("contain.text", "Use this link only outside the Activity Player")
-      .find("a").should("have.attr", "target", "_blank");
+    cy.get("header .demo-standalone").find("button, a").should("have.length", 2).each(control => {
+      expect(control).to.have.attr("aria-describedby", "demo-standalone-warning");
+      expect(control.attr("title")).to.contain("Use this link only outside the Activity Player");
+    });
+    cy.get("#demo-standalone-warning").should("contain.text", "Use this link only outside the Activity Player");
+    cy.get(".demo-standalone button").should("have.text", "Copy standalone link");
+    standaloneLink().should("have.text", "Open standalone link").and("have.attr", "target", "_blank");
     cy.get(".demo-standalone-long").should("not.exist");
+  });
+
+  it("copies the link, and says so for 2 seconds", () => {
+    cy.visit("/demo.html");
+    cy.window().then(win => cy.stub(win.navigator.clipboard, "writeText").as("writeText").resolves());
+    cy.clock();
+    cy.get(".demo-standalone button").click();
+    standaloneLink().invoke("attr", "href").then(link => cy.get("@writeText").should("have.been.calledOnceWith", link));
+    cy.get(".demo-standalone button").should("have.text", "Copied");
+    cy.tick(1900);
+    cy.get(".demo-standalone button").should("have.text", "Copied");
+    cy.tick(100);
+    cy.get(".demo-standalone button").should("have.text", "Copy standalone link");
   });
 
   it("says when the link is long", () => {
     cy.visit("/demo.html");
     // val() sets the text without the form noticing, and the typed letter makes the form save all of it
     frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(1000)).type("b");
-    standaloneLink().invoke("val").its("length").should("be.greaterThan", 2000);
+    standaloneLink().invoke("attr", "href").its("length").should("be.greaterThan", 2000);
     cy.get(".demo-standalone-long").should("contain.text", "longer than 2,000 characters");
   });
 
@@ -96,7 +115,7 @@ describe("the interactive's demo page", () => {
     cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").then(runtime => {
       const hosted = listedIn(runtime);
       // a window of its own, not in a frame, as a link from a collection page opens it
-      standaloneLink().invoke("val").then(link => {
+      standaloneLink().invoke("attr", "href").then(link => {
         cy.window().then(win => win.open(String(link))).as("standalone");
       });
       cy.get<Window>("@standalone").its("document.body.innerText").should("contain", "coming soon")

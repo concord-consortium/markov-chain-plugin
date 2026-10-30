@@ -6,10 +6,7 @@ $teal: #016082;
 .demo {
   h1 {
     margin: 0;
-    padding: 10px;
     font-size: 20px;
-    color: white;
-    background-color: $teal;
   }
 
   h2 {
@@ -105,42 +102,44 @@ $teal: #016082;
   }
 }
 
-.demo-standalone-row {
+// the page's title, with the standalone link's buttons at its right
+.demo-header {
   display: flex;
-  gap: 5px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px;
+  color: white;
+  background-color: $teal;
+}
 
-  input {
-    flex: 1 1 auto;
-    min-width: 0;
-    padding: 4px 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
+.demo-standalone {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 
   button,
   a {
     padding: 4px 10px;
-    border: 1px solid $teal;
+    border: 1px solid white;
     border-radius: 4px;
     font: inherit;
     color: $teal;
     background-color: white;
     text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid white;
+      outline-offset: 2px;
+    }
   }
 }
 
-.demo-standalone-warning,
 .demo-standalone-long {
-  margin: 5px 0 0;
-}
-
-.demo-standalone-warning {
-  color: #737373;
-}
-
-.demo-standalone-long {
-  color: #8a4b00;
+  margin: 0 5px 0 0;
+  font-size: 13px;
 }
 
 .demo-report-item {

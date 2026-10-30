@@ -12,6 +12,8 @@ import "./demo.scss";
 
 // the runtime restarts with the authoring form's latest state once the author pauses this long
 const restartDelay = 500;
+// how long the Copy button says the link was copied
+const copiedDuration = 2000;
 
 const initialAuthoredState = readAuthoredState({ startingText: "the cat sat on the mat. the cat ran." });
 
@@ -55,36 +57,45 @@ const HostedFrame = ({ title, mode, authoredState, getInteractiveState, onMessag
 
 const pageTitle = "Demo and Standalone Authoring";
 
+const standaloneWarning = "Use this link only outside the Activity Player, such as on a collection page. In LARA, " +
+  "add the interactive's plain URL and choose its settings in the Authoring tab: settings in this link are ignored " +
+  "inside an activity.";
+
 // The interactive opened on its own with the authoring form's settings, for a collection page or any page outside
 // the Activity Player. The link is beside this page, so it names the same branch or version.
 const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
   const link = new URL(`interactive.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
     window.location.href).href;
-  const [copiedLink, setCopiedLink] = useState<string>();
+  const [copiedAt, setCopiedAt] = useState<number>();
 
-  const copy = () => navigator.clipboard.writeText(link).then(() => setCopiedLink(link));
+  useEffect(() => {
+    if (copiedAt === undefined) {
+      return;
+    }
+    const timeout = window.setTimeout(() => setCopiedAt(undefined), copiedDuration);
+    return () => window.clearTimeout(timeout);
+  }, [copiedAt]);
 
+  const copy = () => navigator.clipboard.writeText(link).then(() => setCopiedAt(Date.now()));
+
+  // the warning is each control's description, read with it by a screen reader and shown on hover
   return (
-    <section className="demo-standalone" aria-labelledby="demo-standalone-heading">
-      <h2 id="demo-standalone-heading">Standalone link</h2>
-      <div className="demo-standalone-row">
-        <input type="text" readOnly={true} value={link} aria-labelledby="demo-standalone-heading"
-          aria-describedby="demo-standalone-warning" onFocus={event => event.target.select()} />
-        <button type="button" onClick={copy}>{ copiedLink === link ? "Copied" : "Copy" }</button>
-        <a href={link} target="_blank" rel="noopener noreferrer">Open</a>
-      </div>
-      <p id="demo-standalone-warning" className="demo-standalone-warning">
-        Use this link only outside the Activity Player, such as on a collection page. In LARA, add the
-        interactive&apos;s plain URL and choose its settings in the Authoring tab: settings in this link are ignored
-        inside an activity.
-      </p>
+    <div className="demo-standalone" role="group" aria-label="Standalone link">
       { link.length > longLinkLength && (
         <p className="demo-standalone-long">
           This link is longer than { longLinkLength.toLocaleString("en-US") } characters, mostly its starting text, and
           some sites and email programs cut long links short.
         </p>
       ) }
-    </section>
+      <button type="button" onClick={copy} title={standaloneWarning} aria-describedby="demo-standalone-warning">
+        { copiedAt === undefined ? "Copy standalone link" : "Copied" }
+      </button>
+      <a href={link} target="_blank" rel="noopener noreferrer" title={standaloneWarning}
+        aria-describedby="demo-standalone-warning">
+        Open standalone link
+      </a>
+      <p id="demo-standalone-warning" hidden={true}>{ standaloneWarning }</p>
+    </div>
   );
 };
 
@@ -120,13 +131,15 @@ const Demo = () => {
 
   return (
     <div className="demo">
-      <h1>{ pageTitle }</h1>
+      <header className="demo-header">
+        <h1>{ pageTitle }</h1>
+        <StandaloneLink authoredState={authoredState} />
+      </header>
       <div className="demo-columns">
         <section className="demo-authoring" aria-labelledby="demo-authoring-heading">
           <h2 id="demo-authoring-heading">Authoring</h2>
           <HostedFrame title="Authoring" mode="authoring" authoredState={initialAuthoredState}
             onMessage={handleMessage} width="100%" />
-          <StandaloneLink authoredState={authoredState} />
         </section>
         <section className="demo-runtime" aria-labelledby="demo-runtime-heading">
           <div className="demo-runtime-header">
