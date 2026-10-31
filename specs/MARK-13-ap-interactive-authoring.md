@@ -109,7 +109,7 @@ Add a second app to this repo, the Markov Interactive, that runs in the Activity
 
 ### Done when
 
-- **R26.** On the branch deploy: an author adds "Markov Interactive" to an activity page, sets every option, saves, and on reopening sees every setting as saved; a student run in the Activity Player shows the placeholder with those settings; and the class dashboard shows that student as having answered, with the placeholder full answer when the answer is opened. Opened directly from the branch deploy, `interactive.html` shows the placeholder with the default settings, a link copied from the demo page opens it with that link's settings, and `report-item.html` shows its message. *(Partial: everything but the direct opens was checked on learn staging against the local dev server; the branch-deploy checks follow the push. See Not Yet Implemented.)*
+- **R26.** On learn staging, with an Interactive IFrame item pointed at the interactive: an author adds "Markov Interactive" to an activity page, sets every option, saves, and on reopening sees every setting as saved; a student run in the Activity Player shows the placeholder with those settings; and the class dashboard shows that student as having answered, with the placeholder full answer when the answer is opened. Opened directly from the branch deploy, `interactive.html` shows the placeholder with the default settings, a link copied from the demo page opens it with that link's settings, and `report-item.html` shows its message. The hosted flow may run against the development server rather than the branch deploy (see Decisions).
 
 ## Technical Notes
 
@@ -208,6 +208,8 @@ Activity 1521 on LARA staging, "MARK-13 Markov Interactive authoring test (local
 - **The dashboard:** the activity needs "Activity Player Class Dashboard" as an external report in the portal; the student shows as answered and the full answer shows the placeholder. The item's Report Item URL must be a full URL: portal-report resolved `report-item.html` against its own address. With the `links` item, "Open in new tab" opens portal-report's answer page, which starts the interactive in `report` mode.
 - LARA's narrow Preview pane (261 px) squeezes the placeholder's two-column list badly; the Activity Player isn't affected, and R18 only asks the placeholder to be fluid.
 
+On the branch deploy (2026-10-31, headless Chrome): `interactive.html`, `report-item.html` and `demo.html` return 200. A link copied with the demo page's Copy button, after changing the capitalization and the starting text, opened the standalone interactive, whose placeholder listed the same settings as the demo's runtime.
+
 The README's Markov Interactive section records the item and portal settings, and that a library interactive will carry the item settings once released.
 
 ## Out of Scope
@@ -224,11 +226,17 @@ The README's Markov Interactive section records the item and portal settings, an
 - **The plugin's version number and the release process.**
 - **Authoring for drawing mode's tools**: Rebecca's answer is all tools on, so there is nothing to set.
 
-## Not Yet Implemented
-
-- **R26, on the branch deploy:** opening `interactive.html` and `report-item.html` directly from the branch URL, and a link copied from the branch's demo page. The rest of R26 (authoring, saving and reopening, the Activity Player runtime, a student run and the class dashboard with its full answer) was checked on learn staging against the local dev server, not the branch deploy.
-
 ## Decisions
+
+### The hosted flow on learn staging ran against the development server
+**Context**: the author, student and dashboard checks ran on learn staging with the item pointed at the local development server, before the branch was deployed. Running them again against the branch deploy needs a staging login and a new test activity.
+**Options considered**:
+- A) Run the hosted flow again with an item pointed at the branch deploy.
+- B) Accept the development-server run, and check the deployed files directly.
+
+**Decision**: B, Doug's call. The deployed files are the same build that CI tests and deploys. What the hosted flow checks is how LARA, the Activity Player and the class dashboard talk to the interactive, which doesn't depend on where its files are served from. What the deploy can change, its paths and the files it serves, is checked by opening the pages directly and through a link copied from the deployed demo page.
+
+---
 
 ### Where the interactive's pages are deployed
 **Context**: question-interactives deploys each interactive in its own folder with a `report-item/` subfolder; this repo deploys the plugin's `index.html` at the root of `dist/`.
