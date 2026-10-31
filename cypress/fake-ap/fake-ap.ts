@@ -5,7 +5,8 @@
 import { ParentEndpoint } from "iframe-phone";
 import { initInteractiveMessage } from "../../src/interactive/host-messages";
 
-export type InteractiveMode = "authoring" | "runtime" | "report" | "reportItem";
+// "unknown" stands for a mode the interactive doesn't support, as a newer host could send
+export type InteractiveMode = "authoring" | "runtime" | "report" | "reportItem" | "unknown";
 
 export type StartOptions = {
   mode: InteractiveMode;
@@ -35,7 +36,7 @@ const errors: string[] = [];
 const initMessage = () => options.mode === "reportItem"
   ? { version: 1, mode: "reportItem", hostFeatures: {}, interactiveItemId: "interactive_1", view: "singleAnswer",
     users: { student1: { hasAnswer: true } } }
-  : initInteractiveMessage(options.mode, options.authoredState, options.interactiveState);
+  : { ...initInteractiveMessage("runtime", options.authoredState, options.interactiveState), mode: options.mode };
 
 const start = (startOptions: StartOptions) => {
   phone?.disconnect();

@@ -5,7 +5,7 @@ import { readAuthoredState } from "./authored-state";
 import { demoWidths, DemoWidthId, readDemoWidth } from "./demo-widths";
 import { HostedMode, initInteractiveMessage } from "./host-messages";
 import { placeholderReportHtml } from "./report-item-answer";
-import { longLinkLength, maxLinkPathLength, searchFromAuthoredState } from "./url-settings";
+import { isLinkTooLong, longLinkLength, maxLinkPathLength, searchFromAuthoredState } from "./url-settings";
 
 import "./interactive.scss";
 import "./demo.scss";
@@ -65,7 +65,7 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
   const url = new URL(`interactive.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
     window.location.href);
   const link = url.href;
-  const tooLong = url.pathname.length + url.search.length > maxLinkPathLength;
+  const tooLong = isLinkTooLong(url.pathname, url.search);
   const [copyResult, setCopyResult] = useState<{ copied: boolean }>();
 
   useEffect(() => {

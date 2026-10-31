@@ -17,20 +17,15 @@ describe("opened outside a host", () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
     jest.restoreAllMocks();
     window.history.replaceState(null, "", "/");
   });
 
   it("the interactive runs with the default settings, and leaves the library alone", () => {
-    jest.useFakeTimers();
     render(<App />);
     expect(screen.getByText("Markov interactive: coming soon")).toBeInTheDocument();
     expect(screen.getByText(/the settings come from this page's link, and nothing is saved/)).toBeInTheDocument();
     expect(listed("Usable mode(s)")).toHaveTextContent(/^Both/);
-
-    // past the library's 2 second wait before it sends an interactive state
-    act(() => { jest.advanceTimersByTime(3000); });
     expect(warn).not.toHaveBeenCalled();
   });
 

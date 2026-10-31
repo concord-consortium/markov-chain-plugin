@@ -1,5 +1,5 @@
 import { defaultAuthoredState, MarkovAuthoredState, readAuthoredState } from "./authored-state";
-import { authoredStateFromSearch, searchFromAuthoredState, urlSettings } from "./url-settings";
+import { authoredStateFromSearch, isLinkTooLong, searchFromAuthoredState, urlSettings } from "./url-settings";
 
 const customState: MarkovAuthoredState = {
   ...defaultAuthoredState,
@@ -73,5 +73,15 @@ describe("settings in a link", () => {
 
   it("reads back the settings it puts in a link", () => {
     expect(authoredStateFromSearch(searchFromAuthoredState(customState))).toEqual(customState);
+  });
+});
+
+describe("a link's length", () => {
+  const pathname = "/markov-chain-plugin/branch/ap-interactive-authoring/interactive.html";
+  const searchOfLength = (length: number) => `?startingText=${"a".repeat(length - "?startingText=".length)}`;
+
+  it("allows a path and query of 8,192 characters and refuses 8,193", () => {
+    expect(isLinkTooLong(pathname, searchOfLength(8192 - pathname.length))).toBe(false);
+    expect(isLinkTooLong(pathname, searchOfLength(8193 - pathname.length))).toBe(true);
   });
 });

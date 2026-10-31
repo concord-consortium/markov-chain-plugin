@@ -83,6 +83,12 @@ describe("the interactive's placeholder runtime", () => {
     cy.interactiveMessages("interactiveState").should("have.length", 0);
   });
 
+  it("says so when started in a mode it doesn't support", () => {
+    cy.startInteractive({ mode: "unknown", authoredState: {} });
+    cy.interactive().find(".unsupported-mode")
+      .should("have.text", "The Markov interactive doesn't support unknown mode yet.");
+  });
+
   it("sizes its frame to the placeholder", () => {
     cy.startInteractive({ mode: "runtime", authoredState: {}, width: 600 });
     cy.interactive().find(".runtime-placeholder dl");

@@ -10,6 +10,8 @@ export const longLinkLength = 2000;
 // the deployed site refuses a request whose path and query are longer than this, with 414 URI Too Long
 export const maxLinkPathLength = 8192;
 
+export const isLinkTooLong = (pathname: string, search: string) => pathname.length + search.length > maxLinkPathLength;
+
 type Leaf = [string[], unknown];
 
 const leaves = (value: unknown, path: string[] = []): Leaf[] =>
