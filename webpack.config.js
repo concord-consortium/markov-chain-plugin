@@ -31,10 +31,17 @@ module.exports = (env, argv) => {
       allowedHosts: 'all',
     },
     devtool: devMode ? 'eval-cheap-module-source-map' : 'source-map',
-    // the Cypress tests' fake CODAP page is served by the dev server only, never deployed
-    entry: devMode
-      ? { main: './src/index.tsx', 'fake-codap': './cypress/fake-codap/fake-codap.ts' }
-      : './src/index.tsx',
+    entry: {
+      main: './src/index.tsx',
+      interactive: './src/interactive/index.tsx',
+      'report-item': './src/interactive/report-item.tsx',
+      demo: './src/interactive/demo.tsx',
+      // the Cypress tests' fake CODAP and Activity Player pages are served by the dev server only, never deployed
+      ...(devMode ? {
+        'fake-codap': './cypress/fake-codap/fake-codap.ts',
+        'fake-ap': './cypress/fake-ap/fake-ap.ts',
+      } : {}),
+    },
     mode: 'development',
     output: {
       path: path.resolve(__dirname, 'dist'),
@@ -152,19 +159,43 @@ module.exports = (env, argv) => {
         template: 'src/index.html',
         favicon: 'src/public/favicon.ico',
         publicPath: '.',
-        excludeChunks: ['fake-codap'],
+        chunks: ['main'],
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'interactive.html',
+        template: 'src/interactive/index.html',
+        publicPath: '.',
+        chunks: ['interactive'],
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'report-item.html',
+        template: 'src/interactive/index.html',
+        publicPath: '.',
+        chunks: ['report-item'],
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'demo.html',
+        template: 'src/interactive/index.html',
+        publicPath: '.',
+        chunks: ['demo'],
       }),
       ...(devMode ? [new HtmlWebpackPlugin({
         filename: 'fake-codap.html',
         template: 'cypress/fake-codap/index.html',
         chunks: ['fake-codap'],
         publicPath: '.',
+      }), new HtmlWebpackPlugin({
+        filename: 'fake-ap.html',
+        template: 'cypress/fake-ap/index.html',
+        chunks: ['fake-ap'],
+        publicPath: '.',
       })] : []),
       ...(DEPLOY_PATH ? [new HtmlWebpackPlugin({
         filename: 'index-top.html',
         template: 'src/index.html',
         favicon: 'src/public/favicon.ico',
-        publicPath: DEPLOY_PATH
+        publicPath: DEPLOY_PATH,
+        chunks: ['main'],
       })] : []),
       new CleanWebpackPlugin(),
     ]
