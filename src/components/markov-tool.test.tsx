@@ -94,8 +94,10 @@ describe("MarkovTool", () => {
   it("builds dataset mode's graph from the host's values without marking it dirty, and Reset rebuilds it", () => {
     const host = recordingHost("dataset");
     const { handle } = renderTool(host);
+    const before = handle.current;
     act(() => handle.current!.dataChanged(["a", "b", "a"]));
 
+    expect(handle.current).toBe(before);
     expect(handle.current!.getGraph().nodes.map(n => n.label)).toEqual(["a", "b"]);
     expect(host.markDirty).not.toHaveBeenCalled();
 
