@@ -1,4 +1,5 @@
-import { Edge, GraphData, Node } from "../type";
+import { GraphData } from "../type";
+import { chainsToGraph } from "./chain-graph";
 
 const keepPunctuationRegex = /[.,?!:;]/g;
 const removePunctuationRegex = /["(){}[\]_+=|\\/><]/g;
@@ -12,23 +13,12 @@ export const textToWords = (text: string) => {
     .filter(w => w.length > 0);
 };
 
-// objects without a prototype, so a word like "constructor" can't find an inherited property;
-// not a Map, whose insertion order would change the order of states (integer words sort first here)
+// text's states come in a plain object's key order: words that are array indexes ("0", "12") first in numeric
+// order, then the rest as they first appear
+const isArrayIndex = (word: string) => /^(0|[1-9]\d*)$/.test(word) && Number(word) < 2 ** 32 - 1;
+
 export const wordsToGraph = (words: string[]): GraphData => {
-  const nodes: Record<string, Node> = Object.create(null);
-  const edges: Record<string, Edge> = Object.create(null);
-
-  words.forEach((word, index) => {
-    nodes[word] = nodes[word] ?? { id: word, label: word, value: 0 };
-    nodes[word].value++;
-
-    if (index > 0) {
-      const lastWord = words[index - 1];
-      const key = `${lastWord}|${word}`;
-      edges[key] = edges[key] ?? { from: lastWord, to: word, value: 0 };
-      edges[key].value++;
-    }
-  });
-
-  return { nodes: Object.values(nodes), edges: Object.values(edges) };
+  const { nodes, edges } = chainsToGraph([words]);
+  const indexes = nodes.filter(n => isArrayIndex(n.id)).sort((a, b) => Number(a.id) - Number(b.id));
+  return { nodes: [...indexes, ...nodes.filter(n => !isArrayIndex(n.id))], edges };
 };
