@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Edge, GraphData, Node } from "../type";
+import { CODAPAttribute, Edge, GraphData, Node, ViewMode } from "../type";
 import {
   // entityInfo,
   // getNumChildAttributesInContext,
@@ -19,16 +19,9 @@ const InitialDimensions = {
   height: 420
 };
 
-export type CODAPAttribute = {
-  datasetName: string;
-  collectionName: string;
-  attributeName: string;
-};
-
 export type OnCODAPDataChanged = (values: string[]) => void;
 export type GetGraphCallback = () => GraphData;
 
-export type ViewMode = "dataset"|"drawing";
 export type OutputTextMode = "replace"|"append";
 
 export type UseCODAPOptions = {

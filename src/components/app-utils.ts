@@ -1,5 +1,4 @@
-import { GraphData } from "../type";
-import type { ViewMode } from "../hooks/use-codap";
+import { GraphData, ViewMode } from "../type";
 import { graphFromValues } from "../utils/attribute-values";
 
 export const compareStateLabels = (a: {label: unknown}, b: {label: unknown}) =>

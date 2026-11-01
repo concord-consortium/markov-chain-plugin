@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
-import { Edge, GraphData, Node } from "../type";
-import { ViewMode } from "../hooks/use-codap";
+import { Edge, GraphData, Node, ViewMode } from "../type";
 import {
   calculateNodeFontSize, graphSignature, nodeLoopPath, pullBackLineEnd, ry, settings, stateEdgeWeights
 } from "./graph-utils";

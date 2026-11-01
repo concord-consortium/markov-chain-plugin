@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ProbabilitySelector } from "./probability-selector";
-import { Node, Edge, GraphData } from "../../type";
-import { ViewMode } from "../../hooks/use-codap";
+import { Node, Edge, GraphData, ViewMode } from "../../type";
 import { applyStatePercentages, percentage, reduceToSum } from "./state-editor";
 
 export interface NodeModalProps {
