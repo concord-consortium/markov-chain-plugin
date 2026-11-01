@@ -3,26 +3,17 @@ import { clsx } from "clsx";
 
 import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
-import { Edge, GraphData, Node } from "../type";
+import { DelimiterType, Edge, GenerationMode, GraphData, Node, SequenceGroup } from "../type";
 import { Drawing } from "./drawing";
 import { Dataset } from "./dataset";
-
-import StepIcon from "../assets/step.svg";
-import PlayIcon from "../assets/play.svg";
-import PauseIcon from "../assets/pause.svg";
-import DropdownUpArrowIcon from "../assets/dropdown-up-arrow-icon.svg";
-import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
-import { SpeedToggle } from "./speed-toggle";
+import { Generator } from "./generator";
+import { SequenceOutput } from "./sequence-output";
 import { ConfirmModal, IConfirmModal } from "./confirm-modal";
-import { clampLengthLimit, compareStateLabels, graphToRestore } from "./app-utils";
+import { clampLengthLimit, graphToRestore } from "./app-utils";
 import { generateSequence } from "../utils/generate-sequence";
 import { moveOriginToCenter } from "../utils/plugin-state";
 
 import "./app.scss";
-
-type GenerationMode = "ready" | "playing" | "paused" | "stepping";
-
-const AnyStartingState = "(any)";
 
 const fastAnimationOverride = parseInt((new URLSearchParams(window.location.search)).get("fastSpeed") ?? "", 10);
 const normalAnimationOverride = parseInt((new URLSearchParams(window.location.search)).get("normalSpeed") ?? "", 10);
@@ -34,49 +25,6 @@ const defaultLengthLimit = 5;
 const defaultDelimiter = " ";
 const defaultStartingState = "";
 const defaultFastSimulation = false;
-
-type SequenceGroup = {
-  startingState: string;
-  startingNode: Node | undefined;
-  delimiter: string;
-  lengthLimit: number;
-  sequences: Node[][];
-};
-
-type DelimiterType = "none"|"space"|"other";
-
-const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
-  const [expanded, setExpanded] = useState(false);
-  const startingState = group.startingNode?.label ?? AnyStartingState;
-  const lengthLimit = group.lengthLimit;
-  const delimiter = group.delimiter === "" ? "(none)" : `"${group.delimiter}"`;
-
-  const handleToggleExpanded = () => setExpanded(prev => !prev);
-
-  if (expanded) {
-    return (
-      <div className="header expanded" onClick={handleToggleExpanded}>
-        <div className="firstItem">
-          <div>Starting State: { startingState }</div>
-          <span className="collapse"><DropdownUpArrowIcon /></span>
-        </div>
-        <div>Max Length: { lengthLimit }</div>
-        <div>Delimiter: { delimiter }</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="header collapsed" onClick={handleToggleExpanded}>
-      <span>{ startingState }</span>
-      <span>/</span>
-      <span>{ lengthLimit }</span>
-      <span>/</span>
-      <span>{ delimiter }</span>
-      <span className="expand"><DropdownDownArrowIcon /></span>
-    </div>
-  );
-};
 
 export const App = () => {
   const [lengthLimit, setLengthLimit] = useState<number | undefined>(defaultLengthLimit);
@@ -146,7 +94,6 @@ export const App = () => {
     setGraph: onSetGraph,
     setInitialGraph
   });
-  const innerOutputRef = useRef<HTMLDivElement | null>(null);
   const [fastSimulation, setFastSimulation] = useState(defaultFastSimulation);
   const fastSimulationRef = useRef(false);
   const [highlightOutput, setHighlightOutput] = useState<{group: SequenceGroup, sequence: Node[]}|undefined>();
@@ -180,12 +127,6 @@ export const App = () => {
       notifyStateIsDirty();
     }
   }, [graph, viewMode, notifyStateIsDirty]);
-
-  useEffect(() => {
-    if (innerOutputRef.current && sequenceGroups.length > 0) {
-      innerOutputRef.current.scrollTop = innerOutputRef.current.scrollHeight;
-    }
-  }, [sequenceGroups]);
 
   const graphEmpty = useMemo(() => graph.nodes.length === 0, [graph]);
 
@@ -317,12 +258,6 @@ export const App = () => {
 
   const handleCommitLengthLimit = () => setLengthLimit(prev => clampLengthLimit(prev));
 
-  const handleLengthLimitKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleCommitLengthLimit();
-    }
-  };
-
   const handleChangeDelimiter = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDelimiter(e.target.value);
   };
@@ -403,130 +338,6 @@ export const App = () => {
   }, [highlightOutput, setHighlightOutput, setSelectedNodeId]);
 
   const handleClearHighlightOutput = () => setHighlightOutput(undefined);
-
-  const uiForGenerate = () => {
-    const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
-    const PlayOrPauseIcon = generationMode === "playing" ? PauseIcon : PlayIcon;
-    const onPlayClick = generationMode === "playing"
-      ? handlePause
-      : (generationMode === "paused" ? handleResume : handlePlay);
-    const sortedNodes = [...graph.nodes];
-    sortedNodes.sort(compareStateLabels);
-
-    return (
-      <div className="generate">
-        <div className="flex-col">
-          <div>
-            <label>Starting State:</label>
-            <select onChange={handleChangeStartingState} value={startingState} disabled={animating}>
-              <option value="">{ AnyStartingState }</option>
-              { sortedNodes.map(n => <option key={n.id} value={n.id}>{ n.label }</option>) }
-            </select>
-          </div>
-
-          <div className="flex-row">
-            <div>
-              <label>Max Length:</label>
-              <input className="bordered" type="number"
-                value={lengthLimit}
-                onChange={handleChangeLengthLimit}
-                onBlur={handleCommitLengthLimit}
-                onKeyDown={handleLengthLimitKeyDown}
-                min={1}
-                disabled={animating}
-              />
-            </div>
-
-            <div>
-              <label>Delimiter:</label>
-              <select value={delimiterType} onChange={handleChangeDelimiterType}>
-                <option value="none">none</option>
-                <option value="space">space</option>
-                <option value="other">other ...</option>
-              </select>
-              { delimiterType === "other" && <input className="bordered" type="text"
-                onChange={handleChangeDelimiter}
-                value={delimiter}
-                placeholder="delimiter"
-                disabled={animating}
-                style={{ width: 75, marginTop: 5 }}
-                autoFocus={true}
-              /> }
-            </div>
-          </div>
-
-          <SpeedToggle fastSimulation={fastSimulation} onChange={handleSpeedToggle} />
-
-        </div>
-        <div className="buttons">
-          <button
-            type="button"
-            onClick={onPlayClick}
-            disabled={graphEmpty || lengthLimit === undefined}>
-            <PlayOrPauseIcon />
-            { playLabel }
-          </button>
-          <button
-            type="button"
-            onClick={handleStep}
-            disabled={graphEmpty || lengthLimit === undefined || generationMode === "playing"}>
-            <StepIcon />
-            Step
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const sequenceOutput = () => {
-    const disabled = sequenceGroups.length === 0;
-    return (
-      <div className="sequence-output">
-        <label>Output:</label>
-        <div className="output">
-          <div className="inner-output" ref={innerOutputRef}>
-            { sequenceGroups.map((group, i) => {
-              return (
-                <div className="group" key={i}>
-                  <SequenceOutputHeader group={group} />
-                  <div className="sequences">
-                    { group.sequences.map((s, j) => (
-                      <div
-                        key={j}
-                        className={clsx("sequence", {
-                          disabled: animating,
-                          highlighted: (
-                            highlightOutput?.group === group && highlightOutput.sequence === s
-                          )
-                        })}
-                        onClick={animating ? undefined : () => toggleHighlightOutput(group, s)}
-                      >
-                        { s.map(n => n.label).join(group.delimiter) }
-                      </div>
-                    )) }
-                  </div>
-                </div>
-              );
-            }) }
-          </div>
-        </div>
-        <div className="buttons">
-          <button
-            type="button"
-            onClick={handleClearOutput}
-            disabled={disabled || lengthLimit === undefined || generationMode !== "ready"}>
-            Clear Output
-          </button>
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={graphEmpty || (generationMode === "ready")}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   const handleSelectDatasetMode = () => {
     setViewMode("dataset");
@@ -624,8 +435,36 @@ export const App = () => {
 
     return (
       <div className="right">
-        { uiForGenerate() }
-        { sequenceOutput() }
+        <Generator
+          nodes={graph.nodes}
+          graphEmpty={graphEmpty}
+          generationMode={generationMode}
+          startingState={startingState}
+          lengthLimit={lengthLimit}
+          delimiter={delimiter}
+          delimiterType={delimiterType}
+          fastSimulation={fastSimulation}
+          onStartingStateChange={handleChangeStartingState}
+          onLengthLimitChange={handleChangeLengthLimit}
+          onLengthLimitCommit={handleCommitLengthLimit}
+          onDelimiterTypeChange={handleChangeDelimiterType}
+          onDelimiterChange={handleChangeDelimiter}
+          onSpeedChange={handleSpeedToggle}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onResume={handleResume}
+          onStep={handleStep}
+        />
+        <SequenceOutput
+          sequenceGroups={sequenceGroups}
+          graphEmpty={graphEmpty}
+          generationMode={generationMode}
+          lengthLimit={lengthLimit}
+          highlightOutput={highlightOutput}
+          onToggleHighlight={toggleHighlightOutput}
+          onClear={handleClearOutput}
+          onCancel={handleCancel}
+        />
       </div>
     );
   };
