@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 
-import { useCODAP } from "../hooks/use-codap";
 import { useGraph } from "../hooks/use-graph";
 import { DelimiterType, Edge, GenerationMode, GraphData, Node, SequenceGroup } from "../type";
 import { Drawing } from "./drawing";
@@ -12,6 +11,7 @@ import { ConfirmModal, IConfirmModal } from "./confirm-modal";
 import { clampLengthLimit, graphToRestore } from "./app-utils";
 import { generateSequence } from "../utils/generate-sequence";
 import { moveOriginToCenter } from "../utils/plugin-state";
+import { MarkovHost, MarkovToolHandle } from "./host";
 
 import "./app.scss";
 
@@ -26,7 +26,16 @@ const defaultDelimiter = " ";
 const defaultStartingState = "";
 const defaultFastSimulation = false;
 
-export const App = () => {
+interface MarkovToolProps {
+  host: MarkovHost;
+  // the tool shows "Loading ..." until the host has its saved state
+  loadState: "loading" | "loaded";
+  // something is being dragged over the tool, which dataset mode shows
+  dragging: boolean;
+}
+
+export const MarkovTool = forwardRef<MarkovToolHandle, MarkovToolProps>(({ host, loadState, dragging }, ref) => {
+  const { viewMode, setViewMode, markDirty, outputSequence } = host;
   const [lengthLimit, setLengthLimit] = useState<number | undefined>(defaultLengthLimit);
   const [delimiter, setDelimiter] = useState(defaultDelimiter);
   const [startingState, setStartingState] = useState(defaultStartingState);
@@ -59,7 +68,7 @@ export const App = () => {
   const [recenterViewAt, setRecenterViewAt] = useState<number>();
   const [resetViewAt, setResetViewAt] = useState<number>();
   const datasetValuesRef = useRef<string[] | undefined>(undefined);
-  const onCODAPDataChanged = (values: string[]) => {
+  const onDataChanged = (values: string[]) => {
     datasetValuesRef.current = values;
     updateGraph(values);
     fitAfterGraphChangeRef.current = true;
@@ -88,12 +97,14 @@ export const App = () => {
       done();
     }
   };
-  const { dragging, outputToDataset, viewMode, setViewMode, notifyStateIsDirty, loadState } = useCODAP({
-    onCODAPDataChanged,
-    getGraph: useCallback(() => graph, [graph]),
-    setGraph: onSetGraph,
-    setInitialGraph
-  });
+  useImperativeHandle(ref, () => ({
+    getGraph: () => graph,
+    loadDrawing: (data, version) => {
+      onSetGraph(data, version);
+      setInitialGraph({ nodes: data.nodes.map(n => ({ ...n })), edges: data.edges.map(e => ({ ...e })) });
+    },
+    dataChanged: onDataChanged,
+  }));
   const [fastSimulation, setFastSimulation] = useState(defaultFastSimulation);
   const fastSimulationRef = useRef(false);
   const [highlightOutput, setHighlightOutput] = useState<{group: SequenceGroup, sequence: Node[]}|undefined>();
@@ -124,9 +135,9 @@ export const App = () => {
 
   useEffect(() => {
     if (viewMode === "drawing") {
-      notifyStateIsDirty();
+      markDirty();
     }
-  }, [graph, viewMode, notifyStateIsDirty]);
+  }, [graph, viewMode, markDirty]);
 
   const graphEmpty = useMemo(() => graph.nodes.length === 0, [graph]);
 
@@ -203,7 +214,7 @@ export const App = () => {
     stopAnimationInterval();
 
     if (!cancel) {
-      await outputToDataset(currentSequence.current);
+      await outputSequence(currentSequence.current.map(state => state.label));
 
       if (currentAnimatedSequenceGroup.current) {
         currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, currentSequence.current];
@@ -212,7 +223,7 @@ export const App = () => {
     }
 
     setGenerationMode("ready");
-  }, [outputToDataset]);
+  }, [outputSequence]);
 
   const animateNextSequenceIndex = useCallback(() => {
     if (inBeforeStep()) {
@@ -341,12 +352,12 @@ export const App = () => {
 
   const handleSelectDatasetMode = () => {
     setViewMode("dataset");
-    notifyStateIsDirty();
+    markDirty();
   };
 
   const handleSelectDrawingMode = () => {
     setViewMode("drawing");
-    notifyStateIsDirty();
+    markDirty();
   };
 
   const handleReset = useCallback(() => {
@@ -526,4 +537,5 @@ export const App = () => {
       </div>
     </div>
   );
-};
+});
+MarkovTool.displayName = "MarkovTool";
