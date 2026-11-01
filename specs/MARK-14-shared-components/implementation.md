@@ -387,7 +387,7 @@ The check: delete `src/codap/` and `npx tsc --noEmit -p .` reports errors only i
 `markov-tool.test.tsx` renders `<MarkovTool ref={handle} host={host} loadState="loaded" dragging={false} />` with a recording host (each method a `jest.fn()`, `viewMode` as the test needs), changing the two props where a test needs to. It mocks `nanoid` and replaces `Graph` with a stub that renders a `div` and exposes its callbacks to the test (requirements, Technical Notes), and runs animation on Jest's fake timers. Nine tests, one per bullet except the mode bullet's two:
 - shows "Loading ..." while `loadState` is `loading`, and the mode menu once it is `loaded` with no view mode;
 - choosing Dataset calls `setViewMode("dataset")` and `markDirty`, and choosing Drawing calls `setViewMode("drawing")` and `markDirty`, one test each, since each handler makes its own call;
-- `loadDrawing` with a `version: 2` graph shows its states in the Starting State list, `getGraph` returns it, and after a drag Reset restores it from `loadDrawing`'s copy;
+- `loadDrawing` with a `version: 2` graph shows its states in the Starting State list, `getGraph` returns it, and after a drag Reset restores it;
 - `loadDrawing` with an unversioned graph moves its origin to the center once the graph reports its size (the stub calls `onDimensions`);
 - `dataChanged` in dataset mode replaces the graph without calling `markDirty`, and Reset restores it from the last values;
 - `dragging={true}` in dataset mode gives the tool the `dragging` class, and `false` does not;
