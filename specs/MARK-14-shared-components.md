@@ -133,8 +133,9 @@ The four review follow-ups are:
   - The `dragging` class.
   - Play outputting once, and Cancel outputting nothing.
   - A drawing change calling `markDirty`. The mock is cleared after mount, so the test fails without `graph` in the effect's dependencies.
+- `sequence-output.test.tsx` checks the scroll effect: mounting with existing output writes nothing to `scrollTop`, and a new group scrolls to the bottom. jsdom does no layout, so the test defines `scrollHeight` and `scrollTop` on `HTMLElement.prototype`. The first test fails without the mount skip, and the second without the scroll.
 - testing-library's lint rules forbid `container.firstChild` and `act` around `fireEvent`. The `dragging` test therefore reads `container.innerHTML`, and the Play test wraps only the timer advance in `act`.
-- Counts on the head: Jest has 131 tests in 17 suites (118, less R9's one, plus R14's five and R13's nine). Cypress has 86 in Chrome; in Electron, 85 pass and the Chrome-only standalone-link test is pending.
+- Counts on the head: Jest has 133 tests in 18 suites (118, less R9's one, plus R14's five, R13's nine and the scroll effect's two). Cypress has 86 in Chrome; in Electron, 85 pass and the Chrome-only standalone-link test is pending.
 
 ## Out of Scope
 
