@@ -82,6 +82,8 @@ The Cypress tests run against the dev server. Start it with `npm start`, then ru
 
 The tests load the plugin into `fake-codap.html`, a stand-in for CODAP that the dev server serves and production builds leave out. It answers the plugin's requests the way CODAP 3.1.2 does and sends it CODAP's notifications. Its code is in `cypress/fake-codap/`, and the custom commands that drive it (`cy.startPlugin`, `cy.dropAttribute`, `cy.getPluginState` and the rest) are listed with their descriptions in `cypress/support/index.d.ts`. `cypress/fixtures/ela/` holds the saved plugin states of the five ELA module documents.
 
+The interactive's tests use a second dev-server page, `fake-ap.html`, which plays LARA's and the Activity Player's part; its commands are in `cypress/support/fake-ap.d.ts`.
+
 The tests expect the dev server on port 8080. If that port is taken, run the server on another one and point Cypress at it:
 
 ```
@@ -103,6 +105,42 @@ Pass these to `npx cypress run`:
 1. `npx cypress run --browser chrome` runs the tests in Chrome.
 2. `npx cypress run --headed --no-exit` shows the tests running and leaves the browser open afterward.
 3. `npx cypress run --spec 'cypress/e2e/arrows.test.ts'` runs one spec file.
+
+## Markov Interactive
+
+The repo also builds the Markov Interactive, an Activity Player interactive with its own authoring, deployed
+beside the plugin:
+
+- `interactive.html`: the interactive, in LARA's authoring, the Activity Player's runtime, and the class dashboard's
+  read-only page for one student's answer.
+- `report-item.html`: its report item, which answers the class dashboard.
+- `demo.html`: the Demo and Standalone Authoring page, with the authoring form beside the interactive.
+
+A branch build is at `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/interactive.html`, and a
+tag's at `version/<tag>/interactive.html`. The release workflow doesn't copy the interactive anywhere: activities use
+a version's URL.
+
+Until it is released, add it to a LARA page as an Interactive IFrame item with the interactive's URL (in development,
+`http://localhost:8080/interactive.html` works in Chrome, which lets an `https` page frame `localhost`). In the item's
+Advanced Options, check "Enable save state", without which the Activity Player saves nothing and the class dashboard
+never shows the student, and set "Report Item URL" to the report item's full URL, such as
+`https://models-resources.concord.org/markov-chain-plugin/branch/<name>/report-item.html`: the class dashboard reads a
+relative one against its own address, not the interactive's. Once released, it becomes a library interactive in LARA,
+which carries these settings itself, so they aren't set on each item. Whichever it is, the class dashboard shows the
+activity only when "Activity Player Class Dashboard" is chosen as an external report in the activity's settings in the
+portal.
+
+To try it without LARA or an activity, open `demo.html` beside it, for example
+`https://models-resources.concord.org/markov-chain-plugin/branch/<name>/demo.html`. It shows the authoring form at
+LARA's width and the interactive at the width a full-width item gets in an Activity Player page. `?width=1100` (the
+default), `?width=960` or `?width=responsive` opens it at the Standard, iPad Friendly or responsive page width, and
+choosing a width updates the link. In development it is `http://localhost:8080/demo.html`.
+
+Opened on its own, outside LARA or the Activity Player, `interactive.html` takes its settings from its URL, one
+parameter per setting named by its path in the authored state, such as `?modes.draw=false&inputView=table`, with the
+default for any it doesn't give, and saves nothing. The demo page builds that link for the settings in its form, to
+copy or open. Inside an activity, settings in the URL are ignored: in LARA, add the interactive's plain URL and choose
+its settings in the Authoring tab. Opened on its own, `report-item.html` says what it is.
 
 ## License
 
