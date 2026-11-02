@@ -1,7 +1,7 @@
 // The settings an author chooses for the Markov Interactive, saved by LARA as the interactive's authored state.
 // Settings are read one by one with a default for each (readAuthoredState), so a setting added later reads its
-// default from activities saved before it existed, and needs no version change. The version changes only when a
-// saved setting's meaning changes, and the reader then converts the older versions.
+// default from activities saved before it existed, and needs no version change. When a saved setting's meaning
+// changes, bump the version and convert older states in readAuthoredState.
 
 export const authoredStateVersion = 1;
 

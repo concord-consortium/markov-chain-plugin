@@ -41,8 +41,13 @@ describe("the interactive's authoring form", () => {
 
   it("lays out its sections in order, with Ordering and Send data buttons as groups inside them", () => {
     cy.startInteractive({ mode: "authoring", authoredState: {} });
-    cy.interactive().find("legend").then(legends => [...legends].map(legend => legend.textContent))
-      .should("deep.equal", ["Modes", "Data settings", "Ordering", "What students can see", "Send data buttons"]);
+    cy.interactive().find("legend").then(legends => [...legends].map(legend => {
+      const section = legend.parentElement?.parentElement?.closest("fieldset");
+      return [legend.textContent, section?.querySelector(":scope > legend")?.textContent ?? null];
+    })).should("deep.equal", [
+      ["Modes", null], ["Data settings", null], ["Ordering", "Data settings"],
+      ["What students can see", null], ["Send data buttons", "What students can see"],
+    ]);
     cy.interactive().find("#inputView").should("have.attr", "aria-describedby", "input-view-help");
     cy.interactive().find("#input-view-help").should("contain.text", "a table of its words");
   });
