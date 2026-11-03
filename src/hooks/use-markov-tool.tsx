@@ -8,7 +8,7 @@ import { IConfirmModal } from "../components/confirm-modal";
 import { clampLengthLimit, graphToRestore } from "../components/app-utils";
 import { generateSequence } from "../utils/generate-sequence";
 import { moveOriginToCenter } from "../utils/plugin-state";
-import { MarkovHost, MarkovToolHandle } from "../components/host";
+import { ClearVia, MarkovHost, MarkovToolHandle, Selection, SelectionSource } from "../components/host";
 
 const fastAnimationOverride = parseInt((new URLSearchParams(window.location.search)).get("fastSpeed") ?? "", 10);
 const normalAnimationOverride = parseInt((new URLSearchParams(window.location.search)).get("normalSpeed") ?? "", 10);
@@ -30,9 +30,15 @@ export interface MarkovToolApi {
   // what the graph draws: the animation's highlights and the chosen state or output
   graphHighlights: {
     highlightNode?: Node, highlightLoopOnNode?: Node, highlightEdge?: Edge, highlightAllNextNodes: boolean,
-    highlightOutputNodes?: Node[], selectedNodeId?: string,
+    highlightOutputNodes?: Node[], selectedNodeId?: string, selectedEdge?: { from: string, to: string },
   };
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
+  selection: Selection;
+  // setSelectedNodeId with where the choice was made: it toggles as a click on a state does
+  selectState: (id: string | undefined, source: SelectionSource, skipToggle?: boolean) => void;
+  // chooses a transition, or clears it when it is already chosen
+  selectTransition: (edge: { from: string, to: string }, source: SelectionSource) => void;
+  clearSelection: (via: ClearVia) => void;
   generatorProps: GeneratorProps;
   outputProps: SequenceOutputProps;
   view: {
@@ -53,6 +59,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   const [startingState, setStartingState] = useState(defaultStartingState);
   const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
   const [selectedNodeId, _setSelectedNodeId] = useState<string>();
+  const [selectedEdge, setSelectedEdge] = useState<{ from: string, to: string }>();
   const [highlightNode, setHighlightNode] = useState<Node>();
   const [highlightLoopOnNode, setHighlightLoopOnNode] = useState<Node>();
   const [highlightEdge, setHighlightEdge] = useState<Edge>();
@@ -65,6 +72,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   const currentSequence = useRef<Node[]>([]);
   const currentSequenceIndex = useRef(0);
   const animationInterval = useRef<number | undefined>(undefined);
+  const unmountedRef = useRef(false);
   const { graph, updateGraph, setGraph } = useGraph();
   const [initialGraph, setInitialGraph] = useState<GraphData>();
   const [fitViewAt, setFitViewAt] = useState<number>();
@@ -95,6 +103,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     };
 
     const translateOrigin = () => {
+      if (unmountedRef.current) {
+        return;
+      }
       if (!widthRef.current || !heightRef.current) {
         setTimeout(translateOrigin, 1);
       } else {
@@ -129,6 +140,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   const setSelectedNodeId = useCallback((id?: string, skipToggle?: boolean) => {
     if (!animating) {
       setHighlightOutput(undefined);
+      setSelectedEdge(undefined);
       if ((!id || (id === selectedNodeId)) && !skipToggle) {
         _setSelectedNodeId(undefined);
       } else {
@@ -354,6 +366,40 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
 
   const handleClearHighlightOutput = () => setHighlightOutput(undefined);
 
+  const selection = useMemo<Selection>(() => {
+    if (selectedNodeId) {
+      return { kind: "state", id: selectedNodeId };
+    }
+    if (selectedEdge) {
+      return { kind: "transition", ...selectedEdge };
+    }
+    if (highlightOutput) {
+      return { kind: "output", ...highlightOutput };
+    }
+  }, [selectedNodeId, selectedEdge, highlightOutput]);
+
+  const selectState = useCallback((id: string | undefined, source: SelectionSource, skipToggle?: boolean) => {
+    setSelectedNodeId(id, skipToggle);
+  }, [setSelectedNodeId]);
+
+  const selectTransition = useCallback((edge: { from: string, to: string }, source: SelectionSource) => {
+    if (animating) {
+      return;
+    }
+    _setSelectedNodeId(undefined);
+    setHighlightOutput(undefined);
+    setSelectedEdge(edge.from === selectedEdge?.from && edge.to === selectedEdge?.to ? undefined : edge);
+  }, [animating, selectedEdge]);
+
+  const clearSelection = useCallback((via: ClearVia) => {
+    if (animating) {
+      return;
+    }
+    _setSelectedNodeId(undefined);
+    setSelectedEdge(undefined);
+    setHighlightOutput(undefined);
+  }, [animating]);
+
   const handleSelectDatasetMode = () => {
     setViewMode("dataset");
     markDirty();
@@ -415,6 +461,15 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     setRecenterViewAt(Date.now());
   };
 
+  // stop what would otherwise outlive the tool: the animation and the wait for the graph's size
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      stopAnimationInterval();
+    };
+  }, []);
+
   // one handle for the tool's lifetime; getGraph reads the graph the last render committed
   const graphRef = useRef(graph);
   useLayoutEffect(() => {
@@ -433,8 +488,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     handle, graph, graphEmpty, animating,
     graphHighlights: {
       highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes, selectedNodeId,
+      selectedEdge,
     },
-    setSelectedNodeId,
+    setSelectedNodeId, selection, selectState, selectTransition, clearSelection,
     generatorProps: {
       nodes: graph.nodes, graphEmpty, generationMode, startingState, lengthLimit, delimiter, delimiterType,
       fastSimulation,

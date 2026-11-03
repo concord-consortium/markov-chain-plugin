@@ -1,4 +1,4 @@
-import { GraphData, ViewMode } from "../type";
+import { GraphData, Node, SequenceGroup, ViewMode } from "../type";
 
 // What the Markov tool needs from whatever hosts it: CODAP for the plugin, the Activity Player for the interactive.
 // Keep each function's identity across renders unless what depends on it should run again: a playing sequence
@@ -9,6 +9,15 @@ export interface MarkovHost {
   markDirty: () => void;
   outputSequence: (labels: string[]) => Promise<void>;
 }
+
+// where a state or transition was chosen, and how a selection was cleared
+export type SelectionSource = "graph" | "inspect" | "table";
+export type ClearVia = "toggle" | "background" | "escape" | "button" | "table";
+export type Selection =
+  | { kind: "state", id: string }
+  | { kind: "transition", from: string, to: string }
+  | { kind: "output", group: SequenceGroup, sequence: Node[] }
+  | undefined;
 
 // What a host can ask of the tool, through its ref.
 export interface MarkovToolHandle {
