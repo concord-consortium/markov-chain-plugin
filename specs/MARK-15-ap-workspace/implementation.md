@@ -72,10 +72,13 @@ if (autoArrange) {
   }
   onAutoArrangeEnd?.(d3Graph.nodes);
   // pin the nodes ... (unchanged)
+  // the simulation's timer is stopped, so no tick has moved the states and labels to their laid-out places
+  circles.attr("cx", d => d.x).attr("cy", d => d.y);
+  labels.attr("x", d => d.x).attr("y", d => d.y);
 }
 ```
 
-A pinned state's `x` is reset to `fx` on every tick, so skipping the ticks changes no position; `onAutoArrangeEnd` is still called with the same positions. `d3.forceSimulation` starts its own timer when created; today the loop drives alpha below `alphaMin`, so the timer stops on its first frame, but with the loop skipped, or cut to 30 ticks (`keepPositions`), it would run about 300 ticks over 5 s with the tick handler's DOM writes. `simulation.stop()` after creating it stops that in every branch, and changes nothing the plugin draws; a drag's `alphaTarget(0.5).restart()` starts it again as today.
+A pinned state's `x` is reset to `fx` on every tick, so skipping the ticks changes no position; `onAutoArrangeEnd` is still called with the same positions. The states and their labels are appended before the layout runs, and today only the simulation's timer, on its first frame, dispatches the `tick` that moves them to their laid-out places; with the timer stopped, `drawGraph` sets their positions itself once the layout is done (the edges are drawn after it, from the laid-out positions, as today). `d3.forceSimulation` starts its own timer when created; today the loop drives alpha below `alphaMin`, so the timer stops on its first frame, but with the loop skipped, or cut to 30 ticks (`keepPositions`), it would run about 300 ticks over 5 s with the tick handler's DOM writes. `simulation.stop()` after creating it stops that in every branch, and changes nothing the plugin draws; a drag's `alphaTarget(0.5).restart()` starts it again as today.
 
 **New props, all optional, absent in the plugin:**
 
