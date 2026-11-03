@@ -1,5 +1,4 @@
-import { GraphData, Node } from "../type";
-import type { CODAPAttribute, ViewMode } from "../hooks/use-codap";
+import { CODAPAttribute, GraphData, Node, ViewMode } from "../type";
 
 // keep this shape: documents saved now must also load in older versions of the plugin, such as after a rollback
 export const pluginStateValues = (viewMode: ViewMode|undefined, attribute: CODAPAttribute|undefined,

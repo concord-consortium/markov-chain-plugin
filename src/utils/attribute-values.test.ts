@@ -1,4 +1,5 @@
-import { getAttributeValues, graphFromValues, toStateLabel } from "./attribute-values";
+import { getAttributeValues, toStateLabel } from "./attribute-values";
+import { graphFromValues } from "./chain-graph";
 
 const reply = (values: unknown[]) => ({
   success: true,

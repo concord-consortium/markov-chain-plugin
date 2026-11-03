@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
-import { Edge, GraphData, Node } from "../type";
-import { ViewMode } from "../hooks/use-codap";
+import { Edge, GraphData, Node, ViewMode } from "../type";
 import {
   calculateNodeFontSize, graphSignature, nodeLoopPath, pullBackLineEnd, ry, settings, stateEdgeWeights
 } from "./graph-utils";
@@ -433,10 +432,8 @@ export const Graph = (props: Props) => {
       .append("g")
       .attr("class", "node");
 
-    const dragStart = (d: any) => {
+    const dragStart = () => {
       simulation?.alphaTarget(0.5).restart();
-      d.fx = d.x;
-      d.fy = d.y;
       draggedRef.current = false;
     };
 
@@ -457,13 +454,11 @@ export const Graph = (props: Props) => {
       }
     };
 
-    const dragEnd = (d: any) => {
+    const dragEnd = (event: any) => {
       simulation?.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
       // a press without a drag must not redraw, or the click that follows lands on a removed state
       if (draggedRef.current) {
-        onDragStop?.(d.subject.id, { x: d.x, y: d.y });
+        onDragStop?.(event.subject.id, { x: event.x, y: event.y });
       }
     };
 

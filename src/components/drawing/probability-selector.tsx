@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { ViewMode } from "../../hooks/use-codap";
+import { ViewMode } from "../../type";
 import { movePairedPercentage, probability, reduceToSum } from "./state-editor";
 
 import "./probability-selector.scss";

@@ -1,28 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { clsx } from "clsx";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { useCODAP } from "../hooks/use-codap";
-import { useGraph } from "../hooks/use-graph";
-import { Edge, GraphData, Node } from "../type";
-import { Drawing } from "./drawing";
-import { Dataset } from "./dataset";
-
-import StepIcon from "../assets/step.svg";
-import PlayIcon from "../assets/play.svg";
-import PauseIcon from "../assets/pause.svg";
-import DropdownUpArrowIcon from "../assets/dropdown-up-arrow-icon.svg";
-import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
-import { SpeedToggle } from "./speed-toggle";
-import { ConfirmModal, IConfirmModal } from "./confirm-modal";
-import { clampLengthLimit, compareStateLabels, graphToRestore } from "./app-utils";
+import { useGraph } from "./use-graph";
+import { DelimiterType, Edge, GenerationMode, GraphData, Node, SequenceGroup } from "../type";
+import { GeneratorProps } from "../components/generator";
+import { SequenceOutputProps } from "../components/sequence-output";
+import { IConfirmModal } from "../components/confirm-modal";
+import { clampLengthLimit, graphToRestore } from "../components/app-utils";
 import { generateSequence } from "../utils/generate-sequence";
 import { moveOriginToCenter } from "../utils/plugin-state";
-
-import "./app.scss";
-
-type GenerationMode = "ready" | "playing" | "paused" | "stepping";
-
-const AnyStartingState = "(any)";
+import { MarkovHost, MarkovToolHandle } from "../components/host";
 
 const fastAnimationOverride = parseInt((new URLSearchParams(window.location.search)).get("fastSpeed") ?? "", 10);
 const normalAnimationOverride = parseInt((new URLSearchParams(window.location.search)).get("normalSpeed") ?? "", 10);
@@ -35,50 +21,33 @@ const defaultDelimiter = " ";
 const defaultStartingState = "";
 const defaultFastSimulation = false;
 
-type SequenceGroup = {
-  startingState: string;
-  startingNode: Node | undefined;
-  delimiter: string;
-  lengthLimit: number;
-  sequences: Node[][];
-};
+// The Markov tool's state and handlers, apart from any layout: MarkovTool lays them out for the CODAP plugin.
+export interface MarkovToolApi {
+  handle: MarkovToolHandle;
+  graph: GraphData;
+  graphEmpty: boolean;
+  animating: boolean;
+  // what the graph draws: the animation's highlights and the chosen state or output
+  graphHighlights: {
+    highlightNode?: Node, highlightLoopOnNode?: Node, highlightEdge?: Edge, highlightAllNextNodes: boolean,
+    highlightOutputNodes?: Node[], selectedNodeId?: string,
+  };
+  setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
+  generatorProps: GeneratorProps;
+  outputProps: SequenceOutputProps;
+  view: {
+    fitViewAt?: number, recenterViewAt?: number, resetViewAt?: number, graphOpacity: number,
+    onFitView: () => void, onRecenterView: () => void, onReset: () => void,
+    onDimensions: (dimensions: { width: number, height: number }) => void,
+    setGraph: React.Dispatch<React.SetStateAction<GraphData>>,
+    setHighlightNode: React.Dispatch<React.SetStateAction<Node | undefined>>,
+    onClearHighlightOutput: () => void, confirmModal?: IConfirmModal,
+    onSelectDatasetMode: () => void, onSelectDrawingMode: () => void, onReturnToMainMenu: () => void,
+  };
+}
 
-type DelimiterType = "none"|"space"|"other";
-
-const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
-  const [expanded, setExpanded] = useState(false);
-  const startingState = group.startingNode?.label ?? AnyStartingState;
-  const lengthLimit = group.lengthLimit;
-  const delimiter = group.delimiter === "" ? "(none)" : `"${group.delimiter}"`;
-
-  const handleToggleExpanded = () => setExpanded(prev => !prev);
-
-  if (expanded) {
-    return (
-      <div className="header expanded" onClick={handleToggleExpanded}>
-        <div className="firstItem">
-          <div>Starting State: { startingState }</div>
-          <span className="collapse"><DropdownUpArrowIcon /></span>
-        </div>
-        <div>Max Length: { lengthLimit }</div>
-        <div>Delimiter: { delimiter }</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="header collapsed" onClick={handleToggleExpanded}>
-      <span>{ startingState }</span>
-      <span>/</span>
-      <span>{ lengthLimit }</span>
-      <span>/</span>
-      <span>{ delimiter }</span>
-      <span className="expand"><DropdownDownArrowIcon /></span>
-    </div>
-  );
-};
-
-export const App = () => {
+export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
+  const { viewMode, setViewMode, markDirty, outputSequence } = host;
   const [lengthLimit, setLengthLimit] = useState<number | undefined>(defaultLengthLimit);
   const [delimiter, setDelimiter] = useState(defaultDelimiter);
   const [startingState, setStartingState] = useState(defaultStartingState);
@@ -111,14 +80,14 @@ export const App = () => {
   const [recenterViewAt, setRecenterViewAt] = useState<number>();
   const [resetViewAt, setResetViewAt] = useState<number>();
   const datasetValuesRef = useRef<string[] | undefined>(undefined);
-  const onCODAPDataChanged = (values: string[]) => {
+  const onDataChanged = useCallback((values: string[]) => {
     datasetValuesRef.current = values;
     updateGraph(values);
     fitAfterGraphChangeRef.current = true;
-  };
+  }, [updateGraph]);
   const widthRef = useRef(0);
   const heightRef = useRef(0);
-  const onSetGraph = (data: GraphData, version: number) => {
+  const onSetGraph = useCallback((data: GraphData, version: number) => {
 
     const done = () => {
       setGraph(data);
@@ -139,14 +108,7 @@ export const App = () => {
     } else {
       done();
     }
-  };
-  const { dragging, outputToDataset, viewMode, setViewMode, notifyStateIsDirty, loadState } = useCODAP({
-    onCODAPDataChanged,
-    getGraph: useCallback(() => graph, [graph]),
-    setGraph: onSetGraph,
-    setInitialGraph
-  });
-  const innerOutputRef = useRef<HTMLDivElement | null>(null);
+  }, [setGraph]);
   const [fastSimulation, setFastSimulation] = useState(defaultFastSimulation);
   const fastSimulationRef = useRef(false);
   const [highlightOutput, setHighlightOutput] = useState<{group: SequenceGroup, sequence: Node[]}|undefined>();
@@ -177,15 +139,9 @@ export const App = () => {
 
   useEffect(() => {
     if (viewMode === "drawing") {
-      notifyStateIsDirty();
+      markDirty();
     }
-  }, [graph, viewMode, notifyStateIsDirty]);
-
-  useEffect(() => {
-    if (innerOutputRef.current && sequenceGroups.length > 0) {
-      innerOutputRef.current.scrollTop = innerOutputRef.current.scrollHeight;
-    }
-  }, [sequenceGroups]);
+  }, [graph, viewMode, markDirty]);
 
   const graphEmpty = useMemo(() => graph.nodes.length === 0, [graph]);
 
@@ -262,7 +218,7 @@ export const App = () => {
     stopAnimationInterval();
 
     if (!cancel) {
-      await outputToDataset(currentSequence.current);
+      await outputSequence(currentSequence.current.map(state => state.label));
 
       if (currentAnimatedSequenceGroup.current) {
         currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, currentSequence.current];
@@ -271,7 +227,7 @@ export const App = () => {
     }
 
     setGenerationMode("ready");
-  }, [outputToDataset]);
+  }, [outputSequence]);
 
   const animateNextSequenceIndex = useCallback(() => {
     if (inBeforeStep()) {
@@ -316,12 +272,6 @@ export const App = () => {
   };
 
   const handleCommitLengthLimit = () => setLengthLimit(prev => clampLengthLimit(prev));
-
-  const handleLengthLimitKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleCommitLengthLimit();
-    }
-  };
 
   const handleChangeDelimiter = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDelimiter(e.target.value);
@@ -404,138 +354,14 @@ export const App = () => {
 
   const handleClearHighlightOutput = () => setHighlightOutput(undefined);
 
-  const uiForGenerate = () => {
-    const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
-    const PlayOrPauseIcon = generationMode === "playing" ? PauseIcon : PlayIcon;
-    const onPlayClick = generationMode === "playing"
-      ? handlePause
-      : (generationMode === "paused" ? handleResume : handlePlay);
-    const sortedNodes = [...graph.nodes];
-    sortedNodes.sort(compareStateLabels);
-
-    return (
-      <div className="generate">
-        <div className="flex-col">
-          <div>
-            <label>Starting State:</label>
-            <select onChange={handleChangeStartingState} value={startingState} disabled={animating}>
-              <option value="">{ AnyStartingState }</option>
-              { sortedNodes.map(n => <option key={n.id} value={n.id}>{ n.label }</option>) }
-            </select>
-          </div>
-
-          <div className="flex-row">
-            <div>
-              <label>Max Length:</label>
-              <input className="bordered" type="number"
-                value={lengthLimit}
-                onChange={handleChangeLengthLimit}
-                onBlur={handleCommitLengthLimit}
-                onKeyDown={handleLengthLimitKeyDown}
-                min={1}
-                disabled={animating}
-              />
-            </div>
-
-            <div>
-              <label>Delimiter:</label>
-              <select value={delimiterType} onChange={handleChangeDelimiterType}>
-                <option value="none">none</option>
-                <option value="space">space</option>
-                <option value="other">other ...</option>
-              </select>
-              { delimiterType === "other" && <input className="bordered" type="text"
-                onChange={handleChangeDelimiter}
-                value={delimiter}
-                placeholder="delimiter"
-                disabled={animating}
-                style={{ width: 75, marginTop: 5 }}
-                autoFocus={true}
-              /> }
-            </div>
-          </div>
-
-          <SpeedToggle fastSimulation={fastSimulation} onChange={handleSpeedToggle} />
-
-        </div>
-        <div className="buttons">
-          <button
-            type="button"
-            onClick={onPlayClick}
-            disabled={graphEmpty || lengthLimit === undefined}>
-            <PlayOrPauseIcon />
-            { playLabel }
-          </button>
-          <button
-            type="button"
-            onClick={handleStep}
-            disabled={graphEmpty || lengthLimit === undefined || generationMode === "playing"}>
-            <StepIcon />
-            Step
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const sequenceOutput = () => {
-    const disabled = sequenceGroups.length === 0;
-    return (
-      <div className="sequence-output">
-        <label>Output:</label>
-        <div className="output">
-          <div className="inner-output" ref={innerOutputRef}>
-            { sequenceGroups.map((group, i) => {
-              return (
-                <div className="group" key={i}>
-                  <SequenceOutputHeader group={group} />
-                  <div className="sequences">
-                    { group.sequences.map((s, j) => (
-                      <div
-                        key={j}
-                        className={clsx("sequence", {
-                          disabled: animating,
-                          highlighted: (
-                            highlightOutput?.group === group && highlightOutput.sequence === s
-                          )
-                        })}
-                        onClick={animating ? undefined : () => toggleHighlightOutput(group, s)}
-                      >
-                        { s.map(n => n.label).join(group.delimiter) }
-                      </div>
-                    )) }
-                  </div>
-                </div>
-              );
-            }) }
-          </div>
-        </div>
-        <div className="buttons">
-          <button
-            type="button"
-            onClick={handleClearOutput}
-            disabled={disabled || lengthLimit === undefined || generationMode !== "ready"}>
-            Clear Output
-          </button>
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={graphEmpty || (generationMode === "ready")}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   const handleSelectDatasetMode = () => {
     setViewMode("dataset");
-    notifyStateIsDirty();
+    markDirty();
   };
 
   const handleSelectDrawingMode = () => {
     setViewMode("drawing");
-    notifyStateIsDirty();
+    markDirty();
   };
 
   const handleReset = useCallback(() => {
@@ -589,102 +415,58 @@ export const App = () => {
     setRecenterViewAt(Date.now());
   };
 
-  if (loadState === "loading") {
-    return <div className="loading">Loading ...</div>;
-  }
+  // one handle for the tool's lifetime; getGraph reads the graph the last render committed
+  const graphRef = useRef(graph);
+  useLayoutEffect(() => {
+    graphRef.current = graph;
+  }, [graph]);
+  const handle = useMemo<MarkovToolHandle>(() => ({
+    getGraph: () => graphRef.current,
+    loadDrawing: (data, version) => {
+      onSetGraph(data, version);
+      setInitialGraph({ nodes: data.nodes.map(n => ({ ...n })), edges: data.edges.map(e => ({ ...e })) });
+    },
+    dataChanged: onDataChanged,
+  }), [onSetGraph, onDataChanged]);
 
-  if (!viewMode) {
-    return (
-      <div className={clsx("app")}>
-        <div className="instructions">
-          <h2>Select Mode</h2>
-          <div className="select-view-mode">
-            <div>
-              <button onClick={handleSelectDatasetMode}>Dataset</button>
-              <div>
-                Use existing data to generate a Markov Chain.
-              </div>
-            </div>
-            <div>
-              <button onClick={handleSelectDrawingMode}>Drawing</button>
-              <div>
-                Create a Markov Chain by dragging and dropping elements.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const maybeRenderRightBar = () => {
-    if (viewMode === "dataset" && graphEmpty) {
-      return;
-    }
-
-    return (
-      <div className="right">
-        { uiForGenerate() }
-        { sequenceOutput() }
-      </div>
-    );
+  return {
+    handle, graph, graphEmpty, animating,
+    graphHighlights: {
+      highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes, selectedNodeId,
+    },
+    setSelectedNodeId,
+    generatorProps: {
+      nodes: graph.nodes, graphEmpty, generationMode, startingState, lengthLimit, delimiter, delimiterType,
+      fastSimulation,
+      onStartingStateChange: handleChangeStartingState,
+      onLengthLimitChange: handleChangeLengthLimit,
+      onLengthLimitCommit: handleCommitLengthLimit,
+      onDelimiterTypeChange: handleChangeDelimiterType,
+      onDelimiterChange: handleChangeDelimiter,
+      onSpeedChange: handleSpeedToggle,
+      onPlay: handlePlay,
+      onPause: handlePause,
+      onResume: handleResume,
+      onStep: handleStep,
+    },
+    outputProps: {
+      sequenceGroups, graphEmpty, generationMode, lengthLimit, highlightOutput,
+      onToggleHighlight: toggleHighlightOutput,
+      onClear: handleClearOutput,
+      onCancel: handleCancel,
+    },
+    view: {
+      fitViewAt, recenterViewAt, resetViewAt, graphOpacity,
+      onFitView: handleFitView,
+      onRecenterView: handleRecenterView,
+      onReset: handleReset,
+      onDimensions: handleDimensionChange,
+      setGraph, setHighlightNode,
+      onClearHighlightOutput: handleClearHighlightOutput,
+      confirmModal,
+      onSelectDatasetMode: handleSelectDatasetMode,
+      onSelectDrawingMode: handleSelectDrawingMode,
+      onReturnToMainMenu: handleReturnToMainMenu,
+    },
   };
-
-  return (
-    <div className={clsx("app", { dragging })}>
-      <div className="split">
-        <div className="left">
-          { viewMode === "drawing"
-            ?
-              <Drawing
-                graph={graph}
-                highlightNode={highlightNode}
-                highlightLoopOnNode={highlightLoopOnNode}
-                highlightEdge={highlightEdge}
-                highlightAllNextNodes={highlightAllNextNodes}
-                highlightOutputNodes={highlightOutputNodes}
-                selectedNodeId={selectedNodeId}
-                animating={animating}
-                graphOpacity={graphOpacity}
-                setGraph={setGraph}
-                setHighlightNode={setHighlightNode}
-                setSelectedNodeId={setSelectedNodeId}
-                onReset={handleReset}
-                onReturnToMainMenu={handleReturnToMainMenu}
-                onFitView={handleFitView}
-                onRecenterView={handleRecenterView}
-                fitViewAt={fitViewAt}
-                recenterViewAt={recenterViewAt}
-                resetViewAt={resetViewAt}
-                onDimensions={handleDimensionChange}
-                onClearHighlightOutput={handleClearHighlightOutput}
-              />
-            :
-              <Dataset
-                graph={graph}
-                highlightNode={highlightNode}
-                highlightLoopOnNode={highlightLoopOnNode}
-                highlightEdge={highlightEdge}
-                highlightAllNextNodes={highlightAllNextNodes}
-                highlightOutputNodes={highlightOutputNodes}
-                selectedNodeId={selectedNodeId}
-                animating={animating}
-                graphEmpty={graphEmpty}
-                graphOpacity={graphOpacity}
-                setSelectedNodeId={setSelectedNodeId}
-                onReset={handleReset}
-                onReturnToMainMenu={handleReturnToMainMenu}
-                onFitView={handleFitView}
-                onRecenterView={handleRecenterView}
-                fitViewAt={fitViewAt}
-                recenterViewAt={recenterViewAt}
-                onDimensions={handleDimensionChange}
-              />
-          }
-        </div>
-        { maybeRenderRightBar() }
-        { confirmModal && <ConfirmModal {...confirmModal} /> }
-      </div>
-    </div>
-  );
 };

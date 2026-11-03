@@ -119,6 +119,16 @@ module.exports = defineConfig(
       "@typescript-eslint/prefer-optional-chain": "warn"
     }
   },
+  { // the shared Markov tool reaches CODAP only through its host
+    files: ["src/components/**", "src/hooks/**", "src/utils/chain-graph.ts", "src/utils/text-to-graph.ts",
+            "src/utils/generate-sequence.ts", "src/utils/plugin-state.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [{
+        group: ["**/codap/**", "**/codap-interface", "**/codap-helper", "**/output-dataset", "**/attribute-values"],
+        message: "The Markov tool reaches CODAP only through its MarkovHost."
+      }] }]
+    }
+  },
   { // rules specific to Jest tests
     files: ["src/**/*.test.*"],
     plugins: {

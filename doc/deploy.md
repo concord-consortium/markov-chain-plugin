@@ -18,7 +18,7 @@ The key feature of `index-top.html` is that it references the javascript and css
 
 Building a functional index.js that works when it is loaded either by `index.html` or `index-top.html` depends on using Webpack a certain way.  Since Webpack 5, the `publicPath` configuration option's default value is `'auto'`. With this value the public path is computed at runtime based on the path the script was loaded from. So if the script was loaded from `/markov-chain-plugin/version/v1.2.3/assets/index.[contenthash].js` then at runtime the public path will be set to `/markov-chain-plugin/version/v1.2.3/`. The reason the public path matters has to do with how javascript loads and references assets like images or json files.
 
-For example `components/app.tsx` uses:
+For example a component uses:
 ```
 import Icon from "../assets/concord.png";
 ...

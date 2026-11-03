@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Edge, GraphData, Node } from "../type";
+import { CODAPAttribute, ViewMode } from "../type";
+import { MarkovToolHandle } from "../components/host";
 import {
   // entityInfo,
   // getNumChildAttributesInContext,
@@ -19,26 +20,7 @@ const InitialDimensions = {
   height: 420
 };
 
-export type CODAPAttribute = {
-  datasetName: string;
-  collectionName: string;
-  attributeName: string;
-};
-
-export type OnCODAPDataChanged = (values: string[]) => void;
-export type GetGraphCallback = () => GraphData;
-
-export type ViewMode = "dataset"|"drawing";
-export type OutputTextMode = "replace"|"append";
-
-export type UseCODAPOptions = {
-  onCODAPDataChanged: OnCODAPDataChanged;
-  getGraph: GetGraphCallback;
-  setGraph: (data: GraphData, version: number) => void;
-  setInitialGraph: React.Dispatch<React.SetStateAction<GraphData|undefined>>
-};
-
-export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGraph }: UseCODAPOptions) => {
+export const useCODAP = (tool: React.RefObject<MarkovToolHandle | null>) => {
   const [loadState, setLoadState] = useState<"loading"|"loaded">("loading");
   const [initialized, setInitialized] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -48,8 +30,8 @@ export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGra
 
   const getPluginState = useCallback(() => ({
     success: true,
-    values: pluginStateValues(viewMode, attribute, getGraph)
-  }), [attribute, viewMode, getGraph]);
+    values: pluginStateValues(viewMode, attribute, () => tool.current?.getGraph() ?? { nodes: [], edges: [] })
+  }), [attribute, viewMode, tool]);
 
   const notifyStateIsDirty = async () => {
     await codapInterface.sendRequest([{
@@ -71,10 +53,10 @@ export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGra
     const valuesChanged = !valuesRef.current || (JSON.stringify(values) !== JSON.stringify(valuesRef.current));
     const currentViewMode = viewModeOverride ?? viewMode;
     if (currentViewMode === "dataset" && valuesChanged) {
-      onCODAPDataChanged(values);
+      tool.current?.dataChanged(values);
       valuesRef.current = values;
     }
-  }, [onCODAPDataChanged, viewMode]);
+  }, [tool, viewMode]);
 
   const setPluginState = useCallback((values: any) => {
     setLoadState("loaded");
@@ -84,16 +66,13 @@ export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGra
       setViewMode(saved.viewMode);
 
       if (saved.drawing) {
-        const { nodes, edges } = saved.drawing.graph;
-        setGraph(saved.drawing.graph, saved.drawing.version);
-        // save a copy of the graph
-        setInitialGraph({ nodes: nodes.map((n: Node) => ({ ...n })), edges: edges.map((e: Edge) => ({ ...e })) });
+        tool.current?.loadDrawing(saved.drawing.graph, saved.drawing.version);
       } else if (saved.attribute) {
         setAttribute(saved.attribute);
         handleDataChanged(saved.attribute, saved.viewMode);
       }
     }
-  }, [setAttribute, handleDataChanged, setGraph, setInitialGraph]);
+  }, [setAttribute, handleDataChanged, tool]);
 
   const handleDrop = useCallback(async (iMessage: any) => {
     let newAttribute: CODAPAttribute;
@@ -131,10 +110,7 @@ export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGra
     }
   }, [attribute, handleDataChanged]);
 
-  const outputToDataset = useMemo(() => {
-    const outputSequence = createSequenceOutput(request => codapInterface.sendRequest(request));
-    return (sequence: Node[]) => outputSequence(sequence.map(state => state.label));
-  }, []);
+  const outputSequence = useMemo(() => createSequenceOutput(request => codapInterface.sendRequest(request)), []);
 
   useEffect(() => {
     codapInterface.on("update", "interactiveState", "", setPluginState);
@@ -162,10 +138,10 @@ export const useCODAP = ({ onCODAPDataChanged, getGraph, setGraph, setInitialGra
 
   return {
     dragging,
-    outputToDataset,
     viewMode,
     setViewMode,
     notifyStateIsDirty,
-    loadState
+    loadState,
+    outputSequence
   };
 };

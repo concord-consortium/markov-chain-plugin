@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { GraphData } from "../type";
-import { graphFromValues } from "../utils/attribute-values";
+import { graphFromValues } from "../utils/chain-graph";
 
 export const useGraph = () => {
   const [graph, setGraph] = useState<GraphData>({ nodes: [], edges: [] });

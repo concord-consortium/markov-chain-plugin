@@ -1,6 +1,5 @@
-import { GraphData } from "../type";
-import type { ViewMode } from "../hooks/use-codap";
-import { graphFromValues } from "../utils/attribute-values";
+import { GraphData, ViewMode } from "../type";
+import { graphFromValues } from "../utils/chain-graph";
 
 export const compareStateLabels = (a: {label: unknown}, b: {label: unknown}) =>
   String(a.label).localeCompare(String(b.label), undefined, { numeric: true });
