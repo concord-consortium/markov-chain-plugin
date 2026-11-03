@@ -21,16 +21,80 @@
   }
 
   .top-row {
+    position: relative;
     display: flex;
     column-gap: var(--pane-gap);
   }
 
+  // a divider lies on the edge of the element before it, centered on the gap, and takes no space; its band covers
+  // the gap and the panes' padding beside it, and never a control
+  .divider {
+    position: absolute;
+    z-index: 1;
+    touch-action: none;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      border-radius: 2px;
+      background-color: #949494;
+      transform: translate(-50%, -50%);
+    }
+
+    &:hover::after, &:focus-visible::after {
+      background-color: #177991;
+    }
+
+    &.vertical {
+      top: 0;
+      bottom: 0;
+      // measured from inside the pane's border
+      right: calc((var(--pane-gap) + var(--divider-band)) / -2 - var(--pane-border));
+      width: var(--divider-band);
+      cursor: col-resize;
+
+      &::after {
+        width: 4px;
+        height: 40px;
+      }
+    }
+
+    &.horizontal {
+      left: 0;
+      right: 0;
+      bottom: calc((var(--pane-gap) + var(--divider-band)) / -2);
+      height: var(--divider-band);
+      cursor: row-resize;
+
+      &::after {
+        width: 40px;
+        height: 4px;
+      }
+    }
+  }
+
+  // the row's divider covers the gap and the padding along the bottom of the row's panes, and leaves the generator's
+  // header alone
+  .top-row > .divider.horizontal {
+    bottom: calc(-1 * var(--pane-gap));
+    height: calc(var(--pane-gap) + var(--pane-padding));
+
+    &::after {
+      top: auto;
+      bottom: calc(var(--pane-gap) / 2);
+      transform: translate(-50%, 50%);
+    }
+  }
+
   .pane {
+    position: relative;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    border: 1px solid #c7c7c7;
+    border: var(--pane-border) solid #c7c7c7;
     border-radius: 3px;
     background-color: #fff;
 
@@ -42,7 +106,7 @@
       justify-content: space-between;
       gap: 4px;
       height: var(--pane-header);
-      padding: 0 3px 0 8px;
+      padding: 0 var(--pane-padding) 0 8px;
       background-color: #eef3f5;
 
       h2 {
@@ -56,14 +120,17 @@
     }
 
     .pane-toggle {
+      display: flex;
       flex: none;
+      align-items: center;
+      justify-content: center;
       width: 20px;
       height: 20px;
       padding: 0;
       border: solid 1px #177991;
       border-radius: 3px;
       background-color: #fff;
-      line-height: 1;
+      color: #177991;
       cursor: pointer;
     }
 
@@ -116,7 +183,7 @@
           flex-direction: row;
           justify-content: space-between;
           height: var(--pane-header);
-          padding: 0 3px 0 8px;
+          padding: 0 var(--pane-padding) 0 8px;
 
           h2 {
             writing-mode: horizontal-tb;
@@ -132,17 +199,29 @@
     flex-direction: column;
     gap: 5px;
     min-width: 0;
-    padding: 5px;
+    padding: var(--pane-padding);
 
     > .text-input, > .input-table {
       flex: 1;
     }
 
+    // the text box above the table, each keeping clear the padding the divider between them covers
+    .linked-input {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: var(--pane-gap);
+      min-height: 0;
+    }
+
     .input-text-part {
+      position: relative;
+      box-sizing: border-box;
       display: flex;
       flex-grow: 0;
       flex-shrink: 0;
       min-height: 0;
+      padding-bottom: var(--pane-padding);
 
       .text-input {
         flex: 1;
@@ -150,9 +229,11 @@
     }
 
     .input-table-part {
+      box-sizing: border-box;
       display: flex;
       flex: 1;
       min-height: 0;
+      padding-top: var(--pane-padding);
 
       .input-table {
         flex: 1;
@@ -223,7 +304,7 @@
     flex: 1;
     flex-direction: column;
     min-width: 0;
-    padding: 5px;
+    padding: var(--pane-padding);
 
     .inspect-tabs {
       display: flex;
@@ -241,7 +322,10 @@
       font: inherit;
       cursor: pointer;
 
+      // the chosen tab opens into its panel, over the tab strip's line
       &.selected {
+        margin-bottom: -1px;
+        border-bottom: 1px solid #fff;
         background-color: #fff;
         font-weight: bold;
       }
@@ -386,7 +470,7 @@
     flex: 1;
     gap: 5px;
     min-width: 0;
-    padding: 5px;
+    padding: var(--pane-padding);
 
     .graph {
       position: relative;
@@ -446,8 +530,7 @@
       flex: 1;
       gap: 10px;
       min-width: 0;
-      padding: 0 5px;
-      background-color: #dddddd7f;
+      padding: var(--pane-padding);
     }
 
     .generator-controls {

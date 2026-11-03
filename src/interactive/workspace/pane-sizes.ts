@@ -2,14 +2,15 @@
 export interface PaneSizes { input: number, inspect: number, top: number }
 
 export const defaultPaneSizes: PaneSizes = { input: 280, inspect: 260, top: 330 };
-export const minPaneSizes = { input: 160, graph: 200, inspect: 220, top: 200, generator: 210 };
+export const minPaneSizes = { input: 160, graph: 200, inspect: 220, top: 200, generator: 220 };
 // the generator starts at its minimum
 export const workspaceHeight = defaultPaneSizes.top + minPaneSizes.generator;
 
 export const paneGap = 8;
-export const dividerBand = 24;
-// a pane's inner padding on an edge beside a divider, so the divider's band covers padding and no control
-export const panePadding = (dividerBand - paneGap) / 2;
+// the padding inside every pane's border; a divider's band spans the gap and this much on each side
+export const panePadding = 5;
+export const paneBorder = 1;
+export const dividerBand = paneGap + 2 * panePadding;
 export const collapsedStrip = 32;
 export const paneHeader = 26;
 // below this workspace width the panes stack
@@ -25,12 +26,86 @@ export const toolbarHeight = (tools: number, columns: 1 | 2 = 1) => {
   const rows = Math.ceil(tools / columns);
   return rows * toolbarButton + (rows - 1) * toolbarGap + 2 * toolbarPadding;
 };
-// the height of the Graph pane's body in a row top px tall, less the padding beside a row divider below it
-export const graphBodyHeight = (top: number, rowsDivider: boolean) =>
-  top - paneHeader - (rowsDivider ? panePadding : 0);
-// the row height the Graph pane's toolbar is fitted to: stacked panes are all the starting row's height,
-// whatever row height is stored
-export const toolbarRowHeight = (top: number, stacked: boolean) => stacked ? defaultPaneSizes.top : top;
+// the height inside the Graph pane's border, header and padding, in a row top px tall
+export const graphBodyHeight = (top: number) => top - paneHeader - 2 * paneBorder - 2 * panePadding;
+// the height the row's panes are drawn at, from the stored row height: stacked panes are all the starting row's
+// height, whatever row height is stored
+export const drawnRowHeight = (top: number, stacked: boolean) => stacked ? defaultPaneSizes.top : top;
 // a toolbar taller than the Graph pane's body puts its buttons in two columns
 export const toolbarColumns = (tools: number, bodyHeight: number): 1 | 2 =>
   toolbarHeight(tools) <= bodyHeight ? 1 : 2;
+
+// the dividers between panes
+export type PaneDivider = "input" | "inspect" | "rows";
+export interface OpenPanes { input: boolean, graph: boolean, inspect: boolean }
+
+const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(value, high));
+
+// the size a divider sets, as the pane before it has it (Graph's width for the Graph/Inspect divider), with the
+// limits where either pane beside it reaches its minimum; room is the width the open row panes share
+export const dividerLimits = (sizes: PaneSizes, divider: PaneDivider, room: number, open: OpenPanes) => {
+  const input = open.input ? sizes.input : 0;
+  const inspect = open.inspect ? sizes.inspect : 0;
+  switch (divider) {
+    case "input":
+      return { value: sizes.input, min: minPaneSizes.input, max: room - inspect - minPaneSizes.graph };
+    case "inspect":
+      return { value: room - input - inspect, min: minPaneSizes.graph, max: room - input - minPaneSizes.inspect };
+    case "rows":
+      return { value: sizes.top, min: minPaneSizes.top, max: workspaceHeight - minPaneSizes.generator };
+  }
+};
+
+// whether a divider is drawn in a different place for sizes stored as to as for from, by half a pixel or more, since
+// fitted sizes reached by different sums can differ in their last digits
+export const movesDivider = (from: PaneSizes, to: PaneSizes, divider: PaneDivider, room: number, open: OpenPanes) => {
+  const drawn = (stored: PaneSizes) => dividerLimits(fitPaneSizes(stored, room, open), divider, room, open).value;
+  return Math.abs(drawn(to) - drawn(from)) >= 0.5;
+};
+
+// a divider moved by delta px (right or down), stopped where either pane beside it reaches its minimum
+export const dragDivider = (sizes: PaneSizes, divider: PaneDivider, delta: number, room: number,
+  open: OpenPanes): PaneSizes => {
+  const { value, min, max } = dividerLimits(sizes, divider, room, open);
+  const moved = clamp(value + delta, min, max);
+  switch (divider) {
+    case "input":
+      return { ...sizes, input: moved };
+    case "inspect":
+      return { ...sizes, inspect: room - (open.input ? sizes.input : 0) - moved };
+    case "rows":
+      return { ...sizes, top: moved };
+  }
+};
+
+// the sizes to store for a divider moved by delta px from stored sizes: a column divider moves from the sizes as
+// drawn, so in a row too narrow for the stored sizes it follows the pointer; the row divider keeps the stored widths
+export const resizedPanes = (stored: PaneSizes, divider: PaneDivider, delta: number, room: number,
+  open: OpenPanes): PaneSizes =>
+  dragDivider(divider === "rows" ? stored : fitPaneSizes(stored, room, open), divider, delta, room, open);
+
+// the linked Input pane's split: the text box's share of a body bodyHeight px tall, moved by delta px (down),
+// stopped where the text box or the table reaches its minimum
+export const defaultInputSplit = 0.4;
+export const minInputPart = 60;
+export const dragInputSplit = (split: number, delta: number, bodyHeight: number) =>
+  clamp((split * bodyHeight + delta) / bodyHeight, minInputPart / bodyHeight, 1 - minInputPart / bodyHeight);
+
+// in a row narrower than the sizes need, Input and Inspect give up width toward their minimums, in proportion to
+// what each has above its minimum, so an open graph keeps its own; sizes that fit come back unchanged, the same object
+export const fitPaneSizes = (sizes: PaneSizes, room: number, open: OpenPanes): PaneSizes => {
+  const overflow = (open.input ? sizes.input : 0) + (open.inspect ? sizes.inspect : 0) +
+    (open.graph ? minPaneSizes.graph : 0) - room;
+  const spareInput = open.input ? Math.max(0, sizes.input - minPaneSizes.input) : 0;
+  const spareInspect = open.inspect ? Math.max(0, sizes.inspect - minPaneSizes.inspect) : 0;
+  const spare = spareInput + spareInspect;
+  if (overflow <= 0 || spare === 0) {
+    return sizes;
+  }
+  const cut = Math.min(overflow, spare);
+  return {
+    ...sizes,
+    input: sizes.input - cut * spareInput / spare,
+    inspect: sizes.inspect - cut * spareInspect / spare,
+  };
+};

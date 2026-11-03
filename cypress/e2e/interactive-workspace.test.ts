@@ -1,8 +1,10 @@
-import { toolbarHeight } from "../../src/interactive/workspace/pane-sizes";
+import {
+  minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, toolbarHeight, workspaceHeight
+} from "../../src/interactive/workspace/pane-sizes";
 import { selectedNodeColor } from "../support/graph";
 import {
-  clickState, graphRoot, loggedEvents, mousePress, parseTransform, pinch, pressEvents, pressState, pressTab,
-  rootTransform, stateEllipse, stateLabels
+  clickState, divider, dragDivider, graphRoot, loggedEvents, mousePress, parseTransform, pinch, pressEvents, pressState,
+  pressTab, rootTransform, stateEllipse, stateLabels
 } from "../support/workspace";
 
 // the Standard layout's full-width item, wide enough that the panes sit side by side
@@ -525,6 +527,9 @@ describe("the workspace's input table", () => {
       start({ startingText: Array.from({ length: rows }, (_, i) => `w${i}`).join(" ") });
       cy.interactive().find(".input-table input").should("have.length", rows + 1);
       textBox().focus();
+      // the divider between the text box and the table comes first
+      pressTab();
+      focused().should("have.attr", "aria-label", "Resize the text box and the table");
       pressTab();
       focused().should("have.attr", "aria-label", "Row 1");
       pressTab();
@@ -787,6 +792,15 @@ describe("the workspace's Inspect pane", () => {
     header("Count").should("have.attr", "aria-sort", "ascending");
   });
 
+  it("opens the chosen tab into its panel, with no line under it", () => {
+    start({ startingText: "the cat" });
+    inspectTab("States").should("have.css", "border-bottom-color", "rgb(255, 255, 255)").then(tab => {
+      const list = tab[0].closest("[role='tablist']")!.getBoundingClientRect();
+      expect(tab[0].getBoundingClientRect().bottom).to.be.closeTo(list.bottom, 0.5);
+    });
+    inspectTab("Transitions").should("not.have.css", "border-bottom-color", "rgb(255, 255, 255)");
+  });
+
   it("moves between tabs with the arrow keys", () => {
     start({ startingText: "the cat" });
     inspectTab("States").focus();
@@ -815,5 +829,280 @@ describe("the workspace's Inspect pane", () => {
       cy.interactive().find(".inspect-row-button").eq(1).click();
       stateEllipse("s01").should("have.attr", "fill", selectedNodeColor);
     });
+  });
+});
+
+describe("the workspace's dividers", () => {
+  const widthOf = (selector: string) => cy.interactive().find(selector).invoke("outerWidth");
+  const height = (selector: string) => cy.interactive().find(selector).invoke("outerHeight");
+  const resized = () => loggedEvents().invoke("filter", ([action]: [string]) => action === "PaneResized");
+
+  it("moves space between Input and Graph, and stops Input at its minimum", () => {
+    start({ startingText: "the cat sat" });
+    // the frame's own scrollbar goes once it fits the workspace, which widens the row
+    cy.frameFitsInteractive();
+    widthOf(".input-pane").should("equal", 280);
+    widthOf(".graph-pane").then(graph => {
+      widthOf(".top-row").then(rowWidth => {
+        dragDivider("Resize Input and Graph", 60, 0);
+        widthOf(".input-pane").should("equal", 340);
+        widthOf(".graph-pane").should("equal", graph! - 60);
+        widthOf(".top-row").should("equal", rowWidth);
+      });
+    });
+    resized().should("have.length", 1).its(0)
+      .should("deep.equal", ["PaneResized", { divider: "input", sizes: { input: 340, inspect: 260, top: 330 } }]);
+    dragDivider("Resize Input and Graph", -1000, 0);
+    widthOf(".input-pane").should("equal", 160);
+  });
+
+  it("stops Inspect at its minimum", () => {
+    start({ startingText: "the cat sat" });
+    dragDivider("Resize Graph and Inspect", 1000, 0);
+    widthOf(".inspect-pane").should("equal", 220);
+  });
+
+  it("moves space between the panes and the generator, keeping the reported height", () => {
+    start({ startingText: "the cat sat" });
+    cy.frameFitsInteractive();
+    cy.get("iframe#interactive").invoke("height").then(frameHeight => {
+      dragDivider("Resize the panes and the generator", 0, -100);
+      height(".top-row").should("equal", 230);
+      height(".generator-pane").should("equal", 320);
+      cy.frameFitsInteractive();
+      cy.get("iframe#interactive").invoke("height").should("equal", frameHeight);
+    });
+    dragDivider("Resize the panes and the generator", 0, -1000);
+    height(".top-row").should("equal", 200);
+  });
+
+  it("moves a divider 10 px with the arrow keys, logging once when it loses focus", () => {
+    start({ startingText: "the cat sat" });
+    divider("Resize Input and Graph").focus();
+    divider("Resize Input and Graph").type("{rightArrow}{rightArrow}");
+    widthOf(".input-pane").should("equal", 300);
+    divider("Resize Input and Graph").should("have.attr", "aria-valuenow", "300")
+      .and("have.attr", "aria-valuemin", "160");
+    resized().should("have.length", 0);
+    divider("Resize Input and Graph").blur({ force: true });
+    resized().should("have.length", 1);
+  });
+
+  it("keeps the chosen widths, logging nothing, for a key that can't move a divider in a narrow row", () => {
+    start({ startingText: "the cat sat" }, { width: 730 });
+    cy.frameFitsInteractive();
+    divider("Resize Input and Graph").should(band => {
+      expect(band.attr("aria-valuenow")).to.equal(band.attr("aria-valuemax"));
+    });
+    divider("Resize Input and Graph").focus();
+    divider("Resize Input and Graph").type("{rightArrow}");
+    divider("Resize Input and Graph").blur({ force: true });
+    cy.get("iframe#interactive").invoke("attr", "width", String(width));
+    cy.frameFitsInteractive();
+    widthOf(".input-pane").should("equal", 280);
+    resized().should("have.length", 0);
+  });
+
+  it("moves the linked view's split between the text box and the table", () => {
+    start({ startingText: "the cat sat" });
+    cy.interactive().find(".linked-input").then(linked => {
+      const body = linked[0].clientHeight - paneGap - 2 * panePadding;
+      height(".input-text-part .text-input").should("be.closeTo", 0.4 * body, 1);
+      height(".input-table-part .input-table").then(table => {
+        dragDivider("Resize the text box and the table", 0, 50);
+        height(".input-text-part .text-input").should("be.closeTo", 0.4 * body + 50, 1);
+        height(".input-table-part .input-table").should("be.closeTo", table! - 50, 1);
+      });
+    });
+    resized().should("have.length", 1).its(0).its(1).should("have.property", "divider", "inputSplit");
+    dragDivider("Resize the text box and the table", 0, -1000);
+    height(".input-text-part .text-input").should("be.closeTo", 60, 1);
+  });
+
+  it("fits the graph after a drag while the view follows it, and not after the student zoomed", () => {
+    start({ startingText: "the cat sat on the mat" });
+    cy.interactive().find("button[title='Fit View']").click();
+    afterFit();
+    // a narrower graph pane fits the graph smaller
+    rootTransform().then(before => {
+      dragDivider("Resize Input and Graph", 200, 0);
+      afterFit();
+      rootTransform().should(after => expect(parseTransform(after).k).to.be.lessThan(parseTransform(before).k));
+    });
+    cy.interactive().find("button[title='Zoom In']").click();
+    afterFit();
+    rootTransform().then(zoomed => {
+      dragDivider("Resize Input and Graph", -100, 0);
+      afterFit();
+      rootTransform().should("equal", zoomed);
+    });
+  });
+
+  it("doesn't fit the graph again for a later change of its size after a key moved a divider", () => {
+    start({ startingText: "the cat sat on the mat" });
+    // a graph pane narrow enough that its width limits the fit, so a wider pane would fit the graph larger
+    dragDivider("Resize Input and Graph", 1000, 0);
+    afterFit();
+    divider("Resize Input and Graph").focus();
+    divider("Resize Input and Graph").type("{leftArrow}");
+    afterFit();
+    divider("Resize Input and Graph").blur({ force: true });
+    resized().should("have.length", 2);
+    afterFit();
+    rootTransform().then(before => {
+      cy.get("iframe#interactive").invoke("attr", "width", "1150");
+      afterFit();
+      rootTransform().should("equal", before);
+    });
+  });
+
+  it("joins only open neighbors", () => {
+    start({ startingText: "the cat sat" });
+    cy.interactive().find("button[aria-label='Collapse Inspect']").click();
+    divider("Resize Input and Graph").should("exist");
+    divider("Resize Graph and Inspect").should("not.exist");
+  });
+
+  [
+    { name: "collapsed", options: {}, collapse: true },
+    // Draw mode always has the graph, so it is Data mode alone
+    { name: "turned off", options: { panes: { graph: { available: false } }, modes: { useData: true, draw: false } },
+      collapse: false },
+  ].forEach(({ name, options, collapse }) => {
+    it(`shares the row between Input and Inspect in proportion with the Graph pane ${name}`, () => {
+      start({ startingText: "the cat sat", ...options });
+      if (collapse) {
+        cy.interactive().find("button[aria-label='Collapse Graph']").click();
+      }
+      cy.interactive().find(".top-row").then(topRow => {
+        cy.interactive().find(".inspect-pane").should(inspect =>
+          expect(inspect[0].getBoundingClientRect().right).to.be.closeTo(topRow[0].getBoundingClientRect().right, 1));
+      });
+      cy.interactive().find(".input-pane").then(input => cy.interactive().find(".inspect-pane").then(inspect => {
+        const together = input[0].getBoundingClientRect().width + inspect[0].getBoundingClientRect().width;
+        expect(input[0].getBoundingClientRect().width).to.be.closeTo(together * 280 / 540, 2);
+      }));
+      divider("Resize Input and Graph").should("not.exist");
+    });
+  });
+
+  it("puts the generator first with Input, Graph and Inspect turned off", () => {
+    start({ panes: { input: { available: false }, graph: { available: false }, inspect: { available: false } },
+      modes: { useData: true, draw: false }, startingText: "a b" });
+    cy.interactive().find(".top-row").should("not.exist");
+    cy.interactive().find(".markov-workspace > section").first().should("have.class", "generator-pane");
+    divider("Resize the panes and the generator").should("not.exist");
+  });
+
+  const toolbarInsideGraphPane = (columns: number) =>
+    cy.interactive().find(".graph-pane .toolbar button").should(buttons => {
+      expect(buttons).to.have.length(5);
+      const lefts = new Set([...buttons].map(button => Math.round(button.getBoundingClientRect().left)));
+      expect(lefts.size).to.equal(columns);
+      const box = buttons[0].closest(".pane-body")!.getBoundingClientRect();
+      [...buttons].forEach(button => {
+        const b = button.getBoundingClientRect();
+        expect(b.top).to.be.at.least(box.top);
+        expect(b.bottom).to.be.at.most(box.bottom);
+        expect(b.left).to.be.at.least(box.left);
+        expect(b.right).to.be.at.most(box.right);
+      });
+    });
+
+  it("puts the toolbar in two columns inside the Graph pane in a 200 px row", () => {
+    start({ startingText: "the cat sat" });
+    dragDivider("Resize the panes and the generator", 0, -1000);
+    height(".top-row").should("equal", 200);
+    toolbarInsideGraphPane(2);
+  });
+
+  it("keeps the toolbar inside the Graph pane just below the row height that fits one column", () => {
+    start({ startingText: "the cat sat" });
+    dragDivider("Resize the panes and the generator", 0, -115);
+    height(".top-row").should("equal", 215);
+    toolbarInsideGraphPane(2);
+    dragDivider("Resize the panes and the generator", 0, 7);
+    height(".top-row").should("equal", 222);
+    toolbarInsideGraphPane(1);
+  });
+
+  it("zooms the graph with the toolbar's zoom buttons", () => {
+    start({ startingText: "the cat sat" });
+    afterFit();
+    rootTransform().then(before => {
+      cy.interactive().find("button[title='Zoom In']").click();
+      rootTransform().should(after => expect(parseTransform(after).k).to.be.greaterThan(parseTransform(before).k));
+    });
+    rootTransform().then(before => {
+      cy.interactive().find("button[title='Zoom Out']").click();
+      rootTransform().should(after => expect(parseTransform(after).k).to.be.lessThan(parseTransform(before).k));
+    });
+  });
+
+  it("fits the generator's default controls at its minimum, and scrolls them with the other delimiter", () => {
+    start({ startingText: "the cat sat" });
+    dragDivider("Resize the panes and the generator", 0, 1000);
+    height(".generator-pane").should("equal", minPaneSizes.generator);
+    cy.interactive().find(".generator-controls").should(controls =>
+      expect(controls[0].scrollHeight).to.be.at.most(controls[0].clientHeight));
+    cy.interactive().find(".generator-controls select").last().select("other");
+    cy.interactive().find(".generator-controls").should(controls => {
+      expect(controls[0].scrollHeight).to.be.greaterThan(controls[0].clientHeight);
+      expect(controls.css("overflow-y")).to.equal("auto");
+    });
+  });
+
+  it("pads and colors the generator's contents as the other panes', and centers the panes' toggles", () => {
+    start({ startingText: "the cat sat" });
+    cy.interactive().find(".input-pane-content").then(input => {
+      cy.interactive().find(".generator-pane-content")
+        .should("have.css", "padding-top", input.css("padding-top"))
+        .and("have.css", "padding-bottom", input.css("padding-bottom"))
+        .and("have.css", "background-color", "rgba(0, 0, 0, 0)");
+    });
+    cy.interactive().find(".pane-toggle").each(button => {
+      const box = button[0].getBoundingClientRect();
+      const icon = button[0].querySelector("svg")!.getBoundingClientRect();
+      expect(icon.left + icon.width / 2).to.be.closeTo(box.left + box.width / 2, 0.5);
+      expect(icon.top + icon.height / 2).to.be.closeTo(box.top + box.height / 2, 0.5);
+    });
+  });
+
+  it("centers the column dividers on their gaps, and keeps the row divider off the generator", () => {
+    start({ startingText: "the cat sat" });
+    cy.interactive().find(".top-row").should(topRow => {
+      const panes = [...topRow[0].querySelectorAll(":scope > .pane")].map(pane => pane.getBoundingClientRect());
+      const bands = [...topRow[0].querySelectorAll(".divider.vertical")].map(band => band.getBoundingClientRect());
+      expect(bands).to.have.length(2);
+      const toggles = [...topRow[0].querySelectorAll(":scope > .pane .pane-toggle")]
+        .map(toggle => toggle.getBoundingClientRect());
+      bands.forEach((band, i) => {
+        expect(band.left + band.width / 2).to.be.closeTo((panes[i].right + panes[i + 1].left) / 2, 0.5);
+        expect(band.left).to.be.at.least(toggles[i].right);
+      });
+      const rows = topRow[0].querySelector(":scope > .divider.horizontal")!.getBoundingClientRect();
+      const generator = topRow[0].ownerDocument.querySelector(".generator-pane")!.getBoundingClientRect();
+      expect(rows.bottom).to.be.closeTo(generator.top, 0.5);
+      expect(rows.top).to.be.closeTo(topRow[0].getBoundingClientRect().bottom - panePadding, 0.5);
+    });
+  });
+
+  it("stacks the panes below 700 px, with no dividers and no inline widths", () => {
+    cy.startInteractive({ mode: "runtime", width: 690, authoredState: { startingText: "the cat sat" } });
+    cy.interactive().find(".markov-workspace").should("have.class", "stacked");
+    cy.interactive().find("[role='separator']").not("[aria-label='Resize the text box and the table']")
+      .should("not.exist");
+    cy.interactive().find(".top-row .pane").each(pane => expect(pane[0].style.flex).to.equal(""));
+    cy.interactive().find("button[aria-label='Collapse Inspect']").click();
+    cy.interactive().find(".inspect-pane").invoke("outerHeight").should("equal", paneHeader + 2 * paneBorder);
+  });
+
+  it("draws the stacked panes at the starting row height whatever row height the student chose", () => {
+    start({ startingText: "the cat sat" });
+    dragDivider("Resize the panes and the generator", 0, -1000);
+    height(".generator-pane").should("equal", workspaceHeight - minPaneSizes.top);
+    cy.get("iframe#interactive").invoke("attr", "width", "690");
+    cy.interactive().find(".markov-workspace").should("have.class", "stacked");
+    height(".generator-pane").should("equal", minPaneSizes.generator);
   });
 });

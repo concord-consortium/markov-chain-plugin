@@ -1,16 +1,20 @@
-import React from "react";
+import React, { useRef } from "react";
 import { InputView } from "../authored-state";
 import { Token } from "../input/tokenizer";
 import { CommitHow, CommitView } from "./commit";
 import { Highlights } from "./highlights";
+import { Divider } from "./divider";
 import { InputTable } from "./input-table";
+import { dragInputSplit, minInputPart, paneGap, panePadding } from "./pane-sizes";
 import { TextInput } from "./text-input";
-
-// the share of the linked view's height the text box takes, above the table
-const inputSplit = 0.4;
+import { useMeasuredSize } from "./use-measured-size";
 
 interface InputPaneProps {
   view: InputView;
+  // the text box's share of the height it shares with the table below it
+  split: number;
+  onSplitChange: (split: number) => void;
+  onSplitResized: (split: number) => void;
   text: string;
   // the text's tokens as it stands, and the highlights over them, for the text box
   liveTokens: Token[];
@@ -44,12 +48,57 @@ export const InputPane = (props: InputPaneProps) => {
   return (
     <div className={`input-pane-content ${view}`}>
       { view === "textAndTable"
-        ? <>
-            <div className="input-text-part" style={{ flexBasis: `${inputSplit * 100}%` }}>{ textInput }</div>
-            <div className="input-table-part">{ table }</div>
-          </>
+        ? <LinkedInput split={props.split} onSplitChange={props.onSplitChange} onSplitResized={props.onSplitResized}
+            textInput={textInput} table={table} />
         : textInput || table
       }
+    </div>
+  );
+};
+
+interface LinkedInputProps {
+  split: number;
+  onSplitChange: (split: number) => void;
+  onSplitResized: (split: number) => void;
+  textInput: React.ReactNode;
+  table: React.ReactNode;
+}
+
+// the text box above the table, with a divider between them that sets the text box's share of the height
+const LinkedInput = ({ split, onSplitChange, onSplitResized, textInput, table }: LinkedInputProps) => {
+  const ref = useRef<HTMLDivElement | null>(null);
+  // the height the text box and the table share, less the gap and the padding on each side of it
+  const body = Math.max(0, (useMeasuredSize(ref)?.height ?? 0) - paneGap - 2 * panePadding);
+  const moveFromRef = useRef(split);
+  const startRef = useRef<number>(undefined);
+  // the split the last move set, which a drag's end can arrive before React renders
+  const movedToRef = useRef(split);
+  return (
+    <div className="linked-input" ref={ref}>
+      <div className="input-text-part"
+        style={{ flexBasis: body ? split * body + panePadding : `${split * 100}%` }}>
+        { textInput }
+        <Divider orientation="horizontal" label="Resize the text box and the table" value={split * body}
+          min={minInputPart} max={body - minInputPart}
+          onStart={() => {
+            moveFromRef.current = split;
+            movedToRef.current = split;
+            startRef.current ??= split;
+          }}
+          onMove={delta => {
+            if (body > 0) {
+              movedToRef.current = dragInputSplit(moveFromRef.current, delta, body);
+              onSplitChange(movedToRef.current);
+            }
+          }}
+          onEnd={() => {
+            if (startRef.current !== undefined && startRef.current !== movedToRef.current) {
+              onSplitResized(movedToRef.current);
+            }
+            startRef.current = undefined;
+          }} />
+      </div>
+      <div className="input-table-part">{ table }</div>
     </div>
   );
 };

@@ -4,7 +4,7 @@ import { Graph } from "../../components/graph";
 import { Tool, Toolbar } from "../../components/toolbar";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { MarkovHost } from "../../components/host";
-import { graphBodyHeight, toolbarColumns, toolbarRowHeight } from "./pane-sizes";
+import { graphBodyHeight, toolbarColumns } from "./pane-sizes";
 import { useLatest } from "./use-latest";
 
 const tools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
@@ -16,20 +16,19 @@ const zoomOutStep = 0.9;
 interface GraphPaneProps {
   tool: MarkovToolApi;
   log: MarkovHost["log"];
-  // the row height the pane is laid out in, whether a row divider is below it, and whether the panes are stacked
+  // the row height the pane is drawn at
   top: number;
-  rowsDivider: boolean;
-  stacked: boolean;
   emptyMessage: string;
   onUserZoom: () => void;
   onFit: () => void;
+  onResized: () => void;
   onDoubleClickState: (id: string) => void;
 }
 
 // The graph and its toolbar. Every callback handed to Graph keeps its identity, reading the tool through a ref,
 // since a new callback redraws the whole graph.
 export const GraphPane = ({
-  tool, log, top, rowsDivider, stacked, emptyMessage, onUserZoom, onFit, onDoubleClickState
+  tool, log, top, emptyMessage, onUserZoom, onFit, onResized, onDoubleClickState
 }: GraphPaneProps) => {
   const [zoomRequest, setZoomRequest] = useState<{ id: number, by: number }>();
   const toolRef = useLatest(tool);
@@ -47,8 +46,11 @@ export const GraphPane = ({
     const label = toolRef.current.graph.nodes.find(node => node.id === id)?.label ?? id;
     log("StateMoved", { state: label });
   }, [log, toolRef]);
-  const handleDimensions = useCallback((dimensions: { width: number, height: number }) =>
-    toolRef.current.view.onDimensions(dimensions), [toolRef]);
+  const onResizedRef = useLatest(onResized);
+  const handleDimensions = useCallback((dimensions: { width: number, height: number }) => {
+    toolRef.current.view.onDimensions(dimensions);
+    onResizedRef.current();
+  }, [toolRef, onResizedRef]);
   const handleUserZoom = useCallback(() => onUserZoomRef.current(), [onUserZoomRef]);
 
   const zoom = (by: number) => {
@@ -56,7 +58,7 @@ export const GraphPane = ({
     setZoomRequest(request => ({ id: (request?.id ?? 0) + 1, by }));
   };
 
-  const columns = toolbarColumns(tools.length, graphBodyHeight(toolbarRowHeight(top, stacked), rowsDivider));
+  const columns = toolbarColumns(tools.length, graphBodyHeight(top));
   const { graphHighlights, view } = tool;
 
   return (

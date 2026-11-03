@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { useMarkovTool } from "../../hooks/use-markov-tool";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
@@ -19,11 +19,14 @@ import { InputPane } from "./input-pane";
 import { InspectPane } from "./inspect-pane";
 import { Pane } from "./pane";
 import {
-  collapsedStrip, controlsRowHeight, defaultPaneSizes, paneGap, paneHeader, panePadding, stackBelow, toolbarButton,
-  toolbarGap, workspaceHeight
+  collapsedStrip, controlsRowHeight, defaultInputSplit, defaultPaneSizes, dividerBand, drawnRowHeight, fitPaneSizes,
+  dividerLimits, movesDivider, OpenPanes, paneBorder, PaneDivider, paneGap, paneHeader, panePadding, PaneSizes,
+  resizedPanes, stackBelow, toolbarButton, toolbarGap, workspaceHeight
 } from "./pane-sizes";
+import { Divider } from "./divider";
 import { scrollTextToMark, scrollToLit } from "./scroll-to-lit";
 import { useLatest } from "./use-latest";
+import { useMeasuredSize } from "./use-measured-size";
 import { WorkspaceConfig, workspaceConfig, WorkspacePaneId } from "./workspace-config";
 
 import "./workspace.scss";
@@ -42,7 +45,8 @@ const paneTitles: Record<WorkspacePaneId, string> = {
 
 // the sizes and colors the stylesheet reads, so none is written in both languages
 const cssValues = {
-  "--pane-gap": `${paneGap}px`, "--pane-padding": `${panePadding}px`, "--pane-top": `${defaultPaneSizes.top}px`,
+  "--pane-gap": `${paneGap}px`, "--pane-padding": `${panePadding}px`, "--pane-border": `${paneBorder}px`,
+  "--pane-top": `${defaultPaneSizes.top}px`, "--divider-band": `${dividerBand}px`,
   "--collapsed-strip": `${collapsedStrip}px`, "--pane-header": `${paneHeader}px`,
   "--toolbar-button": `${toolbarButton}px`, "--toolbar-gap": `${toolbarGap}px`,
   "--controls-row": `${controlsRowHeight}px`,
@@ -246,8 +250,77 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
 
   const rowPanes = config.panes.filter(pane => pane.id !== "generator");
   const graphOpen = has("graph") && open.graph;
-  const sizes = defaultPaneSizes;
   const rowsDivider = !stacked && has("generator") && open.generator && rowPanes.some(pane => open[pane.id]);
+
+  // the sizes the student chose, kept while a narrow row draws them smaller and while a pane is collapsed
+  const [paneSizes, setPaneSizes] = useState<PaneSizes>(defaultPaneSizes);
+  const [inputSplit, setInputSplit] = useState(defaultInputSplit);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const rowWidth = useMeasuredSize(rowRef)?.width;
+  const openPanes: OpenPanes = {
+    input: has("input") && open.input, graph: graphOpen, inspect: has("inspect") && open.inspect
+  };
+  // the width the open Input, Graph and Inspect panes share
+  const room = (rowWidth ?? 0) - paneGap * (rowPanes.length - 1) -
+    collapsedStrip * rowPanes.filter(pane => !open[pane.id]).length;
+  const sizes = !stacked && rowWidth !== undefined ? fitPaneSizes(paneSizes, room, openPanes) : paneSizes;
+  const top = drawnRowHeight(sizes.top, stacked);
+  const graphWidth = room - (openPanes.input ? sizes.input : 0) - (openPanes.inspect ? sizes.inspect : 0);
+
+  // a move starts from the sizes stored when it starts
+  const moveFromRef = useRef<PaneSizes>(undefined);
+  const resizeStartRef = useRef<PaneSizes>(undefined);
+  // the sizes the last move stored, which a drag's end can arrive before React renders
+  const movedToRef = useRef<PaneSizes>(undefined);
+  // a resize changes the graph's size, which it can measure after the resize ends, so it is fitted again then, unless
+  // the student has taken the view since
+  const fitWhenResizedRef = useRef(false);
+  // how many times the graph's size has been laid out, and how many of those it had measured at its last measurement
+  const graphLayoutsRef = useRef(0);
+  const graphMeasuredRef = useRef(0);
+  useLayoutEffect(() => {
+    graphLayoutsRef.current += 1;
+  }, [graphWidth, top]);
+  const handleGraphResized = useCallback(() => {
+    const fit = fitWhenResizedRef.current && followRef.current;
+    fitWhenResizedRef.current = false;
+    graphMeasuredRef.current = graphLayoutsRef.current;
+    if (fit) {
+      toolRef.current.view.onFitView();
+    }
+  }, [toolRef]);
+  const startResize = () => {
+    fitWhenResizedRef.current = false;
+    moveFromRef.current = paneSizes;
+    resizeStartRef.current ??= paneSizes;
+  };
+  const moveDivider = (divider: PaneDivider, delta: number) => {
+    const next = resizedPanes(moveFromRef.current ?? paneSizes, divider, delta, room, openPanes);
+    movedToRef.current = next;
+    setPaneSizes(next);
+  };
+  const endResize = (divider: PaneDivider) => {
+    const start = resizeStartRef.current;
+    const moved = movedToRef.current;
+    resizeStartRef.current = undefined;
+    movedToRef.current = undefined;
+    if (!start || !moved) {
+      return;
+    }
+    // a move that changed nothing on screen keeps the sizes the student chose
+    if (!movesDivider(start, moved, divider, room, openPanes)) {
+      setPaneSizes(start);
+    } else {
+      host.log("PaneResized", { divider, sizes: moved });
+      if (followRef.current) {
+        tool.view.onFitView();
+        // the last move not yet rendered, or rendered and not yet measured
+        fitWhenResizedRef.current = paneSizes !== moved || graphMeasuredRef.current !== graphLayoutsRef.current;
+      }
+    }
+  };
+  const handleSplitResized = useCallback((split: number) =>
+    host.log("PaneResized", { divider: "inputSplit", sizes: { inputSplit: split } }), [host]);
 
   // Input and Inspect keep their widths beside an open graph, and share the row in proportion without one
   const paneStyle = (id: WorkspacePaneId): React.CSSProperties | undefined => {
@@ -257,6 +330,25 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
     const width = sizes[id];
     return graphOpen ? { flex: `0 0 ${width}px` } : { flex: `${width} 0 0`, minWidth: 0 };
   };
+
+  const columnDividers = {
+    input: !stacked && openPanes.input && graphOpen,
+    inspect: !stacked && graphOpen && openPanes.inspect,
+  };
+  const dividerLabels: Record<PaneDivider, string> = {
+    input: "Resize Input and Graph", inspect: "Resize Graph and Inspect", rows: "Resize the panes and the generator",
+  };
+  const dividerFor = (divider: PaneDivider) => {
+    const limits = { label: dividerLabels[divider], ...dividerLimits(sizes, divider, room, openPanes) };
+    return (
+      <Divider orientation={divider === "rows" ? "horizontal" : "vertical"} {...limits} onStart={startResize}
+        onMove={delta => moveDivider(divider, delta)} onEnd={() => endResize(divider)} />
+    );
+  };
+  const paneDivider = (id: WorkspacePaneId) =>
+    id === "input" && columnDividers.input ? dividerFor("input")
+      : id === "graph" && columnDividers.inspect ? dividerFor("inspect")
+      : undefined;
 
   const emptyMessage = !hasInputPane
     ? "No data was provided for this activity."
@@ -292,7 +384,8 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
     switch (id) {
       case "input":
         return (
-          <InputPane view={inputView} text={text} liveTokens={liveTokens}
+          <InputPane view={inputView} split={inputSplit} onSplitChange={setInputSplit}
+            onSplitResized={handleSplitResized} text={text} liveTokens={liveTokens}
             liveHighlights={highlightsFor(tool.selection, liveTokens)} committed={committed}
             highlights={highlights}
             readOnly={tool.animating} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
@@ -302,8 +395,9 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
         );
       case "graph":
         return (
-          <GraphPane tool={tool} log={host.log} top={sizes.top} rowsDivider={rowsDivider} stacked={stacked}
+          <GraphPane tool={tool} log={host.log} top={top}
             emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFit}
+            onResized={handleGraphResized}
             onDoubleClickState={handleDoubleClickState} />
         );
       case "inspect":
@@ -326,19 +420,21 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
         }
       </div>
       { rowPanes.length > 0 &&
-        <div className="top-row" style={stacked ? undefined : { height: sizes.top }}>
+        <div className="top-row" style={stacked ? undefined : { height: top }} ref={rowRef}>
           { rowPanes.map(({ id }) => (
             <Pane key={id} className={`${id}-pane`} title={paneTitles[id]} open={open[id]}
-              onToggle={() => togglePane(id)} onInteract={() => (sourcePaneRef.current = id)} style={paneStyle(id)}>
+              onToggle={() => togglePane(id)} onInteract={() => (sourcePaneRef.current = id)} style={paneStyle(id)}
+              divider={paneDivider(id)}>
               { renderPane(id) }
             </Pane>
           )) }
+          { rowsDivider && dividerFor("rows") }
         </div>
       }
       { has("generator") &&
         <Pane className="generator-pane" title={paneTitles.generator} open={open.generator}
           onToggle={() => togglePane("generator")} onInteract={() => (sourcePaneRef.current = "generator")}
-          style={open.generator ? { height: workspaceHeight - sizes.top } : undefined}>
+          style={open.generator ? { height: workspaceHeight - top } : undefined}>
           { renderPane("generator") }
         </Pane>
       }
