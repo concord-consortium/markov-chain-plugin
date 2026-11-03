@@ -82,7 +82,6 @@ export const Dataset = (props: Props) => {
         onRecenterView={onRecenterView}
       />
       <Graph
-        mode="dataset"
         graph={graph}
         highlightNode={highlightNode}
         highlightLoopOnNode={highlightLoopOnNode}

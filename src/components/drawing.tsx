@@ -316,7 +316,6 @@ export const Drawing = (props: Props) => {
         onRecenterView={onRecenterView}
       />
       <Graph
-        mode="drawing"
         drawingMode={drawingMode}
         graph={graph}
         highlightNode={highlightNode}
