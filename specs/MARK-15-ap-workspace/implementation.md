@@ -236,7 +236,7 @@ log: (event: LogEvent, data?: Record<string, unknown>) => void;
 **Files affected**:
 - `src/interactive/input/tokenizer.ts` (new) and `tokenizer.test.ts`.
 - `src/interactive/input/table-edits.ts` (new) and `table-edits.test.ts`.
-- `src/interactive/interactive-state.ts`: `input`, `readInteractiveState`, `maxInputLength`; `interactive-state.test.ts` (new).
+- `src/interactive/interactive-state.ts`: `input`, `readSavedInput`, `maxInputLength`; `interactive-state.test.ts` (new).
 
 **Estimated diff size**: ~450 lines, about half tests
 
@@ -256,6 +256,7 @@ export const rowText = (row: string) => row.replace(/[[\]]/g, "").trim();
 export const textForRow = (text: string) => ...;
 ```
 
+- A break's `start..end` runs from its first blank line to the next word, over any further blank lines and dropped characters between them, so editing or deleting a break row replaces all of them.
 - `tokenize` is a single left-to-right scan (the stage-1 prototype, about 40 lines): whitespace runs (a break when they hold two or more line breaks and a word comes before and after), a `[` whose `]` comes before the next `[` or line break, the six punctuation marks, the dropped separators, and word runs. A word's `state` is `text.toLocaleLowerCase()` under `lowercase`. Measured at about 3 ms for 20,000 characters.
 - `textForRow(t)`: `t` when `tokenize(t, "asTyped")` gives exactly one word whose text is `t`, else `[${t}]`. So `cat` and `.` stay bare, and `No!`, `ice cream` and `a+b` are bracketed.
 
@@ -270,7 +271,7 @@ export const deleteRow = (text: string, tokens: Token[], row: number): string =>
 - `editRow` replaces the token's `start..end` with `textForRow(rowText(value))`, or, when the row became empty, with a blank line (`"\n\n"` with the whitespace around the word collapsed into it); editing a break row to a word replaces the break's span with `"\n" + word + "\n"`.
 - `deleteRow` on a break row replaces the blank line's whitespace with one space, joining the chain.
 - `insertRow` inserts after row `after`'s end: `" " + text`, or `text` alone for `. , ? ! : ;`; after a break row, `text + " "` at the break's end, so it doesn't run into the next word; at row -1 (the top) it inserts before the first token with a space after.
-- `deleteRow` removes the token and the space before it (after it, for the first token). A word's removal that leaves two breaks touching leaves the text's blank lines as they are; the tokenizer reads them as one break.
+- `deleteRow` removes the token and the space before it (after it, when there is none before, as for the first token); a line break beside it stays, so no blank line is lost, except that a word alone on its line goes with the line break after it, so its two line breaks don't become a blank line; and where removing it would leave two words touching (punctuation between them) it leaves a space. Inserted and edited words likewise get a space on a side where they would otherwise run into a word (`[No!]the` edited to `cow the`). An edit that removes what kept a dropped `[` from pairing (another `[`, or a line break) turns that `[` into a `(`, which the tokenizer also drops, so it can't take in the rows after it (`[a [No!] b]` with `No!` deleted gives `(a b]`, rows `a` and `b`). A word's removal that leaves two breaks touching leaves the text's blank lines as they are; the tokenizer reads them as one break.
 - Table-only mode uses the same three functions on the hidden text.
 - *(Checked with throwaway code: a prototype of the tokenizer and the three edits, run on 4,911 random texts and edits drawn from words, punctuation, blank lines and bracketed tokens, gave back exactly the edited table every time. The first version measured a bracketed token's span inside its brackets, so inserting after `[No!]` wrote `[No! cat]`, and inserted after a break without a space, running into the next word; both are fixed above.)*
 - Tests name each rule's mutation: a bracketed row (`No!` → `[No!]`), an unbracketed one, punctuation without a space, the first row, a break row, an emptied row, capitalization kept as typed, and a round trip: every row of `tokenize(editRow(...))` equals the table the student sees.
@@ -286,7 +287,7 @@ export interface MarkovInteractiveState {
 export const readSavedInput = (raw: unknown): string | undefined => ...;
 ```
 
-- `readSavedInput` takes an object or a JSON string (the same `parse` as `readAuthoredState`, moved to a shared `src/interactive/parse-state.ts` both import, R32), and returns `input.text` when it is a string, else `undefined`. Tests: `null`, `{}`, `{ version: 1 }`, a JSON string, `input` not an object, `text` not a string, and a good state.
+- `readSavedInput` takes an object or a JSON string (the same `parseState` as `readAuthoredState`, in a shared `src/interactive/parse-state.ts` both import, with `isRecord`, R32), and returns `input.text` when it is a string, else `undefined`. Tests: `null`, `{}`, `{ version: 1 }`, a JSON string, `input` not an object, `text` not a string, and a good state.
 
 ---
 
