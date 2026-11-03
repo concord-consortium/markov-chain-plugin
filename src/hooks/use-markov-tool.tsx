@@ -80,10 +80,10 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   const [recenterViewAt, setRecenterViewAt] = useState<number>();
   const [resetViewAt, setResetViewAt] = useState<number>();
   const datasetValuesRef = useRef<string[] | undefined>(undefined);
-  const onDataChanged = useCallback((values: string[]) => {
+  const onDataChanged = useCallback((values: string[], options?: { fit?: boolean }) => {
     datasetValuesRef.current = values;
     updateGraph(values);
-    fitAfterGraphChangeRef.current = true;
+    fitAfterGraphChangeRef.current = options?.fit ?? true;
   }, [updateGraph]);
   const widthRef = useRef(0);
   const heightRef = useRef(0);

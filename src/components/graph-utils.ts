@@ -146,3 +146,26 @@ export const calculateNodeFontSize = (d: {label: string, radius: number}) => {
 
   return { label, fontSize };
 };
+
+// with keepPositions, a state already drawn or given a position keeps it rather than being laid out
+export const isPlaced = (keepPositions: boolean, drawn: boolean, node: { x?: number, y?: number }) =>
+  keepPositions && (drawn || (node.x != null && node.y != null));
+
+// with keepPositions: lay out every state when more than half are new, only the new ones otherwise,
+// and none when none is new
+export const layoutFor = (placed: number, total: number): "whole" | "new" | "none" =>
+  placed === total ? "none" : (total - placed) * 2 > total ? "whole" : "new";
+
+const newStateOffset = 30;
+
+// where a new state starts: beside the first placed state with an arrow to it, else at the origin
+export const startPosition = (id: string, edges: { from: string, to: string }[],
+  placed: Map<string, { x: number, y: number }>) => {
+  for (const edge of edges) {
+    const source = edge.to === id ? placed.get(edge.from) : undefined;
+    if (source) {
+      return { x: source.x + newStateOffset, y: source.y + newStateOffset };
+    }
+  }
+  return { x: 0, y: 0 };
+};

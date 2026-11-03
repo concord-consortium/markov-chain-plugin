@@ -10,10 +10,13 @@ import FitViewIcon from "../assets/fit-view.svg";
 import RecenterIcon from "../assets/recenter.svg";
 import ResetIcon from "../assets/reset.svg";
 import HomeIcon from "../assets/home.svg";
+import ZoomInIcon from "../assets/plus.svg";
+import ZoomOutIcon from "../assets/minus.svg";
 
 import "./toolbar.scss";
 
-export const allTools = ["select","addNode","addEdge","addText","delete","fitView","recenter","reset","home"] as const;
+export const allTools =
+  ["select","addNode","addEdge","addText","delete","fitView","recenter","zoomIn","zoomOut","reset","home"] as const;
 const toggleableTools: Tool[] = ["select","addNode","addEdge","addText","delete"];
 const nonTopTools: Tool[] = ["reset","home"];
 const notImplementedTools: Tool[] = [];
@@ -28,6 +31,8 @@ const toolTitles: Record<Tool, string> = {
   delete: "Delete",
   fitView: "Fit View",
   recenter: "Recenter View",
+  zoomIn: "Zoom In",
+  zoomOut: "Zoom Out",
   reset: "Reset",
   home: "Back to Main",
 };
@@ -40,6 +45,8 @@ const toolIcons: Record<Tool, any> = {
   delete: DeleteIcon,
   fitView: FitViewIcon,
   recenter: RecenterIcon,
+  zoomIn: ZoomInIcon,
+  zoomOut: ZoomOutIcon,
   reset: ResetIcon,
   home: HomeIcon,
 };
@@ -59,6 +66,8 @@ interface ToolbarProps {
   onReturnToMainMenu: () => void;
   onFitView: () => void;
   onRecenterView: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
 }
 
 export const ToolbarButton = ({ tool, disabled, selectedTool, onClick }: ToolbarButtonProps) => {
@@ -81,7 +90,8 @@ export const ToolbarButton = ({ tool, disabled, selectedTool, onClick }: Toolbar
 };
 
 export const Toolbar = (props: ToolbarProps) => {
-  const { tools, disabled, onToolSelected, onReset, onReturnToMainMenu, onFitView, onRecenterView } = props;
+  const { tools, disabled, onToolSelected, onReset, onReturnToMainMenu, onFitView, onRecenterView, onZoomIn, onZoomOut }
+    = props;
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
 
   const handleToolSelected = useCallback((tool: Tool) => {
@@ -99,9 +109,13 @@ export const Toolbar = (props: ToolbarProps) => {
       onFitView();
     } else if (tool === "recenter") {
       onRecenterView();
+    } else if (tool === "zoomIn") {
+      onZoomIn?.();
+    } else if (tool === "zoomOut") {
+      onZoomOut?.();
     }
     onToolSelected(tool);
-  }, [selectedTool, onReset, onReturnToMainMenu, onFitView, onRecenterView, onToolSelected]);
+  }, [selectedTool, onReset, onReturnToMainMenu, onFitView, onRecenterView, onZoomIn, onZoomOut, onToolSelected]);
 
   const topTools = tools.filter(tool => !nonTopTools.includes(tool));
   const bottomTools = tools.filter(tool => nonTopTools.includes(tool));

@@ -15,6 +15,6 @@ export interface MarkovToolHandle {
   getGraph: () => GraphData;
   // a saved drawing; drawings before version 2 have their origin at the top left
   loadDrawing: (graph: GraphData, version: number) => void;
-  // dataset mode's values, which replace the graph
-  dataChanged: (values: string[]) => void;
+  // dataset mode's values, which replace the graph; the view is fitted to the new graph unless fit is false
+  dataChanged: (values: string[], options?: { fit?: boolean }) => void;
 }

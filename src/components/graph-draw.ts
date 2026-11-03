@@ -1,7 +1,7 @@
 import React from "react";
 import * as d3 from "d3";
 
-import { calculateNodeFontSize, nodeLoopPath, ry } from "./graph-utils";
+import { calculateNodeFontSize, layoutFor, nodeLoopPath, ry } from "./graph-utils";
 import { calculateEdges, D3Graph, D3Node, lineDashArray, lineEnd } from "./graph-geometry";
 import {
   animatedArrowColor, arrowUrl, incomingArrowColor, lineAndLoopOpacity, outgoingArrowColor, selectedLoopArrowColor,
@@ -15,14 +15,19 @@ export interface DrawGraphOptions {
   autoArrange: boolean;
   rubberBand?: RubberBand;
   drawingMode?: DrawingMode;
-  selectedNodeId?: string;
-  setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
+  keepPositions?: boolean;
+  // read when a state is clicked and once the graph is drawn, so a selection needn't redraw the graph
+  selectionRef: React.MutableRefObject<{
+    selectedNodeId?: string;
+    setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
+    highlightSelected: (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>) => void;
+  }>;
   onNodeClick?: (id: string, onLoop?: boolean) => void;
   onNodeDoubleClick?: (id: string) => void;
   onEdgeClick?: (options: {from: string, to: string}) => void;
+  onEdgeSelect?: (edge: {from: string, to: string}) => void;
   onDragStop?: (id: string, pos: Point) => void;
   onAutoArrangeEnd?: (nodes: D3Node[]) => void;
-  highlightSelected: (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>) => void;
   lastClickTimeRef: React.MutableRefObject<number | undefined>;
   lastClickIdRef: React.MutableRefObject<string | undefined>;
   draggedRef: React.MutableRefObject<boolean>;
@@ -31,9 +36,10 @@ export interface DrawGraphOptions {
 // draws the graph into the svg, replacing what it held, and returns the layout's simulation when it auto-arranges
 export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, d3Graph: D3Graph,
   options: DrawGraphOptions) => {
-  const { transform, allowDragging, autoArrange, rubberBand, drawingMode, selectedNodeId, setSelectedNodeId,
-    onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop, onAutoArrangeEnd, highlightSelected,
+  const { transform, allowDragging, autoArrange, rubberBand, drawingMode, keepPositions, selectionRef,
+    onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd,
     lastClickTimeRef, lastClickIdRef, draggedRef } = options;
+  const selectEdges = !!onEdgeSelect && drawingMode !== "delete";
   let simulation: d3.Simulation<D3Node, undefined>|undefined;
 
   // clear the existing items
@@ -137,6 +143,7 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
       const timeDiff = now - (lastClickTimeRef.current ?? 0);
       const sameNode = lastClickIdRef.current === d.id;
       const withinDoubleClickTime = timeDiff <= 250;
+      const { selectedNodeId, setSelectedNodeId } = selectionRef.current;
       const skipToggle = withinDoubleClickTime && d.id === selectedNodeId;
 
       lastClickTimeRef.current = now;
@@ -194,6 +201,17 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
   };
 
   if (autoArrange) {
+    const placedCount = d3Graph.nodes.filter(d => d.placed).length;
+    const layout = keepPositions ? layoutFor(placedCount, d3Graph.nodes.length) : "whole";
+    if (layout !== "whole") {
+      d3Graph.nodes
+        .filter(d => d.placed)
+        .forEach(d => {
+          d.fx = d.x;
+          d.fy = d.y;
+        });
+    }
+
     // Create a new force simulation and assign forces
     simulation = d3
       .forceSimulation(d3Graph.nodes)
@@ -202,20 +220,35 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
       .force("x", d3.forceX())
       .force("y", d3.forceY())
       .on("tick", tick);
+    // the ticks below lay the graph out; the simulation's own timer would run its ticks again in the background
+    simulation.stop();
 
-    // ensure node values before calculating edge positions
-    while (simulation.alpha() > simulation.alphaMin()) {
-      simulation.tick();
+    // a redraw of a graph already laid out (its states are pinned) has nothing to place
+    if (d3Graph.nodes.some(d => d.fx == null)) {
+      if (layout === "new") {
+        simulation.alpha(0.3);
+        for (let i = 0; i < 30; i++) {
+          simulation.tick();
+        }
+      } else {
+        while (simulation.alpha() > simulation.alphaMin()) {
+          simulation.tick();
+        }
+      }
     }
 
     onAutoArrangeEnd?.(d3Graph.nodes);
 
     // pin the nodes so that dragging does not cause a force layout change
     d3Graph.nodes
-      .forEach((d: any) => {
+      .forEach(d => {
         d.fx = d.x;
         d.fy = d.y;
       });
+
+    // the simulation's timer is stopped, so no tick has moved the states and labels to their laid-out places
+    circles.attr("cx", d => d.x).attr("cy", d => d.y);
+    labels.attr("x", d => d.x).attr("y", d => d.y);
   }
 
   // calculate the edge positions
@@ -241,9 +274,12 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
     .attr("x2", d => d.targetX)
     .attr("y1", d => d.sourceY)
     .attr("y2", d => d.targetY)
-    .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
+    .attr("style", drawingMode === "delete" || selectEdges ? "cursor: pointer" : "")
     .on("click", (e, d) => {
       onEdgeClick?.({ from: d.source.id, to: d.target.id });
+      if (selectEdges) {
+        onEdgeSelect({ from: d.source.id, to: d.target.id });
+      }
     })
     ;
 
@@ -268,10 +304,20 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
     .on("click", (e, d) => {
       // this is not really needed as the pointer events are off
       onEdgeClick?.({ from: d.source.id, to: d.target.id });
+      if (selectEdges) {
+        onEdgeSelect({ from: d.source.id, to: d.target.id });
+      }
     })
     ;
 
-  const loopStyle = drawingMode === "delete" ? "cursor: pointer" : "pointer-events: none";
+  const loopStyle = drawingMode === "delete" || selectEdges ? "cursor: pointer" : "pointer-events: none";
+  const handleLoopClick = (id: string) => {
+    if (selectEdges) {
+      onEdgeSelect({ from: id, to: id });
+    } else {
+      onNodeClick?.(id, true);
+    }
+  };
 
   const loopBackgrounds = root
     .selectAll("path.loop-background")
@@ -286,9 +332,7 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
     .attr("fill-opacity", 0)
     .attr("stroke-width", 15)
     .attr("style", loopStyle)
-    .on("click", (e, d) => {
-      onNodeClick?.(d.id, true);
-    })
+    .on("click", (e, d) => handleLoopClick(d.id))
     ;
 
   const loops = root
@@ -305,9 +349,7 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
     .attr("stroke-width", d => d.loopWeight)
     .attr("marker-end", arrowUrl)
     .attr("style", loopStyle)
-    .on("click", (e, d) => {
-      onNodeClick?.(d.id, true);
-    })
+    .on("click", (e, d) => handleLoopClick(d.id))
     ;
 
   const rubberBandNode = d3Graph.nodes.find(n => n.id === rubberBand?.from);
@@ -367,7 +409,7 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
     }
   }
 
-  highlightSelected(svg);
+  selectionRef.current.highlightSelected(svg);
 
   return simulation;
 };

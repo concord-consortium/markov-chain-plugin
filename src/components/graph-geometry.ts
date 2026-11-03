@@ -8,6 +8,8 @@ export type D3Node = {
   y: number,
   fx?: number | null,
   fy?: number | null,
+  // with keepPositions, a state that keeps its position rather than being laid out
+  placed?: boolean,
   radius: number,
   loops: boolean
   loopWeight: number,

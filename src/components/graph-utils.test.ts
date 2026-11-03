@@ -1,5 +1,6 @@
 import {
-  arrowHeadReach, calculateNodeFontSize, graphSignature, nodeLoopPath, pullBackLineEnd, stateEdgeWeights
+  arrowHeadReach, calculateNodeFontSize, graphSignature, isPlaced, layoutFor, nodeLoopPath, pullBackLineEnd,
+  startPosition, stateEdgeWeights
 } from "./graph-utils";
 
 describe("stateEdgeWeights", () => {
@@ -106,5 +107,56 @@ describe("calculateNodeFontSize", () => {
     expect(label).toBe("<i>abc...");
     expect(measured().textContent).toBe("<i>abc...");
     expect(measured().children).toHaveLength(0);
+  });
+});
+
+describe("isPlaced", () => {
+  it("places a state already drawn or given both coordinates, with keepPositions", () => {
+    expect(isPlaced(true, false, { x: 10, y: 20 })).toBe(true);
+    expect(isPlaced(true, false, { x: 10 })).toBe(false);
+    expect(isPlaced(true, false, {})).toBe(false);
+    expect(isPlaced(true, true, {})).toBe(true);
+  });
+
+  it("places nothing without keepPositions", () => {
+    expect(isPlaced(false, false, { x: 10, y: 20 })).toBe(false);
+    expect(isPlaced(false, true, {})).toBe(false);
+  });
+});
+
+describe("layoutFor", () => {
+  it("lays out the whole graph when more than half its states are new", () => {
+    expect(layoutFor(0, 10)).toBe("whole");
+    expect(layoutFor(4, 10)).toBe("whole");
+  });
+
+  it("lays out only the new states when at most half are new", () => {
+    expect(layoutFor(5, 10)).toBe("new");
+    expect(layoutFor(9, 10)).toBe("new");
+  });
+
+  it("lays out nothing when no state is new", () => {
+    expect(layoutFor(10, 10)).toBe("none");
+  });
+});
+
+describe("startPosition", () => {
+  const placed = new Map([["a", { x: 100, y: 50 }]]);
+
+  it("starts a new state beside a placed state with an arrow to it", () => {
+    expect(startPosition("b", [{ from: "c", to: "d" }, { from: "a", to: "b" }], placed)).toEqual({ x: 130, y: 80 });
+  });
+
+  it("starts a state beside the first of its placed sources, in arrow order", () => {
+    const sources = new Map([["a", { x: 100, y: 50 }], ["c", { x: -40, y: 10 }]]);
+    expect(startPosition("b", [{ from: "c", to: "b" }, { from: "a", to: "b" }], sources)).toEqual({ x: -10, y: 40 });
+  });
+
+  it("starts a state with no placed source at the origin", () => {
+    expect(startPosition("b", [{ from: "b", to: "a" }], placed)).toEqual({ x: 0, y: 0 });
+  });
+
+  it("ignores an arrow from a state that isn't placed", () => {
+    expect(startPosition("b", [{ from: "c", to: "b" }], placed)).toEqual({ x: 0, y: 0 });
   });
 });

@@ -1,6 +1,6 @@
 import { ellipse, selectedNodeColor } from "../support/graph";
 
-// colors from graph.tsx
+// colors from graph-highlight.ts
 const incomingArrowColor = "#0081ff";
 const outgoingArrowColor = "#ff9900";
 const animatedNodeColor = "#FF00877f";
@@ -81,6 +81,23 @@ describe("Highlighting", () => {
     cy.plugin().find(".sequence").click();
     cy.plugin().find(".sequence.highlighted").should("not.exist");
     cy.plugin().find(`g.node ellipse[fill='${animatedNodeColor}']`).should("not.exist");
+    cy.plugin().find(`g.node ellipse${faded}, g.node text${faded}`).should("not.exist");
+  });
+
+  it("clears a selection's and an output's fading when a sequence steps", () => {
+    cy.plugin().find("select").first().select("a");
+    cy.clickState("b");
+    ellipse("d").should("match", faded);
+    cy.plugin().contains("button", "Step").click();
+    ellipse("d").should("have.length", 1);
+    expectUnfaded(["d"]);
+
+    for (let i = 0; i < 4; i++) {
+      cy.plugin().contains("button", "Step").click();
+    }
+    cy.plugin().find(".sequence").should("have.text", "a b c").click();
+    ellipse("d").should("match", faded);
+    cy.plugin().contains("button", "Step").click();
     cy.plugin().find(`g.node ellipse${faded}, g.node text${faded}`).should("not.exist");
   });
 });

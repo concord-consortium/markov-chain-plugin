@@ -39,7 +39,7 @@ Cypress.Commands.add("resizePlugin", (width: number, height: number) => {
   cy.fakeCodap().then(fake => fake.resize(width, height));
 });
 
-// the graph reads two clicks on a state within 250 ms as a double-click (graph.tsx)
+// the graph reads two clicks on a state within 250 ms as a double-click (graph-draw.ts)
 const doubleClickTime = 250;
 
 const triggerStateClick = (label: string) => {

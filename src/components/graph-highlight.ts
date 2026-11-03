@@ -23,9 +23,60 @@ export const unselectedLoopArrowUrl = "url(#unselectedLoopArrow)";
 
 export type GraphSelection = d3.Selection<any, unknown, any, unknown>;
 
+export interface HighlightSelectedOptions {
+  selectedNodeId?: string;
+  selectedEdge?: { from: string, to: string };
+  animating: boolean;
+  graph: GraphData;
+}
+
+const highlightSelectedEdge = (svg: GraphSelection, { from, to }: { from: string, to: string }) => {
+  const ends = [from, to];
+
+  svg
+    .selectAll("g.node")
+    .selectAll("ellipse")
+    .style("opacity", unselectedOpacity)
+    .filter((d: any) => ends.includes(d.id))
+    .style("opacity", 1);
+
+  svg
+    .selectAll("line.edge")
+    .style("opacity", unselectedOpacity)
+    .attr("marker-end", unselectedArrowUrl)
+    .filter((d: any) => d.source?.id === from && d.target?.id === to)
+    .attr("stroke", outgoingArrowColor)
+    .attr("marker-end", outgoingArrowUrl)
+    .style("opacity", 1);
+
+  svg
+    .selectAll("path.loop")
+    .style("opacity", unselectedOpacity)
+    .attr("marker-end", unselectedLoopArrowUrl)
+    .filter((d: any) => from === to && d.id === from)
+    .attr("stroke", selectedLoopArrowColor)
+    .attr("stroke-dasharray", "")
+    .attr("marker-end", selectedLoopArrowUrl)
+    .style("opacity", 1);
+
+  svg
+    .selectAll("g.node")
+    .selectAll("text")
+    .style("opacity", unselectedOpacity)
+    .filter((d: any) => ends.includes(d.id))
+    .style("opacity", 1);
+};
+
 export const highlightSelected = (svg: GraphSelection,
-  { selectedNodeId, animating, graph }: { selectedNodeId?: string, animating: boolean, graph: GraphData }) => {
-  if (animating || !selectedNodeId) {
+  { selectedNodeId, selectedEdge, animating, graph }: HighlightSelectedOptions) => {
+  if (animating) {
+    return;
+  }
+  if (selectedEdge) {
+    highlightSelectedEdge(svg, selectedEdge);
+    return;
+  }
+  if (!selectedNodeId) {
     return;
   }
 
