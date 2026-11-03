@@ -119,13 +119,14 @@ module.exports = defineConfig(
       "@typescript-eslint/prefer-optional-chain": "warn"
     }
   },
-  { // the shared Markov tool reaches CODAP only through its host
+  { // the shared Markov tool reaches CODAP only through its host, and the Markov Interactive never reaches it
     files: ["src/components/**", "src/hooks/**", "src/utils/chain-graph.ts", "src/utils/text-to-graph.ts",
-            "src/utils/generate-sequence.ts", "src/utils/plugin-state.ts"],
+            "src/utils/generate-sequence.ts", "src/utils/plugin-state.ts", "src/interactive/**"],
     rules: {
       "no-restricted-imports": ["error", { patterns: [{
-        group: ["**/codap/**", "**/codap-interface", "**/codap-helper", "**/output-dataset", "**/attribute-values"],
-        message: "The Markov tool reaches CODAP only through its MarkovHost."
+        group: ["**/codap/**", "**/codap-interface", "**/codap-helper", "**/codap-request", "**/output-dataset",
+                "**/attribute-values"],
+        message: "The Markov tool reaches CODAP only through its MarkovHost, and the Markov Interactive not at all."
       }] }]
     }
   },

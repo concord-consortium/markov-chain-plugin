@@ -1,0 +1,265 @@
+@use "../../components/markov-panel" as *;
+
+// sizes come from pane-sizes.ts, set as custom properties on the workspace
+.markov-workspace {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pane-gap);
+
+  // a pane's body is a flex container, whose display would otherwise beat the browser's rule for [hidden]
+  [hidden] {
+    display: none !important;
+  }
+
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--pane-gap);
+    min-height: var(--controls-row);
+  }
+
+  .top-row {
+    display: flex;
+    column-gap: var(--pane-gap);
+  }
+
+  .pane {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid #c7c7c7;
+    border-radius: 3px;
+    background-color: #fff;
+
+    .pane-header {
+      box-sizing: border-box;
+      display: flex;
+      flex: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      height: var(--pane-header);
+      padding: 0 3px 0 8px;
+      background-color: #eef3f5;
+
+      h2 {
+        margin: 0;
+        overflow: hidden;
+        font-size: 14px;
+        font-weight: bold;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .pane-toggle {
+      flex: none;
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border: solid 1px #177991;
+      border-radius: 3px;
+      background-color: #fff;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .pane-body {
+      position: relative;
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+  }
+
+  .top-row .pane {
+    &.graph-pane {
+      flex: 1 1 0;
+    }
+
+    // a collapsed pane is a strip with its title running down it
+    &.collapsed {
+      flex: 0 0 var(--collapsed-strip);
+
+      .pane-header {
+        flex-direction: column;
+        justify-content: flex-start;
+        height: 100%;
+        padding: 5px 0;
+
+        h2 {
+          writing-mode: vertical-rl;
+        }
+      }
+    }
+  }
+
+  &.stacked {
+    .top-row {
+      flex-wrap: wrap;
+      row-gap: var(--pane-gap);
+    }
+
+    .top-row .pane {
+      flex: 0 0 100%;
+      height: var(--pane-top);
+
+      // stacked, a collapsed pane is its header alone, with the title across it
+      &.collapsed {
+        flex: 0 0 100%;
+        height: auto;
+
+        .pane-header {
+          flex-direction: row;
+          justify-content: space-between;
+          height: var(--pane-header);
+          padding: 0 3px 0 8px;
+
+          h2 {
+            writing-mode: horizontal-tb;
+          }
+        }
+      }
+    }
+  }
+
+  .input-pane-content {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    padding: 5px;
+
+    .text-input {
+      flex: 1;
+      min-width: 0;
+      resize: none;
+      font: inherit;
+    }
+  }
+
+  .graph-pane-content {
+    display: flex;
+    flex: 1;
+    gap: 5px;
+    min-width: 0;
+    padding: 5px;
+
+    .graph {
+      position: relative;
+      min-width: 0;
+      flex-shrink: 1;
+
+      svg {
+        display: block;
+        height: 100%;
+      }
+    }
+
+    .graph-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #737373;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .toolbar {
+      flex: none;
+      align-self: flex-start;
+      gap: var(--toolbar-gap);
+
+      .top, .bottom {
+        gap: var(--toolbar-gap);
+      }
+
+      // the toolbar always renders its bottom group, which would add a gap empty
+      .bottom:empty {
+        display: none;
+      }
+    }
+
+    // a toolbar taller than the pane puts its buttons in two columns, in their order
+    &.two-columns .toolbar {
+      display: grid;
+      grid-template-columns: repeat(2, var(--toolbar-button));
+      width: auto;
+
+      .top, .bottom {
+        display: contents;
+      }
+    }
+  }
+
+  .generator-pane {
+    @include markov-generator-and-output;
+
+    .generator-pane-content {
+      display: flex;
+      flex: 1;
+      gap: 10px;
+      min-width: 0;
+      padding: 0 5px;
+      background-color: #dddddd7f;
+    }
+
+    .generator-controls {
+      position: relative;
+      flex: none;
+      min-width: 160px;
+      overflow-x: hidden;
+      overflow-y: auto;
+
+      // tighter than the plugin's, so the default controls fit the generator's minimum height
+      line-height: 1.2;
+
+      .generate {
+        gap: 5px;
+
+        .flex-col {
+          gap: 4px;
+        }
+      }
+
+      &.collapsed {
+        min-width: 0;
+      }
+
+      // in the corner beside the first control's label
+      .controls-toggle {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 0 6px;
+      }
+
+      &.collapsed .controls-toggle {
+        position: static;
+      }
+    }
+
+    .sequence-output {
+      min-width: 0;
+    }
+  }
+
+  // outputs alternate, sequence by sequence; a highlighted output keeps its own color, set by a longer selector
+  .sequence-output .sequence:nth-child(even) {
+    background-color: #f4f8fb;
+  }
+  .sequence-output .sequence:nth-child(odd) {
+    background-color: #fbfaf4;
+  }
+
+  @include markov-node-modal;
+}
+
+.draw-mode-message {
+  margin: 10px;
+}

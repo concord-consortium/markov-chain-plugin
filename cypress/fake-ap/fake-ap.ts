@@ -23,7 +23,7 @@ export type InteractiveMessage = { type: string, content: unknown };
 export type ItemsType = "fullAnswer" | "compactAnswer";
 
 const messageTypes = [
-  "supportedFeatures", "authoredState", "interactiveState", "height", "reportItemClientReady", "reportItemAnswer"
+  "supportedFeatures", "authoredState", "interactiveState", "height", "reportItemClientReady", "reportItemAnswer", "log"
 ];
 
 let options: StartOptions = { mode: "runtime" };

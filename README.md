@@ -112,7 +112,10 @@ The repo also builds the Markov Interactive, an Activity Player interactive with
 beside the plugin:
 
 - `interactive.html`: the interactive, in LARA's authoring, the Activity Player's runtime, and the class dashboard's
-  read-only page for one student's answer.
+  read-only page for one student's answer. Its runtime is the student's workspace: the Input, Graph and Inspect panes
+  and the sequence generator, around the plugin's shared Markov tool. The student's input is saved as the interactive
+  state, and the interactions the workspace logs to the Activity Player are listed in
+  [LOGGED-EVENTS.md](LOGGED-EVENTS.md).
 - `report-item.html`: its report item, which answers the class dashboard.
 - `demo.html`: the Demo and Standalone Authoring page, with the authoring form beside the interactive.
 
