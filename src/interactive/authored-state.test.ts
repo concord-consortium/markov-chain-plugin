@@ -20,6 +20,7 @@ const expectedDefaults: MarkovAuthoredState = {
   },
   inputView: "textAndTable",
   capitalization: "lowercase",
+  showCaseSwitch: true,
   orderMatters: { startsOn: true, showSwitch: true },
   startingText: "",
 };
@@ -41,6 +42,7 @@ const customState: MarkovAuthoredState = {
   },
   inputView: "table",
   capitalization: "asTyped",
+  showCaseSwitch: false,
   orderMatters: { startsOn: false, showSwitch: false },
   startingText: "the cat sat on the mat",
 };
@@ -115,10 +117,18 @@ describe("readAuthoredState", () => {
     ["the download button", { buttons: { downloadTables: { available: "yes" } } }],
     ["the input view", { inputView: "both" }],
     ["the capitalization", { capitalization: "upper" }],
+    ["the case switch", { showCaseSwitch: "no" }],
     ["order matters", { orderMatters: { startsOn: "yes", showSwitch: null } }],
     ["the starting text", { startingText: 42 }],
   ])("reads invalid %s as the default", (_, raw) => {
     expect(readAuthoredState(raw)).toEqual(expectedDefaults);
+  });
+
+  it("shows the case switch in a state saved before the setting, and keeps a saved choice", () => {
+    expect(readAuthoredState({ version: 1, capitalization: "lowercase" })).toEqual(expectedDefaults);
+    expect(readAuthoredState({ showCaseSwitch: false }).showCaseSwitch).toBe(false);
+    expect(readAuthoredState({ showCaseSwitch: true, capitalization: "asTyped" }))
+      .toEqual({ ...expectedDefaults, capitalization: "asTyped" });
   });
 
   it("ignores a starting state for a button with no on or off", () => {

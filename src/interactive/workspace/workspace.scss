@@ -193,6 +193,61 @@
     }
   }
 
+  // a student's on or off setting; its name wraps and the switch and its Yes or No keep their size
+  .setting-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+
+    .setting-switch-name {
+      flex: 0 1 auto;
+      min-width: 0;
+      white-space: normal;
+    }
+
+    .setting-switch-track {
+      position: relative;
+      flex: none;
+      width: 32px;
+      height: 18px;
+      padding: 0;
+      border: solid 1px #177991;
+      border-radius: 9px;
+      background-color: #fff;
+      cursor: pointer;
+
+      &[aria-checked="true"] {
+        background-color: #177991;
+
+        .setting-switch-thumb {
+          left: 16px;
+          background-color: #fff;
+        }
+      }
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+    }
+
+    .setting-switch-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #177991;
+    }
+
+    .setting-switch-value {
+      flex: none;
+      min-width: 2em;
+    }
+  }
+
   .input-pane-content {
     display: flex;
     flex: 1;
@@ -200,6 +255,10 @@
     gap: 5px;
     min-width: 0;
     padding: var(--pane-padding);
+
+    > .setting-switch {
+      align-self: flex-start;
+    }
 
     > .text-input, > .input-table {
       flex: 1;

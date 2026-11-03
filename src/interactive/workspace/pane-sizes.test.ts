@@ -1,6 +1,7 @@
 import {
-  defaultPaneSizes, dividerBand, dividerLimits, dragDivider, dragInputSplit, drawnRowHeight, fitPaneSizes,
-  graphBodyHeight, movesDivider, resizedPanes, toolbarColumns, toolbarHeight, workspaceHeight
+  defaultPaneSizes, dividerBand, dividerLimits, dragDivider, dragInputSplit, drawnInputSplit, drawnRowHeight,
+  fitPaneSizes, graphBodyHeight, inputPartMin, movesDivider, movesInputSplit, resizedPanes, toolbarColumns,
+  toolbarHeight, workspaceHeight
 } from "./pane-sizes";
 
 const allOpen = { input: true, graph: true, inspect: true };
@@ -73,6 +74,19 @@ describe("dragInputSplit", () => {
     expect(dragInputSplit(0.4, -200, 300)).toBeCloseTo(0.2, 10);
     expect(dragInputSplit(0.4, 200, 300)).toBeCloseTo(0.8, 10);
   });
+
+  it("gives each part half a body too short for both minimums, so the limits never cross", () => {
+    expect(inputPartMin(300)).toBe(60);
+    expect(inputPartMin(100)).toBe(50);
+    expect(dragInputSplit(0.4, -200, 100)).toBeCloseTo(0.5, 10);
+    expect(dragInputSplit(0.4, 200, 100)).toBeCloseTo(0.5, 10);
+  });
+
+  it("draws a stored split within the parts' minimums, and as stored before the body is measured", () => {
+    expect(drawnInputSplit(0.4, 144)).toBeCloseTo(60 / 144, 10);
+    expect(drawnInputSplit(0.4, 300)).toBe(0.4);
+    expect(drawnInputSplit(0.4, 0)).toBe(0.4);
+  });
 });
 
 describe("fitPaneSizes", () => {
@@ -120,6 +134,15 @@ describe("resizedPanes", () => {
   it("never narrows Input for a drag to the right in a row too narrow for the stored sizes", () => {
     const moved = resizedPanes(defaultPaneSizes, "input", 60, 680, allOpen);
     expect(fitPaneSizes(moved, 680, allOpen).input).toBeGreaterThanOrEqual(235);
+  });
+});
+
+describe("movesInputSplit", () => {
+  it("counts a move past half a pixel as drawn, so a split held at half a short body is unmoved", () => {
+    expect(movesInputSplit(0.4, 0.5, 119)).toBe(false);
+    expect(movesInputSplit(0.4, 0.5, 300)).toBe(true);
+    expect(movesInputSplit(0.4, 0.4 + 0.6 / 300, 300)).toBe(true);
+    expect(movesInputSplit(0.4, 0.4 + 0.4 / 300, 300)).toBe(false);
   });
 });
 

@@ -54,7 +54,9 @@ export interface MarkovAuthoredState {
   panes: Record<PaneId, PaneSettings>;
   buttons: Record<ButtonId, ButtonSettings>;
   inputView: InputView;
+  // the "Case sensitive" switch's starting value
   capitalization: Capitalization;
+  showCaseSwitch: boolean;
   orderMatters: { startsOn: boolean, showSwitch: boolean };
   startingText: string;
 }
@@ -76,6 +78,7 @@ export const defaultAuthoredState: MarkovAuthoredState = {
   },
   inputView: "textAndTable",
   capitalization: "lowercase",
+  showCaseSwitch: true,
   orderMatters: { startsOn: true, showSwitch: true },
   startingText: "",
 };
@@ -107,15 +110,21 @@ export const inputViewHelp: Record<InputView, string> = {
   textAndTable: "Students see their text and a table of its words; changing one changes the other.",
 };
 export const capitalizationLabels: Record<Capitalization, string> = {
-  lowercase: "\"The\" and \"the\" are the same word", asTyped: "\"The\" and \"the\" are different words"
+  lowercase: "No: \"The\" and \"the\" are the same word", asTyped: "Yes: \"The\" and \"the\" are different words"
 };
+export const yesNo = (value: boolean) => value ? "Yes" : "No";
+
+// the switch's name, shared by the form, the summary and the workspace
+export const caseSensitiveLabel = "Case sensitive";
+
 export const settingLabels = {
   modes: "Modes",
   usableModes: "Usable mode(s)",
   startingMode: "Starting mode",
   useData: "Data settings",
   inputView: "How students enter their data",
-  capitalization: "Capital letters",
+  capitalization: `${caseSensitiveLabel} at the start`,
+  showCaseSwitch: `Show students the "${caseSensitiveLabel}" switch`,
   ordering: "Ordering",
   orderMattersStartsOn: "Start with \"Order matters\" on",
   orderMattersShowSwitch: "Show students the \"Order matters\" switch",
@@ -207,6 +216,7 @@ export const readAuthoredState = (raw: unknown): MarkovAuthoredState => {
     buttons: readButtons(saved.buttons),
     inputView: readChoice(saved.inputView, inputViews, defaultAuthoredState.inputView),
     capitalization: readChoice(saved.capitalization, capitalizations, defaultAuthoredState.capitalization),
+    showCaseSwitch: readBoolean(saved.showCaseSwitch, defaultAuthoredState.showCaseSwitch),
     orderMatters: {
       startsOn: readBoolean(orderMatters.startsOn, defaultAuthoredState.orderMatters.startsOn),
       showSwitch: readBoolean(orderMatters.showSwitch, defaultAuthoredState.orderMatters.showSwitch),

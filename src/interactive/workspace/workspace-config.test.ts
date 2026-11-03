@@ -15,6 +15,7 @@ const dataConfig: WorkspaceConfig = {
   panes: allOpen as WorkspaceConfig["panes"],
   inputView: "textAndTable",
   capitalization: "lowercase",
+  caseSwitch: true,
   modeSwitch: false,
   orderMatters: { startsOn: true, showSwitch: true },
   probabilities: { startsOn: false, showToggle: true },
@@ -26,6 +27,7 @@ const drawConfig: WorkspaceConfig = {
   ...dataSettings,
   mode: "draw",
   panes: allOpen.slice(1) as WorkspaceConfig["panes"],
+  caseSwitch: false,
   orderMatters: { startsOn: true, showSwitch: false },
 };
 
@@ -41,6 +43,12 @@ describe("workspaceConfig", () => {
   it("adds the Data/Draw switch with both modes, in either starting mode", () => {
     expect(workspaceConfig(withModes("both", "useData"))).toEqual({ ...dataConfig, modeSwitch: true });
     expect(workspaceConfig(withModes("both", "draw"))).toEqual({ ...drawConfig, modeSwitch: true });
+  });
+
+  it("shows the Case sensitive switch in Data mode only while the author shows it", () => {
+    expect(workspaceConfig(authored({ showCaseSwitch: true })).caseSwitch).toBe(true);
+    expect(workspaceConfig(authored({ showCaseSwitch: false })).caseSwitch).toBe(false);
+    expect(workspaceConfig(authored({ showCaseSwitch: true }), "draw").caseSwitch).toBe(false);
   });
 
   it("opens in the mode asked for, or else the starting mode", () => {

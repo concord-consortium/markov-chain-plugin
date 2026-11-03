@@ -56,11 +56,14 @@ export const dividerLimits = (sizes: PaneSizes, divider: PaneDivider, room: numb
   }
 };
 
-// whether a divider is drawn in a different place for sizes stored as to as for from, by half a pixel or more, since
-// fitted sizes reached by different sums can differ in their last digits
+// the least a divider is drawn away from where it was to count as moved, since fitted sizes reached by different sums
+// can differ in their last digits
+export const minDividerMove = 0.5;
+
+// whether a divider is drawn in a different place for sizes stored as to as for from
 export const movesDivider = (from: PaneSizes, to: PaneSizes, divider: PaneDivider, room: number, open: OpenPanes) => {
   const drawn = (stored: PaneSizes) => dividerLimits(fitPaneSizes(stored, room, open), divider, room, open).value;
-  return Math.abs(drawn(to) - drawn(from)) >= 0.5;
+  return Math.abs(drawn(to) - drawn(from)) >= minDividerMove;
 };
 
 // a divider moved by delta px (right or down), stopped where either pane beside it reaches its minimum
@@ -88,8 +91,17 @@ export const resizedPanes = (stored: PaneSizes, divider: PaneDivider, delta: num
 // stopped where the text box or the table reaches its minimum
 export const defaultInputSplit = 0.4;
 export const minInputPart = 60;
+// each part's minimum, or half the body where it is too short for both
+export const inputPartMin = (bodyHeight: number) => Math.min(minInputPart, bodyHeight / 2);
+// the split as drawn, within both parts' minimums; an unmeasured body draws it as stored
+export const drawnInputSplit = (split: number, bodyHeight: number) => bodyHeight > 0
+  ? clamp(split, inputPartMin(bodyHeight) / bodyHeight, 1 - inputPartMin(bodyHeight) / bodyHeight)
+  : split;
+// whether the split divider is drawn in a different place for a split stored as to as for from
+export const movesInputSplit = (from: number, to: number, bodyHeight: number) =>
+  Math.abs(drawnInputSplit(to, bodyHeight) - drawnInputSplit(from, bodyHeight)) * bodyHeight >= minDividerMove;
 export const dragInputSplit = (split: number, delta: number, bodyHeight: number) =>
-  clamp((split * bodyHeight + delta) / bodyHeight, minInputPart / bodyHeight, 1 - minInputPart / bodyHeight);
+  drawnInputSplit((drawnInputSplit(split, bodyHeight) * bodyHeight + delta) / bodyHeight, bodyHeight);
 
 // in a row narrower than the sizes need, Input and Inspect give up width toward their minimums, in proportion to
 // what each has above its minimum, so an open graph keeps its own; sizes that fit come back unchanged, the same object

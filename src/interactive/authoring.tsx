@@ -102,6 +102,8 @@ export const Authoring = ({ initialState }: Props) => {
       <Select<Capitalization> id="capitalization" label={settingLabels.capitalization} value={state.capitalization}
         choices={capitalizations} labels={capitalizationLabels}
         onChange={capitalization => update(current => ({ ...current, capitalization }))} />
+      <Checkbox id="showCaseSwitch" label={settingLabels.showCaseSwitch} checked={state.showCaseSwitch}
+        onChange={showCaseSwitch => update(current => ({ ...current, showCaseSwitch }))} />
       <fieldset className="form-group">
         <legend className="field-legend">{ settingLabels.ordering }</legend>
         <Checkbox id="orderMattersStartsOn" label={settingLabels.orderMattersStartsOn}

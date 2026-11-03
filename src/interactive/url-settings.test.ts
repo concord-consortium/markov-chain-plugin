@@ -12,6 +12,7 @@ const customState: MarkovAuthoredState = {
   },
   inputView: "table",
   capitalization: "asTyped",
+  showCaseSwitch: false,
   orderMatters: { startsOn: false, showSwitch: false },
   startingText: "the cat & the hat = 2?\nYes: 100% \"sure\"",
 };
@@ -36,6 +37,7 @@ describe("settings in a link", () => {
       ["buttons.downloadTables.available", "boolean"],
       ["inputView", "string"],
       ["capitalization", "string"],
+      ["showCaseSwitch", "boolean"],
       ["orderMatters.startsOn", "boolean"],
       ["orderMatters.showSwitch", "boolean"],
       ["startingText", "string"],

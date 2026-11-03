@@ -23,6 +23,7 @@ describe("the interactive's authoring form", () => {
     cy.interactive().find("#startingMode").should("have.value", "useData");
     cy.interactive().find("#inputView").should("have.value", "textAndTable");
     cy.interactive().find("#capitalization").should("have.value", "lowercase");
+    cy.interactive().find("#showCaseSwitch").should("be.checked");
     cy.interactive().find("#orderMattersStartsOn").should("be.checked");
     cy.interactive().find("#orderMattersShowSwitch").should("be.checked");
     cy.interactive().find("#startingText").should("have.value", "");
@@ -70,9 +71,11 @@ describe("the interactive's authoring form", () => {
       withChange({ startingMode: "draw" })],
     ["the input view", () => cy.interactive().find("#inputView").select("Table only"),
       withChange({ inputView: "table" })],
-    ["the capitalization",
-      () => cy.interactive().find("#capitalization").select("\"The\" and \"the\" are different words"),
+    ["the case sensitivity students start with",
+      () => cy.interactive().find("#capitalization").select("Yes: \"The\" and \"the\" are different words"),
       withChange({ capitalization: "asTyped" })],
+    ["the \"Case sensitive\" switch", () => cy.interactive().find("#showCaseSwitch").uncheck(),
+      withChange({ showCaseSwitch: false })],
     ["\"Order matters\" starts on", () => cy.interactive().find("#orderMattersStartsOn").uncheck(),
       withChange({ orderMatters: { startsOn: false, showSwitch: true } })],
     ["the \"Order matters\" switch", () => cy.interactive().find("#orderMattersShowSwitch").uncheck(),
@@ -122,7 +125,7 @@ describe("the interactive's authoring form", () => {
   it("opens showing a saved state", () => {
     const saved = withChange({
       modes: { useData: true, draw: true }, startingMode: "draw", inputView: "text", capitalization: "asTyped",
-      orderMatters: { startsOn: false, showSwitch: false }, startingText: "a big bag of words",
+      showCaseSwitch: false, orderMatters: { startsOn: false, showSwitch: false }, startingText: "a big bag of words",
       panes: {
         input: { available: true, startsOpen: false }, graph: { available: true, startsOpen: false },
         inspect: { available: false, startsOpen: true }, generator: { available: true, startsOpen: false },
@@ -136,6 +139,10 @@ describe("the interactive's authoring form", () => {
     cy.interactive().find("#startingMode").should("have.value", "draw");
     cy.interactive().find("#inputView").should("have.value", "text");
     cy.interactive().find("#capitalization").should("have.value", "asTyped");
+    cy.interactive().find("#capitalization").find("option:selected")
+      .should("have.text", "Yes: \"The\" and \"the\" are different words");
+    cy.interactive().find("label[for='capitalization']").should("have.text", "Case sensitive at the start");
+    cy.interactive().find("#showCaseSwitch").should("not.be.checked");
     cy.interactive().find("#orderMattersStartsOn").should("not.be.checked");
     cy.interactive().find("#orderMattersShowSwitch").should("not.be.checked");
     cy.interactive().find("#startingText").should("have.value", "a big bag of words");
@@ -170,8 +177,8 @@ describe("the interactive's authoring form", () => {
     // the form is on the page, so what isn't there was left off rather than not drawn yet
     cy.interactive().find("#pane-inspect-startsOpen").should("exist");
     cy.interactive().find("#usableModes").should("have.value", "draw");
-    ["#inputView", "#capitalization", "#orderMattersStartsOn", "#orderMattersShowSwitch", "#startingText",
-      "#pane-input", "#pane-input-startsOpen", "#pane-graph-startsOpen"].forEach(selector => {
+    ["#inputView", "#capitalization", "#showCaseSwitch", "#orderMattersStartsOn", "#orderMattersShowSwitch",
+      "#startingText", "#pane-input", "#pane-input-startsOpen", "#pane-graph-startsOpen"].forEach(selector => {
       cy.interactive().find(selector).should("not.exist");
     });
     cy.interactive().find("#usableModes").select("Both (with a toggle switch for students)");

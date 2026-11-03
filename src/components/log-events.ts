@@ -5,7 +5,7 @@ export const logEvents = [
   "GeneratorSettingChanged", "OutputCleared", "OutputSelected",
   "StateSelected", "TransitionSelected", "SelectionCleared", "StateDialogOpened", "StateMoved",
   "StateAdded", "TransitionAdded", "StateDeleted", "TransitionDeleted", "StateEdited", "TextToGraph", "GraphReset",
-  "InputCommitted", "TableRowAdded", "TableRowDeleted", "PaneOpened", "PaneClosed", "PaneResized", "InspectTabChosen",
-  "InspectSorted",
+  "InputCommitted", "CaseSensitivityChanged", "TableRowAdded", "TableRowDeleted", "PaneOpened", "PaneClosed",
+  "PaneResized", "InspectTabChosen", "InspectSorted",
 ] as const;
 export type LogEvent = typeof logEvents[number];

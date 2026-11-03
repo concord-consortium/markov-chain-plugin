@@ -1,6 +1,7 @@
 import {
   buttonLabels, capitalizationLabels, inputViewLabels, MarkovAuthoredState, modeLabels, PaneId, paneLabels,
-  settingLabels, shownPaneIds, showsStartingMode, showsStartsOpen, startsOpenLabel, usableModesLabels, usableModesOf
+  settingLabels, shownPaneIds, showsStartingMode, showsStartsOpen, startsOpenLabel, usableModesLabels, usableModesOf,
+  yesNo
 } from "./authored-state";
 
 export interface SettingSummary {
@@ -11,7 +12,6 @@ export interface SettingSummary {
 // how much of the starting text the summary repeats before giving its full length
 const startingTextPreviewLength = 100;
 
-const yesNo = (value: boolean) => value ? "Yes" : "No";
 const availability = (value: boolean) => value ? "Available" : "Not available";
 
 const startingTextValue = (text: string) => {
@@ -46,6 +46,7 @@ export const settingsSummary = (state: MarkovAuthoredState): SettingSummary[] =>
     ...(useData ? [
       { label: settingLabels.inputView, value: inputViewLabels[state.inputView] },
       { label: settingLabels.capitalization, value: capitalizationLabels[state.capitalization] },
+      { label: settingLabels.showCaseSwitch, value: yesNo(state.showCaseSwitch) },
       { label: settingLabels.orderMattersStartsOn, value: yesNo(state.orderMatters.startsOn) },
       { label: settingLabels.orderMattersShowSwitch, value: yesNo(state.orderMatters.showSwitch) },
       { label: settingLabels.startingText, value: startingTextValue(state.startingText) },

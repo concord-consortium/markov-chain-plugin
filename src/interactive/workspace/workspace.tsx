@@ -8,7 +8,7 @@ import {
 } from "../../components/graph-highlight";
 import { layoutFor } from "../../components/graph-utils";
 import { Node } from "../../type";
-import { MarkovAuthoredState } from "../authored-state";
+import { Capitalization, caseSensitiveLabel, MarkovAuthoredState } from "../authored-state";
 import { Token, tokenize, tokensToValues } from "../input/tokenizer";
 import { useApHost } from "./ap-host";
 import { CommitHow, CommitView } from "./commit";
@@ -25,6 +25,7 @@ import {
 } from "./pane-sizes";
 import { Divider } from "./divider";
 import { scrollTextToMark, scrollToLit } from "./scroll-to-lit";
+import { SettingLabel, SettingSwitch } from "./setting-switch";
 import { useLatest } from "./use-latest";
 import { useMeasuredSize } from "./use-measured-size";
 import { WorkspaceConfig, workspaceConfig, WorkspacePaneId } from "./workspace-config";
@@ -56,6 +57,8 @@ const cssValues = {
 
 // panes a commit redraws, so a press there would lose its click; a press elsewhere commits at once
 const redrawnByCommit = ".graph-pane .pane-body, .inspect-pane .pane-body";
+
+const stateCount = (values: string[]) => new Set(values.filter(value => value)).size;
 
 const sameValues = (a: string[], b: string[]) => a.length === b.length && a.every((value, i) => value === b[i]);
 
@@ -104,27 +107,36 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   // the view follows the graph, fitting it after each commit, until the student zooms or pans
   const followRef = useRef(true);
 
-  const commit = useCallback((nextText: string, how: CommitHow, view: CommitView) => {
-    const tokens = tokenize(nextText, config.capitalization);
+  const [capitalization, setCapitalization] = useState(config.capitalization);
+  // reads the text under a rule and hands the core its values when they changed, returning its tokens if they did
+  const commitText = useCallback((nextText: string, rule: Capitalization) => {
+    const tokens = tokenize(nextText, rule);
     const values = tokensToValues(tokens);
     setText(nextText);
     setCommitted({ text: nextText, tokens });
-    if (!sameValues(values, lastValuesRef.current)) {
-      if (laidOutWhole(lastValuesRef.current, values)) {
-        followRef.current = true;
-      }
-      lastValuesRef.current = values;
-      tool.handle.dataChanged(values, { fit: followRef.current });
-      host.log("InputCommitted",
-        { view, how, tokens: tokens.length, states: new Set(values.filter(value => value)).size });
-    }
     if (nextText !== lastSavedRef.current) {
       lastSavedRef.current = nextText;
       onSaveInput?.(nextText);
     }
-  }, [config.capitalization, tool.handle, host, onSaveInput]);
+    if (sameValues(values, lastValuesRef.current)) {
+      return undefined;
+    }
+    if (laidOutWhole(lastValuesRef.current, values)) {
+      followRef.current = true;
+    }
+    lastValuesRef.current = values;
+    tool.handle.dataChanged(values, { fit: followRef.current });
+    return tokens;
+  }, [tool.handle, onSaveInput]);
 
-  const liveTokens = useMemo(() => tokenize(text, config.capitalization), [text, config.capitalization]);
+  const commit = useCallback((nextText: string, how: CommitHow, view: CommitView) => {
+    const tokens = commitText(nextText, capitalization);
+    if (tokens) {
+      host.log("InputCommitted", { view, how, tokens: tokens.length, states: stateCount(lastValuesRef.current) });
+    }
+  }, [commitText, capitalization, host]);
+
+  const liveTokens = useMemo(() => tokenize(text, capitalization), [text, capitalization]);
   const highlights = useMemo(() => highlightsFor(tool.selection, committed.tokens),
     [tool.selection, committed.tokens]);
 
@@ -140,6 +152,17 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
     }
   }, [tool.graph, toolRef]);
   const textRef = useLatest(text);
+
+  const handleCaseChange = (caseSensitive: boolean) => {
+    const rule = caseSensitive ? "asTyped" : "lowercase";
+    setCapitalization(rule);
+    commitText(textRef.current, rule);
+    host.log("CaseSensitivityChanged", { caseSensitive, states: stateCount(lastValuesRef.current) });
+  };
+  const isCaseSensitive = capitalization === "asTyped";
+  const caseSwitch = config.caseSwitch &&
+    <SettingSwitch label={caseSensitiveLabel} value={isCaseSensitive} onChange={handleCaseChange}
+      disabled={tool.animating} />;
 
   const [open, setOpen] = useState<Record<string, boolean>>(
     () => Object.fromEntries(config.panes.map(pane => [pane.id, pane.startsOpen])));
@@ -272,6 +295,8 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   const resizeStartRef = useRef<PaneSizes>(undefined);
   // the sizes the last move stored, which a drag's end can arrive before React renders
   const movedToRef = useRef<PaneSizes>(undefined);
+  // whether the last move drew the divider somewhere else than where the resize started, in the row as it was then
+  const movedOnScreenRef = useRef(false);
   // a resize changes the graph's size, which it can measure after the resize ends, so it is fitted again then, unless
   // the student has taken the view since
   const fitWhenResizedRef = useRef(false);
@@ -297,6 +322,8 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   const moveDivider = (divider: PaneDivider, delta: number) => {
     const next = resizedPanes(moveFromRef.current ?? paneSizes, divider, delta, room, openPanes);
     movedToRef.current = next;
+    movedOnScreenRef.current = !!resizeStartRef.current &&
+      movesDivider(resizeStartRef.current, next, divider, room, openPanes);
     setPaneSizes(next);
   };
   const endResize = (divider: PaneDivider) => {
@@ -308,7 +335,7 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
       return;
     }
     // a move that changed nothing on screen keeps the sizes the student chose
-    if (!movesDivider(start, moved, divider, room, openPanes)) {
+    if (!movedOnScreenRef.current) {
       setPaneSizes(start);
     } else {
       host.log("PaneResized", { divider, sizes: moved });
@@ -384,7 +411,7 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
     switch (id) {
       case "input":
         return (
-          <InputPane view={inputView} split={inputSplit} onSplitChange={setInputSplit}
+          <InputPane caseSwitch={caseSwitch} view={inputView} split={inputSplit} onSplitChange={setInputSplit}
             onSplitResized={handleSplitResized} text={text} liveTokens={liveTokens}
             liveHighlights={highlightsFor(tool.selection, liveTokens)} committed={committed}
             highlights={highlights}
@@ -413,6 +440,8 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   return (
     <div className={clsx("markov-workspace", { stacked })} style={cssValues} ref={rootRef}>
       <div className="controls-row">
+        { hasInputPane ? undefined : caseSwitch }
+        { !config.caseSwitch && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
         { tool.selection &&
           <button type="button" className="clear-highlight" onClick={() => tool.clearSelection("button")}>
             Clear highlight

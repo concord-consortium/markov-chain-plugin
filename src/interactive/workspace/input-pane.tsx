@@ -5,11 +5,12 @@ import { CommitHow, CommitView } from "./commit";
 import { Highlights } from "./highlights";
 import { Divider } from "./divider";
 import { InputTable } from "./input-table";
-import { dragInputSplit, minInputPart, paneGap, panePadding } from "./pane-sizes";
+import { dragInputSplit, drawnInputSplit, inputPartMin, movesInputSplit, paneGap, panePadding } from "./pane-sizes";
 import { TextInput } from "./text-input";
 import { useMeasuredSize } from "./use-measured-size";
 
 interface InputPaneProps {
+  caseSwitch: React.ReactNode;
   view: InputView;
   // the text box's share of the height it shares with the table below it
   split: number;
@@ -47,6 +48,7 @@ export const InputPane = (props: InputPaneProps) => {
       afterPress={props.afterPress} onFocusToken={props.onFocusToken} />;
   return (
     <div className={`input-pane-content ${view}`}>
+      { props.caseSwitch }
       { view === "textAndTable"
         ? <LinkedInput split={props.split} onSplitChange={props.onSplitChange} onSplitResized={props.onSplitResized}
             textInput={textInput} table={table} />
@@ -69,17 +71,20 @@ const LinkedInput = ({ split, onSplitChange, onSplitResized, textInput, table }:
   const ref = useRef<HTMLDivElement | null>(null);
   // the height the text box and the table share, less the gap and the padding on each side of it
   const body = Math.max(0, (useMeasuredSize(ref)?.height ?? 0) - paneGap - 2 * panePadding);
+  const drawn = drawnInputSplit(split, body);
   const moveFromRef = useRef(split);
   const startRef = useRef<number>(undefined);
   // the split the last move set, which a drag's end can arrive before React renders
   const movedToRef = useRef(split);
+  // whether the last move drew the divider somewhere else than where the resize started, in the body as it was then
+  const movedOnScreenRef = useRef(false);
   return (
     <div className="linked-input" ref={ref}>
       <div className="input-text-part"
-        style={{ flexBasis: body ? split * body + panePadding : `${split * 100}%` }}>
+        style={{ flexBasis: body ? drawn * body + panePadding : `${split * 100}%` }}>
         { textInput }
-        <Divider orientation="horizontal" label="Resize the text box and the table" value={split * body}
-          min={minInputPart} max={body - minInputPart}
+        <Divider orientation="horizontal" label="Resize the text box and the table" value={drawn * body}
+          min={inputPartMin(body)} max={body - inputPartMin(body)}
           onStart={() => {
             moveFromRef.current = split;
             movedToRef.current = split;
@@ -88,14 +93,23 @@ const LinkedInput = ({ split, onSplitChange, onSplitResized, textInput, table }:
           onMove={delta => {
             if (body > 0) {
               movedToRef.current = dragInputSplit(moveFromRef.current, delta, body);
+              movedOnScreenRef.current = startRef.current !== undefined &&
+                movesInputSplit(startRef.current, movedToRef.current, body);
               onSplitChange(movedToRef.current);
             }
           }}
           onEnd={() => {
-            if (startRef.current !== undefined && startRef.current !== movedToRef.current) {
+            const start = startRef.current;
+            startRef.current = undefined;
+            if (start === undefined) {
+              return;
+            }
+            // a move that changed nothing on screen keeps the split the student chose
+            if (!movedOnScreenRef.current) {
+              onSplitChange(start);
+            } else {
               onSplitResized(movedToRef.current);
             }
-            startRef.current = undefined;
           }} />
       </div>
       <div className="input-table-part">{ table }</div>

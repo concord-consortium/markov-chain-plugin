@@ -1,5 +1,6 @@
 import {
-  minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, toolbarHeight, workspaceHeight
+  defaultPaneSizes, minInputPart, minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, toolbarHeight,
+  workspaceHeight
 } from "../../src/interactive/workspace/pane-sizes";
 import { selectedNodeColor } from "../support/graph";
 import {
@@ -1104,5 +1105,144 @@ describe("the workspace's dividers", () => {
     cy.get("iframe#interactive").invoke("attr", "width", "690");
     cy.interactive().find(".markov-workspace").should("have.class", "stacked");
     height(".generator-pane").should("equal", minPaneSizes.generator);
+  });
+});
+
+describe("the workspace's Case sensitive switch", () => {
+  const caseSwitch = () => cy.interactive().find(".setting-switch [role='switch']");
+  const states = () => cy.interactive().find(".inspect-pane tbody tr").invoke("toArray")
+    .invoke("map", (tr: HTMLTableRowElement) => [tr.cells[0].textContent, tr.cells[1].textContent]) as
+    unknown as Cypress.Chainable<string[][]>;
+  const tableValues = () => cy.interactive().find(".input-table-rows tbody input")
+    .invoke("toArray").invoke("map", (input: HTMLInputElement) => input.value);
+
+  it("reads the input again when switched, leaving the text and the table as typed", () => {
+    start({ startingText: "The cat. the cat" });
+    states().should(rows => {
+      expect(rows).to.deep.include(["the", "2"]);
+      expect(rows.map(([state]) => state)).not.to.include("The");
+    });
+    caseSwitch().should("have.attr", "aria-checked", "false");
+    cy.interactive().find(".input-pane .setting-switch").should("contain.text", "No");
+    tableValues().then(before => {
+      caseSwitch().click();
+      caseSwitch().should("have.attr", "aria-checked", "true");
+      cy.interactive().find(".input-pane .setting-switch").should("contain.text", "Yes");
+      states().should(rows => {
+        expect(rows).to.deep.include(["The", "1"]);
+        expect(rows).to.deep.include(["the", "1"]);
+      });
+      textBox().should("have.value", "The cat. the cat");
+      tableValues().should("deep.equal", before);
+    });
+    cy.interactive().find(".inspect-pane tbody tr").its("length").then(count => {
+      loggedEvents().should("deep.include", ["CaseSensitivityChanged", { caseSensitive: true, states: count }]);
+    });
+    commits().should("have.length", 0);
+  });
+
+  it("starts at the author's Yes, and switching to No makes \"The\" and \"the\" one state", () => {
+    start({ startingText: "The cat. the cat", capitalization: "asTyped" });
+    caseSwitch().should("have.attr", "aria-checked", "true");
+    states().should(rows => {
+      expect(rows).to.deep.include(["The", "1"]);
+      expect(rows).to.deep.include(["the", "1"]);
+    });
+    caseSwitch().click();
+    states().should(rows => {
+      expect(rows).to.deep.include(["the", "2"]);
+      expect(rows.map(([state]) => state)).not.to.include("The");
+    });
+    loggedEvents().should(events => expect(events.some(([action, data]) =>
+      action === "CaseSensitivityChanged" && (data as { caseSensitive: boolean }).caseSensitive === false))
+      .to.equal(true));
+  });
+
+  it("keeps the split the student chose, logging nothing, for a key that can't move the split divider", () => {
+    start({ startingText: "the cat" });
+    dragDivider("Resize the panes and the generator", 0, -1000);
+    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", minPaneSizes.top);
+    divider("Resize the text box and the table").focus();
+    divider("Resize the text box and the table").type("{downArrow}");
+    divider("Resize the text box and the table").blur({ force: true });
+    dragDivider("Resize the panes and the generator", 0, 1000);
+    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", defaultPaneSizes.top);
+    cy.interactive().find(".linked-input").should(linked => {
+      const body = linked[0].clientHeight - paneGap - 2 * panePadding;
+      const text = linked[0].querySelector(".text-input")!.getBoundingClientRect().height;
+      expect(text).to.be.closeTo(0.4 * body, 1);
+    });
+    loggedEvents().should(events => expect(events.filter(([action, data]) =>
+      action === "PaneResized" && (data as { divider: string }).divider === "inputSplit")).to.have.length(0));
+  });
+
+  it("hides the switch with the collapsed Input pane", () => {
+    start({ startingText: "the cat" });
+    cy.interactive().find("button[aria-label='Collapse Input']").click();
+    caseSwitch().should("not.be.visible");
+  });
+
+  it("can't be used while a sequence is generated", () => {
+    start({ startingText: "a b c a b c a b c" });
+    playButton().click();
+    caseSwitch().should("be.disabled");
+    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+    caseSwitch().should("be.enabled");
+  });
+
+  it("is a read-only label in the workspace's own row when the author hides it", () => {
+    start({ startingText: "the cat", showCaseSwitch: false });
+    cy.interactive().find(".controls-row .setting-label").should("have.text", "Case sensitive: No");
+    caseSwitch().should("not.exist");
+    start({ startingText: "the cat", showCaseSwitch: false, capitalization: "asTyped" });
+    cy.interactive().find(".controls-row .setting-label").should("have.text", "Case sensitive: Yes");
+  });
+
+  it("sits in the workspace's own row with no Input pane", () => {
+    start({ startingText: "the cat", panes: { input: { available: false } } });
+    cy.interactive().find(".controls-row .setting-switch [role='switch']").should("exist");
+  });
+
+  it("wraps its name to stay inside an Input pane at its minimum width", () => {
+    start({ startingText: "the cat" });
+    dragDivider("Resize Input and Graph", -1000, 0);
+    cy.interactive().find(".input-pane").invoke("outerWidth").should("equal", minPaneSizes.input);
+    cy.interactive().find(".input-pane .pane-body").then(body => {
+      const box = body[0].getBoundingClientRect();
+      cy.interactive().find(".input-pane .setting-switch").should(setting => {
+        expect(setting[0].getBoundingClientRect().right).to.be.at.most(box.right);
+        const name = setting[0].querySelector(".setting-switch-name")!;
+        expect(name.scrollWidth).to.be.at.most(name.clientWidth);
+      });
+    });
+  });
+
+  it("keeps the text box and the table each half the room the switch leaves at the smallest Input pane", () => {
+    start({ startingText: "the cat" });
+    dragDivider("Resize the panes and the generator", 0, -1000);
+    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", minPaneSizes.top);
+    dragDivider("Resize Input and Graph", -1000, 0);
+    cy.interactive().find(".input-pane").invoke("outerWidth").should("equal", minPaneSizes.input);
+    [-1000, 1000].forEach(dy => {
+      dragDivider("Resize the text box and the table", 0, dy);
+      cy.interactive().find(".linked-input").should(linked => {
+        const body = linked[0].clientHeight - paneGap - 2 * panePadding;
+        expect(body).to.be.below(2 * minInputPart);
+        const text = linked[0].querySelector(".text-input")!.getBoundingClientRect().height;
+        const table = linked[0].querySelector(".input-table")!.getBoundingClientRect().height;
+        expect(text).to.be.closeTo(body / 2, 1);
+        expect(table).to.be.closeTo(body / 2, 1);
+      });
+    });
+    divider("Resize the text box and the table").should(band =>
+      expect(Number(band.attr("aria-valuemin"))).to.be.at.most(Number(band.attr("aria-valuemax"))));
+  });
+
+  it("lets the workspace's own row wrap at 700 px", () => {
+    start({ startingText: "the cat sat", panes: { input: { available: false } } }, { width: 700 });
+    cy.interactive().find(".markov-workspace").should("not.have.class", "stacked");
+    clickState("cat");
+    cy.interactive().find(".clear-highlight").should("exist");
+    cy.interactive().find(".controls-row").should("have.css", "flex-wrap", "wrap");
   });
 });
