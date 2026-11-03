@@ -10,6 +10,7 @@ import { NodeModal } from "./drawing/node-modal";
 import { Tool, Toolbar } from "./toolbar";
 import { AddText } from "./drawing/add-text";
 import { textToWords, wordsToGraph } from "../utils/text-to-graph";
+import { MarkovHost } from "./host";
 
 import "./drawing.scss";
 
@@ -38,13 +39,14 @@ interface Props {
   onRecenterView: () => void;
   onDimensions?: (dimensions: {width: number, height: number}) => void;
   onClearHighlightOutput?: () => void;
+  log: MarkovHost["log"];
 }
 
 export const Drawing = (props: Props) => {
   const { highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId,
          fitViewAt, recenterViewAt, onClearHighlightOutput, graphOpacity, resetViewAt,
-         selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView } = props;
+         selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView, log } = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
@@ -132,19 +134,25 @@ export const Drawing = (props: Props) => {
     }
   };
 
+  const label = useCallback((id: string) => getNode(id)?.label ?? id, [getNode]);
+
   const addNode = useCallback(({ x, y }: {x: number, y: number}) => {
+    const id = nanoid();
+    const newLabel = `State ${graph.nodes.length + 1}`;
     setGraph(prev => {
-      const id = nanoid();
-      const label = `State ${prev.nodes.length + 1}`;
-      const newNode: Node = { id, label, value: 1, x, y };
+      const newNode: Node = { id, label: newLabel, value: 1, x, y };
       return {
         nodes: [...prev.nodes, newNode],
         edges: prev.edges
       };
     });
-  }, [setGraph]);
+    log("StateAdded", { state: newLabel });
+  }, [graph, setGraph, log]);
 
   const addEdge = useCallback(({ from, to }: {from: string, to: string}) => {
+    if (!graph.edges.some(e => e.from === from && e.to === to)) {
+      log("TransitionAdded", { from: label(from), to: label(to) });
+    }
     setGraph(prev => {
       const newEdge: Edge = { from, to, value: 1 };
       const prevEdge = prev.edges.find(e => e.from === from && e.to === to);
@@ -157,7 +165,7 @@ export const Drawing = (props: Props) => {
         return prev;
       }
     });
-  }, [setGraph]);
+  }, [graph, setGraph, label, log]);
 
   const handleClicked = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (drawingMode === "addNode") {
@@ -187,6 +195,11 @@ export const Drawing = (props: Props) => {
     }
 
     if (drawingMode === "delete") {
+      if (onLoop) {
+        log("TransitionDeleted", { from: node.label, to: node.label });
+      } else {
+        log("StateDeleted", { state: node.label });
+      }
       setGraph(prev => {
         const nodes = [...prev.nodes];
         let edges = [...prev.edges];
@@ -212,21 +225,23 @@ export const Drawing = (props: Props) => {
         };
       });
     }
-  }, [addEdge, drawingMode, getNode, firstEdgeNode, setFirstEdgeNode, setGraph]);
+  }, [addEdge, drawingMode, getNode, firstEdgeNode, setFirstEdgeNode, setGraph, log]);
 
   const handleNodeDoubleClicked = useCallback((id: string) => {
     if (drawingMode === "select") {
       setSelectedNodeForModal(getNode(id));
+      log("StateDialogOpened", { state: label(id) });
     }
     if (drawingMode === "addEdge") {
       addEdge({ from: id, to: id });
       setFirstEdgeNode(undefined);
       setRubberBand(undefined);
     }
-  }, [drawingMode, addEdge, getNode]);
+  }, [drawingMode, addEdge, getNode, label, log]);
 
   const handleEdgeClicked = useCallback(({ from, to }: {from: string, to: string}) => {
     if (drawingMode === "delete") {
+      log("TransitionDeleted", { from: label(from), to: label(to) });
       setGraph(prev => {
         const edges = [...prev.edges];
         const edgeIndex = prev.edges.findIndex(e => e.from === from && e.to === to);
@@ -238,9 +253,10 @@ export const Drawing = (props: Props) => {
         }
       });
     }
-  }, [setGraph, drawingMode]);
+  }, [setGraph, drawingMode, label, log]);
 
   const handleDragStop = useCallback((id: string, { x, y }: Point) => {
+    log("StateMoved", { state: label(id) });
     setGraph(prev => {
       const nodeIndex = prev.nodes.findIndex(n => n.id === id);
       if (nodeIndex !== -1) {
@@ -253,7 +269,7 @@ export const Drawing = (props: Props) => {
       }
       return prev;
     });
-  }, [setGraph]);
+  }, [setGraph, label, log]);
 
   const handleAutoArrangeEnd = useCallback((nodes: D3Node[]) => {
     const d3NodesById = nodes.reduce<Record<string,D3Node>>((acc, cur) => {
@@ -277,6 +293,11 @@ export const Drawing = (props: Props) => {
   const handleClearSelectedNode = useCallback(() => setSelectedNodeForModal(undefined), [setSelectedNodeForModal]);
 
   const handleChangeNode = useCallback((id: string, newNode: Node, newEdges: Edge[]) => {
+    log("StateEdited", {
+      state: newNode.label,
+      transitions: newEdges.filter(e => e.from === id)
+        .map(e => ({ to: e.to === id ? newNode.label : label(e.to), value: e.value })),
+    });
     setGraph(prev => {
       const nodeIndex = prev.nodes.findIndex(n => n.id === id);
       if (nodeIndex !== -1) {
@@ -288,13 +309,14 @@ export const Drawing = (props: Props) => {
       }
     });
     handleClearSelectedNode();
-  }, [setGraph, handleClearSelectedNode]);
+  }, [setGraph, handleClearSelectedNode, label, log]);
 
   const handleTextChange = useCallback((newText: string) => {
     const words = textToWords(newText);
 
     if (JSON.stringify(words) !== JSON.stringify(prevWordsRef.current)) {
       setGraph(wordsToGraph(words));
+      log("TextToGraph", { words: words.length });
     }
     prevWordsRef.current = words;
 
@@ -302,7 +324,7 @@ export const Drawing = (props: Props) => {
       onFitView();
     }, 0);
 
-  }, [setGraph, onFitView]);
+  }, [setGraph, onFitView, log]);
 
   return (
     <div className="drawing">

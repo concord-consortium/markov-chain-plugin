@@ -24,6 +24,7 @@ export interface GeneratorProps {
   onLengthLimitCommit: () => void;
   onDelimiterTypeChange: React.ChangeEventHandler<HTMLSelectElement>;
   onDelimiterChange: React.ChangeEventHandler<HTMLInputElement>;
+  onDelimiterCommit: () => void;
   onSpeedChange: (fast: boolean) => void;
   onPlay: () => void;
   onPause: () => void;
@@ -34,7 +35,7 @@ export interface GeneratorProps {
 export const Generator = ({
   nodes, graphEmpty, generationMode, startingState, lengthLimit, delimiter, delimiterType, fastSimulation,
   onStartingStateChange, onLengthLimitChange, onLengthLimitCommit, onDelimiterTypeChange, onDelimiterChange,
-  onSpeedChange, onPlay, onPause, onResume, onStep
+  onDelimiterCommit, onSpeedChange, onPlay, onPause, onResume, onStep
 }: GeneratorProps) => {
   const animating = generationMode !== "ready";
   const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
@@ -84,6 +85,7 @@ export const Generator = ({
             </select>
             { delimiterType === "other" && <input className="bordered" type="text"
               onChange={onDelimiterChange}
+              onBlur={onDelimiterCommit}
               value={delimiter}
               placeholder="delimiter"
               disabled={animating}

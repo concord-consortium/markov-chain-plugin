@@ -1,13 +1,15 @@
 import { GraphData, Node, SequenceGroup, ViewMode } from "../type";
+import { LogEvent } from "./log-events";
 
 // What the Markov tool needs from whatever hosts it: CODAP for the plugin, the Activity Player for the interactive.
 // Keep each function's identity across renders unless what depends on it should run again: a playing sequence
-// keeps the outputSequence it started with, and a new markDirty re-sends drawing mode's dirty notice.
+// keeps the outputSequence and log it started with, and a new markDirty re-sends drawing mode's dirty notice.
 export interface MarkovHost {
   viewMode?: ViewMode;
   setViewMode: (viewMode?: ViewMode) => void;
   markDirty: () => void;
   outputSequence: (labels: string[]) => Promise<void>;
+  log: (event: LogEvent, data?: Record<string, unknown>) => void;
 }
 
 // where a state or transition was chosen, and how a selection was cleared

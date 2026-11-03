@@ -21,6 +21,10 @@ const defaultDelimiter = " ";
 const defaultStartingState = "";
 const defaultFastSimulation = false;
 
+// a click on the chosen state, or on nothing, unchooses it, unless skipToggle keeps it chosen
+const nextSelectedNodeId = (id: string | undefined, selectedNodeId: string | undefined, skipToggle?: boolean) =>
+  (!id || id === selectedNodeId) && !skipToggle ? undefined : id;
+
 // The Markov tool's state and handlers, apart from any layout: MarkovTool lays them out for the CODAP plugin.
 export interface MarkovToolApi {
   handle: MarkovToolHandle;
@@ -53,7 +57,7 @@ export interface MarkovToolApi {
 }
 
 export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
-  const { viewMode, setViewMode, markDirty, outputSequence } = host;
+  const { viewMode, setViewMode, markDirty, outputSequence, log } = host;
   const [lengthLimit, setLengthLimit] = useState<number | undefined>(defaultLengthLimit);
   const [delimiter, setDelimiter] = useState(defaultDelimiter);
   const [startingState, setStartingState] = useState(defaultStartingState);
@@ -73,6 +77,11 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   const currentSequenceIndex = useRef(0);
   const animationInterval = useRef<number | undefined>(undefined);
   const unmountedRef = useRef(false);
+  // the last values logged for the settings that log when their field loses focus
+  const loggedLengthLimitRef = useRef<number | undefined>(defaultLengthLimit);
+  const loggedDelimiterRef = useRef(defaultDelimiter);
+  // the starting state's label when the playing or stepping sequence started
+  const startingLabelRef = useRef("");
   const { graph, updateGraph, setGraph } = useGraph();
   const [initialGraph, setInitialGraph] = useState<GraphData>();
   const [fitViewAt, setFitViewAt] = useState<number>();
@@ -141,11 +150,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     if (!animating) {
       setHighlightOutput(undefined);
       setSelectedEdge(undefined);
-      if ((!id || (id === selectedNodeId)) && !skipToggle) {
-        _setSelectedNodeId(undefined);
-      } else {
-        _setSelectedNodeId(id);
-      }
+      _setSelectedNodeId(nextSelectedNodeId(id, selectedNodeId, skipToggle));
     }
   }, [_setSelectedNodeId, selectedNodeId, animating]);
 
@@ -156,6 +161,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   }, [graph, viewMode, markDirty]);
 
   const graphEmpty = useMemo(() => graph.nodes.length === 0, [graph]);
+
+  // the log names states by their labels; "" is no state, as for any starting state
+  const labelOf = useCallback((id: string) => id && (graph.nodes.find(n => n.id === id)?.label ?? id), [graph]);
 
   const highlightOutputNodes = useMemo(() => {
     return animating ? undefined : highlightOutput?.sequence;
@@ -168,6 +176,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     const limit = clampLengthLimit(lengthLimit);
     if (limit !== undefined) {
       const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
+      startingLabelRef.current = startingNode?.label ?? "";
 
       prevAnimatedSequenceGroups.current = [...sequenceGroups];
       currentAnimatedSequenceGroup.current =
@@ -223,6 +232,15 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
 
   }, [setSequenceGroups, graph]);
 
+  // the settings the playing or stepping sequence was started with, and the speed now
+  const sequenceSettings = useCallback(() => {
+    const group = currentAnimatedSequenceGroup.current;
+    return {
+      startingState: startingLabelRef.current, maxLength: group?.lengthLimit, delimiter: group?.delimiter,
+      fast: fastSimulationRef.current,
+    };
+  }, []);
+
   const finishAnimating = useCallback(async (cancel?: boolean) => {
     setHighlightNode(undefined);
     setHighlightEdge(undefined);
@@ -230,7 +248,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     stopAnimationInterval();
 
     if (!cancel) {
-      await outputSequence(currentSequence.current.map(state => state.label));
+      const labels = currentSequence.current.map(state => state.label);
+      log("SequenceGenerated", { sequence: labels, ...sequenceSettings() });
+      await outputSequence(labels);
 
       if (currentAnimatedSequenceGroup.current) {
         currentAnimatedSequenceGroup.current.sequences = [...prevSequences.current, currentSequence.current];
@@ -239,7 +259,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     }
 
     setGenerationMode("ready");
-  }, [outputSequence]);
+  }, [outputSequence, log, sequenceSettings]);
 
   const animateNextSequenceIndex = useCallback(() => {
     if (inBeforeStep()) {
@@ -283,7 +303,22 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     setLengthLimit(isNaN(numberValue) ? undefined : numberValue);
   };
 
-  const handleCommitLengthLimit = () => setLengthLimit(prev => clampLengthLimit(prev));
+  // Enter and then a blur commit the same value, which is logged once
+  const handleCommitLengthLimit = () => {
+    const clamped = clampLengthLimit(lengthLimit);
+    setLengthLimit(prev => clampLengthLimit(prev));
+    if (clamped !== undefined && clamped !== loggedLengthLimitRef.current) {
+      loggedLengthLimitRef.current = clamped;
+      log("GeneratorSettingChanged", { setting: "maxLength", value: clamped });
+    }
+  };
+
+  const handleCommitDelimiter = () => {
+    if (delimiter !== loggedDelimiterRef.current) {
+      loggedDelimiterRef.current = delimiter;
+      log("GeneratorSettingChanged", { setting: "delimiter", value: delimiter });
+    }
+  };
 
   const handleChangeDelimiter = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDelimiter(e.target.value);
@@ -292,77 +327,88 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   const handleChangeDelimiterType = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as DelimiterType;
     setDelimiterType(newType);
-    switch (newType) {
-      case "space":
-        setDelimiter(" ");
-        break;
-      case "none":
-      case "other":
-        setDelimiter("");
-        break;
-    }
+    const newDelimiter = newType === "space" ? " " : "";
+    setDelimiter(newDelimiter);
+    loggedDelimiterRef.current = newDelimiter;
+    log("GeneratorSettingChanged", { setting: "delimiterType", value: newType });
   };
 
   const handleChangeStartingState = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setStartingState(e.target.value);
+    log("GeneratorSettingChanged", { setting: "startingState", value: labelOf(e.target.value) });
   };
 
   const handleClearOutput = useCallback(() => {
     setSequenceGroups([]);
-  }, []);
+    log("OutputCleared");
+  }, [log]);
 
   const handlePause = useCallback(() => {
     setGenerationMode("paused");
     stopAnimationInterval();
-  }, []);
+    log("SequencePaused", sequenceSettings());
+  }, [log, sequenceSettings]);
 
   const handleResume = useCallback(async () => {
+    log("SequenceResumed", sequenceSettings());
     if (currentSequenceAnimating()) {
       setGenerationMode("playing");
       startAnimationInterval();
     } else {
       await finishAnimating();
     }
-  }, [finishAnimating, startAnimationInterval]);
+  }, [finishAnimating, startAnimationInterval, log, sequenceSettings]);
 
   const handleStep = useCallback(async () => {
     setHighlightOutput(undefined);
     if ((generationMode !== "stepping") && (generationMode !== "paused")) {
       setGenerationMode("stepping");
       await generateNewSequence();
+      log("SequenceStepped", sequenceSettings());
       animateCurrentSequenceIndex();
     } else if (currentSequenceAnimating()) {
+      log("SequenceStepped", sequenceSettings());
       animateNextSequenceIndex();
     } else {
+      log("SequenceStepped", sequenceSettings());
       await finishAnimating();
     }
-  }, [generationMode, animateCurrentSequenceIndex, animateNextSequenceIndex, finishAnimating, generateNewSequence]);
+  }, [generationMode, animateCurrentSequenceIndex, animateNextSequenceIndex, finishAnimating, generateNewSequence,
+      log, sequenceSettings]);
 
   const handlePlay = useCallback(async () => {
+    log("SequencePlayed", {
+      startingState: labelOf(startingState), maxLength: clampLengthLimit(lengthLimit), delimiter, fast: fastSimulation
+    });
     setHighlightOutput(undefined);
     setGenerationMode("playing");
     await generateNewSequence();
     animateCurrentSequenceIndex();
     startAnimationInterval();
-  }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval]);
+  }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval, log, labelOf, startingState,
+      lengthLimit, delimiter, fastSimulation]);
 
   const handleSpeedToggle = useCallback((value: boolean) => {
     setFastSimulation(value);
     fastSimulationRef.current = value;
-  }, [setFastSimulation]);
+    log("GeneratorSettingChanged", { setting: "fast", value });
+  }, [setFastSimulation, log]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
+    log("SequenceCanceled", sequenceSettings());
     finishAnimating(true);
-  };
+  }, [finishAnimating, log, sequenceSettings]);
 
   const toggleHighlightOutput = useCallback((group: SequenceGroup, sequence: Node[]) => {
     setSelectedNodeId();
     if ((highlightOutput?.group !== group) || (highlightOutput.sequence !== sequence)) {
       setHighlightOutput({ group, sequence });
+      log("OutputSelected", { sequence: sequence.map(state => state.label) });
     } else {
       setHighlightOutput(undefined);
+      log("SelectionCleared", { via: "toggle" });
     }
-  }, [highlightOutput, setHighlightOutput, setSelectedNodeId]);
+  }, [highlightOutput, setHighlightOutput, setSelectedNodeId, log]);
 
   const handleClearHighlightOutput = () => setHighlightOutput(undefined);
 
@@ -378,27 +424,46 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     }
   }, [selectedNodeId, selectedEdge, highlightOutput]);
 
+  // only a change to the selection is logged, not a choice that leaves it as it was
   const selectState = useCallback((id: string | undefined, source: SelectionSource, skipToggle?: boolean) => {
+    if (animating) {
+      return;
+    }
+    const next = nextSelectedNodeId(id, selectedNodeId, skipToggle);
+    if (!next && selection) {
+      log("SelectionCleared", { via: "toggle" });
+    } else if (next && next !== selectedNodeId) {
+      log("StateSelected", { state: labelOf(next), source });
+    }
     setSelectedNodeId(id, skipToggle);
-  }, [setSelectedNodeId]);
+  }, [animating, selectedNodeId, selection, setSelectedNodeId, log, labelOf]);
 
   const selectTransition = useCallback((edge: { from: string, to: string }, source: SelectionSource) => {
     if (animating) {
       return;
     }
+    const chosen = edge.from === selectedEdge?.from && edge.to === selectedEdge?.to;
     _setSelectedNodeId(undefined);
     setHighlightOutput(undefined);
-    setSelectedEdge(edge.from === selectedEdge?.from && edge.to === selectedEdge?.to ? undefined : edge);
-  }, [animating, selectedEdge]);
+    setSelectedEdge(chosen ? undefined : edge);
+    if (chosen) {
+      log("SelectionCleared", { via: "toggle" });
+    } else {
+      log("TransitionSelected", { from: labelOf(edge.from), to: labelOf(edge.to), source });
+    }
+  }, [animating, selectedEdge, log, labelOf]);
 
   const clearSelection = useCallback((via: ClearVia) => {
     if (animating) {
       return;
     }
+    if (selection) {
+      log("SelectionCleared", { via });
+    }
     _setSelectedNodeId(undefined);
     setSelectedEdge(undefined);
     setHighlightOutput(undefined);
-  }, [animating]);
+  }, [animating, selection, log]);
 
   const handleSelectDatasetMode = () => {
     setViewMode("dataset");
@@ -415,11 +480,15 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       title: "Reset?",
       message: <>Are you sure you want to reset?<br/>Any changes you have made will be lost.</>,
       onOk: () => {
+        log("GraphReset");
         setLengthLimit(defaultLengthLimit);
+        loggedLengthLimitRef.current = defaultLengthLimit;
         setDelimiter(defaultDelimiter);
+        loggedDelimiterRef.current = defaultDelimiter;
         setStartingState(defaultStartingState);
         setSequenceGroups([]);
         setFastSimulation(defaultFastSimulation);
+        fastSimulationRef.current = defaultFastSimulation;
         setGraphOpacity(0);
         setSelectedNodeId();
         setGraph({ nodes: [], edges: [] });
@@ -437,7 +506,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       },
       onClose: () => setConfirmModal(undefined)
     });
-  }, [viewMode, initialGraph, setGraph, setSelectedNodeId]);
+  }, [viewMode, initialGraph, setGraph, setSelectedNodeId, log]);
 
   const handleReturnToMainMenu = () => {
     setConfirmModal({
@@ -497,6 +566,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       onStartingStateChange: handleChangeStartingState,
       onLengthLimitChange: handleChangeLengthLimit,
       onLengthLimitCommit: handleCommitLengthLimit,
+      onDelimiterCommit: handleCommitDelimiter,
       onDelimiterTypeChange: handleChangeDelimiterType,
       onDelimiterChange: handleChangeDelimiter,
       onSpeedChange: handleSpeedToggle,
