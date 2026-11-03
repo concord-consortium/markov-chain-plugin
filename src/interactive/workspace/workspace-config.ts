@@ -3,12 +3,11 @@ import { Capitalization, InputView, MarkovAuthoredState, ModeId } from "../autho
 export type WorkspacePaneId = "input" | "graph" | "inspect" | "generator";
 
 // what the workspace shows in a mode, from the author's settings
-export interface WorkspaceConfig {
-  mode: ModeId;
+export type WorkspaceConfig = WorkspaceSettings & ({ mode: "useData", inputView: InputView } | { mode: "draw" });
+
+interface WorkspaceSettings {
   // the panes present, in layout order, and whether each starts open
   panes: { id: WorkspacePaneId, startsOpen: boolean }[];
-  // Data mode only
-  inputView?: InputView;
   // the starting value, which the "Case sensitive" switch changes
   capitalization: Capitalization;
   // the Data/Draw switch
@@ -28,8 +27,8 @@ export const workspaceConfig = (state: MarkovAuthoredState, mode: ModeId = state
     .filter(id => id === "graph" ? (!data || pane(id).available) : (id !== "input" || data) && pane(id).available)
     .map(id => ({ id, startsOpen: id === "graph" && !data ? true : pane(id).startsOpen }));
   return {
-    mode, panes,
-    inputView: data ? state.inputView : undefined,
+    ...(data ? { mode: "useData", inputView: state.inputView } : { mode: "draw" }),
+    panes,
     capitalization: state.capitalization,
     modeSwitch: state.modes.useData && state.modes.draw,
     orderMatters: { startsOn: state.orderMatters.startsOn, showSwitch: data && state.orderMatters.showSwitch },

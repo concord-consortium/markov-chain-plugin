@@ -129,14 +129,161 @@
   .input-pane-content {
     display: flex;
     flex: 1;
+    flex-direction: column;
+    gap: 5px;
     min-width: 0;
     padding: 5px;
 
-    .text-input {
+    > .text-input, > .input-table {
       flex: 1;
-      min-width: 0;
-      resize: none;
+    }
+
+    .input-text-part {
+      display: flex;
+      flex-grow: 0;
+      flex-shrink: 0;
+      min-height: 0;
+
+      .text-input {
+        flex: 1;
+      }
+    }
+
+    .input-table-part {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+
+      .input-table {
+        flex: 1;
+      }
+    }
+  }
+
+  // the text box over a copy of its text that draws the highlights; both lay the text out alike, scrollbar included,
+  // or the copy wraps at another width and the marks drift from their words
+  .text-input {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    background-color: #fff;
+
+    .backdrop, textarea {
+      box-sizing: border-box;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 4px 6px;
+      border: 1px solid #949494;
+      border-radius: 3px;
       font: inherit;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      overflow-x: hidden;
+      overflow-y: scroll;
+    }
+
+    .backdrop {
+      border-color: transparent;
+      color: transparent;
+
+      mark {
+        border-radius: 2px;
+        color: transparent;
+      }
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      resize: none;
+      background-color: transparent;
+    }
+  }
+
+  .highlight-selected {
+    background-color: var(--highlight-selected);
+  }
+  .highlight-output {
+    background-color: var(--highlight-output);
+  }
+
+  // the rows scroll, and the note under them stays in view
+  .input-table {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+
+    .input-table-rows {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    td {
+      padding: 1px 0;
+
+      &:last-child {
+        width: 26px;
+        text-align: center;
+      }
+    }
+
+    input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 2px 4px;
+      border: 1px solid #949494;
+      border-radius: 2px;
+      font: inherit;
+    }
+
+    tr.append input {
+      border-style: dashed;
+    }
+
+    .delete-row {
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: none;
+      background: none;
+      color: #737373;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.4;
+      }
+    }
+
+    .input-table-hint {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .input-table-limit {
+      margin: 4px 0 0;
+      color: #b00020;
+      font-size: 13px;
+
+      // kept in the page while empty, so a screen reader is listening when the note arrives
+      &:empty {
+        margin: 0;
+      }
     }
   }
 

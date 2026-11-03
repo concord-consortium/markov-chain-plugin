@@ -1,4 +1,4 @@
-import { rowText, textForRow, tokenize, tokensToValues } from "./tokenizer";
+import { commitsOnTyping, rowText, textChange, textForRow, tokenize, tokensToValues } from "./tokenizer";
 
 const words = (text: string) => tokenize(text, "asTyped").map(t => t.kind === "word" ? t.text : "|");
 
@@ -78,5 +78,43 @@ describe("textForRow", () => {
     expect(textForRow("ice cream")).toBe("[ice cream]");
     expect(textForRow("a+b")).toBe("[a+b]");
     expect(textForRow("(cat)")).toBe("[(cat)]");
+  });
+});
+
+describe("textChange", () => {
+  it("finds a character typed at the end, in the middle and at the start", () => {
+    expect(textChange("the ca", "the cat")).toEqual({ inserted: "t", removed: 0 });
+    expect(textChange("the at", "the cat")).toEqual({ inserted: "c", removed: 0 });
+    expect(textChange("he cat", "the cat")).toEqual({ inserted: "t", removed: 0 });
+  });
+
+  it("finds one character deleted, wherever it was", () => {
+    expect(textChange("the cat", "the ca")).toEqual({ inserted: "", removed: 1 });
+    expect(textChange("the cat", "the at")).toEqual({ inserted: "", removed: 1 });
+    expect(textChange("the cat", "he cat")).toEqual({ inserted: "", removed: 1 });
+  });
+
+  it("finds a paste, a cut and a replaced selection", () => {
+    expect(textChange("the cat", "the big cat")).toEqual({ inserted: "big ", removed: 0 });
+    expect(textChange("the big cat", "the cat")).toEqual({ inserted: "", removed: 4 });
+    expect(textChange("the big cat", "the a cat")).toEqual({ inserted: "a", removed: 3 });
+  });
+
+  // the doubled letter matches both the prefix and the suffix; neither may count it twice
+  it("counts a repeated letter once", () => {
+    expect(textChange("aa", "aaa")).toEqual({ inserted: "a", removed: 0 });
+    expect(textChange("aaa", "aa")).toEqual({ inserted: "", removed: 1 });
+    expect(textChange("", "a")).toEqual({ inserted: "a", removed: 0 });
+    expect(textChange("same", "same")).toEqual({ inserted: "", removed: 0 });
+  });
+});
+
+describe("commitsOnTyping", () => {
+  it("commits on whitespace, punctuation and a closing bracket", () => {
+    [" ", "\n", "\t", ".", ",", "?", "!", ":", ";", "]"].forEach(char => expect(commitsOnTyping(char)).toBe(true));
+  });
+
+  it("waits on letters, digits and the separators that open or join words", () => {
+    ["a", "Z", "7", "[", "(", "-", "'", "+"].forEach(char => expect(commitsOnTyping(char)).toBe(false));
   });
 });

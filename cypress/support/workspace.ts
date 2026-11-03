@@ -3,8 +3,9 @@
 // the states' labels, the Graph pane's root group and an ellipse, in the interactive
 export const stateEllipse = (label: string) =>
   cy.interactive().find("g.node").filter((i, node) => node.textContent === label).find("ellipse");
-export const stateLabels = () =>
-  cy.interactive().find("g.node text").then(texts => [...texts].map(text => text.textContent).sort());
+// invoke, not then, so a should() after it retries the query until the labels match
+export const stateLabels = () => cy.interactive().find("g.node text").invoke("toArray")
+  .invoke("map", (text: Element) => text.textContent).invoke("sort");
 export const graphRoot = () => cy.interactive().find(".graph-pane svg g.root");
 export const rootTransform = () => graphRoot().invoke("attr", "transform");
 
@@ -17,7 +18,8 @@ export const clickState = (label: string) => {
 
 // the log messages the interactive has sent, as [action, data]
 export const loggedEvents = () => cy.interactiveMessages("log")
-  .then(messages => (messages as { action: string, data: unknown }[]).map(({ action, data }) => [action, data]));
+  .invoke("map", ({ action, data }: { action: string, data: unknown }) => [action, data]) as
+  Cypress.Chainable<[string, unknown][]>;
 
 export const parseTransform = (transform?: string) => {
   const match = /translate\(([-\d.e]+),\s*([-\d.e]+)\)\s*scale\(([-\d.e]+)\)/.exec(transform ?? "");
@@ -39,3 +41,72 @@ export const pinch = (element: Element, spreads: number[]) => {
   spreads.slice(1).forEach(spread => fire("touchmove", fingers(spread), fingers(spread)));
   fire("touchend", [], fingers(spreads[spreads.length - 1]));
 };
+
+// The events a press sends, in the order the browser sends them for a mouse or a touch, dispatched in the
+// interactive's frame at the center of element: DevTools' mouse and touch input there leave Cypress unable to end the
+// run. Each event goes to what is under that point when it fires, and the click, as a browser sends it, to what the
+// mousedown and mouseup targets share, so a redraw during the press loses it. "focus" moves focus as the press's
+// mousedown does, to the control pressed or else off the focused element; a number waits that many ms.
+type PressStep =
+  "pointerdown" | "pointerup" | "pointercancel" | "mousedown" | "mouseup" | "click" | "contextmenu" | "focus" | number;
+export const pressEvents = (element: Element, steps: PressStep[], pointerType: "mouse" | "touch", button = 0) => {
+  const doc = element.ownerDocument;
+  const win = doc.defaultView as Window & typeof globalThis;
+  const box = element.getBoundingClientRect();
+  const at = {
+    clientX: box.x + box.width / 2, clientY: box.y + box.height / 2, bubbles: true, cancelable: true, view: win,
+    button
+  };
+  const targets: Record<string, Element | null> = {};
+  const commonAncestor = (a: Element | null, b: Element | null) => {
+    let node = a;
+    while (node && b && !node.contains(b)) {
+      node = node.parentElement;
+    }
+    return node;
+  };
+  return steps.reduce((done, step) => done.then(() => {
+    if (typeof step === "number") {
+      return new Promise<void>(resolve => setTimeout(resolve, step));
+    }
+    if (step === "focus") {
+      const control = targets.mousedown?.closest<HTMLElement>("input, textarea, select, button, a[href], [tabindex]");
+      if (control) {
+        control.focus();
+      } else {
+        (doc.activeElement as HTMLElement | null)?.blur();
+      }
+      return;
+    }
+    const target = step === "click"
+      ? commonAncestor(targets.mousedown, targets.mouseup)
+      : doc.elementFromPoint(at.clientX, at.clientY);
+    targets[step] = target;
+    target?.dispatchEvent(step.startsWith("pointer")
+      ? new win.PointerEvent(step, { ...at, pointerType, isPrimary: true })
+      : new win.MouseEvent(step, at));
+  }), Promise.resolve());
+};
+
+// a mouse press and release on element, which moves focus as it starts
+export const mousePress = (element: Element) =>
+  pressEvents(element, ["pointerdown", "mousedown", "focus", 40, "pointerup", "mouseup", "click"], "mouse");
+
+// a mouse press on a state; the graph reads two clicks on a state within 250 ms as a double-click
+export const pressState = (label: string) => {
+  cy.wait(260);
+  stateEllipse(label).then(ellipse => mousePress(ellipse[0]));
+};
+
+// Tab in the interactive's frame: focus moves to the next element in document order that takes Tab. The workspace
+// uses tabIndex 0 and -1 only, so document order is Tab order. DevTools' key input there, which cy.press() sends,
+// leaves Cypress unable to end the run.
+export const pressTab = () => cy.get<HTMLIFrameElement>("iframe#interactive").then(frame => {
+  const doc = frame[0].contentDocument!;
+  const takesTab = [...doc.querySelectorAll<HTMLElement>("input, textarea, button, select, a[href], [tabindex]")]
+    .filter(element => element.tabIndex >= 0 && !(element as HTMLButtonElement).disabled &&
+      element.getClientRects().length > 0);
+  const from = doc.activeElement;
+  const next = takesTab.find(element => from?.compareDocumentPosition(element) === Node.DOCUMENT_POSITION_FOLLOWING);
+  next?.focus();
+});

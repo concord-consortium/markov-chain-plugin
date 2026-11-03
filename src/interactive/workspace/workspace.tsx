@@ -1,15 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { useMarkovTool } from "../../hooks/use-markov-tool";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import { NodeModal } from "../../components/drawing/node-modal";
+import { animatedNodeColor, selectedNodeColor } from "../../components/graph-highlight";
 import { layoutFor } from "../../components/graph-utils";
 import { Node } from "../../type";
 import { MarkovAuthoredState } from "../authored-state";
 import { Token, tokenize, tokensToValues } from "../input/tokenizer";
 import { useApHost } from "./ap-host";
+import { CommitHow, CommitView } from "./commit";
 import { GeneratorPane } from "./generator-pane";
 import { GraphPane } from "./graph-pane";
+import { highlightsFor } from "./highlights";
 import { InputPane } from "./input-pane";
 import { Pane } from "./pane";
 import {
@@ -33,13 +36,17 @@ const paneTitles: Record<WorkspacePaneId, string> = {
   input: "Input", graph: "Graph", inspect: "Inspect", generator: "Sequence Generator"
 };
 
-// the sizes the stylesheet reads, so none is written in both languages
-const cssSizes = {
+// the sizes and colors the stylesheet reads, so none is written in both languages
+const cssValues = {
   "--pane-gap": `${paneGap}px`, "--pane-padding": `${panePadding}px`, "--pane-top": `${defaultPaneSizes.top}px`,
   "--collapsed-strip": `${collapsedStrip}px`, "--pane-header": `${paneHeader}px`,
   "--toolbar-button": `${toolbarButton}px`, "--toolbar-gap": `${toolbarGap}px`,
   "--controls-row": `${controlsRowHeight}px`,
+  "--highlight-selected": selectedNodeColor, "--highlight-output": animatedNodeColor,
 } as React.CSSProperties;
+
+// panes a commit redraws, so a press there would lose its click; a press elsewhere commits at once
+const redrawnByCommit = ".graph-pane .pane-body, .inspect-pane .pane-body";
 
 const sameValues = (a: string[], b: string[]) => a.length === b.length && a.every((value, i) => value === b[i]);
 
@@ -64,7 +71,8 @@ export const Workspace = (props: WorkspaceProps) => {
 };
 
 const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config }:
-  WorkspaceProps & { config: WorkspaceConfig }) => {
+  WorkspaceProps & { config: Extract<WorkspaceConfig, { mode: "useData" }> }) => {
+  const { inputView } = config;
   const host = useApHost(hosted);
   const tool = useMarkovTool(host);
   const toolRef = useLatest(tool);
@@ -87,9 +95,10 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   // the view follows the graph, fitting it after each commit, until the student zooms or pans
   const followRef = useRef(true);
 
-  const commit = useCallback((nextText: string) => {
+  const commit = useCallback((nextText: string, how: CommitHow, view: CommitView) => {
     const tokens = tokenize(nextText, config.capitalization);
     const values = tokensToValues(tokens);
+    setText(nextText);
     setCommitted({ text: nextText, tokens });
     if (!sameValues(values, lastValuesRef.current)) {
       if (laidOutWhole(lastValuesRef.current, values)) {
@@ -97,12 +106,17 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
       }
       lastValuesRef.current = values;
       tool.handle.dataChanged(values, { fit: followRef.current });
+      host.log("InputCommitted",
+        { view, how, tokens: tokens.length, states: new Set(values.filter(value => value)).size });
     }
     if (nextText !== lastSavedRef.current) {
       lastSavedRef.current = nextText;
       onSaveInput?.(nextText);
     }
-  }, [config.capitalization, tool.handle, onSaveInput]);
+  }, [config.capitalization, tool.handle, host, onSaveInput]);
+
+  const liveTokens = useMemo(() => tokenize(text, config.capitalization), [text, config.capitalization]);
+  const textRef = useLatest(text);
 
   const [open, setOpen] = useState<Record<string, boolean>>(
     () => Object.fromEntries(config.panes.map(pane => [pane.id, pane.startsOpen])));
@@ -142,6 +156,58 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   const dimensions = useResizeObserver(rootRef);
   const stacked = !!dimensions && dimensions.width < stackBelow;
 
+  // mouse events (a tap's mousedown follows its pointerup), captured on the window ahead of d3-drag, which stops the
+  // mouseup there; a secondary button's menu can swallow its mouseup, so only the primary button presses
+  const pressedRef = useRef<Element>(undefined);
+  const afterPressRef = useRef<(() => void)[]>([]);
+  useEffect(() => {
+    const win = rootRef.current?.ownerDocument.defaultView;
+    let timer: number | undefined;
+    const press = (e: MouseEvent) => {
+      pressedRef.current = e.button === 0 && e.target instanceof Element ? e.target : undefined;
+    };
+    const release = () => {
+      pressedRef.current = undefined;
+      const waiting = afterPressRef.current;
+      afterPressRef.current = [];
+      if (waiting.length > 0) {
+        timer = window.setTimeout(() => waiting.forEach(run => run()));
+      }
+    };
+    const ends = ["mouseup", "pointercancel", "dragend", "contextmenu"];
+    win?.addEventListener("mousedown", press, true);
+    ends.forEach(type => win?.addEventListener(type, release, true));
+    return () => {
+      window.clearTimeout(timer);
+      win?.removeEventListener("mousedown", press, true);
+      ends.forEach(type => win?.removeEventListener(type, release, true));
+    };
+  }, []);
+  // runs once the press ends if there is one, on what redrawn names if it is given, else now
+  const afterPress = useCallback((run: () => void, redrawn?: string) => {
+    const pressed = pressedRef.current;
+    if (pressed && (!redrawn || pressed.closest(redrawn))) {
+      afterPressRef.current.push(run);
+    } else {
+      run();
+    }
+  }, []);
+  const handleBlurCommit = useCallback((commitBlur: () => void) => afterPress(commitBlur, redrawnByCommit),
+    [afterPress]);
+  const handleTextBlur = useCallback(() => handleBlurCommit(() => commit(textRef.current, "blur", "text")),
+    [handleBlurCommit, commit, textRef]);
+  const handleTableCommit = useCallback((next: string) => commit(next, "row", "table"), [commit]);
+  const handleRowAdded = useCallback(() => host.log("TableRowAdded"), [host]);
+  const handleRowDeleted = useCallback(() => host.log("TableRowDeleted"), [host]);
+
+  const handleFocusToken = useCallback((token: Token | undefined) => {
+    if (token?.kind === "word") {
+      toolRef.current.selectState(token.state, "table", true);
+    } else {
+      toolRef.current.clearSelection("table");
+    }
+  }, [toolRef]);
+
   // a click in the graph focuses nothing, so Escape is heard on the whole document, which is the interactive's own
   useEffect(() => {
     const doc = rootRef.current?.ownerDocument;
@@ -175,7 +241,7 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
 
   const emptyMessage = !hasInputPane
     ? "No data was provided for this activity."
-    : config.inputView === "table"
+    : inputView === "table"
       ? "Type some words in the Input pane's table to build the chain."
       : "Type some words in the Input pane to build the chain.";
 
@@ -183,7 +249,12 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
     switch (id) {
       case "input":
         return (
-          <InputPane text={text} readOnly={tool.animating} onChange={setText} onBlur={() => commit(text)} />
+          <InputPane view={inputView} text={text} liveTokens={liveTokens}
+            liveHighlights={highlightsFor(tool.selection, liveTokens)} committed={committed}
+            readOnly={tool.animating} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
+            onTableCommit={handleTableCommit} onRowBlur={handleBlurCommit} afterPress={afterPress}
+            onRowAdded={handleRowAdded}
+            onRowDeleted={handleRowDeleted} onFocusToken={handleFocusToken} />
         );
       case "graph":
         return (
@@ -199,7 +270,7 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   };
 
   return (
-    <div className={clsx("markov-workspace", { stacked })} style={cssSizes} ref={rootRef}>
+    <div className={clsx("markov-workspace", { stacked })} style={cssValues} ref={rootRef}>
       <div className="controls-row">
         { tool.selection &&
           <button type="button" className="clear-highlight" onClick={() => tool.clearSelection("button")}>

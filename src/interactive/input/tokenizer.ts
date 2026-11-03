@@ -95,3 +95,21 @@ export const textForRow = (text: string) => {
   const [token] = tokens;
   return tokens.length === 1 && token.kind === "word" && token.text === text ? text : `[${text}]`;
 };
+
+// what an edit from one text to the next inserted and how many characters it removed, past their common prefix and
+// suffix
+export const textChange = (old: string, next: string) => {
+  let prefix = 0;
+  const shorter = Math.min(old.length, next.length);
+  while (prefix < shorter && old[prefix] === next[prefix]) {
+    prefix++;
+  }
+  let suffix = 0;
+  while (suffix < shorter - prefix && old[old.length - 1 - suffix] === next[next.length - 1 - suffix]) {
+    suffix++;
+  }
+  return { inserted: next.slice(prefix, next.length - suffix), removed: old.length - prefix - suffix };
+};
+
+// a character that finishes a word as it is typed, so the input commits at once
+export const commitsOnTyping = (char: string) => isWhitespace(char) || punctuation.includes(char) || char === "]";

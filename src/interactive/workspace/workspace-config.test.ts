@@ -21,11 +21,11 @@ const dataConfig: WorkspaceConfig = {
   sendToCodap: false,
   downloadTables: false,
 };
+const { inputView: _inputView, ...dataSettings } = dataConfig;
 const drawConfig: WorkspaceConfig = {
-  ...dataConfig,
+  ...dataSettings,
   mode: "draw",
   panes: allOpen.slice(1) as WorkspaceConfig["panes"],
-  inputView: undefined,
   orderMatters: { startsOn: true, showSwitch: false },
 };
 
@@ -48,8 +48,8 @@ describe("workspaceConfig", () => {
   });
 
   it("gives Data mode the authored input view", () => {
-    expect(workspaceConfig(authored({ inputView: "table" })).inputView).toBe("table");
-    expect(workspaceConfig(authored({ inputView: "text" })).inputView).toBe("text");
+    expect(workspaceConfig(authored({ inputView: "table" }))).toHaveProperty("inputView", "table");
+    expect(workspaceConfig(authored({ inputView: "text" }))).toHaveProperty("inputView", "text");
   });
 
   it("leaves out a pane that isn't available, and starts collapsed one that doesn't start open", () => {
