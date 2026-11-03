@@ -1,5 +1,6 @@
 import {
-  defaultAuthoredState, MarkovAuthoredState, modesFor, readAuthoredState, usableModesOf
+  authoringProblems, defaultAuthoredState, MarkovAuthoredState, modesFor, PaneId, readAuthoredState, UsableModes,
+  usableModesOf
 } from "./authored-state";
 
 // written out rather than taken from defaultAuthoredState, so a changed default fails here
@@ -161,5 +162,46 @@ describe("readAuthoredState", () => {
 
   it("writes the current version, whatever version it reads", () => {
     expect(readAuthoredState({ version: 0 }).version).toBe(1);
+  });
+});
+
+describe("authoringProblems", () => {
+  const panesProblem = "Turn on at least one pane, or students will see nothing.";
+  const inputProblem =
+    "With the Input pane off, add starting data, or students will have no words to work with.";
+  const setup = (usable: UsableModes, available: Partial<Record<PaneId, boolean>>, startingText = "") => {
+    const panes = { ...expectedDefaults.panes };
+    (Object.entries(available) as [PaneId, boolean][]).forEach(([id, on]) => {
+      panes[id] = { available: on, startsOpen: true };
+    });
+    const state: MarkovAuthoredState = { ...expectedDefaults, modes: modesFor(usable), panes, startingText };
+    return state;
+  };
+
+  it("finds none in the default state", () => {
+    expect(authoringProblems(expectedDefaults)).toEqual([]);
+  });
+
+  it("finds Data mode with the Input pane off and no starting text, or only spaces", () => {
+    expect(authoringProblems(setup("useData", { input: false }))).toEqual([inputProblem]);
+    expect(authoringProblems(setup("useData", { input: false }, "   "))).toEqual([inputProblem]);
+  });
+
+  it("finds none with the Input pane off and starting text", () => {
+    expect(authoringProblems(setup("useData", { input: false }, "the cat"))).toEqual([]);
+  });
+
+  it("finds none in Draw mode alone with the Input pane off and no text", () => {
+    expect(authoringProblems(setup("draw", { input: false }))).toEqual([]);
+  });
+
+  it("finds every pane off, with starting text", () => {
+    const off = { input: false, graph: false, inspect: false, generator: false };
+    expect(authoringProblems(setup("useData", off, "the cat"))).toEqual([panesProblem]);
+  });
+
+  it("gives both messages when both hold", () => {
+    const off = { input: false, graph: false, inspect: false, generator: false };
+    expect(authoringProblems(setup("useData", off))).toEqual([panesProblem, inputProblem]);
   });
 });

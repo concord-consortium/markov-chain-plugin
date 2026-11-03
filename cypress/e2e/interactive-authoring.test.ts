@@ -251,4 +251,47 @@ describe("the interactive's authoring form", () => {
     cy.interactive().find("#startingText");
     cy.interactive().then(body => expect(body[0].scrollWidth).to.be.at.most(420));
   });
+
+  describe("a setup that leaves students nothing to work with", () => {
+    const alert = () => cy.interactive().find("[role='alert']");
+    const dataOnly = withChange({ modes: { useData: true, draw: false } });
+
+    it("isn't sent with the Input pane off and no starting data, until starting data is typed", () => {
+      cy.startInteractive({ mode: "authoring", authoredState: {} });
+      cy.interactive().find("#usableModes").select("Data");
+      savedOnce(dataOnly);
+      cy.interactive().find("#pane-input").uncheck();
+      alert().should("contain.text", "With the Input pane off, add starting data")
+        .and("contain.text", "Your changes aren't saved until this is fixed.");
+      savedOnce(dataOnly);
+      cy.interactive().find("#startingText").type("the cat");
+      alert().should("not.exist");
+      lastSaved().should("deep.equal", {
+        ...dataOnly, panes: { ...dataOnly.panes, input: { available: false, startsOpen: true } },
+        startingText: "the cat",
+      });
+    });
+
+    it("isn't sent with every pane off", () => {
+      cy.startInteractive({ mode: "authoring", authoredState: {} });
+      cy.interactive().find("#usableModes").select("Data");
+      cy.interactive().find("#startingText").type("the cat");
+      ["input", "graph", "inspect", "generator"].forEach(pane => cy.interactive().find(`#pane-${pane}`).uncheck());
+      alert().should("contain.text", "Turn on at least one pane, or students will see nothing.");
+      lastSaved().its("panes").should(panes => {
+        const available = Object.values(panes as Record<string, { available: boolean }>).map(pane => pane.available);
+        expect(available).to.include(true);
+      });
+    });
+
+    it("shows the error for a setup saved before the check, and sends nothing", () => {
+      const saved = { ...dataOnly, panes: { ...dataOnly.panes, input: { available: false, startsOpen: true } } };
+      cy.startInteractive({ mode: "authoring", authoredState: saved });
+      alert().should("contain.text", "With the Input pane off, add starting data");
+      cy.interactive().find("#pane-inspect").uncheck();
+      cy.interactive().find("#pane-inspect").should("not.be.checked");
+      alert().should("contain.text", "With the Input pane off, add starting data");
+      cy.interactiveMessages("authoredState").should("have.length", 0);
+    });
+  });
 });

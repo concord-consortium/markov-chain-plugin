@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { setAuthoredState } from "@concord-consortium/lara-interactive-api";
 import {
-  buttonLabels, Capitalization, capitalizationLabels, capitalizations, InputView, inputViewHelp, inputViewLabels,
-  inputViews, MarkovAuthoredState, maxStartingTextLength, ModeId, modeIds, modeLabels, modesFor, PaneId, paneLabels,
-  settingLabels, shownPaneIds, showsStartingMode, showsStartsOpen, startsOpenLabel, UsableModes, usableModesChoices,
-  usableModesHelp, usableModesLabels, usableModesOf
+  authoringProblems, buttonLabels, Capitalization, capitalizationLabels, capitalizations, InputView, inputViewHelp,
+  inputViewLabels, inputViews, MarkovAuthoredState, maxStartingTextLength, ModeId, modeIds, modeLabels, modesFor,
+  PaneId, paneLabels, settingLabels, shownPaneIds, showsStartingMode, showsStartsOpen, startsOpenLabel, UsableModes,
+  usableModesChoices, usableModesHelp, usableModesLabels, usableModesOf
 } from "./authored-state";
 
 import "./authoring.scss";
@@ -64,12 +64,15 @@ interface Props {
 export const Authoring = ({ initialState }: Props) => {
   const [state, setState] = useState(initialState);
 
-  // every change is sent to LARA at once; LARA stores it when the author clicks Save
+  // LARA saves the last state sent when the author clicks Save, so a setup with problems is never sent
   const update = (change: (current: MarkovAuthoredState) => MarkovAuthoredState) => {
     const next = change(state);
     setState(next);
-    setAuthoredState(next);
+    if (authoringProblems(next).length === 0) {
+      setAuthoredState(next);
+    }
   };
+  const problems = authoringProblems(state);
 
   const setUsableModes = (usable: UsableModes) => update(current => {
     const modes = modesFor(usable);
@@ -159,6 +162,13 @@ export const Authoring = ({ initialState }: Props) => {
 
   return (
     <form className="authoring" onSubmit={e => e.preventDefault()}>
+      { problems.length > 0 &&
+        <div role="alert" className="authoring-problems">
+          <ul>
+            { problems.map(problem => <li key={problem}>{ problem }</li>) }
+          </ul>
+          <p>Your changes aren&apos;t saved until this is fixed.</p>
+        </div> }
       <fieldset>
         <legend>{ settingLabels.modes }</legend>
         <Select<UsableModes> id="usableModes" label={settingLabels.usableModes} value={usableModesOf(state.modes)}

@@ -151,6 +151,18 @@ export const shownPaneIds = (modes: Record<ModeId, boolean>) => paneIds.filter(i
 export const showsStartsOpen = (id: PaneId, state: Pick<MarkovAuthoredState, "modes" | "panes">) =>
   state.panes[id].available && (id !== "graph" || state.modes.useData);
 
+// why a setup leaves students nothing to work with, one message per problem; none when it can be saved
+export const authoringProblems = (state: MarkovAuthoredState): string[] => {
+  const problems: string[] = [];
+  if (!paneIds.some(id => state.panes[id].available)) {
+    problems.push("Turn on at least one pane, or students will see nothing.");
+  }
+  if (state.modes.useData && !state.panes.input.available && !state.startingText.trim()) {
+    problems.push("With the Input pane off, add starting data, or students will have no words to work with.");
+  }
+  return problems;
+};
+
 const readBoolean = (value: unknown, fallback: boolean) => typeof value === "boolean" ? value : fallback;
 
 const readChoice = <T extends string>(value: unknown, choices: readonly T[], fallback: T): T =>
