@@ -60,6 +60,28 @@ describe("workspaceConfig", () => {
     expect(workspaceConfig(authored({ inputView: "text" }))).toHaveProperty("inputView", "text");
   });
 
+  it.each(["table", "text", "textAndTable"] as const)("gives every mode and starting mode in full with the %s view",
+    view => {
+      const viewed = (state: MarkovAuthoredState) => ({ ...state, inputView: view });
+      expect(workspaceConfig(viewed(withModes("useData")))).toEqual({ ...dataConfig, inputView: view });
+      expect(workspaceConfig(viewed(withModes("both", "useData"))))
+        .toEqual({ ...dataConfig, inputView: view, modeSwitch: true });
+      expect(workspaceConfig(viewed(withModes("both", "draw")))).toEqual({ ...drawConfig, modeSwitch: true });
+      expect(workspaceConfig(viewed(withModes("draw", "draw")))).toEqual(drawConfig);
+    });
+
+  it.each(["input", "graph", "inspect", "generator"] as const)(
+    "leaves out the %s pane in Data mode when it isn't available, and starts it collapsed when it doesn't start open",
+    id => {
+      const off = withModes("useData");
+      off.panes[id].available = false;
+      expect(workspaceConfig(off).panes).toEqual(allOpen.filter(pane => pane.id !== id));
+      const closed = withModes("useData");
+      closed.panes[id].startsOpen = false;
+      expect(workspaceConfig(closed).panes)
+        .toEqual(allOpen.map(pane => pane.id === id ? { ...pane, startsOpen: false } : pane));
+    });
+
   it("leaves out a pane that isn't available, and starts collapsed one that doesn't start open", () => {
     const state = authored();
     state.panes.inspect.available = false;

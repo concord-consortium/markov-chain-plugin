@@ -2,7 +2,7 @@ import {
   defaultPaneSizes, minInputPart, minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, toolbarHeight,
   workspaceHeight
 } from "../../src/interactive/workspace/pane-sizes";
-import { selectedNodeColor } from "../support/graph";
+import { animatedArrowColor, animatedNodeColor, outgoingArrowColor, selectedNodeColor } from "../support/graph";
 import {
   clickState, divider, dragDivider, graphRoot, loggedEvents, mousePress, parseTransform, pinch, pressEvents, pressState,
   pressTab, rootTransform, stateEllipse, stateLabels
@@ -586,10 +586,13 @@ describe("the workspace's linked highlighting", () => {
   const tableRows = () => cy.interactive().find(".input-table-rows tbody tr");
   const marks = () => cy.interactive().find(".text-input .backdrop mark")
     .invoke("toArray").invoke("map", (mark: Element) => `${mark.className}:${mark.textContent}`);
-  const arrow = (from: string, to: string) => cy.interactive().find("line.edge-background").filter((i, line) => {
+  const lineFrom = (selector: string, from: string, to: string) => cy.interactive().find(selector).filter((i, line) => {
     const data = (line as unknown as { __data__: { source: { id: string }, target: { id: string } } }).__data__;
     return data.source.id === from && data.target.id === to;
   });
+  // the wide band that takes an arrow's clicks, and the arrow drawn over it
+  const arrow = (from: string, to: string) => lineFrom("line.edge-background", from, to);
+  const drawnArrow = (from: string, to: string) => lineFrom("line.edge", from, to);
 
   it("lights a state chosen in the graph in Inspect, the table and the text", () => {
     start({ startingText: "the cat sat on the mat" });
@@ -632,6 +635,11 @@ describe("the workspace's linked highlighting", () => {
     inspectTab("States").click();
     inspectRow("the").should("have.class", "highlight-selected");
     inspectRow("cat").should("have.class", "highlight-selected");
+    drawnArrow("the", "cat").should("have.attr", "stroke", outgoingArrowColor).and("have.css", "opacity", "1");
+    drawnArrow("sat", "on").should("have.css", "opacity", "0.35");
+    stateEllipse("the").should("have.css", "opacity", "1");
+    stateEllipse("cat").should("have.css", "opacity", "1");
+    stateEllipse("sat").should("have.css", "opacity", "0.35");
 
     cy.wait(260);
     // the arrows' wide click bands overlap
@@ -651,6 +659,9 @@ describe("the workspace's linked highlighting", () => {
     tableRows().eq(0).should("have.class", "highlight-output");
     cy.interactive().find(".inspect-pane tbody tr.highlight-output").should("have.length.at.least", 1);
     cy.interactive().find(".text-input .backdrop mark.highlight-output").should("have.length.at.least", 1);
+    stateEllipse("a").should("have.attr", "fill", animatedNodeColor);
+    stateEllipse("b").should("have.attr", "fill", animatedNodeColor);
+    drawnArrow("a", "b").should("have.attr", "stroke", animatedArrowColor);
   });
 
   it("unchooses an Inspect row clicked again, and keeps a table row chosen while it is clicked again", () => {

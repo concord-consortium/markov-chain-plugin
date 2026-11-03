@@ -7,8 +7,11 @@ export const stateWidths = (edges: Edge[]) => {
   return (edge: Edge) => 2 + 2.5 * edge.value / totals.get(edge.from)!;
 };
 
-// selectedNodeColor in graph-highlight.ts
+// selectedNodeColor, outgoingArrowColor, animatedNodeColor and animatedArrowColor in graph-highlight.ts
 export const selectedNodeColor = "#14f49e3f";
+export const outgoingArrowColor = "#ff9900";
+export const animatedNodeColor = "#FF00877f";
+export const animatedArrowColor = "#FF0087";
 
 export const rootTransform = () => cy.plugin().find(".graph > svg g.root").invoke("attr", "transform");
 

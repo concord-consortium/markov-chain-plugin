@@ -26,6 +26,7 @@ describe("the interactive's runtime", () => {
     cy.startInteractive({ mode: "runtime", authoredState, width: 1044 });
     panes().should("deep.equal", ["Input", "Graph", "Sequence Generator"]);
     cy.interactive().find("textarea[aria-label='Your text']").should("have.value", "the cat sat");
+    cy.interactive().find(".input-table").should("not.exist");
     stateLabels().should("deep.equal", ["cat", "sat", "the"]);
   });
 
@@ -41,6 +42,8 @@ describe("the interactive's runtime", () => {
   it("shows the default workspace for an interactive never authored", () => {
     cy.startInteractive({ mode: "runtime", authoredState: {}, width: 1044 });
     panes().should("deep.equal", ["Input", "Graph", "Inspect", "Sequence Generator"]);
+    cy.interactive().find(".input-pane .linked-input textarea[aria-label='Your text']").should("exist");
+    cy.interactive().find(".input-pane .linked-input .input-table").should("exist");
     cy.interactive().find(".markov-workspace").should("not.contain.text", "arrives in a later version");
   });
 
