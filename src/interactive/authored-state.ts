@@ -3,6 +3,8 @@
 // default from activities saved before it existed, and needs no version change. When a saved setting's meaning
 // changes, bump the version and convert older states in readAuthoredState.
 
+import { isRecord, parseState } from "./parse-state";
+
 export const authoredStateVersion = 1;
 
 export const modeIds = ["useData", "draw"] as const;
@@ -140,24 +142,10 @@ export const shownPaneIds = (modes: Record<ModeId, boolean>) => paneIds.filter(i
 export const showsStartsOpen = (id: PaneId, state: Pick<MarkovAuthoredState, "modes" | "panes">) =>
   state.panes[id].available && (id !== "graph" || state.modes.useData);
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 const readBoolean = (value: unknown, fallback: boolean) => typeof value === "boolean" ? value : fallback;
 
 const readChoice = <T extends string>(value: unknown, choices: readonly T[], fallback: T): T =>
   choices.includes(value as T) ? value as T : fallback;
-
-const parse = (raw: unknown): Record<string, unknown> => {
-  if (typeof raw === "string") {
-    try {
-      return parse(JSON.parse(raw));
-    } catch {
-      return {};
-    }
-  }
-  return isRecord(raw) ? raw : {};
-};
 
 const readModes = (raw: unknown) => {
   const saved = isRecord(raw) ? raw : {};
@@ -201,7 +189,7 @@ const readButtons = (raw: unknown) => {
 // interactive, or nothing) as a complete authored state. It never throws, and a complete, valid state reads
 // back unchanged.
 export const readAuthoredState = (raw: unknown): MarkovAuthoredState => {
-  const saved = parse(raw);
+  const saved = parseState(raw);
   const modes = readModes(saved.modes);
   const startingMode = readChoice(saved.startingMode, modeIds, defaultAuthoredState.startingMode);
   const orderMatters = isRecord(saved.orderMatters) ? saved.orderMatters : {};
