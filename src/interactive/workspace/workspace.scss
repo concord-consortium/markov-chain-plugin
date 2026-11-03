@@ -202,11 +202,112 @@
     }
   }
 
-  .highlight-selected {
+  .highlight-selected, .highlight-chosen {
     background-color: var(--highlight-selected);
   }
   .highlight-output {
     background-color: var(--highlight-output);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .inspect-pane-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    padding: 5px;
+
+    .inspect-tabs {
+      display: flex;
+      flex: none;
+      gap: 2px;
+      border-bottom: 1px solid #949494;
+    }
+
+    .inspect-tab {
+      padding: 3px 10px;
+      border: 1px solid #949494;
+      border-bottom: none;
+      border-radius: 3px 3px 0 0;
+      background-color: #eef3f5;
+      font: inherit;
+      cursor: pointer;
+
+      &.selected {
+        background-color: #fff;
+        font-weight: bold;
+      }
+    }
+
+    .inspect-panel {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .inspect-empty {
+      margin: 10px 4px;
+      color: #737373;
+    }
+
+    .inspect-table {
+      width: 100%;
+      border-collapse: collapse;
+
+      th {
+        position: sticky;
+        top: 0;
+        padding: 0;
+        background-color: #fff;
+        text-align: left;
+
+        button {
+          width: 100%;
+          padding: 4px;
+          border: none;
+          background: none;
+          font: inherit;
+          font-weight: bold;
+          text-align: left;
+          cursor: pointer;
+        }
+      }
+
+      td {
+        padding: 2px 4px;
+        border-top: 1px solid #e0e0e0;
+      }
+
+      tbody tr {
+        cursor: pointer;
+        // an arrow's color marks a transition into or out of the chosen state
+        border-left: 4px solid transparent;
+
+        &.highlight-in {
+          border-left-color: var(--highlight-in);
+        }
+        &.highlight-out {
+          border-left-color: var(--highlight-out);
+        }
+      }
+
+      .inspect-row-button {
+        padding: 0;
+        border: none;
+        background: none;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+    }
   }
 
   // the rows scroll, and the note under them stays in view
@@ -241,6 +342,8 @@
       width: 100%;
       padding: 2px 4px;
       border: 1px solid #949494;
+      // a lit row's color shows through
+      background-color: transparent;
       border-radius: 2px;
       font: inherit;
     }
@@ -264,15 +367,6 @@
         cursor: default;
         opacity: 0.4;
       }
-    }
-
-    .input-table-hint {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
     }
 
     .input-table-limit {

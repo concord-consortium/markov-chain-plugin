@@ -3,7 +3,9 @@ import { clsx } from "clsx";
 import { useMarkovTool } from "../../hooks/use-markov-tool";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import { NodeModal } from "../../components/drawing/node-modal";
-import { animatedNodeColor, selectedNodeColor } from "../../components/graph-highlight";
+import {
+  animatedNodeColor, incomingArrowColor, outgoingArrowColor, selectedNodeColor
+} from "../../components/graph-highlight";
 import { layoutFor } from "../../components/graph-utils";
 import { Node } from "../../type";
 import { MarkovAuthoredState } from "../authored-state";
@@ -14,11 +16,13 @@ import { GeneratorPane } from "./generator-pane";
 import { GraphPane } from "./graph-pane";
 import { highlightsFor } from "./highlights";
 import { InputPane } from "./input-pane";
+import { InspectPane } from "./inspect-pane";
 import { Pane } from "./pane";
 import {
   collapsedStrip, controlsRowHeight, defaultPaneSizes, paneGap, paneHeader, panePadding, stackBelow, toolbarButton,
   toolbarGap, workspaceHeight
 } from "./pane-sizes";
+import { scrollTextToMark, scrollToLit } from "./scroll-to-lit";
 import { useLatest } from "./use-latest";
 import { WorkspaceConfig, workspaceConfig, WorkspacePaneId } from "./workspace-config";
 
@@ -43,6 +47,7 @@ const cssValues = {
   "--toolbar-button": `${toolbarButton}px`, "--toolbar-gap": `${toolbarGap}px`,
   "--controls-row": `${controlsRowHeight}px`,
   "--highlight-selected": selectedNodeColor, "--highlight-output": animatedNodeColor,
+  "--highlight-in": incomingArrowColor, "--highlight-out": outgoingArrowColor,
 } as React.CSSProperties;
 
 // panes a commit redraws, so a press there would lose its click; a press elsewhere commits at once
@@ -116,6 +121,20 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   }, [config.capitalization, tool.handle, host, onSaveInput]);
 
   const liveTokens = useMemo(() => tokenize(text, config.capitalization), [text, config.capitalization]);
+  const highlights = useMemo(() => highlightsFor(tool.selection, committed.tokens),
+    [tool.selection, committed.tokens]);
+
+  // a commit that takes the chosen state or transition out of the graph clears it, logging nothing; an output stays
+  useEffect(() => {
+    const { selection, graph } = toolRef.current;
+    const gone = selection?.kind === "state"
+      ? !graph.nodes.some(node => node.id === selection.id)
+      : selection?.kind === "transition" &&
+        !graph.edges.some(edge => edge.from === selection.from && edge.to === selection.to);
+    if (gone) {
+      toolRef.current.setSelectedNodeId();
+    }
+  }, [tool.graph, toolRef]);
   const textRef = useLatest(text);
 
   const [open, setOpen] = useState<Record<string, boolean>>(
@@ -245,12 +264,37 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
       ? "Type some words in the Input pane's table to build the chain."
       : "Type some words in the Input pane to build the chain.";
 
+  // the pane the student last pressed, focused or typed in, where a choice is made, and which doesn't scroll to it
+  const sourcePaneRef = useRef<WorkspacePaneId>(undefined);
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !tool.selection) {
+      return;
+    }
+    const source = sourcePaneRef.current;
+    const pane = (id: WorkspacePaneId) => source !== id ? root.querySelector(`.${id}-pane`) : null;
+    const input = pane("input");
+    if (input) {
+      scrollTextToMark(input);
+      scrollToLit(input, ".input-table-rows", "tr[class*='highlight-']");
+    }
+    const inspect = pane("inspect");
+    if (inspect) {
+      scrollToLit(inspect, ".inspect-panel", "tbody tr[class*='highlight-']");
+    }
+  }, [tool.selection]);
+
+  const handleSelectState = useCallback((id: string) => toolRef.current.selectState(id, "inspect"), [toolRef]);
+  const handleSelectTransition = useCallback((edge: { from: string, to: string }) =>
+    toolRef.current.selectTransition(edge, "inspect"), [toolRef]);
+
   const renderPane = (id: WorkspacePaneId) => {
     switch (id) {
       case "input":
         return (
           <InputPane view={inputView} text={text} liveTokens={liveTokens}
             liveHighlights={highlightsFor(tool.selection, liveTokens)} committed={committed}
+            highlights={highlights}
             readOnly={tool.animating} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
             onTableCommit={handleTableCommit} onRowBlur={handleBlurCommit} afterPress={afterPress}
             onRowAdded={handleRowAdded}
@@ -263,7 +307,10 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
             onDoubleClickState={handleDoubleClickState} />
         );
       case "inspect":
-        return null;
+        return (
+          <InspectPane graph={tool.graph} selection={tool.selection} highlights={highlights} log={host.log}
+            onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} />
+        );
       case "generator":
         return <GeneratorPane tool={tool} controlsOpen={controlsOpen} onToggleControls={toggleControls} />;
     }
@@ -282,7 +329,7 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
         <div className="top-row" style={stacked ? undefined : { height: sizes.top }}>
           { rowPanes.map(({ id }) => (
             <Pane key={id} className={`${id}-pane`} title={paneTitles[id]} open={open[id]}
-              onToggle={() => togglePane(id)} style={paneStyle(id)}>
+              onToggle={() => togglePane(id)} onInteract={() => (sourcePaneRef.current = id)} style={paneStyle(id)}>
               { renderPane(id) }
             </Pane>
           )) }
@@ -290,7 +337,7 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
       }
       { has("generator") &&
         <Pane className="generator-pane" title={paneTitles.generator} open={open.generator}
-          onToggle={() => togglePane("generator")}
+          onToggle={() => togglePane("generator")} onInteract={() => (sourcePaneRef.current = "generator")}
           style={open.generator ? { height: workspaceHeight - sizes.top } : undefined}>
           { renderPane("generator") }
         </Pane>

@@ -16,6 +16,8 @@ interface InputPaneProps {
   liveTokens: Token[];
   liveHighlights: Highlights;
   committed: { text: string, tokens: Token[] };
+  // the highlights over the committed tokens, for the table
+  highlights: Highlights;
   readOnly: boolean;
   onChange: (text: string) => void;
   onTextCommit: (text: string, how: CommitHow, view: CommitView) => void;
@@ -35,7 +37,7 @@ export const InputPane = (props: InputPaneProps) => {
     <TextInput text={text} tokens={liveTokens} highlights={liveHighlights} readOnly={readOnly} onChange={onChange}
       onCommit={(next, how) => onTextCommit(next, how, "text")} onBlur={props.onTextBlur} />;
   const table = view !== "text" &&
-    <InputTable text={committed.text} tokens={committed.tokens} readOnly={readOnly}
+    <InputTable text={committed.text} tokens={committed.tokens} highlights={props.highlights} readOnly={readOnly}
       onCommit={props.onTableCommit} onRowAdded={props.onRowAdded}
       onRowDeleted={props.onRowDeleted} onRowBlur={props.onRowBlur}
       afterPress={props.afterPress} onFocusToken={props.onFocusToken} />;

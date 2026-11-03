@@ -6,18 +6,21 @@ interface PaneProps {
   title: string;
   open: boolean;
   onToggle: () => void;
+  // the student pressed, focused or typed in the pane
+  onInteract?: () => void;
   style?: React.CSSProperties;
   children: React.ReactNode;
 }
 
 // A workspace pane: a header with its title and a button that collapses and reopens it. A collapsed pane keeps its
 // body mounted, hidden, so what the student did in it is there when it reopens.
-export const Pane = ({ className, title, open, onToggle, style, children }: PaneProps) => {
+export const Pane = ({ className, title, open, onToggle, onInteract, style, children }: PaneProps) => {
   const bodyId = useId();
   const titleId = useId();
   const action = open ? "Collapse" : "Expand";
   return (
-    <section className={clsx("pane", className, { collapsed: !open })} style={style} aria-labelledby={titleId}>
+    <section className={clsx("pane", className, { collapsed: !open })} style={style} aria-labelledby={titleId}
+      onPointerDownCapture={onInteract} onFocusCapture={onInteract} onKeyDownCapture={onInteract}>
       <header className="pane-header">
         <h2 id={titleId}>{ title }</h2>
         <button type="button" className="pane-toggle" aria-expanded={open} aria-controls={bodyId}

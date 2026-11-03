@@ -13,6 +13,9 @@ const textBox = () => cy.interactive().find("textarea[aria-label='Your text']");
 // the workspace's fits animate over 250 ms
 const afterFit = () => cy.wait(400);
 const row = (n: number) => cy.interactive().find(`input[aria-label='Row ${n}']`);
+const inspectRow = (label: string) => cy.interactive().find(".inspect-pane tbody tr")
+  .filter((i, tr) => (tr as HTMLTableRowElement).cells[0].textContent === label);
+const inspectTab = (label: string) => cy.interactive().find(".inspect-tab").contains(label);
 const newRow = () => cy.interactive().find("input[aria-label='New row']");
 const commits = () => loggedEvents().invoke("filter", ([action]: [string]) => action === "InputCommitted");
 // a paste changes the text box's value in one input event, and commits it whole
@@ -570,5 +573,247 @@ describe("the workspace's input table", () => {
     stateEllipse("cat").should("have.attr", "fill", "#fff");
     loggedEvents().should(events => expect(events[events.length - 1]).to.deep.equal(
       ["SelectionCleared", { via: "table" }]));
+  });
+});
+
+describe("the workspace's linked highlighting", () => {
+  const tableRows = () => cy.interactive().find(".input-table-rows tbody tr");
+  const marks = () => cy.interactive().find(".text-input .backdrop mark")
+    .invoke("toArray").invoke("map", (mark: Element) => `${mark.className}:${mark.textContent}`);
+  const arrow = (from: string, to: string) => cy.interactive().find("line.edge-background").filter((i, line) => {
+    const data = (line as unknown as { __data__: { source: { id: string }, target: { id: string } } }).__data__;
+    return data.source.id === from && data.target.id === to;
+  });
+
+  it("lights a state chosen in the graph in Inspect, the table and the text", () => {
+    start({ startingText: "the cat sat on the mat" });
+    clickState("cat");
+    inspectRow("cat").should("have.class", "highlight-selected")
+      .find("button").should("have.attr", "aria-pressed", "true");
+    inspectRow("the").should("not.have.class", "highlight-selected");
+    tableRows().eq(1).should("have.class", "highlight-selected");
+    tableRows().eq(0).should("not.have.class", "highlight-selected");
+    marks().should("deep.equal", ["highlight-selected:cat"]);
+    inspectTab("Transitions").click();
+    inspectRow("the → cat").should("have.class", "highlight-in");
+    inspectRow("cat → sat").should("have.class", "highlight-out");
+    inspectRow("sat → on").should("not.have.class", "highlight-in").and("not.have.class", "highlight-out");
+    loggedEvents().should("deep.include", ["InspectTabChosen", { tab: "transitions" }]);
+  });
+
+  it("chooses a state from an Inspect row, anywhere in it, and from a table row", () => {
+    start({ startingText: "the cat sat" });
+    inspectRow("the").find("td").eq(1).click();
+    stateEllipse("the").should("have.attr", "fill", selectedNodeColor);
+    loggedEvents().should("deep.include", ["StateSelected", { state: "the", source: "inspect" }]);
+    row(3).focus();
+    stateEllipse("sat").should("have.attr", "fill", selectedNodeColor);
+    inspectRow("sat").should("have.class", "highlight-selected");
+    loggedEvents().should("deep.include", ["StateSelected", { state: "sat", source: "table" }]);
+  });
+
+  it("lights a transition chosen from Inspect and from the graph's arrow", () => {
+    start({ startingText: "the cat sat on the mat" });
+    inspectTab("Transitions").click();
+    inspectRow("the → cat").click();
+    inspectRow("the → cat").should("have.class", "highlight-chosen")
+      .find("button").should("have.attr", "aria-pressed", "true");
+    loggedEvents().should("deep.include", ["TransitionSelected", { from: "the", to: "cat", source: "inspect" }]);
+    tableRows().eq(0).should("have.class", "highlight-selected");
+    tableRows().eq(1).should("have.class", "highlight-selected");
+    tableRows().eq(4).should("not.have.class", "highlight-selected");
+    marks().should("deep.equal", ["highlight-selected:the", "highlight-selected:cat"]);
+    inspectTab("States").click();
+    inspectRow("the").should("have.class", "highlight-selected");
+    inspectRow("cat").should("have.class", "highlight-selected");
+
+    cy.wait(260);
+    // the arrows' wide click bands overlap
+    arrow("sat", "on").trigger("click", { force: true });
+    loggedEvents().should("deep.include", ["TransitionSelected", { from: "sat", to: "on", source: "graph" }]);
+    inspectRow("sat").should("have.class", "highlight-selected");
+    marks().should("deep.equal", ["highlight-selected:sat", "highlight-selected:on"]);
+  });
+
+  it("lights an output in pink", () => {
+    start({ startingText: "a b a b" });
+    playButton().click();
+    // the button reads Pause while the sequence plays
+    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+    cy.interactive().find(".sequence-output .sequence").should("have.length", 1).click();
+    loggedEvents().should(events => expect(events.map(([action]) => action)).to.include("OutputSelected"));
+    tableRows().eq(0).should("have.class", "highlight-output");
+    cy.interactive().find(".inspect-pane tbody tr.highlight-output").should("have.length.at.least", 1);
+    cy.interactive().find(".text-input .backdrop mark.highlight-output").should("have.length.at.least", 1);
+  });
+
+  it("unchooses an Inspect row clicked again, and keeps a table row chosen while it is clicked again", () => {
+    start({ startingText: "the cat sat" });
+    inspectRow("cat").click();
+    inspectRow("cat").should("have.class", "highlight-selected");
+    inspectRow("cat").click();
+    inspectRow("cat").should("not.have.class", "highlight-selected");
+    loggedEvents().should("deep.include", ["SelectionCleared", { via: "toggle" }]);
+    row(2).click();
+    row(2).click();
+    stateEllipse("cat").should("have.attr", "fill", selectedNodeColor);
+  });
+
+  it("clears the selection on a click in the graph's background", () => {
+    start({ startingText: "the cat sat" });
+    clickState("cat");
+    inspectRow("cat").should("have.class", "highlight-selected");
+    cy.interactive().find(".graph-pane .graph > svg").click(5, 5);
+    inspectRow("cat").should("not.have.class", "highlight-selected");
+    loggedEvents().should("deep.include", ["SelectionCleared", { via: "background" }]);
+  });
+
+  it("clears a chosen state that a commit takes out of the graph, logging nothing", () => {
+    start({ startingText: "the cat sat" });
+    clickState("sat");
+    stateEllipse("sat").should("have.attr", "fill", selectedNodeColor);
+    textBox().type("{backspace}{backspace}{backspace}{backspace}").blur({ force: true });
+    stateLabels().should("deep.equal", ["cat", "the"]);
+    cy.interactive().find(".clear-highlight").should("not.exist");
+    loggedEvents().should(events => expect(events.map(([action]) => action)).not.to.include("SelectionCleared"));
+  });
+
+  it("clears a chosen transition that a commit takes out of the graph, logging nothing", () => {
+    start({ startingText: "the cat sat" });
+    inspectTab("Transitions").click();
+    inspectRow("cat → sat").click();
+    inspectRow("cat → sat").should("have.class", "highlight-chosen");
+    textBox().type("{backspace}{backspace}{backspace}{backspace}").blur({ force: true });
+    stateLabels().should("deep.equal", ["cat", "the"]);
+    cy.interactive().find(".clear-highlight").should("not.exist");
+    loggedEvents().should(events => expect(events.map(([action]) => action)).not.to.include("SelectionCleared"));
+  });
+
+  it("keeps a chosen output through a commit that takes one of its states out", () => {
+    start({ startingText: "a b a b" });
+    playButton().click();
+    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+    cy.interactive().find(".sequence-output .sequence").should("have.length", 1).click();
+    tableRows().eq(0).should("have.class", "highlight-output");
+    textBox().type(" c").blur({ force: true });
+    stateLabels().should("deep.equal", ["a", "b", "c"]);
+    textBox().clear().type("a c ").blur({ force: true });
+    stateLabels().should("deep.equal", ["a", "c"]);
+    cy.interactive().find(".clear-highlight").should("exist");
+    tableRows().eq(0).should("have.class", "highlight-output");
+  });
+
+  it("brings a lit Inspect row scrolled above the view out from under the table's header", () => {
+    start({ startingText: Array.from({ length: 40 }, (_, i) => `s${String(i).padStart(2, "0")}`).join(" ") });
+    cy.interactive().find(".inspect-panel").scrollTo("bottom");
+    clickState("s00");
+    cy.interactive().find(".inspect-panel").should(panel => {
+      // the header cells stick to the top, while the thead itself scrolls away
+      const head = panel[0].querySelector("th")!.getBoundingClientRect();
+      const lit = panel[0].querySelector("tbody tr.highlight-selected")!.getBoundingClientRect();
+      expect(lit.top).to.be.at.least(head.bottom - 1);
+    });
+  });
+
+  it("scrolls the other panes to the first lit row or word, and not the pane the choice was made in", () => {
+    const words = Array.from({ length: 60 }, (_, i) => `w${i}`);
+    start({ startingText: [...words, "end"].join(" ") });
+    cy.interactive().find(".input-table-rows").scrollTo("bottom");
+    row(61).focus();
+    stateEllipse("end").should("have.attr", "fill", selectedNodeColor);
+    textBox().should(box => expect(box[0].scrollTop).to.equal(0));
+    cy.interactive().find(".inspect-panel").should(panel => {
+      const lit = panel[0].querySelector("tbody tr.highlight-selected")!.getBoundingClientRect();
+      const view = panel[0].getBoundingClientRect();
+      expect(lit.top).to.be.at.least(view.top);
+      expect(lit.bottom).to.be.at.most(view.bottom + 1);
+    });
+    cy.interactive().find(".input-table-rows").scrollTo("top");
+    textBox().scrollTo("top");
+    inspectRow("w59").click();
+    inspectRow("w59").should("have.class", "highlight-selected");
+    cy.interactive().find(".input-table-rows").should(rows => expect(rows[0].scrollTop).to.be.greaterThan(0));
+    textBox().should(box => expect(box[0].scrollTop).to.be.greaterThan(0));
+  });
+});
+
+describe("the workspace's Inspect pane", () => {
+  const header = (label: string) => cy.interactive().find(".inspect-pane th").filter((i, th) =>
+    th.textContent!.startsWith(label));
+  const firstColumn = () => cy.interactive().find(".inspect-pane tbody tr")
+    .invoke("toArray").invoke("map", (tr: HTMLTableRowElement) => tr.cells[0].textContent);
+
+  it("starts alphabetical and sorts by a header, ascending then descending", () => {
+    // three orders that all differ
+    start({ startingText: "a a b c c c" });
+    firstColumn().should("deep.equal", ["a", "b", "c"]);
+    header("State").should("have.attr", "aria-sort", "ascending");
+    header("Count").should("have.attr", "aria-sort", "none").find("button").click();
+    header("Count").should("have.attr", "aria-sort", "ascending");
+    header("State").should("have.attr", "aria-sort", "none");
+    firstColumn().should("deep.equal", ["b", "a", "c"]);
+    header("Count").find("button").click();
+    header("Count").should("have.attr", "aria-sort", "descending");
+    firstColumn().should("deep.equal", ["c", "a", "b"]);
+    loggedEvents()
+      .should("deep.include", ["InspectSorted", { tab: "states", column: "count", direction: "descending" }]);
+  });
+
+  it("says there are no states with no input", () => {
+    start();
+    cy.interactive().find(".inspect-pane").should("contain.text", "There are no states yet.");
+  });
+
+  it("says there are no transitions on a Transitions tab with states and none", () => {
+    start({ startingText: "the" });
+    inspectTab("Transitions").click();
+    cy.interactive().find(".inspect-empty").should("have.text", "There are no transitions yet.");
+  });
+
+  it("follows each commit", () => {
+    start({ startingText: "the cat" });
+    firstColumn().should("deep.equal", ["cat", "the"]);
+    textBox().type(" sat ");
+    firstColumn().should("deep.equal", ["cat", "sat", "the"]);
+  });
+
+  it("keeps its tab and sort while collapsed", () => {
+    start({ startingText: "the cat sat the" });
+    inspectTab("Transitions").click();
+    header("Count").find("button").click();
+    cy.interactive().find("button[aria-label='Collapse Inspect']").click();
+    cy.interactive().find("button[aria-label='Expand Inspect']").click();
+    inspectTab("Transitions").should("have.attr", "aria-selected", "true");
+    header("Count").should("have.attr", "aria-sort", "ascending");
+  });
+
+  it("moves between tabs with the arrow keys", () => {
+    start({ startingText: "the cat" });
+    inspectTab("States").focus();
+    inspectTab("States").type("{rightArrow}");
+    focused().should("have.text", "Transitions").and("have.attr", "aria-selected", "true");
+  });
+
+  [3, 30].forEach(states => {
+    // Enter and Space choose a row by the browser's own button activation, which needs trusted key input
+    it(`is one stop in the Tab order with ${states} states, and Down moves to the second row without choosing`, () => {
+      start({ startingText: Array.from({ length: states }, (_, i) => `s${String(i).padStart(2, "0")}`).join(" ") });
+      cy.interactive().find(".inspect-pane tbody tr").should("have.length", states);
+      inspectTab("States").focus();
+      pressTab();
+      focused().should("contain.text", "State");
+      pressTab();
+      focused().should("contain.text", "Count");
+      pressTab();
+      focused().should("have.text", "s00");
+      pressTab();
+      focused().should(element => expect(element?.closest(".inspect-pane tbody")).to.equal(null));
+      cy.interactive().find(".inspect-row-button").first().focus();
+      cy.interactive().find(".inspect-row-button").first().type("{downArrow}");
+      focused().should("have.text", "s01");
+      stateEllipse("s01").should("have.attr", "fill", "#fff");
+      cy.interactive().find(".inspect-row-button").eq(1).click();
+      stateEllipse("s01").should("have.attr", "fill", selectedNodeColor);
+    });
   });
 });

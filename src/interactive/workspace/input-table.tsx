@@ -3,12 +3,14 @@ import { clsx } from "clsx";
 import { maxInputLength } from "../interactive-state";
 import { deleteRow, editRow, insertRow } from "../input/table-edits";
 import { rowText, Token } from "../input/tokenizer";
+import { Highlights } from "./highlights";
 import { useLatest } from "./use-latest";
 
 interface InputTableProps {
   // the committed input, which the rows are the tokens of
   text: string;
   tokens: Token[];
+  highlights: Highlights;
   readOnly: boolean;
   onCommit: (text: string) => void;
   onRowAdded: () => void;
@@ -31,7 +33,7 @@ const sameRow = (a: RowKey, b: RowKey) => rowId(a) === rowId(b);
 // The input's tokens, one per row, a break as an empty row. The table is one stop in the Tab order: only the current
 // row's input and delete button take Tab, and Up and Down move between rows.
 const InputTableRows = ({
-  text, tokens, readOnly, onCommit, onRowAdded, onRowDeleted, onRowBlur, afterPress, onFocusToken
+  text, tokens, highlights, readOnly, onCommit, onRowAdded, onRowDeleted, onRowBlur, afterPress, onFocusToken
 }: InputTableProps) => {
   const hintId = useId();
   const [current, setCurrent] = useState<RowKey>({ kind: "row", index: 0 });
@@ -215,7 +217,8 @@ const InputTableRows = ({
               const takesTab = sameRow(row, tabRow);
               return (
                 // keyed by place, so the rows under a press keep their elements when a row above them goes in
-                <tr key={at} className={clsx(row.kind)}>
+                <tr key={at} className={clsx(row.kind,
+                  row.kind === "row" && highlights.tokens.has(row.index) && `highlight-${highlights.kind}`)}>
                   <td>
                     <input type="text" aria-label={row.kind === "append" ? "New row" : `Row ${number}`}
                       value={valueOf(row)} readOnly={readOnly}
@@ -247,7 +250,7 @@ const InputTableRows = ({
           </tbody>
         </table>
       </div>
-      <p id={hintId} className="input-table-hint">Up and Down move between rows.</p>
+      <p id={hintId} className="visually-hidden">Up and Down move between rows.</p>
       <p role="status" className="input-table-limit">
         { refusals > 0 &&
           <span key={refusals}>
