@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CODAPAttribute, ViewMode } from "../type";
 import { MarkovToolHandle } from "../components/host";
-import {
-  // entityInfo,
-  // getNumChildAttributesInContext,
-  initializePlugin,
-  registerObservers
-} from "../utils/codap-helper";
+import { initializePlugin } from "../utils/codap-helper";
 import codapInterface from "../utils/codap-interface";
 import pkg from "../../package.json";
 import { getAttributeValues } from "../utils/attribute-values";
@@ -128,7 +123,7 @@ export const useCODAP = (tool: React.RefObject<MarkovToolHandle | null>) => {
         PluginVersion,
         InitialDimensions,
         setPluginState,
-      ).then(() => registerObservers());
+      );
     }
 
     return () => {
