@@ -24,7 +24,8 @@ const startingTextValue = (text: string) => {
   return `${preview} (${text.length} ${text.length === 1 ? "character" : "characters"})`;
 };
 
-// The authored settings as the runtime's placeholder lists them, in the authoring form's order and with its labels.
+// The authored settings as the report view's placeholder lists them, in the authoring form's order and with its
+// labels.
 // As in the form, a setting is left out while what it depends on is off.
 export const settingsSummary = (state: MarkovAuthoredState): SettingSummary[] => {
   const { useData } = state.modes;

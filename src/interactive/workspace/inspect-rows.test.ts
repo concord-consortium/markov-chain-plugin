@@ -2,7 +2,7 @@ import { graphFromValues } from "../../utils/chain-graph";
 import { tokenize, tokensToValues } from "../input/tokenizer";
 import { sortRows, stateRows, transitionRows } from "./inspect-rows";
 
-// the example in Rebecca's doc
+// two sentences that share their first pair of words
 const graph = graphFromValues(tokensToValues(tokenize("the cat sat on the mat. the cat ran.", "lowercase")));
 
 describe("stateRows", () => {

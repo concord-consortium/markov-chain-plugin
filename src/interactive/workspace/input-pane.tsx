@@ -86,6 +86,7 @@ const LinkedInput = ({ split, onSplitChange, onSplitResized, textInput, table }:
         <Divider orientation="horizontal" label="Resize the text box and the table" value={drawn * body}
           min={inputPartMin(body)} max={body - inputPartMin(body)}
           onStart={() => {
+            movedOnScreenRef.current = false;
             moveFromRef.current = split;
             movedToRef.current = split;
             startRef.current ??= split;

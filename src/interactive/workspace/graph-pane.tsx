@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { clsx } from "clsx";
-import { Graph } from "../../components/graph";
+import { Graph, zoomInStep, zoomOutStep } from "../../components/graph";
 import { Tool, Toolbar } from "../../components/toolbar";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { MarkovHost } from "../../components/host";
@@ -9,9 +9,6 @@ import { useLatest } from "./use-latest";
 
 const tools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
 const noop = () => undefined;
-// the steps the graph's corner zoom buttons take
-const zoomInStep = 1.1;
-const zoomOutStep = 0.9;
 
 interface GraphPaneProps {
   tool: MarkovToolApi;

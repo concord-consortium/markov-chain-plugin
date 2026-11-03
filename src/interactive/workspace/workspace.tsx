@@ -443,7 +443,8 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
         { hasInputPane ? undefined : caseSwitch }
         { !config.caseSwitch && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
         { tool.selection &&
-          <button type="button" className="clear-highlight" onClick={() => tool.clearSelection("button")}>
+          <button type="button" className="clear-highlight" disabled={tool.animating}
+            onClick={() => tool.clearSelection("button")}>
             Clear highlight
           </button>
         }

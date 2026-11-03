@@ -649,6 +649,16 @@ describe("the workspace's linked highlighting", () => {
     marks().should("deep.equal", ["highlight-selected:sat", "highlight-selected:on"]);
   });
 
+  it("disables Clear highlight while a sequence is generated", () => {
+    start({ startingText: "a b c a b c a b c" });
+    clickState("a");
+    cy.interactive().find(".clear-highlight").should("be.enabled");
+    playButton().click();
+    cy.interactive().find(".clear-highlight").should("be.disabled");
+    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+    cy.interactive().find(".clear-highlight").should("be.enabled");
+  });
+
   it("lights an output in pink", () => {
     start({ startingText: "a b a b" });
     playButton().click();
@@ -927,6 +937,21 @@ describe("the workspace's dividers", () => {
       });
     });
     resized().should("have.length", 1).its(0).its(1).should("have.property", "divider", "inputSplit");
+    // a press and release without a move
+    divider("Resize the text box and the table").then(band => {
+      const element = band[0];
+      const win = element.ownerDocument.defaultView as Window & typeof globalThis;
+      const box = element.getBoundingClientRect();
+      ["pointerdown", "pointerup"].forEach(type => element.dispatchEvent(new win.PointerEvent(type, {
+        clientX: box.x + box.width / 2, clientY: box.y + box.height / 2, pointerId: 1, pointerType: "mouse",
+        isPrimary: true, button: 0, bubbles: true, view: win,
+      })));
+      if (element.hasPointerCapture(1)) {
+        element.releasePointerCapture(1);
+      }
+    });
+    cy.wait(100);
+    resized().should("have.length", 1);
     dragDivider("Resize the text box and the table", 0, -1000);
     height(".input-text-part .text-input").should("be.closeTo", 60, 1);
   });

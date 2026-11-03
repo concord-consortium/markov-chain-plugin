@@ -70,6 +70,9 @@ type Props = {
 
 // a press that moves this many px or less is still a click, and a gesture that moves the view no more isn't a zoom
 const clickDistance = 4;
+// the zoom buttons' steps, which a host's own zoom buttons take too
+export const zoomInStep = 1.1;
+export const zoomOutStep = 0.9;
 
 export const Graph = (props: Props) => {
   const { graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
@@ -327,8 +330,8 @@ export const Graph = (props: Props) => {
     }
   }, []);
 
-  const handleZoomIn = () => scaleBy(1.1);
-  const handleZoomOut = () => scaleBy(0.9);
+  const handleZoomIn = () => scaleBy(zoomInStep);
+  const handleZoomOut = () => scaleBy(zoomOutStep);
 
   // listen for zoom requests
   useEffect(() => {
