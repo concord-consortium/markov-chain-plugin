@@ -72,6 +72,8 @@ type Props = {
   arrowWidths?: ArrowWidths;
   // false draws a bag of words: the states, and only the arrows the highlights point out
   orderMatters?: boolean;
+  // a redraw keeps a chosen output's highlights, which it otherwise drops until the next highlight change
+  keepOutputOnRedraw?: boolean;
 };
 
 // a press that moves this many px or less is still a click, and a gesture that moves the view no more isn't a zoom
@@ -87,7 +89,7 @@ export const Graph = (props: Props) => {
          fitViewAt, recenterViewAt, onAutoArrangeEnd, opacity,
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed, keepPositions, selectedEdge,
          onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs,
-         probabilityLabels, arrowWidths = "byState", orderMatters } = props;
+         probabilityLabels, arrowWidths = "byState", orderMatters, keepOutputOnRedraw } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -136,6 +138,20 @@ export const Graph = (props: Props) => {
       graph, probabilityLabels, arrowWidths, orderMatters, animating, selectedNodeId, highlightNode, highlightEdge,
       highlightAllNextNodes, highlightOutputNodes,
     });
+  });
+
+  const highlightsRef = useRef<() => void>(() => undefined);
+  useLayoutEffect(() => {
+    highlightsRef.current = () => {
+      const root = d3.select(svgRef.current).select("g.root");
+      highlightAnimation(root, {
+        highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
+        highlightOutputEdges
+      });
+      unhighlightNonOutput(root);
+      highlightSelected(root);
+      overlayRef.current();
+    };
   });
 
   // calculate the svg dimensions
@@ -238,7 +254,7 @@ export const Graph = (props: Props) => {
           onUserZoom();
         }
       });
-    if (onBackgroundClick) {
+    if (onBackgroundClick || onUserZoom) {
       zoomRef.current.clickDistance(clickDistance);
     }
     svg
@@ -258,13 +274,17 @@ export const Graph = (props: Props) => {
       lastClickTimeRef, lastClickIdRef, draggedRef,
       onTick: () => moveOverlay(d3.select(svgRef.current).select("g.root")),
     });
-    overlayRef.current();
+    if (keepOutputOnRedraw) {
+      highlightsRef.current();
+    } else {
+      overlayRef.current();
+    }
 
     return () => {
       simulation?.stop();
     };
   }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand, drawingMode, keepPositions, animating,
-      onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd]);
+      keepOutputOnRedraw, onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd]);
 
   // animate the node if needed
   useEffect(() => {
@@ -272,16 +292,7 @@ export const Graph = (props: Props) => {
       return;
     }
 
-    const root = d3.select(svgRef.current).select("g.root");
-
-    highlightAnimation(root, {
-      highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
-      highlightOutputEdges
-    });
-
-    unhighlightNonOutput(root);
-    highlightSelected(root);
-    overlayRef.current();
+    highlightsRef.current();
 
   }, [svgRef, d3Graph.nodes, selectedNodeId, selectedEdge, highlightNode, highlightLoopOnNode,
       highlightEdge, highlightAllNextNodes, highlightSelected, highlightOutputNodes,
@@ -323,11 +334,12 @@ export const Graph = (props: Props) => {
   // listen for fit view requests
   useEffect(() => {
     if ((fitViewAt ?? 0) > (lastFitViewAtRef.current ?? 0)) {
-      if (fitOrCenter("fit")) {
+      // with following, a fit with nothing to fit goes, or it would land later, over the view the student chose
+      if (fitOrCenter("fit") || (onUserZoom && width && height)) {
         lastFitViewAtRef.current = fitViewAt;
       }
     }
-  }, [fitViewAt, fitOrCenter]);
+  }, [fitViewAt, fitOrCenter, onUserZoom, width, height]);
 
   // listen for recenter view requests
   useEffect(() => {

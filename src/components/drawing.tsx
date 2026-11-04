@@ -352,7 +352,6 @@ export const Drawing = (props: Props) => {
 
     if (JSON.stringify(words) !== JSON.stringify(prevWordsRef.current)) {
       setGraph(wordsToGraph(words));
-      log("TextToGraph", { words: words.length });
     }
     prevWordsRef.current = words;
 
@@ -360,7 +359,7 @@ export const Drawing = (props: Props) => {
       onFitView();
     }, 0);
 
-  }, [setGraph, onFitView, log]);
+  }, [setGraph, onFitView]);
 
   return (
     <div className="drawing" ref={rootRef}>
@@ -410,6 +409,7 @@ export const Drawing = (props: Props) => {
         zoomRequest={zoomRequest}
         onUserZoom={onUserZoom}
         fitTransitionMs={fitTransitionMs}
+        keepOutputOnRedraw={!!props.tools}
       />
       <DragIcon drawingMode={drawingMode} />
       <NodeModal

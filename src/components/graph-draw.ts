@@ -4,8 +4,7 @@ import * as d3 from "d3";
 import { calculateNodeFontSizes, layoutFor, linkDistance, nodeLoopPath, ry } from "./graph-utils";
 import { calculateEdges, D3Graph, D3Node, lineDashArray, lineEnd } from "./graph-geometry";
 import {
-  animatedArrowColor, arrowUrl, incomingArrowColor, lineAndLoopOpacity, outgoingArrowColor, selectedLoopArrowColor,
-  unselectedOpacity
+  arrowMarkerPath, arrowMarkerRefX, arrowMarkerRefY, arrowMarkers, arrowMarkerSize, arrowUrl, lineAndLoopOpacity
 } from "./graph-highlight";
 import type { DrawingMode, Point, RubberBand, Transform } from "./graph";
 
@@ -54,32 +53,22 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
     .attr("transform", transform?.toString() ?? "")
     ;
 
-  const addArrowMarker = (id: string, color: string, markerOpacity?: number) => {
+  arrowMarkers.forEach(({ id, color, opacity }) => {
     root
       .append("svg:defs")
       .append("svg:marker")
       .attr("id", id)
-      .attr("refX", 1)
-      .attr("refY", 2)
-      .attr("markerWidth", 4)
-      .attr("markerHeight", 4)
+      .attr("refX", arrowMarkerRefX)
+      .attr("refY", arrowMarkerRefY)
+      .attr("markerWidth", arrowMarkerSize)
+      .attr("markerHeight", arrowMarkerSize)
       .attr("markerUnits", "strokeWidth")
       .attr("orient", "auto")
       .append("path")
-      .attr("d", "M 0 0 4 2 0 4 1 2 0 0")
+      .attr("d", arrowMarkerPath)
       .style("fill", color)
-      .style("fill-opacity", markerOpacity ?? 1);
-  };
-
-  // add arrows markers
-  addArrowMarker("arrow", "black");
-  addArrowMarker("loopArrow", "black");
-  addArrowMarker("animatedArrow", animatedArrowColor);
-  addArrowMarker("incomingArrow", incomingArrowColor);
-  addArrowMarker("outgoingArrow", outgoingArrowColor);
-  addArrowMarker("selectedLoopArrow", selectedLoopArrowColor);
-  addArrowMarker("unselectedArrow", "black", unselectedOpacity);
-  addArrowMarker("unselectedLoopArrow", "black", unselectedOpacity / lineAndLoopOpacity);
+      .style("fill-opacity", opacity ?? 1);
+  });
 
   // draw nodes
   const nodes = root

@@ -1,0 +1,252 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NodeModal } from "../../components/drawing/node-modal";
+import { MarkovHost } from "../../components/host";
+import { layoutFor } from "../../components/graph-utils";
+import { useLatest } from "../../hooks/use-latest";
+import { MarkovToolApi } from "../../hooks/use-markov-tool";
+import { Node } from "../../type";
+import { Capitalization, caseSensitiveLabel, MarkovAuthoredState } from "../authored-state";
+import { Token, tokenize, tokensToValues } from "../input/tokenizer";
+import { CommitHow, CommitView } from "./commit";
+import { ControlsRow } from "./controls-row";
+import { GeneratorPane } from "./generator-pane";
+import { GraphPane } from "./graph-pane";
+import { highlightsFor } from "./highlights";
+import { InputPane } from "./input-pane";
+import { InspectPane } from "./inspect-pane";
+import { defaultInputSplit } from "./pane-sizes";
+import { SettingLabel, SettingSwitch } from "./setting-switch";
+import { useClearGoneSelection, useEscape, useInspectChoices, useScrollToChoice } from "./use-mode-body";
+import { usePaneLayout } from "./use-pane-layout";
+import { DataWorkspaceConfig, WorkspacePaneId } from "./workspace-config";
+import { WorkspacePanes } from "./workspace-panes";
+
+interface DataWorkspaceProps {
+  authoredState: MarkovAuthoredState;
+  savedInput?: string;
+  // saves the input; absent standalone
+  onSaveInput?: (text: string) => void;
+  host: MarkovHost;
+  tool: MarkovToolApi;
+  config: DataWorkspaceConfig;
+  stacked: boolean;
+  hidden: boolean;
+  // the shell's controls, first in the row
+  controls: React.ReactNode;
+}
+
+// panes a commit redraws, so a press there would lose its click; a press elsewhere commits at once
+const redrawnByCommit = ".graph-pane .pane-body, .inspect-pane .pane-body";
+
+const stateCount = (values: string[]) => new Set(values.filter(value => value)).size;
+
+const sameValues = (a: string[], b: string[]) => a.length === b.length && a.every((value, i) => value === b[i]);
+
+// whether a commit's states are mostly new, so the graph lays them all out again rather than adding to it
+const laidOutWhole = (before: string[], after: string[]) => {
+  const placed = new Set(before.filter(value => value));
+  const states = new Set(after.filter(value => value));
+  return layoutFor([...states].filter(state => placed.has(state)).length, states.size) === "whole";
+};
+
+// Data mode's body: the authored panes around the student's input
+export const DataWorkspace = ({
+  authoredState, savedInput, onSaveInput, host, tool, config, stacked, hidden, controls
+}: DataWorkspaceProps) => {
+  const { inputView } = config;
+  const toolRef = useLatest(tool);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const layout = usePaneLayout(config, host, tool, stacked, hidden);
+  const { has, controlsOpen, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized, top } = layout;
+  const hasInputPane = has("input");
+
+  // with no Input pane the student cannot edit the input, so a saved one is ignored
+  const [startingText] = useState(() => hasInputPane ? savedInput ?? authoredState.startingText
+                                                     : authoredState.startingText);
+  const [text, setText] = useState(startingText);
+  const [committed, setCommitted] = useState<{ text: string, tokens: Token[] }>(
+    () => ({ text: startingText, tokens: tokenize(startingText, config.capitalization) }));
+  const [firstValues] = useState(() => tokensToValues(committed.tokens));
+  useEffect(() => {
+    tool.handle.dataChanged(firstValues);
+  }, [tool.handle, firstValues]);
+
+  const lastValuesRef = useRef(firstValues);
+  const lastSavedRef = useRef(startingText);
+
+  const [capitalization, setCapitalization] = useState(config.capitalization);
+  // reads the text under a rule and hands the core its values when they changed, returning its tokens if they did
+  const commitText = useCallback((nextText: string, rule: Capitalization) => {
+    const tokens = tokenize(nextText, rule);
+    const values = tokensToValues(tokens);
+    setText(nextText);
+    setCommitted({ text: nextText, tokens });
+    if (nextText !== lastSavedRef.current) {
+      lastSavedRef.current = nextText;
+      onSaveInput?.(nextText);
+    }
+    if (sameValues(values, lastValuesRef.current)) {
+      return undefined;
+    }
+    if (laidOutWhole(lastValuesRef.current, values)) {
+      followRef.current = true;
+    }
+    lastValuesRef.current = values;
+    tool.handle.dataChanged(values, { fit: followRef.current });
+    return tokens;
+  }, [tool.handle, onSaveInput, followRef]);
+
+  const commit = useCallback((nextText: string, how: CommitHow, view: CommitView) => {
+    const tokens = commitText(nextText, capitalization);
+    if (tokens) {
+      host.log("InputCommitted", { view, how, tokens: tokens.length, states: stateCount(lastValuesRef.current) });
+    }
+  }, [commitText, capitalization, host]);
+
+  const liveTokens = useMemo(() => tokenize(text, capitalization), [text, capitalization]);
+  const highlights = useMemo(() => highlightsFor(tool.selection, committed.tokens),
+    [tool.selection, committed.tokens]);
+  const liveHighlights = useMemo(() => highlightsFor(tool.selection, liveTokens), [tool.selection, liveTokens]);
+
+  useClearGoneSelection(tool);
+  const textRef = useLatest(text);
+
+  const handleCaseChange = (caseSensitive: boolean) => {
+    const rule = caseSensitive ? "asTyped" : "lowercase";
+    setCapitalization(rule);
+    commitText(textRef.current, rule);
+    host.log("CaseSensitivityChanged", { caseSensitive, states: stateCount(lastValuesRef.current) });
+  };
+  const isCaseSensitive = capitalization === "asTyped";
+  const caseSwitch = config.caseSwitch &&
+    <SettingSwitch label={caseSensitiveLabel} value={isCaseSensitive} onChange={handleCaseChange}
+      disabled={tool.animating} />;
+
+  const [dialogNode, setDialogNode] = useState<Node>();
+  const dialogNodeRef = useLatest(dialogNode);
+  const handleDoubleClickState = useCallback((id: string) => {
+    const node = toolRef.current.graph.nodes.find(n => n.id === id);
+    setDialogNode(node);
+    host.log("StateDialogOpened", { state: node?.label ?? id });
+  }, [host, toolRef]);
+
+  // mouse events (a tap's mousedown follows its pointerup), captured on the window ahead of d3-drag, which stops the
+  // mouseup there; a secondary button's menu can swallow its mouseup, so only the primary button presses
+  const pressedRef = useRef<Element>(undefined);
+  const afterPressRef = useRef<(() => void)[]>([]);
+  useEffect(() => {
+    const win = rootRef.current?.ownerDocument.defaultView;
+    let timer: number | undefined;
+    const press = (e: MouseEvent) => {
+      pressedRef.current = e.button === 0 && e.target instanceof Element ? e.target : undefined;
+    };
+    const release = () => {
+      pressedRef.current = undefined;
+      const waiting = afterPressRef.current;
+      afterPressRef.current = [];
+      if (waiting.length > 0) {
+        timer = window.setTimeout(() => waiting.forEach(run => run()));
+      }
+    };
+    const ends = ["mouseup", "pointercancel", "dragend", "contextmenu"];
+    win?.addEventListener("mousedown", press, true);
+    ends.forEach(type => win?.addEventListener(type, release, true));
+    return () => {
+      window.clearTimeout(timer);
+      win?.removeEventListener("mousedown", press, true);
+      ends.forEach(type => win?.removeEventListener(type, release, true));
+    };
+  }, []);
+  // runs once the current press ends when one is down (on an element matching redrawn, if given), else now
+  const afterPress = useCallback((run: () => void, redrawn?: string) => {
+    const pressed = pressedRef.current;
+    if (pressed && (!redrawn || pressed.closest(redrawn))) {
+      afterPressRef.current.push(run);
+    } else {
+      run();
+    }
+  }, []);
+  const handleBlurCommit = useCallback((commitBlur: () => void) => afterPress(commitBlur, redrawnByCommit),
+    [afterPress]);
+  const handleTextBlur = useCallback(() => handleBlurCommit(() => commit(textRef.current, "blur", "text")),
+    [handleBlurCommit, commit, textRef]);
+  const handleTableCommit = useCallback((next: string) => commit(next, "row", "table"), [commit]);
+  const handleRowAdded = useCallback(() => host.log("TableRowAdded"), [host]);
+  const handleRowDeleted = useCallback(() => host.log("TableRowDeleted"), [host]);
+
+  const handleFocusToken = useCallback((token: Token | undefined) => {
+    if (token?.kind === "word") {
+      toolRef.current.selectState(token.state, "table", true);
+    } else {
+      toolRef.current.clearSelection("table");
+    }
+  }, [toolRef]);
+
+  useEscape(rootRef, hidden, () => {
+    if (dialogNodeRef.current) {
+      setDialogNode(undefined);
+    } else {
+      toolRef.current.clearSelection("escape");
+    }
+  });
+
+  const [inputSplit, setInputSplit] = useState(defaultInputSplit);
+  const handleSplitResized = useCallback((split: number) =>
+    host.log("PaneResized", { divider: "inputSplit", sizes: { inputSplit: split } }), [host]);
+
+  const emptyMessage = !hasInputPane
+    ? "No data was provided for this activity."
+    : inputView === "table"
+      ? "Type some words in the Input pane's table to build the chain."
+      : "Type some words in the Input pane to build the chain.";
+
+  // the pane the student last pressed, focused or typed in, where a choice is made, and which doesn't scroll to it
+  const sourcePaneRef = useRef<WorkspacePaneId>(undefined);
+  useScrollToChoice(rootRef, tool.selection, sourcePaneRef);
+
+  const { handleSelectState, handleSelectTransition } = useInspectChoices(tool);
+
+  const renderPane = (id: WorkspacePaneId) => {
+    switch (id) {
+      case "input":
+        return (
+          <InputPane caseSwitch={caseSwitch} view={inputView} split={inputSplit} onSplitChange={setInputSplit}
+            onSplitResized={handleSplitResized} text={text} liveTokens={liveTokens}
+            liveHighlights={liveHighlights} committed={committed}
+            highlights={highlights}
+            readOnly={tool.animating} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
+            onTableCommit={handleTableCommit} onRowBlur={handleBlurCommit} afterPress={afterPress}
+            onRowAdded={handleRowAdded}
+            onRowDeleted={handleRowDeleted} onFocusToken={handleFocusToken} />
+        );
+      case "graph":
+        return (
+          <GraphPane tool={tool} log={host.log} top={top}
+            emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFit}
+            onResized={handleGraphResized}
+            onDoubleClickState={handleDoubleClickState} />
+        );
+      case "inspect":
+        return (
+          <InspectPane mode="useData" orderMatters={true} graph={tool.graph} selection={tool.selection}
+            highlights={highlights} log={host.log}
+            onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} />
+        );
+      case "generator":
+        return <GeneratorPane tool={tool} controlsOpen={controlsOpen} onToggleControls={toggleControls} />;
+    }
+  };
+
+  return (
+    <div className="workspace-body" hidden={hidden} ref={rootRef}>
+      <ControlsRow tool={tool}>
+        { controls }
+        { hasInputPane ? undefined : caseSwitch }
+        { !config.caseSwitch && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
+      </ControlsRow>
+      <WorkspacePanes layout={layout} stacked={stacked} sourcePaneRef={sourcePaneRef} renderPane={renderPane} />
+      <NodeModal viewMode="dataset" node={dialogNode} graph={tool.graph} onChange={() => undefined}
+        onCancel={() => setDialogNode(undefined)} />
+    </div>
+  );
+};

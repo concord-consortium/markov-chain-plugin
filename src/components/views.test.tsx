@@ -43,17 +43,6 @@ describe("Drawing's log", () => {
     expect(log.mock.calls).toEqual([["TransitionAdded", { from: "dog", to: "cat" }]]);
   });
 
-  it("logs Create From Text only when its words change", () => {
-    const log = drawingLog();
-    fireEvent.click(screen.getByTitle("Create From Text"));
-    const text = screen.getByRole("textbox");
-    fireEvent.change(text, { target: { value: "the cat" } });
-    fireEvent.change(text, { target: { value: "the cat " } });
-    fireEvent.change(text, { target: { value: "the cat sat" } });
-
-    expect(log.mock.calls).toEqual([["TextToGraph", { words: 2 }], ["TextToGraph", { words: 3 }]]);
-  });
-
   it("logs a state added, moved and deleted by its label", () => {
     const log = drawingLog();
     act(() => mockGraphProps.onDragStop("n1", { x: 5, y: 5 }));

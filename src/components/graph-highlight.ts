@@ -21,6 +21,22 @@ export const selectedLoopArrowUrl = "url(#selectedLoopArrow)";
 export const unselectedArrowUrl = "url(#unselectedArrow)";
 export const unselectedLoopArrowUrl = "url(#unselectedLoopArrow)";
 
+// the arrowheads the graph's arrows point their marker-end at
+export const arrowMarkers: { id: string, color: string, opacity?: number }[] = [
+  { id: "arrow", color: "black" },
+  { id: "loopArrow", color: "black" },
+  { id: "animatedArrow", color: animatedArrowColor },
+  { id: "incomingArrow", color: incomingArrowColor },
+  { id: "outgoingArrow", color: outgoingArrowColor },
+  { id: "selectedLoopArrow", color: selectedLoopArrowColor },
+  { id: "unselectedArrow", color: "black", opacity: unselectedOpacity },
+  { id: "unselectedLoopArrow", color: "black", opacity: unselectedOpacity / lineAndLoopOpacity },
+];
+export const arrowMarkerSize = 4;
+export const arrowMarkerRefX = 1;
+export const arrowMarkerRefY = 2;
+export const arrowMarkerPath = "M 0 0 4 2 0 4 1 2 0 0";
+
 export type GraphSelection = d3.Selection<any, unknown, any, unknown>;
 
 export interface HighlightSelectedOptions {

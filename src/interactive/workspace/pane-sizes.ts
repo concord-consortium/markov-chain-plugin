@@ -22,18 +22,23 @@ export const controlsRowHeight = 32;
 export const toolbarButton = 32;
 export const toolbarPadding = 4;
 export const toolbarGap = 4;
-export const toolbarHeight = (tools: number, columns: 1 | 2 = 1) => {
+export const toolbarHeight = (tools: number, columns = 1) => {
   const rows = Math.ceil(tools / columns);
   return rows * toolbarButton + (rows - 1) * toolbarGap + 2 * toolbarPadding;
 };
+export const toolbarWidth = (columns: number) =>
+  columns * toolbarButton + (columns - 1) * toolbarGap + 2 * toolbarPadding;
 // the height inside the Graph pane's border, header and padding, in a row top px tall
 export const graphBodyHeight = (top: number) => top - paneHeader - 2 * paneBorder - 2 * panePadding;
 // the height the row's panes are drawn at, from the stored row height: stacked panes are all the starting row's
 // height, whatever row height is stored
 export const drawnRowHeight = (top: number, stacked: boolean) => stacked ? defaultPaneSizes.top : top;
-// a toolbar taller than the Graph pane's body puts its buttons in two columns
-export const toolbarColumns = (tools: number, bodyHeight: number): 1 | 2 =>
-  toolbarHeight(tools) <= bodyHeight ? 1 : 2;
+// the fewest columns whose toolbar fits the Graph pane's body
+export const toolbarColumns = (tools: number, bodyHeight: number) => {
+  let columns = 1;
+  while (columns < tools && toolbarHeight(tools, columns) > bodyHeight) columns++;
+  return columns;
+};
 
 export type PaneDivider = "input" | "inspect" | "rows";
 export interface OpenPanes { input: boolean, graph: boolean, inspect: boolean }

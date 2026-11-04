@@ -5,7 +5,7 @@ const listedSettings = () => cy.interactive().find(".runtime-placeholder dl").th
   [...list.find("dt")].map((term, i) => [term.textContent, list.find("dd")[i].textContent]));
 
 // the workspace's panes, by their titles
-const panes = () => cy.interactive().find(".markov-workspace section.pane > .pane-header h2")
+const panes = () => cy.interactive().find(".markov-workspace section.pane:visible > .pane-header h2")
   .then(titles => [...titles].map(title => title.textContent));
 
 describe("the interactive's runtime", () => {
@@ -44,7 +44,6 @@ describe("the interactive's runtime", () => {
     panes().should("deep.equal", ["Input", "Graph", "Inspect", "Sequence Generator"]);
     cy.interactive().find(".input-pane .linked-input textarea[aria-label='Your text']").should("exist");
     cy.interactive().find(".input-pane .linked-input .input-table").should("exist");
-    cy.interactive().find(".markov-workspace").should("not.contain.text", "arrives in a later version");
   });
 
   [["no interactive state", undefined], ["{}", {}]].forEach(([name, interactiveState]) => {

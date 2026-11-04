@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MarkovHost } from "../../components/host";
 import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
@@ -16,7 +16,8 @@ const dividerLabels: Record<PaneDivider, string> = {
 
 // One mode's panes: which are open, their sizes and dividers, and the view following the graph until the student zooms
 // or pans. Each mode calls it, so each keeps its own.
-export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: MarkovToolApi, stacked: boolean) => {
+export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: MarkovToolApi, stacked: boolean,
+  hidden: boolean) => {
   const toolRef = useLatest(tool);
   const has = (id: WorkspacePaneId) => config.panes.some(pane => pane.id === id);
 
@@ -48,6 +49,18 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   const handleUserZoom = useCallback(() => {
     followRef.current = false;
   }, []);
+
+  // a hidden mode's graph has no size, so it is fitted when its mode shows again, as a reopened Graph pane is, and
+  // again once the row is measured, since until then the panes beside it are drawn at their minimums
+  const wasHiddenRef = useRef(hidden);
+  const fitWhenRowMeasuredRef = useRef(false);
+  useEffect(() => {
+    if (wasHiddenRef.current && !hidden) {
+      fitWhenRowMeasuredRef.current = true;
+      handleFit();
+    }
+    wasHiddenRef.current = hidden;
+  }, [hidden, handleFit]);
 
   const rowPanes = config.panes.filter(pane => pane.id !== "generator");
   const graphOpen = has("graph") && open.graph;
@@ -84,6 +97,13 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   useLayoutEffect(() => {
     graphLayoutsRef.current += 1;
   }, [graphWidth, top]);
+  // an effect, not a layout effect, so it runs after the Graph hears of the size the row was drawn at before this
+  useEffect(() => {
+    if (rowWidth && fitWhenRowMeasuredRef.current) {
+      fitWhenRowMeasuredRef.current = false;
+      fitWhenResizedRef.current = true;
+    }
+  }, [rowWidth]);
   const handleGraphResized = useCallback(() => {
     const fit = fitWhenResizedRef.current && followRef.current;
     fitWhenResizedRef.current = false;

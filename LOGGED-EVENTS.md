@@ -2,6 +2,8 @@
 
 All events are logged with `@concord-consortium/lara-interactive-api`'s `log()` function, and only when the Markov Interactive runs inside the Activity Player. The CODAP plugin and the interactive opened on its own log nothing.
 
+Every event's data also carries `mode`, `useData` or `draw`, the mode it came from.
+
 A state is named by its label. The generator's settings, which several events carry, are `{ startingState, maxLength, delimiter, fast, orderMatters }`: the starting state (`""` for any), the maximum length, the delimiter, whether the fast speed is on, and whether order mattered (false for a bag of words).
 
 ## Generator
@@ -37,7 +39,6 @@ A state is named by its label. The generator's settings, which several events ca
 | `StateDeleted` | `{ state }` | The student deletes a state |
 | `TransitionDeleted` | `{ from, to }` | The student deletes a transition |
 | `StateEdited` | `{ state, transitions: [{ to, value }] }` | The student saves a state's label and probabilities in its dialog |
-| `TextToGraph` | `{ words }` | Create From Text builds a graph from changed text; `words` is the number of words |
 | `GraphReset` | None | The student confirms Reset |
 
 ## Input
@@ -58,3 +59,9 @@ A state is named by its label. The generator's settings, which several events ca
 | `PaneResized` | `{ divider: "input" \| "inspect" \| "rows" \| "inputSplit", sizes }` | A divider drag ends, or a divider moved with the arrow keys loses focus: `sizes` is `{ input, inspect, top }` in px for the pane dividers (fitted to a narrow row, so a column divider's can be fractional), and `{ inputSplit }`, the text box's share of the linked view's height, for the split |
 | `InspectTabChosen` | `{ tab: "states" \| "transitions" }` | The student chooses an Inspect tab |
 | `InspectSorted` | `{ tab, column, direction: "ascending" \| "descending" }` | The student sorts an Inspect table by a column |
+
+## Modes
+
+| Event | Parameters | When |
+|-------|-----------|------|
+| `ModeSwitched` | `{ mode }` | The student switches between Data and Draw; `mode` is the mode switched to |

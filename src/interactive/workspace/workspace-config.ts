@@ -5,6 +5,9 @@ export type WorkspacePaneId = "input" | "graph" | "inspect" | "generator";
 // what the workspace shows in a mode, from the author's settings
 export type WorkspaceConfig = WorkspaceSettings & ({ mode: "useData", inputView: InputView } | { mode: "draw" });
 
+export type DataWorkspaceConfig = Extract<WorkspaceConfig, { mode: "useData" }>;
+export type DrawWorkspaceConfig = Extract<WorkspaceConfig, { mode: "draw" }>;
+
 interface WorkspaceSettings {
   // the panes present, in layout order, and whether each starts open
   panes: { id: WorkspacePaneId, startsOpen: boolean }[];
@@ -20,7 +23,10 @@ interface WorkspaceSettings {
   downloadTables: boolean;
 }
 
-export const workspaceConfig = (state: MarkovAuthoredState, mode: ModeId = state.startingMode): WorkspaceConfig => {
+export function workspaceConfig(state: MarkovAuthoredState, mode: "useData"): DataWorkspaceConfig;
+export function workspaceConfig(state: MarkovAuthoredState, mode: "draw"): DrawWorkspaceConfig;
+export function workspaceConfig(state: MarkovAuthoredState, mode: ModeId): WorkspaceConfig;
+export function workspaceConfig(state: MarkovAuthoredState, mode: ModeId): WorkspaceConfig {
   const data = mode === "useData";
   const pane = (id: WorkspacePaneId) => state.panes[id];
   // Draw mode has no Input pane, and its Graph pane is always present and open
@@ -42,4 +48,4 @@ export const workspaceConfig = (state: MarkovAuthoredState, mode: ModeId = state
     sendToCodap: state.buttons.sendToCodap.available,
     downloadTables: state.buttons.downloadTables.available,
   };
-};
+}
