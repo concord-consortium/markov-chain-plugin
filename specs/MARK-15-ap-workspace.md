@@ -186,11 +186,11 @@ It builds on MARK-13 (PR #88: `src/interactive/`, its authored state, the runtim
 
 ### For MARK-16 and MARK-17
 
-- Inspect's Count and "2 of 3" assume counts; Draw mode's weights are not counts, so MARK-16 decides what its Inspect shows. MARK-16 also gives `Pane` its no-collapse option and checks Draw mode's nine-tool toolbar in two columns (below a 362 px row).
+- Inspect's Count and "2 of 3" assume counts; Draw mode's weights are not counts, so MARK-16 decides what its Inspect shows. MARK-16 also gives `Pane` its no-collapse option and checks Draw mode's nine-tool toolbar in two columns (below a 366 px row).
 - Words added in the table are written as prose; with "Order matters" off MARK-16 writes them one per line.
 - Each mode keeping its own work means one core state per mode, which the hook allows.
 - MARK-17 saves the pane sizes, the linked split, the case switch's value and the graph's positions (handed back as nodes with `x` and `y`).
-- The demo page keeps a runtime's interactive state across authoring changes, so once the runtime has saved input, a changed starting text no longer shows there.
+- The demo page keeps a runtime's interactive state across authoring changes, as the Activity Player keeps a student's, except that a changed starting text clears it, so the workspace restarts from the new text. In the Activity Player saved input still comes before the starting text.
 
 ## Out of Scope
 
