@@ -35,7 +35,6 @@ export const drawnRowHeight = (top: number, stacked: boolean) => stacked ? defau
 export const toolbarColumns = (tools: number, bodyHeight: number): 1 | 2 =>
   toolbarHeight(tools) <= bodyHeight ? 1 : 2;
 
-// the dividers between panes
 export type PaneDivider = "input" | "inspect" | "rows";
 export interface OpenPanes { input: boolean, graph: boolean, inspect: boolean }
 

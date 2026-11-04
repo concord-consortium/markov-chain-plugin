@@ -12,7 +12,6 @@ interface WorkspaceSettings {
   capitalization: Capitalization;
   // the switch, else a read-only label; Data mode alone shows either
   caseSwitch: boolean;
-  // the Data/Draw switch
   modeSwitch: boolean;
   // Data mode alone shows the switch
   orderMatters: { startsOn: boolean, showSwitch: boolean };

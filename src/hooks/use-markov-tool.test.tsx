@@ -64,6 +64,8 @@ describe("useMarkovTool", () => {
 });
 
 describe("useMarkovTool's selection", () => {
+  afterEach(() => jest.useRealTimers());
+
   it("chooses a transition, and clears it when it is chosen again", () => {
     const result = toolWithValues();
     act(() => result.current.selectTransition({ from: "a", to: "b" }, "graph"));
@@ -128,7 +130,6 @@ describe("useMarkovTool's selection", () => {
     act(() => result.current.selectTransition({ from: "a", to: "b" }, "graph"));
     expect(result.current.selection).toEqual({ kind: "state", id: "a" });
     act(() => result.current.outputProps.onCancel());
-    jest.useRealTimers();
   });
 });
 

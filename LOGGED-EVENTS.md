@@ -44,7 +44,7 @@ A state is named by its label. The generator's settings, which several events ca
 
 | Event | Parameters | When |
 |-------|-----------|------|
-| `InputCommitted` | `{ view: "text" \| "table", how: "separator" \| "insert" \| "remove" \| "pause" \| "blur" \| "row", tokens, states }` | The input commits and the graph changes: `tokens` and `states` are the counts after it |
+| `InputCommitted` | `{ view: "text" \| "table", how: "separator" \| "insert" \| "remove" \| "pause" \| "blur" \| "row", tokens, states }` | The input commits and the graph changes: `tokens` (the words, plus one for each run of blank lines between words) and `states` are the counts after it |
 | `CaseSensitivityChanged` | `{ caseSensitive, states }` | The student changes the "Case sensitive" switch, which reads the input again; `states` is the count after it |
 | `TableRowAdded` | None | The student adds a row to the input table |
 | `TableRowDeleted` | None | The student deletes a row from the input table |

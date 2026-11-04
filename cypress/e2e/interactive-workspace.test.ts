@@ -223,6 +223,22 @@ describe("the workspace's text box", () => {
       ["InputCommitted", { view: "text", how: "separator", tokens: 2, states: 2 }]);
   });
 
+  it("commits nothing for a letter typed over a selected word that starts with it", () => {
+    start({ startingText: "the cat sat" });
+    stateLabels().should("deep.equal", ["cat", "sat", "the"]);
+    textBox().then(box => {
+      const textarea = box[0] as HTMLTextAreaElement;
+      const win = textarea.ownerDocument.defaultView as Window & typeof globalThis;
+      const setValue = Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement.prototype, "value")!.set!;
+      setValue.call(textarea, "the c sat");
+      textarea.dispatchEvent(new win.InputEvent("input", { inputType: "insertText", data: "c", bubbles: true }));
+    });
+    textBox().should("have.value", "the c sat");
+    cy.wait(1500);
+    stateLabels().should("deep.equal", ["cat", "sat", "the"]);
+    commits().should("have.length", 0);
+  });
+
   it("commits a deletion a second after the student stops", () => {
     start({ startingText: "the cat" });
     stateLabels().should("deep.equal", ["cat", "the"]);

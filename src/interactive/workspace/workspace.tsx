@@ -229,7 +229,7 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
       ends.forEach(type => win?.removeEventListener(type, release, true));
     };
   }, []);
-  // runs once the press ends if there is one, on what redrawn names if it is given, else now
+  // runs once the current press ends when one is down (on an element matching redrawn, if given), else now
   const afterPress = useCallback((run: () => void, redrawn?: string) => {
     const pressed = pressedRef.current;
     if (pressed && (!redrawn || pressed.closest(redrawn))) {

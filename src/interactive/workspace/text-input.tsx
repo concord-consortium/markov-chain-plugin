@@ -49,7 +49,10 @@ export const TextInput = ({ text, tokens, highlights, readOnly, onChange, onComm
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const next = e.target.value;
-    const { inserted, removed } = textChange(text, next);
+    const { inserted: diffed, removed } = textChange(text, next);
+    // the text's difference can't tell a letter typed over a selection that starts with it from a deletion
+    const { inputType, data } = e.nativeEvent as InputEvent;
+    const inserted = inputType === "insertText" && data ? data : diffed;
     onChange(next);
     if (inserted.length === 1 && commitsOnTyping(inserted)) {
       cancelTimer();

@@ -333,7 +333,6 @@ export const Graph = (props: Props) => {
   const handleZoomIn = () => scaleBy(zoomInStep);
   const handleZoomOut = () => scaleBy(zoomOutStep);
 
-  // listen for zoom requests
   useEffect(() => {
     if (zoomRequest && zoomRequest.id !== lastZoomRequestIdRef.current) {
       lastZoomRequestIdRef.current = zoomRequest.id;
