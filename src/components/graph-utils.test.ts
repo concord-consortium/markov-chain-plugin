@@ -1,6 +1,6 @@
 import {
   arrowHeadReach, calculateNodeFontSizes, graphSignature, isPlaced, layoutFor, nodeLoopPath, pullBackLineEnd,
-  startPosition, startPositions, stateEdgeWeights
+  linkDistance, startPosition, startPositions, stateEdgeWeights
 } from "./graph-utils";
 
 describe("stateEdgeWeights", () => {
@@ -157,10 +157,15 @@ describe("layoutFor", () => {
   });
 });
 
+// one arrow's length between two of the smallest states, as the layout draws it
+const distance = 75;
+
 describe("startPosition", () => {
   const placed = new Map([["a", { x: 100, y: 50 }]]);
-  // one arrow's length between two of the smallest states, as the layout draws it
-  const distance = 75;
+
+  it("starts a new state the layout's arrow length between two of the smallest states away", () => {
+    expect(linkDistance(25, 25)).toBe(distance);
+  });
   const at = (angle: number, from: { x: number, y: number }) => ({
     x: from.x + distance * Math.cos(angle * Math.PI / 180), y: from.y + distance * Math.sin(angle * Math.PI / 180)
   });
@@ -213,8 +218,7 @@ describe("startPosition", () => {
 });
 
 describe("startPositions", () => {
-  const distance = 75;
-  const placed = new Map([["a", { x: 100, y: 0 }]]);
+  const placed = new Map([["a", { x: 100, y: 0 }], ["z", { x: -300, y: 0 }]]);
 
   it("starts the states a commit adds from one state an arrow's length apart", () => {
     const starts = startPositions(["b", "c"], [{ from: "a", to: "b" }, { from: "a", to: "c" }], placed);
@@ -230,5 +234,11 @@ describe("startPositions", () => {
 
   it("starts only the states it is given, and leaves the placed ones out", () => {
     expect([...startPositions(["b"], [{ from: "a", to: "b" }], placed).keys()]).toEqual(["b"]);
+  });
+
+  // a whole layout places every state, so searching for a start for each would be wasted, and slow for a large graph
+  it("starts none when more than half the states are new, since the whole graph is laid out", () => {
+    const edges = [{ from: "a", to: "b" }, { from: "b", to: "c" }, { from: "c", to: "d" }];
+    expect(startPositions(["b", "c", "d"], edges, placed).size).toBe(0);
   });
 });

@@ -121,7 +121,6 @@ interface LabelFit {
   text: HTMLElement;
 }
 
-// one step of a fit, from the label's measured size at its font size
 const stepLabelFit = (fit: LabelFit, height: number, width: number) => {
   if ((Math.ceil(height) > fit.maxHeight) || (Math.ceil(width) > fit.maxWidth)) {
     if ((fit.fontSize > settings.minFontSize) || (fit.truncateLabelAt <= 0)) {
@@ -208,12 +207,16 @@ export const startPosition = (id: string, edges: { from: string, to: string }[],
   return best.at;
 };
 
-// where each of the new states (in order) starts, each also clear of the new states started before it, so states a
-// commit adds from one state don't start on one spot, and a chain added in one commit starts from its own states
+// Where each of the new states (in order) starts, each also clear of the new states started before it, so states a
+// commit adds from one state don't start on one spot, and a chain added in one commit starts from its own states.
+// None start when the whole graph is laid out, which places every state itself.
 export const startPositions = (ids: string[], edges: { from: string, to: string }[],
   placed: Map<string, { x: number, y: number }>) => {
-  const started = new Map(placed);
   const starts = new Map<string, { x: number, y: number }>();
+  if (layoutFor(placed.size, placed.size + ids.length) !== "new") {
+    return starts;
+  }
+  const started = new Map(placed);
   ids.forEach(id => {
     const start = startPosition(id, edges, started);
     started.set(id, start);
