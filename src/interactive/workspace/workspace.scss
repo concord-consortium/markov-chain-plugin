@@ -23,6 +23,10 @@
     &:focus {
       outline: none;
     }
+
+    .clear-highlight {
+      @include markov-button;
+    }
   }
 
   .top-row {
@@ -49,7 +53,7 @@
     }
 
     &:hover::after, &:focus-visible::after {
-      background-color: #177991;
+      background-color: $markov-teal;
     }
 
     &.vertical {
@@ -132,10 +136,10 @@
       width: 20px;
       height: 20px;
       padding: 0;
-      border: solid 1px #177991;
+      border: solid 1px $markov-teal;
       border-radius: 3px;
       background-color: #fff;
-      color: #177991;
+      color: $markov-teal;
       cursor: pointer;
     }
 
@@ -217,13 +221,13 @@
       width: 32px;
       height: 18px;
       padding: 0;
-      border: solid 1px #177991;
+      border: solid 1px $markov-teal;
       border-radius: 9px;
       background-color: #fff;
       cursor: pointer;
 
       &[aria-checked="true"] {
-        background-color: #177991;
+        background-color: $markov-teal;
 
         .setting-switch-thumb {
           left: 16px;
@@ -244,7 +248,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background-color: #177991;
+      background-color: $markov-teal;
     }
 
     .setting-switch-value {
@@ -319,7 +323,7 @@
       inset: 0;
       margin: 0;
       padding: 4px 6px;
-      border: 1px solid #949494;
+      border: 1px solid $markov-teal;
       border-radius: 3px;
       font: inherit;
       line-height: 1.4;
@@ -369,12 +373,12 @@
       display: flex;
       flex: none;
       gap: 2px;
-      border-bottom: 1px solid #949494;
+      border-bottom: 1px solid $markov-teal;
     }
 
     .inspect-tab {
       padding: 3px 10px;
-      border: 1px solid #949494;
+      border: 1px solid $markov-teal;
       border-bottom: none;
       border-radius: 3px 3px 0 0;
       background-color: #eef3f5;
@@ -484,7 +488,7 @@
       box-sizing: border-box;
       width: 100%;
       padding: 2px 4px;
-      border: 1px solid #949494;
+      border: 1px solid $markov-teal;
       // a lit row's color shows through
       background-color: transparent;
       border-radius: 2px;
@@ -620,6 +624,7 @@
         top: 0;
         right: 0;
         padding: 0 6px;
+        color: $markov-teal;
       }
 
       &.collapsed .controls-toggle {

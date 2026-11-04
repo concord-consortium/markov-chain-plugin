@@ -51,6 +51,26 @@ describe("the interactive's workspace", () => {
     cy.interactive().find(".graph-pane .zoomButtons").should("not.exist");
   });
 
+  it("draws its controls in the generator buttons' color", () => {
+    start({ startingText: "the cat sat" });
+    clickState("cat");
+    cy.interactive().find(".generator-pane button").contains("Play").then(play => {
+      const teal = getComputedStyle(play[0]).borderTopColor;
+      const controls: [string, "borderTopColor" | "borderBottomColor" | "color"][] = [
+        [".clear-highlight", "borderTopColor"],
+        ["textarea[aria-label='Your text']", "borderTopColor"],
+        [".input-table input", "borderTopColor"],
+        [".inspect-tab", "borderTopColor"],
+        [".inspect-tabs", "borderBottomColor"],
+        [".controls-toggle", "color"],
+      ];
+      controls.forEach(([selector, property]) => {
+        cy.interactive().find(selector).first()
+          .should(element => expect(getComputedStyle(element[0])[property], selector).to.equal(teal));
+      });
+    });
+  });
+
   it("keeps the graph drawn while the student types and chooses", () => {
     start({ startingText: "the cat sat" });
     cy.interactive().find("g.node").should("have.length", 3);

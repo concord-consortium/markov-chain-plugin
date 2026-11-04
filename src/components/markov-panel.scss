@@ -1,21 +1,28 @@
 // The generator's, the output's and the state dialog's styles, which the CODAP plugin's layout and the AP
 // workspace share.
 
+$markov-teal: #177991;
+
+// a button as the generator's are drawn
+@mixin markov-button {
+  width: fit-content;
+  padding: 3px 5px;
+  border-radius: 3px;
+  border: solid 1px $markov-teal;
+  background-color: #fff;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+
+  &:hover {
+    background-color: rgba(114, 191, 202, 0.12);
+  }
+}
+
 @mixin markov-generator-and-output {
   button {
-    width: fit-content;
-    padding: 3px 5px;
-    border-radius: 3px;
-    border: solid 1px #177991;
-    background-color: #fff;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-
-    &:hover {
-      background-color: rgba(114, 191, 202, 0.12);
-    }
+    @include markov-button;
   }
 
   label {
@@ -39,14 +46,14 @@
         padding: 2px;
         width: 100%;
         border-radius: 1.5px;
-        border: solid 1px #177991;
+        border: solid 1px $markov-teal;
         background-color: #fff;
       }
       input.bordered {
         padding: 2px;
         width: 55px;
         border-radius: 1.5px;
-        border: solid 1px #177991;
+        border: solid 1px $markov-teal;
         background-color: #fff;
       }
     }
@@ -180,7 +187,7 @@
       min-width: 200px;
 
       .nodeModalTitle {
-        background-color: #177991;
+        background-color: $markov-teal;
         color: white;
         padding: 5px 10px;
       }
