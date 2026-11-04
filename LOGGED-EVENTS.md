@@ -2,18 +2,18 @@
 
 All events are logged with `@concord-consortium/lara-interactive-api`'s `log()` function, and only when the Markov Interactive runs inside the Activity Player. The CODAP plugin and the interactive opened on its own log nothing.
 
-A state is named by its label. The generator's settings, which several events carry, are `{ startingState, maxLength, delimiter, fast }`: the starting state (`""` for any), the maximum length, the delimiter, and whether the fast speed is on.
+A state is named by its label. The generator's settings, which several events carry, are `{ startingState, maxLength, delimiter, fast, orderMatters }`: the starting state (`""` for any), the maximum length, the delimiter, whether the fast speed is on, and whether order mattered (false for a bag of words).
 
 ## Generator
 
 | Event | Parameters | When |
 |-------|-----------|------|
-| `SequencePlayed` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Play |
-| `SequenceStepped` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Step, once per click |
-| `SequencePaused` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Pause |
-| `SequenceResumed` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Resume |
-| `SequenceCanceled` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Cancel while a sequence plays or steps |
-| `SequenceGenerated` | `{ sequence, startingState, maxLength, delimiter, fast }` | A sequence finishes, played or stepped to its end; `sequence` is its states |
+| `SequencePlayed` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Play |
+| `SequenceStepped` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Step, once per click |
+| `SequencePaused` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Pause |
+| `SequenceResumed` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Resume |
+| `SequenceCanceled` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Cancel while a sequence plays or steps |
+| `SequenceGenerated` | `{ sequence, startingState, maxLength, delimiter, fast, orderMatters }` | A sequence finishes, played or stepped to its end; `sequence` is its states |
 | `GeneratorSettingChanged` | `{ setting: "startingState" \| "maxLength" \| "delimiterType" \| "delimiter" \| "fast", value }` | The student changes a generator setting: the starting state, the delimiter's type and the speed when chosen, Max Length and the "other" delimiter's text when their field loses focus with a changed value |
 | `OutputCleared` | None | The student clicks Clear Output |
 | `OutputSelected` | `{ sequence }` | The student clicks an output to highlight it; `sequence` is its states |

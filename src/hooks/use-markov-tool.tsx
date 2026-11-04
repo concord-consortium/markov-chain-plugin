@@ -58,7 +58,7 @@ export interface MarkovToolApi {
 }
 
 export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
-  const { viewMode, setViewMode, markDirty, outputSequence, log } = host;
+  const { viewMode, orderMatters, setViewMode, markDirty, outputSequence, log } = host;
   const [lengthLimit, setLengthLimit] = useState<number | undefined>(defaultLengthLimit);
   const [delimiter, setDelimiter] = useState(defaultDelimiter);
   const [startingState, setStartingState] = useState(defaultStartingState);
@@ -187,9 +187,10 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
         prevAnimatedSequenceGroups.current[prevAnimatedSequenceGroups.current.length - 1];
       if ((currentAnimatedSequenceGroup.current?.delimiter !== delimiter) ||
         (currentAnimatedSequenceGroup.current.lengthLimit !== limit) ||
-        (currentAnimatedSequenceGroup.current.startingState !== startingState)) {
+        (currentAnimatedSequenceGroup.current.startingState !== startingState) ||
+        (currentAnimatedSequenceGroup.current.orderMatters !== orderMatters)) {
         currentAnimatedSequenceGroup.current =
-          { delimiter, lengthLimit: limit, startingState, startingNode, sequences: [] };
+          { delimiter, lengthLimit: limit, startingState, startingNode, sequences: [], orderMatters };
         setSequenceGroups(prevAnimatedSequenceGroups.current);
       } else {
         prevAnimatedSequenceGroups.current.pop();
@@ -198,10 +199,10 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       prevSequences.current = [...currentAnimatedSequenceGroup.current.sequences];
       // currentAnimatedSequenceGroup.current.sequences.push("");
 
-      currentSequence.current = await generateSequence(graph, { startingNode, lengthLimit: limit });
+      currentSequence.current = await generateSequence(graph, { startingNode, lengthLimit: limit, orderMatters });
       currentAnimationStep.current = "before";
     }
-  }, [graph, lengthLimit, startingState, sequenceGroups, delimiter]);
+  }, [graph, lengthLimit, startingState, sequenceGroups, delimiter, orderMatters]);
 
   const currentSequenceAnimating = () => currentSequenceIndex.current < currentSequence.current.length - 1;
 
@@ -218,8 +219,12 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       setHighlightAllNextNodes(!!nextNode);
       setHighlightLoopOnNode(currentNode);
     } else {
+      // a bag of words' step is usually not one of the chain's transitions
+      const step = nextNode && orderMatters === false
+        ? { from: currentNode.id, to: nextNode.id, value: nextNode.value }
+        : undefined;
       const edge = nextNode
-      ? graph.edges.find(e => e.from === currentNode.id && e.to === nextNode.id)
+      ? step ?? graph.edges.find(e => e.from === currentNode.id && e.to === nextNode.id)
       : undefined;
       setHighlightEdge(edge);
       setHighlightNode(nextNode);
@@ -234,14 +239,14 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
     }
 
-  }, [setSequenceGroups, graph]);
+  }, [setSequenceGroups, graph, orderMatters]);
 
   // the settings the playing or stepping sequence was started with, and the speed now
   const sequenceSettings = useCallback(() => {
     const group = currentAnimatedSequenceGroup.current;
     return {
       startingState: startingLabelRef.current, maxLength: group?.lengthLimit, delimiter: group?.delimiter,
-      fast: fastSimulationRef.current,
+      fast: fastSimulationRef.current, orderMatters: group?.orderMatters !== false,
     };
   }, []);
 
@@ -386,7 +391,8 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
 
   const handlePlay = useCallback(async () => {
     log("SequencePlayed", {
-      startingState: startingLabel(), maxLength: clampLengthLimit(lengthLimit), delimiter, fast: fastSimulation
+      startingState: startingLabel(), maxLength: clampLengthLimit(lengthLimit), delimiter, fast: fastSimulation,
+      orderMatters: orderMatters !== false,
     });
     setHighlightOutput(undefined);
     setGenerationMode("playing");
@@ -397,7 +403,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     animateCurrentSequenceIndex();
     startAnimationInterval();
   }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval, log, startingLabel, lengthLimit,
-      delimiter, fastSimulation]);
+      delimiter, fastSimulation, orderMatters]);
 
   const handleSpeedToggle = useCallback((value: boolean) => {
     setFastSimulation(value);

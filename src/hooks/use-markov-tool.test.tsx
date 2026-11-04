@@ -193,7 +193,7 @@ describe("useMarkovTool's log", () => {
     await screen.findByRole("button", { name: "Play" });
 
     expect(loggedEvents(host)).toEqual(["SequencePlayed", "SequenceGenerated"]);
-    const settings = { startingState: "", maxLength: 5, delimiter: " ", fast: false };
+    const settings = { startingState: "", maxLength: 5, delimiter: " ", fast: false, orderMatters: true };
     expect(host.log).toHaveBeenNthCalledWith(1, "SequencePlayed", settings);
     const [, generated] = host.log.mock.calls[1];
     expect(generated).toMatchObject(settings);
@@ -253,8 +253,57 @@ describe("useMarkovTool's log", () => {
 
     expect(host.log.mock.calls).toEqual([
       ["GeneratorSettingChanged", { setting: "startingState", value: "cat" }],
-      ["SequenceStepped", { startingState: "cat", maxLength: 5, delimiter: " ", fast: false }],
+      ["SequenceStepped", { startingState: "cat", maxLength: 5, delimiter: " ", fast: false, orderMatters: true }],
     ]);
+  });
+
+  describe("as a bag of words", () => {
+    const bagHost = () => ({ ...recordingHost("dataset"), orderMatters: false });
+    const playToTheEnd = async (result: { current: ReturnType<typeof useMarkovTool> }) => {
+      await act(async () => result.current.generatorProps.onPlay());
+      await act(async () => jest.advanceTimersByTime(30000));
+    };
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it("runs to Max Length where the chain would stop, and logs that order did not matter", async () => {
+      const host = bagHost();
+      const { result } = renderHook(() => useMarkovTool(host));
+      act(() => result.current.handle.dataChanged(["a", "b"]));
+      await playToTheEnd(result);
+
+      expect(host.log).toHaveBeenCalledWith("SequencePlayed", expect.objectContaining({ orderMatters: false }));
+      const generated = host.log.mock.calls.find(([event]) => event === "SequenceGenerated")![1];
+      expect(generated.sequence).toHaveLength(5);
+      expect(generated.orderMatters).toBe(false);
+    });
+
+    it("gives a step that is not one of the chain's transitions to the graph", async () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.1);
+      const host = bagHost();
+      const { result } = renderHook(() => useMarkovTool(host));
+      act(() => result.current.handle.dataChanged(["a", "a", "b"]));
+      const [a, b] = result.current.graph.nodes;
+      act(() => result.current.generatorProps.onStartingStateChange({ target: { value: b.id } } as any));
+      await act(async () => result.current.generatorProps.onStep());
+      await act(async () => result.current.generatorProps.onStep());
+
+      expect(result.current.graph.edges.some(e => e.from === b.id && e.to === a.id)).toBe(false);
+      expect(result.current.graphHighlights.highlightEdge).toEqual({ from: b.id, to: a.id, value: 2 });
+    });
+
+    it("starts a new output group when order changes, and records it on the group", async () => {
+      const first = bagHost();
+      const { result, rerender } = renderHook(({ host }) => useMarkovTool(host), { initialProps: { host: first } });
+      act(() => result.current.handle.dataChanged(["a", "b"]));
+      await playToTheEnd(result);
+      await playToTheEnd(result);
+      expect(result.current.outputProps.sequenceGroups.map(g => g.orderMatters)).toEqual([false]);
+
+      rerender({ host: { ...first, orderMatters: true } });
+      await playToTheEnd(result);
+      expect(result.current.outputProps.sequenceGroups.map(g => g.orderMatters)).toEqual([false, true]);
+    });
   });
 
   it("logs no starting state for a play whose starting state the input has taken out", async () => {

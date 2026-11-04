@@ -48,6 +48,16 @@ describe("SequenceOutput", () => {
     expect(screen.getByText("Output")).toBeInTheDocument();
   });
 
+  it("marks a group generated without order, collapsed and expanded, and no other group", () => {
+    render(<SequenceOutput {...props([{ ...group([a, b]), orderMatters: false }, group([b, a])])} />);
+    expect(screen.getAllByText("Orderless")).toHaveLength(1);
+    expect(screen.queryByText("Order matters: No")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Orderless"));
+    expect(screen.queryByText("Orderless")).not.toBeInTheDocument();
+    expect(screen.getByText("Order matters: No")).toBeInTheDocument();
+  });
+
   it("chooses an output with Enter or Space when its layout asks for keyboard choosing", () => {
     const outputProps = props([group([a, b])]);
     render(<SequenceOutput {...outputProps} keyboardSelect />);

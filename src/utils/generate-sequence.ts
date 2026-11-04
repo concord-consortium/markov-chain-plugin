@@ -3,10 +3,12 @@ import { Node, Edge, GraphData } from "../type";
 export type GenerateOptions = {
   startingNode?: Node;
   lengthLimit: number;
+  // false: a bag of words, where every next state is picked from all the states by count
+  orderMatters?: boolean;
 };
 
 export const generateSequence = async (graph: GraphData, options: GenerateOptions) => {
-  const { startingNode, lengthLimit } = options;
+  const { startingNode, lengthLimit, orderMatters } = options;
   const generatedResult: Node[] = [];
 
   const chooseRandomNode = () => {
@@ -35,6 +37,10 @@ export const generateSequence = async (graph: GraphData, options: GenerateOption
     let currentNode = startingNode || chooseRandomNode();
     while (currentNode && generatedResult.length < lengthLimit) {
       generatedResult.push(currentNode);
+      if (orderMatters === false) {
+        currentNode = chooseRandomNode();
+        continue;
+      }
       // As a next node, choose one of the edges with a probability proportional to the edge value
       const currentEdge = chooseRandomEdge(currentNode);
       if (currentEdge?.to) {

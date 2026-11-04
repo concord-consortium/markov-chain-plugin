@@ -6,6 +6,8 @@ import { LogEvent } from "./log-events";
 // keeps the outputSequence and log it started with, and a new markDirty re-sends drawing mode's dirty notice.
 export interface MarkovHost {
   viewMode?: ViewMode;
+  // false makes the tool a bag of words; absent, as in the CODAP plugin, order matters
+  orderMatters?: boolean;
   setViewMode: (viewMode?: ViewMode) => void;
   markDirty: () => void;
   outputSequence: (labels: string[]) => Promise<void>;
