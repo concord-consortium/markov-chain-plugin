@@ -50,6 +50,24 @@ describe("probabilityLabels", () => {
     expect(summary(state(sentence, { ...step, highlightAllNextNodes: false }))).toEqual([]);
   });
 
+  describe("in a drawing, whose values are weights", () => {
+    const weights = [edge("a", "b", 0.25), edge("a", "c", 0.75), edge("b", "a", 2)];
+
+    it("labels a chosen state's arrows by their share", () => {
+      expect(summary(state(weights, { selectedNodeId: "a" }))).toEqual(["a>b 25% full", "a>c 75% full"]);
+    });
+
+    it("labels a generating step's candidates by their share", () => {
+      expect(summary(state(weights, { animating: true, highlightNode: node("a"), highlightAllNextNodes: true })))
+        .toEqual(["a>b 25% full", "a>c 75% full"]);
+    });
+
+    it("labels a chosen output by its shares", () => {
+      expect(summary(state(weights, { highlightOutputNodes: [node("a"), node("b")] })))
+        .toEqual(["a>b 25% full", "a>c 75% faded"]);
+    });
+  });
+
   describe("for a chosen output", () => {
     const edges = [edge("a", "b", 2), edge("a", "c"), edge("b", "a"), edge("b", "d"), edge("c", "a")];
 

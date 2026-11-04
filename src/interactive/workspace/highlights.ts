@@ -26,7 +26,9 @@ const steps = (tokens: Token[]) => tokens.flatMap((token, i) => {
 const wordsIn = (tokens: Token[], states: Set<string>) =>
   new Set(tokens.flatMap((token, i) => token.kind === "word" && states.has(token.state) ? [i] : []));
 
-export const highlightsFor = (selection: Selection, tokens: Token[]): Highlights => {
+// a drawing has no tokens, so it gives its transitions, which are otherwise the tokens' steps
+export const highlightsFor = (selection: Selection, tokens: Token[],
+  transitionList: { from: string, to: string }[] = steps(tokens)): Highlights => {
   const transitions = new Map<string, TransitionHighlight>();
   if (!selection) {
     return { tokens: new Set(), states: new Set(), transitions };
@@ -34,7 +36,7 @@ export const highlightsFor = (selection: Selection, tokens: Token[]): Highlights
 
   if (selection.kind === "state") {
     const { id } = selection;
-    steps(tokens).forEach(({ from, to }) => {
+    transitionList.forEach(({ from, to }) => {
       if (from === id) {
         transitions.set(transitionKey(from, to), "out");
       } else if (to === id) {

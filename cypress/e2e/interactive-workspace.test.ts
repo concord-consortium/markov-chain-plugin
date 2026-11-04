@@ -1934,6 +1934,17 @@ describe("the workspace's modes", () => {
       shown().find("g.node").should("have.length", 1);
     });
 
+    it("lights a chosen state's Transitions rows", () => {
+      startDrawing();
+      drawThreeStates();
+      drawTransition("State 1", "State 2");
+      drawTransition("State 3", "State 1");
+      shownTab("Transitions").click();
+      clickShownState("State 1");
+      shown().find(".inspect-pane tbody tr.highlight-out").should("contain.text", "State 1 → State 2");
+      shown().find(".inspect-pane tbody tr.highlight-in").should("contain.text", "State 3 → State 1");
+    });
+
     it("clears a chosen state on Escape", () => {
       startDrawing();
       drawThreeStates();
@@ -2292,6 +2303,22 @@ describe("the workspace's probabilities", () => {
     labels().should("not.exist");
   });
 
+  it("labels no candidates and no chosen output with probabilities off", () => {
+    start({ startingText: "a b a c" });
+    cy.interactive().find(".generator-pane select").first().select("a");
+    maxLength().clear();
+    maxLength().type("2{enter}");
+    generatorButton("Step").click();
+    cy.interactive().find("line.edge[stroke-dasharray='4']").should("exist");
+    labels().should("not.exist");
+    cy.interactive().find(".generator-pane button").contains("Cancel").click();
+    playButton().click();
+    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+    cy.interactive().find(".sequence").first().click();
+    cy.interactive().find(".sequence.highlighted").should("have.length", 1);
+    labels().should("not.exist");
+  });
+
   it("labels a chosen output's steps at full strength and the paths not taken faded", () => {
     start({ startingText: "a b a c", ...on });
     cy.interactive().find(".generator-pane select").first().select("a");
@@ -2380,6 +2407,8 @@ describe("the workspace's probabilities", () => {
     notes().should("deep.equal", [rounding]);
     cy.interactive().find(".graph-notes").should("have.css", "pointer-events", "none")
       .and("have.attr", "aria-live", "polite");
+    toggle().click();
+    notes().should("deep.equal", []);
   });
 });
 
@@ -2410,6 +2439,13 @@ describe("the workspace's Order matters switch", () => {
     bagLoops().should("have.length", 1);
     bagLines().each(line => expect((line[0] as any).__data__.source.label).to.equal("the"));
     notes().should("deep.equal", [outgoingOnly]);
+  });
+
+  it("has no note about the chosen word's arrows while order matters", () => {
+    start({ startingText: "the cat" });
+    clickState("the");
+    cy.interactive().find(".clear-highlight").should("exist");
+    notes().should("deep.equal", []);
   });
 
   it("drops the note about the chosen word's arrows while a sequence steps", () => {
@@ -2485,6 +2521,12 @@ describe("the workspace's Order matters switch", () => {
     textBox().should("have.value", "the\ndog");
     cy.interactive().find("button[aria-label='Delete row 2']").click();
     textBox().should("have.value", "the\n");
+  });
+
+  it("leaves no blank line between the words when a listed word in the middle goes", () => {
+    start({ startingText: "the\ndog\ncat", inputView: "textAndTable", ...off });
+    cy.interactive().find("button[aria-label='Delete row 2']").click();
+    textBox().should("have.value", "the\ncat");
   });
 
   it("clears a chosen transition when turned off, logging only the switch", () => {

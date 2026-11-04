@@ -20,6 +20,12 @@ describe("highlightsFor", () => {
     });
   });
 
+  it("lights a drawing's rows into and out of a state, from its transitions", () => {
+    const edges = [{ from: "a", to: "b" }, { from: "b", to: "a" }, { from: "c", to: "b" }];
+    expect(highlightsFor({ kind: "state", id: "a" }, [], edges).transitions)
+      .toEqual(new Map([[transitionKey("a", "b"), "out"], [transitionKey("b", "a"), "in"]]));
+  });
+
   it("lights a self-loop's row for its state", () => {
     expect(highlightsFor({ kind: "state", id: "cat" }, tokens).transitions.get(transitionKey("cat", "cat")))
       .toBe("out");

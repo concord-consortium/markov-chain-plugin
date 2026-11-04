@@ -39,7 +39,8 @@ export const DrawWorkspace = ({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sourcePaneRef = useRef<WorkspacePaneId>(undefined);
   const layout = usePaneLayout(config, host, tool, stacked, hidden);
-  const highlights = useMemo(() => highlightsFor(tool.selection, []), [tool.selection]);
+  const highlights = useMemo(() => highlightsFor(tool.selection, [], tool.graph.edges),
+    [tool.selection, tool.graph.edges]);
 
   useClearGoneSelection(tool);
   useScrollToChoice(rootRef, tool.selection, sourcePaneRef);
