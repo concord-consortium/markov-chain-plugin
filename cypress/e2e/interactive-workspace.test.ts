@@ -4,8 +4,8 @@ import {
 } from "../../src/interactive/workspace/pane-sizes";
 import { animatedArrowColor, animatedNodeColor, outgoingArrowColor, selectedNodeColor } from "../support/graph";
 import {
-  clickState, divider, dragDivider, graphRoot, loggedEvents, mousePress, parseTransform, pinch, pressEvents, pressState,
-  pressTab, rootTransform, stateEllipse, stateLabels
+  clickState, divider, dragDivider, dragEvents, graphRoot, loggedEvents, mousePress, parseTransform, pinch,
+  pressEvents, pressState, pressTab, rootTransform, stateEllipse, stateLabels
 } from "../support/workspace";
 
 // the Standard layout's full-width item, wide enough that the panes sit side by side
@@ -990,6 +990,51 @@ describe("the workspace's dividers", () => {
       cy.get("iframe#interactive").invoke("attr", "width", "1150");
       afterFit();
       rootTransform().should("equal", before);
+    });
+  });
+
+  it("doesn't fit the graph again when the student zooms before the graph measures a drag's new size", () => {
+    start({ startingText: "the cat sat on the mat" });
+    dragDivider("Resize Input and Graph", 1000, 0);
+    afterFit();
+    cy.interactive().find("button[title='Zoom In']").then(zoomIn => {
+      divider("Resize Input and Graph").then(band => {
+        dragEvents(band[0], -200, 0);
+        zoomIn[0].click();
+      });
+    });
+    afterFit();
+    rootTransform().then(zoomed => {
+      cy.interactive().find("button[title='Fit View']").click();
+      afterFit();
+      rootTransform().should("not.equal", zoomed);
+    });
+  });
+
+  it("fits the graph again when it measures the size a key drew just before the divider lost focus", () => {
+    start({ startingText: "the cat sat on the mat" });
+    dragDivider("Resize Input and Graph", 1000, 0);
+    afterFit();
+    divider("Resize Input and Graph").focus();
+    widthOf(".input-pane").then(before => {
+      divider("Resize Input and Graph").then(band => new Cypress.Promise<number>(resolve => {
+        const element = band[0];
+        const win = element.ownerDocument.defaultView as Window & typeof globalThis;
+        element.dispatchEvent(new win.KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+        // React draws the move in a microtask, and the graph measures its new size only in a later frame
+        win.queueMicrotask(() => {
+          const drawn = element.ownerDocument.querySelector<HTMLElement>(".input-pane")!.offsetWidth;
+          element.blur();
+          resolve(drawn);
+        });
+      })).should("equal", before! - 10);
+    });
+    resized().should("have.length", 2);
+    afterFit();
+    rootTransform().then(fitted => {
+      cy.interactive().find("button[title='Fit View']").click();
+      afterFit();
+      rootTransform().should("equal", fitted);
     });
   });
 

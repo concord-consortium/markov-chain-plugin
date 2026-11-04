@@ -114,21 +114,23 @@ export const pressTab = () => cy.get<HTMLIFrameElement>("iframe#interactive").th
 export const divider = (label: string) => cy.interactive().find(`[role='separator'][aria-label='${label}']`);
 
 // a divider dragged by dx, dy px with a mouse's pointer events, in the interactive's frame
+// a drag of a divider's band, dispatched in one go, as a pointer that moves and releases within one frame does
+export const dragEvents = (element: HTMLElement, dx: number, dy: number) => {
+  const win = element.ownerDocument.defaultView as Window & typeof globalThis;
+  const box = element.getBoundingClientRect();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const fire = (type: string, clientX: number, clientY: number) => element.dispatchEvent(new win.PointerEvent(type,
+    { clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, bubbles: true, view: win }));
+  fire("pointerdown", x, y);
+  fire("pointermove", x + dx / 2, y + dy / 2);
+  fire("pointermove", x + dx, y + dy);
+  fire("pointerup", x + dx, y + dy);
+  // a real pointerup releases the capture; this one is the real mouse's id, which would otherwise stay captured
+  if (element.hasPointerCapture(1)) {
+    element.releasePointerCapture(1);
+  }
+};
+
 export const dragDivider = (label: string, dx: number, dy: number) =>
-  divider(label).then(band => {
-    const element = band[0];
-    const win = element.ownerDocument.defaultView as Window & typeof globalThis;
-    const box = element.getBoundingClientRect();
-    const x = box.x + box.width / 2;
-    const y = box.y + box.height / 2;
-    const fire = (type: string, clientX: number, clientY: number) => element.dispatchEvent(new win.PointerEvent(type,
-      { clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, bubbles: true, view: win }));
-    fire("pointerdown", x, y);
-    fire("pointermove", x + dx / 2, y + dy / 2);
-    fire("pointermove", x + dx, y + dy);
-    fire("pointerup", x + dx, y + dy);
-    // a real pointerup releases the capture; this one is the real mouse's id, which would otherwise stay captured
-    if (element.hasPointerCapture(1)) {
-      element.releasePointerCapture(1);
-    }
-  });
+  divider(label).then(band => dragEvents(band[0], dx, dy));
