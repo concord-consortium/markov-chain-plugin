@@ -101,3 +101,25 @@ export const deleteRow = (text: string, tokens: Token[], row: number): string =>
   }
   return cut(text, token.start, token.end);
 };
+
+// Where a place in the text before an edit lies after it. The edit is the run between the two texts' common start and
+// common end: a place before the run keeps its offset, one after it moves with the change in length, and one inside
+// it is placed at the run's start.
+export const placeAfterEdit = (before: string, after: string, place: number) => {
+  const shorter = Math.min(before.length, after.length);
+  let start = 0;
+  while (start < shorter && before[start] === after[start]) {
+    start++;
+  }
+  let end = 0;
+  while (end < shorter - start && before[before.length - 1 - end] === after[after.length - 1 - end]) {
+    end++;
+  }
+  if (place < start) {
+    return { place, inside: false };
+  }
+  if (place >= before.length - end) {
+    return { place: place + after.length - before.length, inside: false };
+  }
+  return { place: start, inside: true };
+};

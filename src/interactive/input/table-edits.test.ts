@@ -1,4 +1,4 @@
-import { deleteRow, editRow, insertRow } from "./table-edits";
+import { deleteRow, editRow, insertRow, placeAfterEdit } from "./table-edits";
 import { tokenize } from "./tokenizer";
 
 // the table a text gives: each word's text, "" for a break
@@ -168,5 +168,23 @@ describe("table edits", () => {
       checked++;
     }
     expect(checked).toBeGreaterThan(1500);
+  });
+});
+
+describe("placeAfterEdit", () => {
+  it("keeps a place before the edit and moves one after it with the text's change in length", () => {
+    // "the" emptied to a blank line
+    expect(placeAfterEdit("the cat sat", "\n\ncat sat", 4)).toEqual({ place: 2, inside: false });
+    expect(placeAfterEdit("the cat sat", "\n\ncat sat", 8)).toEqual({ place: 6, inside: false });
+    expect(placeAfterEdit("the cat sat", "the big cat sat", 0)).toEqual({ place: 0, inside: false });
+  });
+
+  it("places a place the edit took in at the edit's start", () => {
+    expect(placeAfterEdit("the cat sat", "\n\ncat sat", 0)).toEqual({ place: 0, inside: true });
+    expect(placeAfterEdit("a b c", "a c", 2)).toEqual({ place: 2, inside: true });
+  });
+
+  it("leaves every place where it was when the text is unchanged", () => {
+    expect(placeAfterEdit("the cat", "the cat", 4)).toEqual({ place: 4, inside: false });
   });
 });

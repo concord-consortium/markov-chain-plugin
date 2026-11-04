@@ -26,7 +26,7 @@ export const GeneratorPane = ({ tool, controlsOpen, onToggleControls }: Generato
           <Generator {...tool.generatorProps} />
         </div>
       </div>
-      <SequenceOutput {...tool.outputProps} />
+      <SequenceOutput {...tool.outputProps} keyboardSelect />
     </div>
   );
 };

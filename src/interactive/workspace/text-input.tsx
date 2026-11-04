@@ -35,6 +35,8 @@ const backdropRuns = (text: string, tokens: Token[], highlights: Highlights) => 
   return runs;
 };
 
+const pastedOrDropped = new Set(["insertFromPaste", "insertFromPasteAsQuotation", "insertFromDrop"]);
+
 // The student's text over a copy of it that draws the highlights, laid out alike so the marks sit behind the words.
 // The textarea stays an ordinary text box.
 export const TextInput = ({ text, tokens, highlights, readOnly, onChange, onCommit, onBlur }: TextInputProps) => {
@@ -80,6 +82,12 @@ export const TextInput = ({ text, tokens, highlights, readOnly, onChange, onComm
     // what an input method shows while composing isn't the student's text until the composition ends
     if (isComposing || composedFromRef.current !== undefined) {
       cancelTimer();
+      return;
+    }
+    // a paste or a drop over a selection that shares its ends looks to the text's difference like a letter typed
+    if (pastedOrDropped.has(inputType)) {
+      cancelTimer();
+      onCommit(next, "insert");
       return;
     }
     const { inserted, removed } = textChange(text, next);

@@ -299,6 +299,14 @@ describe("the workspace's text box", () => {
     commits().should("have.length", 0);
   });
 
+  it("commits a paste over a selected word at once, though it shares the word's ending", () => {
+    start({ startingText: "the cat sat" });
+    stateLabels().should("deep.equal", ["cat", "sat", "the"]);
+    inputText(() => "the bat sat", { inputType: "insertFromPaste" });
+    stateLabels().should("deep.equal", ["bat", "sat", "the"]);
+    loggedEvents().should("deep.include", ["InputCommitted", { view: "text", how: "insert", tokens: 3, states: 3 }]);
+  });
+
   it("commits an input method's text when its composition ends, not while it composes", () => {
     start({ startingText: "the cat" });
     const compose = (text: string) =>
@@ -527,6 +535,22 @@ describe("the workspace's input table", () => {
     focused().should("have.attr", "aria-label", "Row 2");
   });
 
+  it("deletes the row pressed, not the one moved under the press when the row left is emptied", () => {
+    start({ startingText: "the cat sat" });
+    row(1).clear();
+    cy.interactive().find("button[aria-label='Delete row 1']").then(button => mousePress(button[0]));
+    row(1).should("have.value", "cat");
+    row(2).should("have.value", "sat");
+  });
+
+  it("deletes the row pressed when an emptied row above it goes", () => {
+    start({ startingText: "the cat sat" });
+    row(1).clear();
+    cy.interactive().find("button[aria-label='Delete row 3']").then(button => mousePress(button[0]));
+    row(1).should("have.value", "cat");
+    cy.interactive().find("input[aria-label='Row 2']").should("not.exist");
+  });
+
   it("commits the text box before a press in the table acts on the text", () => {
     start({ startingText: "the cat sat" });
     textBox().type("s");
@@ -664,6 +688,13 @@ describe("the workspace's input table", () => {
     stateEllipse("cat").should("have.attr", "fill", selectedNodeColor);
     row(2).type("{upArrow}");
     focused().should("have.attr", "aria-label", "Row 1");
+  });
+
+  it("moves down from an emptied row to the row that was below it", () => {
+    start({ startingText: "the cat sat" });
+    row(1).clear().type("{downArrow}");
+    focused().should("have.value", "cat");
+    stateEllipse("cat").should("have.attr", "fill", selectedNodeColor);
   });
 
   it("moves down from a row Enter opened to the row below it, choosing that row's state", () => {

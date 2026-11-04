@@ -140,8 +140,10 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   const highlights = useMemo(() => highlightsFor(tool.selection, committed.tokens),
     [tool.selection, committed.tokens]);
 
-  // a commit that takes the chosen state or transition out of the graph clears it, logging nothing; an output stays
-  useEffect(() => {
+  // A commit that takes the chosen state or transition out of the graph clears it, logging nothing; an output stays.
+  // It runs before the panes' effects, so a choice one makes for the same commit, such as the row Up or Down reaches,
+  // isn't cleared with it.
+  useLayoutEffect(() => {
     const { selection, graph } = toolRef.current;
     const gone = selection?.kind === "state"
       ? !graph.nodes.some(node => node.id === selection.id)
