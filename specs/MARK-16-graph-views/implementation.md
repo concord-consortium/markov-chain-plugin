@@ -322,7 +322,7 @@ export const inspectColumns = (mode: ModeId) => mode === "draw"
 
 **Estimated diff size**: ~220 lines, nearly all moved
 
-- `usePaneLayout(config, host, tool, stacked)` holds what `DataWorkspace` holds for the row (which panes are open, `paneSizes`, the generator's controls column, the resize refs, `fitPaneSizes` from the row's measured width, the dividers, the fit after a resize, and `followRef`) and returns the drawn sizes, `top`, the dividers, `paneStyle`, `togglePane` and the following callbacks (`handleFit`, `handleUserZoom`, `handleGraphResized`). `DataWorkspace` keeps `inputSplit`, which only it has, and still measures `stacked` itself until the modes step moves that to the shell.
+- `usePaneLayout(config, host, tool, stacked)` holds what `DataWorkspace` holds for the row (which panes are open, `paneSizes`, the generator's controls column, the resize refs, `fitPaneSizes` from the row's measured width, the dividers, the fit after a resize, and `followRef`) and returns `top`, the dividers, `paneStyle`, `togglePane` and the following callbacks (`handleFit`, `handleUserZoom`, `handleGraphResized`). `DataWorkspace` keeps `inputSplit`, which only it has, and still measures `stacked` itself until the modes step moves that to the shell.
 - No test changes: MARK-15's `pane-sizes.test.ts` covers the numbers and its Cypress divider, collapse and following tests cover the behavior, so the step is checked by both passing as they are.
 
 ---
