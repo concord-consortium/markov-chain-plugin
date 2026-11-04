@@ -1,6 +1,7 @@
+import { pastDoubleClick } from "./graph";
+
 // Helpers for the Markov Interactive's workspace, in the fake Activity Player page's frame.
 
-// the states' labels, the Graph pane's root group and an ellipse, in the interactive
 export const stateEllipse = (label: string) =>
   cy.interactive().find("g.node").filter((i, node) => node.textContent === label).find("ellipse");
 // invoke, not then, so a should() after it retries the query until the labels match
@@ -11,8 +12,7 @@ export const rootTransform = () => graphRoot().invoke("attr", "transform");
 
 // a click event alone, as the plugin's tests click: Cypress's mousedown and mouseup also start d3's drag handling
 export const clickState = (label: string) => {
-  // the graph reads two clicks on a state within 250 ms as a double-click
-  cy.wait(260);
+  pastDoubleClick();
   stateEllipse(label).trigger("click");
 };
 
@@ -92,9 +92,9 @@ export const pressEvents = (element: Element, steps: PressStep[], pointerType: "
 export const mousePress = (element: Element) =>
   pressEvents(element, ["pointerdown", "mousedown", "focus", 40, "pointerup", "mouseup", "click"], "mouse");
 
-// a mouse press on a state; the graph reads two clicks on a state within 250 ms as a double-click
+// a mouse press on a state, after any earlier click on one can no longer make it a double-click
 export const pressState = (label: string) => {
-  cy.wait(260);
+  pastDoubleClick();
   stateEllipse(label).then(ellipse => mousePress(ellipse[0]));
 };
 
@@ -113,7 +113,6 @@ export const pressTab = () => cy.get<HTMLIFrameElement>("iframe#interactive").th
 
 export const divider = (label: string) => cy.interactive().find(`[role='separator'][aria-label='${label}']`);
 
-// a divider dragged by dx, dy px with a mouse's pointer events, in the interactive's frame
 // a drag of a divider's band, dispatched in one go, as a pointer that moves and releases within one frame does
 export const dragEvents = (element: HTMLElement, dx: number, dy: number) => {
   const win = element.ownerDocument.defaultView as Window & typeof globalThis;
@@ -132,5 +131,6 @@ export const dragEvents = (element: HTMLElement, dx: number, dy: number) => {
   }
 };
 
+// a divider dragged by dx, dy px with a mouse's pointer events, in the interactive's frame
 export const dragDivider = (label: string, dx: number, dy: number) =>
   divider(label).then(band => dragEvents(band[0], dx, dy));

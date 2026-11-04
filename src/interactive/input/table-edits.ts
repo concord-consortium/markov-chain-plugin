@@ -1,9 +1,8 @@
-import { closingBracket, endsWord, rowText, textForRow, Token } from "./tokenizer";
+import { closingBracket, endsWord, isWhitespace, punctuation, rowText, textForRow, Token } from "./tokenizer";
 
 // Each returns the new text; tokens are the text's current tokens, and row indexes count breaks as rows.
 
-const punctuationRow = /^[.,?!:;]$/;
-const isSpace = (char: string | undefined) => char !== undefined && /\s/.test(char) && char !== "\n";
+const isSpace = (char: string | undefined) => char !== undefined && isWhitespace(char) && char !== "\n";
 // a character that would run into a word written beside it
 const joins = (char: string | undefined) => char !== undefined && !endsWord(char);
 
@@ -31,7 +30,7 @@ const write = (text: string, start: number, end: number, written: string) => {
 const lineBreaksIn = (text: string, from: number, direction: -1 | 1) => {
   let count = 0;
   let i = direction === 1 ? from : from - 1;
-  while (i >= 0 && i < text.length && /\s/.test(text[i])) {
+  while (i >= 0 && i < text.length && isWhitespace(text[i])) {
     count += text[i] === "\n" ? 1 : 0;
     i += direction;
   }
@@ -54,10 +53,10 @@ export const editRow = (text: string, tokens: Token[], row: number, value: strin
   // an emptied row is a blank line, which takes in the whitespace around the word
   let start = token.start;
   let end = token.end;
-  while (start > 0 && /\s/.test(text[start - 1])) {
+  while (start > 0 && isWhitespace(text[start - 1])) {
     start--;
   }
-  while (end < text.length && /\s/.test(text[end])) {
+  while (end < text.length && isWhitespace(text[end])) {
     end++;
   }
   return text.slice(0, start) + "\n\n" + text.slice(end);
@@ -77,7 +76,8 @@ export const insertRow = (text: string, tokens: Token[], after: number, value: s
     // after a blank line, so it doesn't run into the next word
     return write(text, token.end, token.end, `${written} `);
   }
-  return write(text, token.end, token.end, punctuationRow.test(written) ? written : ` ${written}`);
+  const isPunctuation = written.length === 1 && punctuation.includes(written);
+  return write(text, token.end, token.end, isPunctuation ? written : ` ${written}`);
 };
 
 export const deleteRow = (text: string, tokens: Token[], row: number): string => {

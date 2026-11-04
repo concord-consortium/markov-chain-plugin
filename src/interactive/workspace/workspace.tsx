@@ -199,6 +199,17 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   }, [host, toolRef]);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
+  // focus stays in the controls row when the Clear highlight button goes while it has focus, so Tab carries on from
+  // there
+  const controlsRowRef = useRef<HTMLDivElement>(null);
+  const clearButton = useRef<HTMLButtonElement>(null);
+  const clearButtonRef = useCallback((button: HTMLButtonElement | null) => {
+    const gone = clearButton.current;
+    clearButton.current = button;
+    if (!button && gone?.ownerDocument.activeElement === gone) {
+      controlsRowRef.current?.focus();
+    }
+  }, []);
   const dimensions = useResizeObserver(rootRef);
   const stacked = !!dimensions && dimensions.width < stackBelow;
 
@@ -290,8 +301,9 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   const top = drawnRowHeight(sizes.top, stacked);
   const graphWidth = room - (openPanes.input ? sizes.input : 0) - (openPanes.inspect ? sizes.inspect : 0);
 
-  // a move starts from the sizes stored when it starts
+  // the stored sizes this move is measured from
   const moveFromRef = useRef<PaneSizes>(undefined);
+  // the stored sizes when the resize began, restored if it went nowhere
   const resizeStartRef = useRef<PaneSizes>(undefined);
   // the sizes the last move stored, which a drag's end can arrive before React renders
   const movedToRef = useRef<PaneSizes>(undefined);
@@ -439,11 +451,11 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
 
   return (
     <div className={clsx("markov-workspace", { stacked })} style={cssValues} ref={rootRef}>
-      <div className="controls-row">
+      <div className="controls-row" tabIndex={-1} ref={controlsRowRef}>
         { hasInputPane ? undefined : caseSwitch }
         { !config.caseSwitch && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
         { tool.selection &&
-          <button type="button" className="clear-highlight" disabled={tool.animating}
+          <button type="button" className="clear-highlight" disabled={tool.animating} ref={clearButtonRef}
             onClick={() => tool.clearSelection("button")}>
             Clear highlight
           </button>

@@ -71,7 +71,7 @@ describe("Drawing's log", () => {
 });
 
 describe("Dataset's log", () => {
-  it("logs a state's dialog opened and a state moved, by its label", () => {
+  it("logs a state's dialog opened and a state moved", () => {
     const host: MarkovHost = {
       viewMode: "dataset", setViewMode: jest.fn(), markDirty: jest.fn(), outputSequence: () => Promise.resolve(),
       log: jest.fn(),

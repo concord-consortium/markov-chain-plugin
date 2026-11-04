@@ -1,5 +1,6 @@
 import type { FakeCodap } from "../fake-codap/fake-codap";
 import type { StartPluginOptions } from "./index";
+import { pastDoubleClick } from "./graph";
 
 Cypress.Commands.add("fakeCodap", () => cy.window().its("fakeCodap") as Cypress.Chainable<FakeCodap>);
 
@@ -39,8 +40,6 @@ Cypress.Commands.add("resizePlugin", (width: number, height: number) => {
   cy.fakeCodap().then(fake => fake.resize(width, height));
 });
 
-// the graph reads two clicks on a state within 250 ms as a double-click (graph-draw.ts)
-const doubleClickTime = 250;
 
 const triggerStateClick = (label: string) => {
   // a click event alone: Cypress's mousedown and mouseup also start d3's drag handling, which throws in this frame
@@ -48,11 +47,11 @@ const triggerStateClick = (label: string) => {
 };
 
 Cypress.Commands.add("clickState", (label: string) => {
-  cy.wait(doubleClickTime + 10);
+  pastDoubleClick();
   triggerStateClick(label);
 });
 Cypress.Commands.add("doubleClickState", (label: string) => {
-  cy.wait(doubleClickTime + 10);
+  pastDoubleClick();
   triggerStateClick(label);
   triggerStateClick(label);
 });

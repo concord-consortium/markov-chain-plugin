@@ -2,7 +2,9 @@ import {
   defaultPaneSizes, minInputPart, minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, toolbarHeight,
   workspaceHeight
 } from "../../src/interactive/workspace/pane-sizes";
-import { animatedArrowColor, animatedNodeColor, outgoingArrowColor, selectedNodeColor } from "../support/graph";
+import {
+  animatedArrowColor, animatedNodeColor, outgoingArrowColor, pastDoubleClick, selectedNodeColor
+} from "../support/graph";
 import {
   clickState, divider, dragDivider, dragEvents, graphRoot, loggedEvents, mousePress, parseTransform, pinch,
   pressEvents, pressState, pressTab, rootTransform, stateEllipse, stateLabels
@@ -57,7 +59,7 @@ describe("the interactive's workspace", () => {
   it("opens a state's read-only probabilities on a double-click, and logs it", () => {
     start({ startingText: "the cat sat" });
     cy.interactive().find("g.node").should("have.length", 3);
-    cy.wait(260);
+    pastDoubleClick();
     stateEllipse("the").trigger("click").trigger("click");
     cy.interactive().find(".nodeModal").should("contain.text", "the");
     loggedEvents().should("deep.include", ["StateDialogOpened", { state: "the" }]);
@@ -115,6 +117,21 @@ describe("the interactive's workspace", () => {
     cy.interactive().find(".clear-highlight").click();
     stateEllipse("cat").should("have.attr", "fill", "#fff");
     loggedEvents().should("deep.include", ["SelectionCleared", { via: "button" }]);
+  });
+
+  it("keeps focus in the controls row when the focused Clear highlight button goes", () => {
+    start({ startingText: "the cat sat" });
+    clickState("cat");
+    cy.interactive().find(".clear-highlight").focus();
+    cy.interactive().find(".clear-highlight").type("{esc}");
+    cy.interactive().find(".clear-highlight").should("not.exist");
+    focused().should("have.class", "controls-row");
+
+    clickState("cat");
+    cy.interactive().find(".clear-highlight").focus();
+    cy.interactive().find(".clear-highlight").click();
+    cy.interactive().find(".clear-highlight").should("not.exist");
+    focused().should("have.class", "controls-row");
   });
 
   it("keeps a collapsed pane's contents and fits the graph when its pane reopens", () => {
@@ -276,7 +293,7 @@ describe("the workspace's text box", () => {
     start();
     textBox().type("the cat sat");
     stateLabels().should("deep.equal", ["cat", "the"]);
-    cy.wait(260);
+    pastDoubleClick();
     stateEllipse("cat").then(ellipse =>
       pressEvents(ellipse[0], ["pointerdown", "pointerup", "mousedown", "focus", 40, "mouseup", "click"], "touch"));
     stateEllipse("cat").should("have.attr", "fill", selectedNodeColor);
@@ -298,7 +315,7 @@ describe("the workspace's text box", () => {
     start();
     textBox().type("the cat sat");
     stateLabels().should("deep.equal", ["cat", "the"]);
-    cy.wait(260);
+    pastDoubleClick();
     stateEllipse("cat").then(ellipse => pressEvents(ellipse[0], ["pointerdown", "mousedown", "focus"], "mouse", 2));
     stateLabels().should("deep.equal", ["cat", "sat", "the"]);
   });
@@ -308,7 +325,7 @@ describe("the workspace's text box", () => {
     start();
     textBox().type("the cat sat");
     stateLabels().should("deep.equal", ["cat", "the"]);
-    cy.wait(260);
+    pastDoubleClick();
     stateEllipse("cat").then(ellipse => pressEvents(ellipse[0], ["pointerdown", "mousedown", "contextmenu"], "mouse"));
     textBox().blur({ force: true });
     stateLabels().should("deep.equal", ["cat", "sat", "the"]);
@@ -317,7 +334,7 @@ describe("the workspace's text box", () => {
   it("commits a deletion with the blur when a press is held past the pause", () => {
     start({ startingText: "the cat sat" });
     stateLabels().should("deep.equal", ["cat", "sat", "the"]);
-    cy.wait(260);
+    pastDoubleClick();
     textBox().type("{backspace}");
     stateEllipse("cat").then(ellipse =>
       pressEvents(ellipse[0], ["pointerdown", "mousedown", "focus", 1300, "pointerup", "mouseup", "click"], "touch"));
@@ -657,7 +674,7 @@ describe("the workspace's linked highlighting", () => {
     stateEllipse("cat").should("have.css", "opacity", "1");
     stateEllipse("sat").should("have.css", "opacity", "0.35");
 
-    cy.wait(260);
+    pastDoubleClick();
     // the arrows' wide click bands overlap
     arrow("sat", "on").trigger("click", { force: true });
     loggedEvents().should("deep.include", ["TransitionSelected", { from: "sat", to: "on", source: "graph" }]);
@@ -863,6 +880,9 @@ describe("the workspace's Inspect pane", () => {
       cy.interactive().find(".inspect-row-button").first().focus();
       cy.interactive().find(".inspect-row-button").first().type("{downArrow}");
       focused().should("have.text", "s01");
+      // the keys' hint is read on the row Tab reaches, not on every row the arrows pass
+      cy.interactive().find(".inspect-row-button[aria-describedby]").should("have.length", 1)
+        .and("have.text", "s01");
       stateEllipse("s01").should("have.attr", "fill", "#fff");
       cy.interactive().find(".inspect-row-button").eq(1).click();
       stateEllipse("s01").should("have.attr", "fill", selectedNodeColor);
@@ -1052,6 +1072,24 @@ describe("the workspace's dividers", () => {
       afterFit();
       rootTransform().should("equal", fitted);
     });
+  });
+
+  it("keeps the split the student chose, logging nothing, for a key that can't move the split divider", () => {
+    start({ startingText: "the cat" });
+    dragDivider("Resize the panes and the generator", 0, -1000);
+    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", minPaneSizes.top);
+    divider("Resize the text box and the table").focus();
+    divider("Resize the text box and the table").type("{downArrow}");
+    divider("Resize the text box and the table").blur({ force: true });
+    dragDivider("Resize the panes and the generator", 0, 1000);
+    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", defaultPaneSizes.top);
+    cy.interactive().find(".linked-input").should(linked => {
+      const body = linked[0].clientHeight - paneGap - 2 * panePadding;
+      const text = linked[0].querySelector(".text-input")!.getBoundingClientRect().height;
+      expect(text).to.be.closeTo(0.4 * body, 1);
+    });
+    loggedEvents().should(events => expect(events.filter(([action, data]) =>
+      action === "PaneResized" && (data as { divider: string }).divider === "inputSplit")).to.have.length(0));
   });
 
   it("joins only open neighbors", () => {
@@ -1253,24 +1291,6 @@ describe("the workspace's Case sensitive switch", () => {
     loggedEvents().should(events => expect(events.some(([action, data]) =>
       action === "CaseSensitivityChanged" && (data as { caseSensitive: boolean }).caseSensitive === false))
       .to.equal(true));
-  });
-
-  it("keeps the split the student chose, logging nothing, for a key that can't move the split divider", () => {
-    start({ startingText: "the cat" });
-    dragDivider("Resize the panes and the generator", 0, -1000);
-    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", minPaneSizes.top);
-    divider("Resize the text box and the table").focus();
-    divider("Resize the text box and the table").type("{downArrow}");
-    divider("Resize the text box and the table").blur({ force: true });
-    dragDivider("Resize the panes and the generator", 0, 1000);
-    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", defaultPaneSizes.top);
-    cy.interactive().find(".linked-input").should(linked => {
-      const body = linked[0].clientHeight - paneGap - 2 * panePadding;
-      const text = linked[0].querySelector(".text-input")!.getBoundingClientRect().height;
-      expect(text).to.be.closeTo(0.4 * body, 1);
-    });
-    loggedEvents().should(events => expect(events.filter(([action, data]) =>
-      action === "PaneResized" && (data as { divider: string }).divider === "inputSplit")).to.have.length(0));
   });
 
   it("hides the switch with the collapsed Input pane", () => {

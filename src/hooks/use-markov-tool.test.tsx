@@ -120,7 +120,8 @@ describe("useMarkovTool's selection", () => {
 
   it("chooses and clears nothing while a sequence plays", async () => {
     jest.useFakeTimers();
-    const result = toolWithValues();
+    const host = recordingHost("dataset");
+    const result = toolWithValues(host);
     act(() => result.current.selectState("a", "graph"));
     await act(async () => result.current.generatorProps.onPlay());
     expect(result.current.animating).toBe(true);
@@ -129,6 +130,12 @@ describe("useMarkovTool's selection", () => {
     expect(result.current.selection).toEqual({ kind: "state", id: "a" });
     act(() => result.current.selectTransition({ from: "a", to: "b" }, "graph"));
     expect(result.current.selection).toEqual({ kind: "state", id: "a" });
+    const sequence = result.current.graph.nodes;
+    const group: SequenceGroup =
+      { delimiter: " ", lengthLimit: 5, startingState: "", startingNode: undefined, sequences: [sequence] };
+    act(() => result.current.outputProps.onToggleHighlight(group, sequence));
+    expect(result.current.selection).toEqual({ kind: "state", id: "a" });
+    expect(host.log.mock.calls.map(([action]) => action)).not.toContain("OutputSelected");
     act(() => result.current.outputProps.onCancel());
   });
 });

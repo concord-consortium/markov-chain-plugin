@@ -100,6 +100,10 @@ describe("the interactive's runtime", () => {
         clickState("cat");
         cy.interactive().find(".clear-highlight").should("be.visible").click();
         cy.interactive().find(".clear-highlight").should("not.exist");
+        // the workspace reports a new height a frame after it resizes
+        cy.wait(100);
+        cy.frameFitsInteractive();
+        cy.get("iframe#interactive").invoke("height").should("equal", height);
         cy.interactiveMessages("height").invoke("slice", before)
           .should(heights => heights.forEach(h => expect(h).to.equal(height)));
       });

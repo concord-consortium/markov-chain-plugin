@@ -400,6 +400,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   }, [finishAnimating, log, sequenceSettings]);
 
   const toggleHighlightOutput = useCallback((group: SequenceGroup, sequence: Node[]) => {
+    if (animating) {
+      return;
+    }
     setSelectedNodeId();
     if ((highlightOutput?.group !== group) || (highlightOutput.sequence !== sequence)) {
       setHighlightOutput({ group, sequence });
@@ -408,7 +411,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       setHighlightOutput(undefined);
       log("SelectionCleared", { via: "toggle" });
     }
-  }, [highlightOutput, setHighlightOutput, setSelectedNodeId, log]);
+  }, [animating, highlightOutput, setHighlightOutput, setSelectedNodeId, log]);
 
   const handleClearHighlightOutput = () => setHighlightOutput(undefined);
 

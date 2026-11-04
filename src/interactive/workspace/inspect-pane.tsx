@@ -106,7 +106,8 @@ const InspectPaneContent = ({
           }
         }}>
         <td>
-          <button type="button" className="inspect-row-button" aria-pressed={chosen} aria-describedby={hintId}
+          <button type="button" className="inspect-row-button" aria-pressed={chosen}
+            aria-describedby={at === tabRow ? hintId : undefined}
             tabIndex={at === tabRow ? 0 : -1} onFocus={() => setCurrent(prev => ({ ...prev, [tab]: at }))}
             onKeyDown={e => handleRowKey(e, at)} onClick={choose}>
             { row.label }

@@ -7,9 +7,9 @@ export type Token =
   // a blank line
   | { kind: "break", start: number, end: number };
 
-const punctuation = ".,?!:;";
+export const punctuation = ".,?!:;";
 const separators = "\"(){}_+=|\\/<>[]";
-const isWhitespace = (char: string) => /\s/.test(char);
+export const isWhitespace = (char: string) => /\s/.test(char);
 export const endsWord = (char: string) => isWhitespace(char) || punctuation.includes(char) || separators.includes(char);
 
 // where the bracket opened at start closes: the next "]" on its line with no "[" before it, or -1

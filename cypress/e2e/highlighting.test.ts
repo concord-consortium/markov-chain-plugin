@@ -1,10 +1,9 @@
-import { ellipse, selectedNodeColor } from "../support/graph";
+import {
+  animatedArrowColor, animatedNodeColor, ellipse, outgoingArrowColor, selectedNodeColor
+} from "../support/graph";
 
-// colors from graph-highlight.ts
+// incomingArrowColor in graph-highlight.ts
 const incomingArrowColor = "#0081ff";
-const outgoingArrowColor = "#ff9900";
-const animatedNodeColor = "#FF00877f";
-const animatedArrowColor = "#FF0087";
 const faded = "[style*='opacity: 0.35']";
 
 const edge = (from: string, to: string) =>

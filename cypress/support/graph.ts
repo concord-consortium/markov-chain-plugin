@@ -1,3 +1,8 @@
+// the graph reads two clicks on a state within this many ms as a double-click (graph-draw.ts)
+export const doubleClickTime = 250;
+// waits until a click can't join the one before it in a double-click
+export const pastDoubleClick = () => cy.wait(doubleClickTime + 10);
+
 type Edge = { from: string, to: string, value: number };
 
 // restates stateEdgeWeights (graph-utils.ts) rather than importing it, so a change to the plugin's rule fails the tests
