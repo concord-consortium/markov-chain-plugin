@@ -108,8 +108,8 @@ export const nodeLoopPath = (node: {x: number, y: number, radius: number}, arrow
   return d;
 };
 
-// A state's label being fitted to the state: its font shrinks to settings.minFontSize, then the label is cut short
-// with "...", then the font shrinks again, until it fits, measured in text, an element the page's font sets.
+// A label being fitted: the font shrinks to settings.minFontSize, then the label is cut short with "...", then the
+// font shrinks again; text is the hidden element it is measured in.
 interface LabelFit {
   original: string;
   label: string;

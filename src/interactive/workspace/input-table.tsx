@@ -30,7 +30,7 @@ const rowId = (row: RowKey) =>
   row.kind === "row" ? `row-${row.index}` : row.kind === "pending" ? `pending-${row.after}` : row.kind;
 const sameRow = (a: RowKey, b: RowKey) => rowId(a) === rowId(b);
 
-// what a row does, by its place in the table; each keeps its identity, so a row renders only when its own values change
+// what a row does, by its place in the table; each keeps its identity across renders
 interface RowActions {
   focus: (at: number) => void;
   change: (at: number, value: string) => void;
@@ -120,8 +120,37 @@ const InputTableRows = ({
     }
   }, [focusRequest]);
 
+  const latestActions = useLatest({
+    focus: (at: number) => handleFocus(rows[at]),
+    change: (at: number, value: string) => setDraft({ row: rows[at], value }),
+    blur: (at: number) => {
+      const row = rows[at];
+      onRowBlur(() => commitRow(row));
+    },
+    keyDown: (e: React.KeyboardEvent<HTMLInputElement>, at: number) => handleKeyDown(e, rows[at], at),
+    delete: (at: number) => {
+      const row = rows[at];
+      if (row.kind === "row") {
+        handleDelete(row.index);
+      }
+    },
+  });
+  const actions = useMemo<RowActions>(() => ({
+    focus: at => latestActions.current.focus(at),
+    change: (at, value) => latestActions.current.change(at, value),
+    blur: at => latestActions.current.blur(at),
+    keyDown: (e, at) => latestActions.current.keyDown(e, at),
+    delete: at => latestActions.current.delete(at),
+    register: (id, element) => {
+      if (element) {
+        inputs.current.set(id, element);
+      } else {
+        inputs.current.delete(id);
+      }
+    },
+  }), [latestActions]);
+
   // a row dropped from under the focus leaves the input focused, showing the row now in its place, with no focus event
-  const focusedRowAt = useLatest((at: number) => handleFocus(rows[at]));
   useEffect(() => {
     if (moveTo === undefined) {
       return;
@@ -132,11 +161,11 @@ const InputTableRows = ({
       return;
     }
     if (input === input.ownerDocument.activeElement) {
-      focusedRowAt.current(moveTo);
+      actions.focus(moveTo);
     } else {
       input.focus();
     }
-  }, [moveTo, focusedRowAt]);
+  }, [moveTo, actions]);
 
   useEffect(() => {
     if (refocus) {
@@ -258,36 +287,6 @@ const InputTableRows = ({
       setDeleted(index);
     }
   };
-
-  const latestActions = useLatest({
-    focus: (at: number) => handleFocus(rows[at]),
-    change: (at: number, value: string) => setDraft({ row: rows[at], value }),
-    blur: (at: number) => {
-      const row = rows[at];
-      onRowBlur(() => commitRow(row));
-    },
-    keyDown: (e: React.KeyboardEvent<HTMLInputElement>, at: number) => handleKeyDown(e, rows[at], at),
-    delete: (at: number) => {
-      const row = rows[at];
-      if (row.kind === "row") {
-        handleDelete(row.index);
-      }
-    },
-  });
-  const actions = useMemo<RowActions>(() => ({
-    focus: at => latestActions.current.focus(at),
-    change: (at, value) => latestActions.current.change(at, value),
-    blur: at => latestActions.current.blur(at),
-    keyDown: (e, at) => latestActions.current.keyDown(e, at),
-    delete: at => latestActions.current.delete(at),
-    register: (id, element) => {
-      if (element) {
-        inputs.current.set(id, element);
-      } else {
-        inputs.current.delete(id);
-      }
-    },
-  }), [latestActions]);
 
   return (
     <div className="input-table" ref={tableRef}>

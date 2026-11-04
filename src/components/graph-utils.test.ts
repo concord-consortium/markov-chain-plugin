@@ -1,6 +1,6 @@
 import {
   arrowHeadReach, calculateNodeFontSizes, graphSignature, isPlaced, layoutFor, nodeLoopPath, pullBackLineEnd,
-  linkDistance, startPosition, startPositions, stateEdgeWeights
+  linkDistance, settings, startPosition, startPositions, stateEdgeWeights
 } from "./graph-utils";
 
 describe("stateEdgeWeights", () => {
@@ -158,13 +158,13 @@ describe("layoutFor", () => {
 });
 
 // one arrow's length between two of the smallest states, as the layout draws it
-const distance = 75;
+const distance = linkDistance(settings.minRadius, settings.minRadius);
 
 describe("startPosition", () => {
   const placed = new Map([["a", { x: 100, y: 50 }]]);
 
-  it("starts a new state the layout's arrow length between two of the smallest states away", () => {
-    expect(linkDistance(25, 25)).toBe(distance);
+  it("starts a new state 75 px from its source, the arrow between two of the smallest states", () => {
+    expect(distance).toBe(75);
   });
   const at = (angle: number, from: { x: number, y: number }) => ({
     x: from.x + distance * Math.cos(angle * Math.PI / 180), y: from.y + distance * Math.sin(angle * Math.PI / 180)
