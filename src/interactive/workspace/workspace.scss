@@ -410,8 +410,11 @@ $pane-border-color: #c7c7c7;
       overflow-y: auto;
     }
 
-    .inspect-empty {
+    .inspect-empty, .inspect-explanation {
       margin: 10px 4px;
+    }
+
+    .inspect-empty {
       color: #737373;
     }
 

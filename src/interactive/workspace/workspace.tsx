@@ -444,7 +444,8 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
         );
       case "inspect":
         return (
-          <InspectPane graph={tool.graph} selection={tool.selection} highlights={highlights} log={host.log}
+          <InspectPane mode="useData" orderMatters={true} graph={tool.graph} selection={tool.selection}
+            highlights={highlights} log={host.log}
             onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} />
         );
       case "generator":

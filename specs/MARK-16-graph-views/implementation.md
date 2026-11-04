@@ -288,8 +288,9 @@ export const labelProblem = (label: string, id: string, nodes: Node[]) =>
 
 **Files affected**:
 - `src/interactive/workspace/inspect-rows.ts`: `inspectColumns`, `bagOfWordsExplanation`.
-- `src/interactive/workspace/inspect-rows.test.ts`: tests.
+- `src/interactive/workspace/inspect-rows.test.ts` and `inspect-pane.test.tsx` (new): tests.
 - `src/interactive/workspace/inspect-pane.tsx`: renders the columns given, or the explanation.
+- `src/interactive/workspace/workspace.scss`: the explanation's margin.
 - `src/interactive/workspace/workspace.tsx`: MARK-15's `InspectPane` call passes `mode="useData"` and `orderMatters`, `true` until the switch step passes its state, so the step compiles.
 
 **Estimated diff size**: ~120 lines
@@ -306,7 +307,7 @@ export const inspectColumns = (mode: ModeId) => mode === "draw"
 ```
 
 - `InspectPane` takes `mode` and `orderMatters`; with `orderMatters === false` the Transitions tabpanel holds a `p` with `bagOfWordsExplanation` in place of the table, and the tab, its sort state and the tablist are unchanged (R13). Draw mode's probability cell is `${row.percent}%`; Data mode's stays `row.probability` ("2 of 3 = 67%").
-- Sorting by probability already compares `count / outOf`, which is the weight's share for a drawing.
+- Sorting by probability compares `count / outOf`, which is the weight's share for a drawing, and 0 for a transition whose state's weights total 0, which a drawing can reach and Data mode's counts can't.
 - Tests: Draw-mode columns for a two-transition drawing with weights 0.25 and 0.75 (25%, 75%, no count); Data mode unchanged; the explanation's exact text.
 
 ---

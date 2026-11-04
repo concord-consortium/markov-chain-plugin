@@ -2,8 +2,11 @@ import React, { memo, useId, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { MarkovHost, Selection } from "../../components/host";
 import { GraphData } from "../../type";
+import { ModeId } from "../authored-state";
 import { Highlights, transitionKey } from "./highlights";
-import { SortColumn, sortRows, StateRow, stateRows, TransitionRow, transitionRows } from "./inspect-rows";
+import {
+  bagOfWordsExplanation, inspectColumns, SortColumn, sortRows, StateRow, stateRows, TransitionRow, transitionRows
+} from "./inspect-rows";
 
 type InspectTab = "states" | "transitions";
 interface Sort { column: SortColumn, ascending: boolean }
@@ -11,18 +14,17 @@ interface Sort { column: SortColumn, ascending: boolean }
 const tabs: { id: InspectTab, label: string }[] = [
   { id: "states", label: "States" }, { id: "transitions", label: "Transitions" }
 ];
-const columns: Record<InspectTab, { id: SortColumn, label: string }[]> = {
-  states: [{ id: "state", label: "State" }, { id: "count", label: "Count" }],
-  transitions: [
-    { id: "transition", label: "Transition" }, { id: "count", label: "Count" },
-    { id: "probability", label: "Probability" }
-  ],
+const columnLabels: Record<SortColumn, string> = {
+  state: "State", count: "Count", transition: "Transition", probability: "Probability"
 };
 const startingSort: Record<InspectTab, Sort> = {
   states: { column: "state", ascending: true }, transitions: { column: "transition", ascending: true },
 };
 
 interface InspectPaneProps {
+  mode: ModeId;
+  // false: the Transitions tab explains the bag of words in place of its table
+  orderMatters: boolean;
   graph: GraphData;
   selection: Selection;
   highlights: Highlights;
@@ -31,10 +33,10 @@ interface InspectPaneProps {
   onSelectTransition: (edge: { from: string, to: string }) => void;
 }
 
-// The graph's states and transitions as tables, in tabs. Each table's rows are one Tab stop: Up and Down move between
-// them, and Enter or Space chooses one. Its column headers' sort buttons take Tab too.
+// The graph's states and transitions in tabs. Each table's rows are one Tab stop: Up and Down move between them, and
+// Enter or Space chooses one. Its column headers' sort buttons take Tab too.
 const InspectPaneContent = ({
-  graph, selection, highlights, log, onSelectState, onSelectTransition
+  mode, orderMatters, graph, selection, highlights, log, onSelectState, onSelectTransition
 }: InspectPaneProps) => {
   const idPrefix = useId();
   const [tab, setTab] = useState<InspectTab>("states");
@@ -84,6 +86,9 @@ const InspectPaneContent = ({
     }
   };
 
+  const columns = inspectColumns(mode);
+  const tabColumns: readonly SortColumn[] = columns[tab];
+
   const hintId = `${idPrefix}-hint`;
   const panelId = `${idPrefix}-panel`;
   const tabId = (id: InspectTab) => `${idPrefix}-${id}`;
@@ -113,8 +118,10 @@ const InspectPaneContent = ({
             { row.label }
           </button>
         </td>
-        <td>{ row.count }</td>
-        { isTransition && <td>{ row.probability }</td> }
+        { tabColumns.includes("count") && <td>{ row.count }</td> }
+        { isTransition &&
+          <td>{ columns.probability === "percent" ? `${row.percent}%` : row.probability }</td>
+        }
       </tr>
     );
   };
@@ -136,20 +143,23 @@ const InspectPaneContent = ({
         )) }
       </div>
       <div role="tabpanel" id={panelId} aria-labelledby={tabId(tab)} className="inspect-panel">
-        { rows.length === 0
+        { tab === "transitions" && !orderMatters
+          ? <p className="inspect-explanation">{ bagOfWordsExplanation }</p>
+          : rows.length === 0
           ? <p className="inspect-empty">
               { graph.nodes.length === 0 ? "There are no states yet." : "There are no transitions yet." }
             </p>
           : <table className="inspect-table">
               <thead>
                 <tr>
-                  { columns[tab].map(({ id, label }) => {
+                  { tabColumns.map(id => {
                     const sorted = sort.column === id;
                     return (
                       <th key={id} scope="col"
                         aria-sort={sorted ? (sort.ascending ? "ascending" : "descending") : "none"}>
                         <button type="button" onClick={() => sortBy(id)}>
-                          { label } <span aria-hidden="true">{ sorted ? (sort.ascending ? "▲" : "▼") : "↕" }</span>
+                          { columnLabels[id] }{ " " }
+                          <span aria-hidden="true">{ sorted ? (sort.ascending ? "▲" : "▼") : "↕" }</span>
                         </button>
                       </th>
                     );

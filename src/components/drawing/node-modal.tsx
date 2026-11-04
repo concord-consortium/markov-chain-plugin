@@ -16,7 +16,9 @@ export interface NodeModalProps {
   accessibleEditor?: boolean;
 }
 
-export const NodeModal = ({ viewMode, node, graph, onChange, onCancel, uniqueLabels, accessibleEditor }: NodeModalProps) => {
+export const NodeModal = ({
+  viewMode, node, graph, onChange, onCancel, uniqueLabels, accessibleEditor
+}: NodeModalProps) => {
   const [label, setLabel] = useState(node?.label || "");
   const [exactPercentages, _setExactPercentages] = useState<number[]>([]);
 
