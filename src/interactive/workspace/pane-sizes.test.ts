@@ -63,6 +63,12 @@ describe("dragDivider", () => {
   it("doesn't count a collapsed Inspect against Input's maximum", () => {
     expect(dragDivider(defaultPaneSizes, "input", 1000, room, { ...allOpen, inspect: false }).input).toBe(800);
   });
+
+  it("doesn't count a collapsed Input's width against the Graph/Inspect divider", () => {
+    const inputClosed = { ...allOpen, input: false };
+    expect(dividerLimits(defaultPaneSizes, "inspect", room, inputClosed)).toEqual({ value: 740, min: 200, max: 780 });
+    expect(dragDivider(defaultPaneSizes, "inspect", 20, room, inputClosed).inspect).toBe(240);
+  });
 });
 
 describe("dragInputSplit", () => {

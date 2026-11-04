@@ -40,7 +40,6 @@ Cypress.Commands.add("resizePlugin", (width: number, height: number) => {
   cy.fakeCodap().then(fake => fake.resize(width, height));
 });
 
-
 const triggerStateClick = (label: string) => {
   // a click event alone: Cypress's mousedown and mouseup also start d3's drag handling, which throws in this frame
   cy.plugin().find("g.node").filter((i, node) => node.textContent === label).find("ellipse").trigger("click");

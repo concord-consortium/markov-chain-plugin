@@ -23,13 +23,20 @@ const inspectRow = (label: string) => cy.interactive().find(".inspect-pane tbody
 const inspectTab = (label: string) => cy.interactive().find(".inspect-tab").contains(label);
 const newRow = () => cy.interactive().find("input[aria-label='New row']");
 const commits = () => loggedEvents().invoke("filter", ([action]: [string]) => action === "InputCommitted");
-// a paste changes the text box's value in one input event, and commits it whole
-const paste = (added: string) => textBox().then(box => {
+// the text box's value replaced by text(value), in one input event of init's kind
+const inputText = (text: (value: string) => string, init: InputEventInit = {}) => textBox().then(box => {
   const textarea = box[0] as HTMLTextAreaElement;
   const win = textarea.ownerDocument.defaultView as Window & typeof globalThis;
   const setValue = Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement.prototype, "value")!.set!;
-  setValue.call(textarea, textarea.value + added);
-  textarea.dispatchEvent(new win.InputEvent("input", { bubbles: true }));
+  setValue.call(textarea, text(textarea.value));
+  textarea.dispatchEvent(new win.InputEvent("input", { ...init, bubbles: true }));
+});
+// a paste changes the text box's value in one input event, and commits it whole
+const paste = (added: string) => inputText(value => value + added);
+// an input method's composition starting or ending in the text box
+const composition = (type: "compositionstart" | "compositionend", data: string) => textBox().then(box => {
+  const win = box[0].ownerDocument.defaultView as Window & typeof globalThis;
+  box[0].dispatchEvent(new win.CompositionEvent(type, { data, bubbles: true }));
 });
 const playButton = () => cy.interactive().find(".generator-pane button").contains("Play");
 // queries all, so a should() after it retries until focus is where it expects
@@ -243,16 +250,37 @@ describe("the workspace's text box", () => {
   it("commits nothing for a letter typed over a selected word that starts with it", () => {
     start({ startingText: "the cat sat" });
     stateLabels().should("deep.equal", ["cat", "sat", "the"]);
-    textBox().then(box => {
-      const textarea = box[0] as HTMLTextAreaElement;
-      const win = textarea.ownerDocument.defaultView as Window & typeof globalThis;
-      const setValue = Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement.prototype, "value")!.set!;
-      setValue.call(textarea, "the c sat");
-      textarea.dispatchEvent(new win.InputEvent("input", { inputType: "insertText", data: "c", bubbles: true }));
-    });
+    inputText(() => "the c sat", { inputType: "insertText", data: "c" });
     textBox().should("have.value", "the c sat");
     cy.wait(1500);
     stateLabels().should("deep.equal", ["cat", "sat", "the"]);
+    commits().should("have.length", 0);
+  });
+
+  it("commits an input method's text when its composition ends, not while it composes", () => {
+    start({ startingText: "the cat" });
+    const compose = (text: string) =>
+      inputText(() => `the cat ${text}`, { inputType: "insertCompositionText", data: text, isComposing: true });
+    composition("compositionstart", "");
+    compose("に");
+    compose("にほん");
+    // a space cycles through the input method's candidates, inside the composition
+    compose("日本");
+    compose("ni hao");
+    cy.wait(1500);
+    commits().should("have.length", 0);
+    stateLabels().should("deep.equal", ["cat", "the"]);
+    compose("日本");
+    composition("compositionend", "日本");
+    stateLabels().should("deep.equal", ["cat", "the", "日本"]);
+    commits().should("have.length", 1).its(0).its(1).should("have.property", "how", "insert");
+  });
+
+  it("commits nothing for an emoji typed into a word", () => {
+    start({ startingText: "the cat" });
+    inputText(value => `${value}🍕`, { inputType: "insertText", data: "🍕" });
+    textBox().should("have.value", "the cat🍕");
+    cy.wait(1500);
     commits().should("have.length", 0);
   });
 
@@ -397,6 +425,14 @@ describe("the workspace's input table", () => {
     cy.interactive().find(".input-table input")
       .then(inputs => [...inputs].map(input => (input as HTMLInputElement).value))
       .should("deep.equal", ["the", "cat", "", "sat", ".", ""]);
+  });
+
+  it("lists text typed in the text box as rows, a bracketed group as one row", () => {
+    start({ startingText: "the cat" });
+    textBox().type(" [ice cream] sat ");
+    cy.interactive().find(".input-table input")
+      .should(inputs => expect([...inputs].map(input => (input as HTMLInputElement).value))
+        .to.deep.equal(["the", "cat", "ice cream", "sat", ""]));
   });
 
   it("writes a row's edit into the text when the row is left", () => {
@@ -944,6 +980,23 @@ describe("the workspace's dividers", () => {
     resized().should("have.length", 0);
     divider("Resize Input and Graph").blur({ force: true });
     resized().should("have.length", 1);
+  });
+
+  it("moves the Graph/Inspect, row and split dividers 10 px with the arrow keys", () => {
+    start({ startingText: "the cat sat" });
+    divider("Resize Graph and Inspect").focus();
+    divider("Resize Graph and Inspect").type("{rightArrow}");
+    widthOf(".inspect-pane").should("equal", 250);
+    divider("Resize the panes and the generator").focus();
+    divider("Resize the panes and the generator").type("{upArrow}");
+    height(".top-row").should("equal", 320);
+    height(".input-text-part .text-input").then(before => {
+      divider("Resize the text box and the table").focus();
+      divider("Resize the text box and the table").type("{downArrow}");
+      height(".input-text-part .text-input").should("be.closeTo", before! + 10, 1);
+    });
+    divider("Resize the text box and the table").blur({ force: true });
+    resized().should("have.length", 3);
   });
 
   it("keeps the chosen widths, logging nothing, for a key that can't move a divider in a narrow row", () => {

@@ -9,7 +9,6 @@ export interface TransitionRow {
   count: number,
   // the count of every transition out of the from state
   outOf: number,
-  percent: number,
   // "2 of 3 = 67%"
   probability: string,
 }
@@ -36,7 +35,7 @@ export const transitionRows = (graph: GraphData): TransitionRow[] => {
     const toLabel = labels.get(edge.to) ?? edge.to;
     return {
       from: edge.from, to: edge.to, fromLabel, toLabel, label: `${fromLabel} → ${toLabel}`, count: edge.value,
-      outOf: total, percent, probability: `${edge.value} of ${total} = ${percent}%`,
+      outOf: total, probability: `${edge.value} of ${total} = ${percent}%`,
     };
   }).sort(compareTransitionRows);
 };

@@ -7,7 +7,7 @@ export const minPaneSizes = { input: 160, graph: 200, inspect: 220, top: 200, ge
 export const workspaceHeight = defaultPaneSizes.top + minPaneSizes.generator;
 
 export const paneGap = 8;
-// the padding inside every pane's border; a divider's band spans the gap and this much on each side
+// the padding inside every pane's border; a divider's band spans the gap, the borders and most of this padding
 export const panePadding = 5;
 export const paneBorder = 1;
 export const dividerBand = paneGap + 2 * panePadding;
@@ -15,7 +15,7 @@ export const collapsedStrip = 32;
 export const paneHeader = 26;
 // below this workspace width the panes stack
 export const stackBelow = 700;
-// the workspace's own row is always one control tall, so a control appearing doesn't move the panes
+// the workspace's own row is at least one control tall, so a control appearing doesn't move the panes
 export const controlsRowHeight = 32;
 
 // the shared toolbar's button size and padding (toolbar.scss), and the workspace's gap between its buttons
@@ -59,7 +59,7 @@ export const dividerLimits = (sizes: PaneSizes, divider: PaneDivider, room: numb
 // can differ in their last digits
 export const minDividerMove = 0.5;
 
-// whether a divider is drawn in a different place for sizes stored as to as for from
+// whether sizes stored as to draw a divider somewhere other than sizes stored as from
 export const movesDivider = (from: PaneSizes, to: PaneSizes, divider: PaneDivider, room: number, open: OpenPanes) => {
   const drawn = (stored: PaneSizes) => dividerLimits(fitPaneSizes(stored, room, open), divider, room, open).value;
   return Math.abs(drawn(to) - drawn(from)) >= minDividerMove;
@@ -96,7 +96,7 @@ export const inputPartMin = (bodyHeight: number) => Math.min(minInputPart, bodyH
 export const drawnInputSplit = (split: number, bodyHeight: number) => bodyHeight > 0
   ? clamp(split, inputPartMin(bodyHeight) / bodyHeight, 1 - inputPartMin(bodyHeight) / bodyHeight)
   : split;
-// whether the split divider is drawn in a different place for a split stored as to as for from
+// whether a split stored as to draws the split divider somewhere other than a split stored as from
 export const movesInputSplit = (from: number, to: number, bodyHeight: number) =>
   Math.abs(drawnInputSplit(to, bodyHeight) - drawnInputSplit(from, bodyHeight)) * bodyHeight >= minDividerMove;
 export const dragInputSplit = (split: number, delta: number, bodyHeight: number) =>

@@ -47,17 +47,15 @@ export const TextInput = ({ text, tokens, highlights, readOnly, onChange, onComm
   };
   useEffect(() => cancelTimer, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const next = e.target.value;
-    const { inserted: diffed, removed } = textChange(text, next);
-    // the text's difference can't tell a letter typed over a selection that starts with it from a deletion
-    const { inputType, data } = e.nativeEvent as InputEvent;
-    const inserted = inputType === "insertText" && data ? data : diffed;
-    onChange(next);
-    if (inserted.length === 1 && commitsOnTyping(inserted)) {
+  // the text an input method's composition started from, while one is open
+  const composedFromRef = useRef<string>(undefined);
+
+  const commitFor = (next: string, inserted: string, removed: number) => {
+    const characters = [...inserted].length;
+    if (characters === 1 && commitsOnTyping(inserted)) {
       cancelTimer();
       onCommit(next, "separator");
-    } else if (inserted.length > 1) {
+    } else if (characters > 1) {
       cancelTimer();
       onCommit(next, "insert");
     } else if (!inserted && removed > 1) {
@@ -73,6 +71,31 @@ export const TextInput = ({ text, tokens, highlights, readOnly, onChange, onComm
       // a word being typed waits for what ends it
       cancelTimer();
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const next = e.target.value;
+    onChange(next);
+    const { inputType, data, isComposing } = e.nativeEvent as InputEvent;
+    // what an input method shows while composing isn't the student's text until the composition ends
+    if (isComposing || composedFromRef.current !== undefined) {
+      cancelTimer();
+      return;
+    }
+    const { inserted, removed } = textChange(text, next);
+    // the text's difference can't tell a letter typed over a selection that starts with it from a deletion
+    commitFor(next, inputType === "insertText" && data ? data : inserted, removed);
+  };
+
+  const handleCompositionStart = () => {
+    composedFromRef.current = text;
+  };
+  const handleCompositionEnd = (e: React.CompositionEvent<HTMLTextAreaElement>) => {
+    const from = composedFromRef.current ?? text;
+    composedFromRef.current = undefined;
+    const next = e.currentTarget.value;
+    const { inserted, removed } = textChange(from, next);
+    commitFor(next, inserted, removed);
   };
 
   // the blur's commit includes any deletion waiting on its pause
@@ -93,7 +116,8 @@ export const TextInput = ({ text, tokens, highlights, readOnly, onChange, onComm
         { backdropRuns(text, tokens, highlights) }
       </div>
       <textarea aria-label="Your text" value={text} maxLength={maxInputLength} readOnly={readOnly}
-        onChange={handleChange} onBlur={handleBlur} onScroll={handleScroll} />
+        onChange={handleChange} onCompositionStart={handleCompositionStart} onCompositionEnd={handleCompositionEnd}
+        onBlur={handleBlur} onScroll={handleScroll} />
     </div>
   );
 };

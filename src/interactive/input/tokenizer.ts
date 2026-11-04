@@ -96,8 +96,8 @@ export const textForRow = (text: string) => {
   return tokens.length === 1 && token.kind === "word" && token.text === text ? text : `[${text}]`;
 };
 
-// what an edit from one text to the next inserted and how many characters it removed, past their common prefix and
-// suffix
+// what an edit from one text to the next inserted and how many characters (code points, so an emoji is one) it
+// removed, past their common prefix and suffix
 export const textChange = (old: string, next: string) => {
   let prefix = 0;
   const shorter = Math.min(old.length, next.length);
@@ -108,7 +108,8 @@ export const textChange = (old: string, next: string) => {
   while (suffix < shorter - prefix && old[old.length - 1 - suffix] === next[next.length - 1 - suffix]) {
     suffix++;
   }
-  return { inserted: next.slice(prefix, next.length - suffix), removed: old.length - prefix - suffix };
+  const removed = [...old.slice(prefix, old.length - suffix)].length;
+  return { inserted: next.slice(prefix, next.length - suffix), removed };
 };
 
 // a character that finishes a word as it is typed, so the input commits at once

@@ -1,3 +1,4 @@
+import { textToWords } from "../../utils/text-to-graph";
 import { commitsOnTyping, rowText, textChange, textForRow, tokenize, tokensToValues } from "./tokenizer";
 
 const words = (text: string) => tokenize(text, "asTyped").map(t => t.kind === "word" ? t.text : "|");
@@ -11,6 +12,12 @@ describe("tokenize", () => {
   it("drops the separators the plugin's text drops", () => {
     expect(words("a\"b(c)d{e}f_g+h=i|j\\k/l<m>n")).toEqual(
       ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n"]);
+  });
+
+  it("splits and drops characters as the plugin's text does, outside brackets", () => {
+    const text = "The Cat, sat.\tOn  the mat? yes! a: b; \"c\" (d) {e} f_g+h=i|j\\k/l<m>n";
+    const states = tokenize(text, "lowercase").flatMap(token => token.kind === "word" ? [token.state] : []);
+    expect(states).toEqual(textToWords(text));
   });
 
   it("keeps a bracketed token whole, trimmed at its ends", () => {
@@ -106,6 +113,10 @@ describe("textChange", () => {
     expect(textChange("aaa", "aa")).toEqual({ inserted: "", removed: 1 });
     expect(textChange("", "a")).toEqual({ inserted: "a", removed: 0 });
     expect(textChange("same", "same")).toEqual({ inserted: "", removed: 0 });
+  });
+
+  it("counts an emoji removed as one character", () => {
+    expect(textChange("a 🍕", "a ")).toEqual({ inserted: "", removed: 1 });
   });
 });
 

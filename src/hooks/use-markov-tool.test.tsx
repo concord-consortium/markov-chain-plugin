@@ -205,6 +205,19 @@ describe("useMarkovTool's log", () => {
     ]);
   });
 
+  it("logs no starting state for a play whose starting state the input has taken out", async () => {
+    const host = recordingHost("dataset");
+    const { result } = renderHook(() => useMarkovTool(host));
+    act(() => result.current.handle.dataChanged(["cat", "sat", "cat"]));
+    act(() => result.current.generatorProps.onStartingStateChange({ target: { value: "cat" } } as any));
+    act(() => result.current.handle.dataChanged(["the", "sat", "the"]));
+    host.log.mockClear();
+    await act(async () => result.current.generatorProps.onPlay());
+    await act(async () => jest.advanceTimersByTime(30000));
+    expect(host.log.mock.calls.map(([event, data]) => [event, data?.startingState])).toEqual(
+      [["SequencePlayed", ""], ["SequenceGenerated", ""]]);
+  });
+
   it("logs a renamed starting state's new label for the whole of the next sequence", async () => {
     const host = recordingHost("drawing");
     const { result } = renderHook(() => useMarkovTool(host));

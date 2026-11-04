@@ -302,7 +302,6 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
     .attr("marker-end", arrowUrl)
     .attr("style", drawingMode === "delete" ? "pointer-events: none" : "")
     .on("click", (e, d) => {
-      // this is not really needed as the pointer events are off
       onEdgeClick?.({ from: d.source.id, to: d.target.id });
       if (selectEdges) {
         onEdgeSelect({ from: d.source.id, to: d.target.id });

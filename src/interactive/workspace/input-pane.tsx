@@ -17,7 +17,7 @@ interface InputPaneProps {
   onSplitChange: (split: number) => void;
   onSplitResized: (split: number) => void;
   text: string;
-  // the text's tokens as it stands, and the highlights over them, for the text box
+  // the tokens of the text as it stands, and the highlights over them, for the text box
   liveTokens: Token[];
   liveHighlights: Highlights;
   committed: { text: string, tokens: Token[] };

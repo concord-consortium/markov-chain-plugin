@@ -51,7 +51,7 @@ type Props = {
   onTransformed?: (transform: Transform) => void;
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
   onAutoArrangeEnd?: (nodes: D3Node[]) => void;
-  // existing states keep their places when the graph changes; only new ones are laid out
+  // states already drawn keep their places when the graph changes and only new ones are laid out, unless most are new
   keepPositions?: boolean;
   // a transition to highlight as chosen, and clicks on arrows in the select tool
   selectedEdge?: { from: string, to: string };

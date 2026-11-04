@@ -164,6 +164,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
 
   // the log names states by their labels; "" is no state, as for any starting state
   const labelOf = useCallback((id: string) => id && (graph.nodes.find(n => n.id === id)?.label ?? id), [graph]);
+  // the starting state's label, "" for none or one no longer in the graph, which generates as none
+  const startingLabel = useCallback(() => graph.nodes.find(n => n.id === startingState)?.label ?? "",
+    [graph, startingState]);
 
   const highlightOutputNodes = useMemo(() => {
     return animating ? undefined : highlightOutput?.sequence;
@@ -378,15 +381,15 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
 
   const handlePlay = useCallback(async () => {
     log("SequencePlayed", {
-      startingState: labelOf(startingState), maxLength: clampLengthLimit(lengthLimit), delimiter, fast: fastSimulation
+      startingState: startingLabel(), maxLength: clampLengthLimit(lengthLimit), delimiter, fast: fastSimulation
     });
     setHighlightOutput(undefined);
     setGenerationMode("playing");
     await generateNewSequence();
     animateCurrentSequenceIndex();
     startAnimationInterval();
-  }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval, log, labelOf, startingState,
-      lengthLimit, delimiter, fastSimulation]);
+  }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval, log, startingLabel, lengthLimit,
+      delimiter, fastSimulation]);
 
   const handleSpeedToggle = useCallback((value: boolean) => {
     setFastSimulation(value);

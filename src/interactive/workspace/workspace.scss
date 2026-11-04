@@ -563,7 +563,7 @@
         gap: var(--toolbar-gap);
       }
 
-      // the toolbar always renders its bottom group, which would add a gap empty
+      // the toolbar always renders its bottom group, which adds a gap even when empty
       .bottom:empty {
         display: none;
       }
