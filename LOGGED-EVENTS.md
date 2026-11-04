@@ -55,6 +55,6 @@ A state is named by its label. The generator's settings, which several events ca
 |-------|-----------|------|
 | `PaneOpened` | `{ pane: "input" \| "graph" \| "inspect" \| "generator" \| "generatorControls" }` | The student opens a collapsed pane |
 | `PaneClosed` | `{ pane: "input" \| "graph" \| "inspect" \| "generator" \| "generatorControls" }` | The student collapses a pane |
-| `PaneResized` | `{ divider: "input" \| "inspect" \| "rows" \| "inputSplit", sizes }` | A divider drag ends, or a divider moved with the arrow keys loses focus: `sizes` is `{ input, inspect, top }` in px (fitted to a narrow row, so they can be fractional) for the pane dividers, and `{ inputSplit }`, the text box's share of the linked view's height, for the split |
+| `PaneResized` | `{ divider: "input" \| "inspect" \| "rows" \| "inputSplit", sizes }` | A divider drag ends, or a divider moved with the arrow keys loses focus: `sizes` is `{ input, inspect, top }` in px for the pane dividers (fitted to a narrow row, so a column divider's can be fractional), and `{ inputSplit }`, the text box's share of the linked view's height, for the split |
 | `InspectTabChosen` | `{ tab: "states" \| "transitions" }` | The student chooses an Inspect tab |
 | `InspectSorted` | `{ tab, column, direction: "ascending" \| "descending" }` | The student sorts an Inspect table by a column |
