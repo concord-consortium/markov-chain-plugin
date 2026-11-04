@@ -77,6 +77,9 @@ export const ProbabilitySelectorThumb = (props: ProbabilitySelectorThumbProps) =
 export const ProbabilitySelector = ({ viewMode, exactPercentages, edgeLabels, onChange }: ProbabilitySelectorProps) => {
 
   const roundPercentages = useMemo(() => {
+    if (exactPercentages.length === 0) {
+      return [];
+    }
     const result = exactPercentages.slice(0, -1).map(exactPercentage => Math.round(exactPercentage));
     result.push(100 - reduceToSum(result));
     return result;
@@ -178,6 +181,7 @@ export const ProbabilitySelector = ({ viewMode, exactPercentages, edgeLabels, on
       </div>
       }
       <div className="percentages">
+        { edgeLabels.length === 0 && <div>None</div> }
         { roundPercentages.map((p, i) => (
           <div key={i} style={{ color: isDrawingMode ? getDistinctColor(i) : "#000" }}>
             To { edgeLabels[i] }: { p }%
