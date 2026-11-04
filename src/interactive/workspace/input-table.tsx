@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useId, useRef, useState } from "react";
+import React, { memo, useEffect, useId, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { maxInputLength } from "../interactive-state";
 import { deleteRow, editRow, insertRow } from "../input/table-edits";
@@ -29,6 +29,59 @@ type RowKey = { kind: "row", index: number } | { kind: "pending", after: number 
 const rowId = (row: RowKey) =>
   row.kind === "row" ? `row-${row.index}` : row.kind === "pending" ? `pending-${row.after}` : row.kind;
 const sameRow = (a: RowKey, b: RowKey) => rowId(a) === rowId(b);
+
+// what a row does, by its place in the table; each keeps its identity, so a row renders only when its own values change
+interface RowActions {
+  focus: (at: number) => void;
+  change: (at: number, value: string) => void;
+  blur: (at: number) => void;
+  keyDown: (e: React.KeyboardEvent<HTMLInputElement>, at: number) => void;
+  delete: (at: number) => void;
+  register: (id: string, element: HTMLInputElement | null) => void;
+}
+
+interface InputTableRowProps {
+  at: number;
+  id: string;
+  kind: RowKey["kind"];
+  value: string;
+  readOnly: boolean;
+  takesTab: boolean;
+  hintId: string;
+  highlight?: string;
+  actions: RowActions;
+}
+
+const InputTableRowContent = ({
+  at, id, kind, value, readOnly, takesTab, hintId, highlight, actions
+}: InputTableRowProps) => {
+  const number = at + 1;
+  return (
+    <tr className={clsx(kind, highlight)}>
+      <td>
+        <input type="text" aria-label={kind === "append" ? "New row" : `Row ${number}`}
+          value={value} readOnly={readOnly}
+          tabIndex={takesTab ? 0 : -1} aria-describedby={takesTab ? hintId : undefined}
+          ref={element => actions.register(id, element)}
+          onFocus={() => actions.focus(at)}
+          onChange={e => actions.change(at, e.target.value)}
+          onBlur={() => actions.blur(at)}
+          onKeyDown={e => actions.keyDown(e, at)} />
+      </td>
+      <td>
+        { kind === "row" &&
+          <button type="button" className="delete-row" aria-label={`Delete row ${number}`}
+            title={`Delete row ${number}`} tabIndex={takesTab ? 0 : -1} disabled={readOnly}
+            onClick={() => actions.delete(at)}>
+            <span aria-hidden="true">×</span>
+          </button>
+        }
+      </td>
+    </tr>
+  );
+};
+// memoized so a commit renders only the rows it changes, not every row of a long input
+const InputTableRow = memo(InputTableRowContent);
 
 // The input's tokens, one per row, a break as an empty row. The table is one stop in the Tab order: only the current
 // row's input and delete button take Tab, and Up and Down move between rows.
@@ -206,45 +259,48 @@ const InputTableRows = ({
     }
   };
 
+  const latestActions = useLatest({
+    focus: (at: number) => handleFocus(rows[at]),
+    change: (at: number, value: string) => setDraft({ row: rows[at], value }),
+    blur: (at: number) => {
+      const row = rows[at];
+      onRowBlur(() => commitRow(row));
+    },
+    keyDown: (e: React.KeyboardEvent<HTMLInputElement>, at: number) => handleKeyDown(e, rows[at], at),
+    delete: (at: number) => {
+      const row = rows[at];
+      if (row.kind === "row") {
+        handleDelete(row.index);
+      }
+    },
+  });
+  const actions = useMemo<RowActions>(() => ({
+    focus: at => latestActions.current.focus(at),
+    change: (at, value) => latestActions.current.change(at, value),
+    blur: at => latestActions.current.blur(at),
+    keyDown: (e, at) => latestActions.current.keyDown(e, at),
+    delete: at => latestActions.current.delete(at),
+    register: (id, element) => {
+      if (element) {
+        inputs.current.set(id, element);
+      } else {
+        inputs.current.delete(id);
+      }
+    },
+  }), [latestActions]);
+
   return (
     <div className="input-table" ref={tableRef}>
       <div className="input-table-rows">
         <table>
           <tbody>
             { rows.map((row, at) => {
-              const id = rowId(row);
-              const number = at + 1;
-              const takesTab = sameRow(row, tabRow);
+              const lit = row.kind === "row" && highlights.tokens.has(row.index);
               return (
                 // keyed by place, so the rows under a press keep their elements when a row above them goes in
-                <tr key={at} className={clsx(row.kind,
-                  row.kind === "row" && highlights.tokens.has(row.index) && `highlight-${highlights.kind}`)}>
-                  <td>
-                    <input type="text" aria-label={row.kind === "append" ? "New row" : `Row ${number}`}
-                      value={valueOf(row)} readOnly={readOnly}
-                      tabIndex={takesTab ? 0 : -1} aria-describedby={takesTab ? hintId : undefined}
-                      ref={element => {
-                        if (element) {
-                          inputs.current.set(id, element);
-                        } else {
-                          inputs.current.delete(id);
-                        }
-                      }}
-                      onFocus={() => handleFocus(row)}
-                      onChange={e => setDraft({ row, value: e.target.value })}
-                      onBlur={() => onRowBlur(() => commitRow(row))}
-                      onKeyDown={e => handleKeyDown(e, row, at)} />
-                  </td>
-                  <td>
-                    { row.kind === "row" &&
-                      <button type="button" className="delete-row" aria-label={`Delete row ${number}`}
-                        title={`Delete row ${number}`} tabIndex={takesTab ? 0 : -1} disabled={readOnly}
-                        onClick={() => handleDelete(row.index)}>
-                        <span aria-hidden="true">×</span>
-                      </button>
-                    }
-                  </td>
-                </tr>
+                <InputTableRow key={at} at={at} id={rowId(row)} kind={row.kind} value={valueOf(row)}
+                  readOnly={readOnly} takesTab={sameRow(row, tabRow)} hintId={hintId} actions={actions}
+                  highlight={lit ? `highlight-${highlights.kind}` : undefined} />
               );
             }) }
           </tbody>

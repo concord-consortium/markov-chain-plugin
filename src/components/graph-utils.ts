@@ -108,43 +108,68 @@ export const nodeLoopPath = (node: {x: number, y: number, radius: number}, arrow
   return d;
 };
 
-export const calculateNodeFontSize = (d: {label: string, radius: number}) => {
-  let label = d.label;
-  const maxHeight = ry(d.radius * 2) * settings.marginFactor;
-  const maxWidth = d.radius * 2 * settings.marginFactor;
+// A state's label being fitted: the largest font size, down to settings.minFontSize, at which the label fits the
+// state, then the label cut short with "..." until it fits, measured in text, an element the page's font sets.
+interface LabelFit {
+  original: string;
+  label: string;
+  fontSize: number;
+  truncateLabelAt: number;
+  maxHeight: number;
+  maxWidth: number;
+  done: boolean;
+  text: HTMLElement;
+}
 
-  const text = document.createElement("span");
-  text.style.height = "auto";
-  text.style.width = "auto";
-  text.style.position = "absolute";
-  text.style.whiteSpace = "no-wrap";
-  text.style.opacity = "0";
-  text.textContent = label;
-  document.body.appendChild(text);
-
-  let fontSize = maxHeight;
-  let truncateLabelAt = label.length - 1;
-  while (fontSize > 1) {
-    text.style.fontSize = fontSize + "px";
-    if ((Math.ceil(text.clientHeight) > maxHeight) || (Math.ceil(text.clientWidth) > maxWidth)) {
-      if ((fontSize > settings.minFontSize) || (truncateLabelAt <= 0)) {
-        fontSize--;
-      } else {
-        truncateLabelAt--;
-        if (truncateLabelAt >= 0) {
-          label = d.label.substring(0, truncateLabelAt) + "...";
-          text.textContent = label;
-        } else {
-          break;
-        }
-      }
+// one step of a fit, from the label's measured size at its font size
+const stepLabelFit = (fit: LabelFit, height: number, width: number) => {
+  if ((Math.ceil(height) > fit.maxHeight) || (Math.ceil(width) > fit.maxWidth)) {
+    if ((fit.fontSize > settings.minFontSize) || (fit.truncateLabelAt <= 0)) {
+      fit.fontSize--;
     } else {
+      fit.truncateLabelAt--;
+      if (fit.truncateLabelAt >= 0) {
+        fit.label = fit.original.substring(0, fit.truncateLabelAt) + "...";
+        fit.text.textContent = fit.label;
+      } else {
+        fit.done = true;
+      }
+    }
+  } else {
+    fit.done = true;
+  }
+};
+
+// Every state's label and font size. Each label has its own element, and the labels take their steps together, all
+// sizes set and then all read, so a step lays the page out once for every label rather than once for each.
+export const calculateNodeFontSizes = (nodes: {label: string, radius: number}[]) => {
+  const fits: LabelFit[] = nodes.map(d => {
+    const text = document.createElement("span");
+    text.style.height = "auto";
+    text.style.width = "auto";
+    text.style.position = "absolute";
+    text.style.whiteSpace = "no-wrap";
+    text.style.opacity = "0";
+    text.textContent = d.label;
+    document.body.appendChild(text);
+    const maxHeight = ry(d.radius * 2) * settings.marginFactor;
+    return {
+      original: d.label, label: d.label, fontSize: maxHeight, truncateLabelAt: d.label.length - 1, maxHeight,
+      maxWidth: d.radius * 2 * settings.marginFactor, done: false, text
+    };
+  });
+  let fitting = fits;
+  for (;;) {
+    fitting = fitting.filter(fit => !fit.done && fit.fontSize > 1);
+    if (fitting.length === 0) {
       break;
     }
+    fitting.forEach(fit => { fit.text.style.fontSize = fit.fontSize + "px"; });
+    const measured = fitting.map(fit => [fit.text.clientHeight, fit.text.clientWidth]);
+    fitting.forEach((fit, i) => stepLabelFit(fit, measured[i][0], measured[i][1]));
   }
-  document.body.removeChild(text);
-
-  return { label, fontSize };
+  fits.forEach(fit => document.body.removeChild(fit.text));
+  return fits.map(({ label, fontSize }) => ({ label, fontSize }));
 };
 
 // with keepPositions, a state already drawn or given a position keeps it rather than being laid out

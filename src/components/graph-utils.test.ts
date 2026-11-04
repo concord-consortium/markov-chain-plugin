@@ -1,5 +1,5 @@
 import {
-  arrowHeadReach, calculateNodeFontSize, graphSignature, isPlaced, layoutFor, nodeLoopPath, pullBackLineEnd,
+  arrowHeadReach, calculateNodeFontSizes, graphSignature, isPlaced, layoutFor, nodeLoopPath, pullBackLineEnd,
   startPosition, stateEdgeWeights
 } from "./graph-utils";
 
@@ -77,7 +77,7 @@ describe("nodeLoopPath", () => {
   });
 });
 
-describe("calculateNodeFontSize", () => {
+describe("calculateNodeFontSizes", () => {
   const spyOnMeasuring = () => {
     const appendChild = jest.spyOn(document.body, "appendChild");
     return () => appendChild.mock.calls[0][0] as HTMLElement;
@@ -87,14 +87,14 @@ describe("calculateNodeFontSize", () => {
 
   it("measures markup in a label as text", () => {
     const measured = spyOnMeasuring();
-    calculateNodeFontSize({ label: "<b>x</b>", radius: 50 });
+    calculateNodeFontSizes([{ label: "<b>x</b>", radius: 50 }]);
     expect(measured().textContent).toBe("<b>x</b>");
     expect(measured().children).toHaveLength(0);
   });
 
   it("measures an entity in a label as the characters typed", () => {
     const measured = spyOnMeasuring();
-    calculateNodeFontSize({ label: "x &amp; y", radius: 50 });
+    calculateNodeFontSizes([{ label: "x &amp; y", radius: 50 }]);
     expect(measured().textContent).toBe("x &amp; y");
   });
 
@@ -103,10 +103,25 @@ describe("calculateNodeFontSize", () => {
     jest.spyOn(HTMLElement.prototype, "clientWidth", "get")
       .mockImplementation(function(this: HTMLElement) { return (this.textContent?.length ?? 0) * 5; });
     const measured = spyOnMeasuring();
-    const { label } = calculateNodeFontSize({ label: "<i>abcdefgh</i>", radius: 30 });
+    const [{ label }] = calculateNodeFontSizes([{ label: "<i>abcdefgh</i>", radius: 30 }]);
     expect(label).toBe("<i>abc...");
     expect(measured().textContent).toBe("<i>abc...");
     expect(measured().children).toHaveLength(0);
+  });
+
+  // a large graph draws slowly when each label lays the page out once for each size it tries
+  it("measures every label at once, and takes the labels out of the page after", () => {
+    const inPageWhenMeasured: number[] = [];
+    jest.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function(this: HTMLElement) {
+      inPageWhenMeasured.push(document.body.children.length);
+      return (this.textContent?.length ?? 0) * 5;
+    });
+    const sizes = calculateNodeFontSizes([
+      { label: "a", radius: 30 }, { label: "abcdefghijk", radius: 30 }, { label: "abc", radius: 50 }
+    ]);
+    expect(sizes.map(size => size.label)).toEqual(["a", "abcdef...", "abc"]);
+    expect(inPageWhenMeasured[0]).toBe(3);
+    expect(document.body.children).toHaveLength(0);
   });
 });
 

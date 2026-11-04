@@ -1,7 +1,7 @@
 import React from "react";
 import * as d3 from "d3";
 
-import { calculateNodeFontSize, layoutFor, linkDistance, nodeLoopPath, ry } from "./graph-utils";
+import { calculateNodeFontSizes, layoutFor, linkDistance, nodeLoopPath, ry } from "./graph-utils";
 import { calculateEdges, D3Graph, D3Node, lineDashArray, lineEnd } from "./graph-geometry";
 import {
   animatedArrowColor, arrowUrl, incomingArrowColor, lineAndLoopOpacity, outgoingArrowColor, selectedLoopArrowColor,
@@ -163,10 +163,7 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
     circles.call(drag);
   }
 
-  const finalLabelsAndFontSizes: Array<{label: string, fontSize: number}> = [];
-  nodes.each(d => {
-    finalLabelsAndFontSizes.push(calculateNodeFontSize(d));
-  });
+  const finalLabelsAndFontSizes = calculateNodeFontSizes(nodes.data());
 
   const labels = nodes
     .append("text")
