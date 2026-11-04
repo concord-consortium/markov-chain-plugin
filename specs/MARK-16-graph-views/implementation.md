@@ -144,10 +144,11 @@ export const edgeWeights = (edges: Edge[], widths: ArrowWidths) =>
 **Summary**: R11, R12's graph side, R14's graph side. With `orderMatters={false}`, `Graph` draws no transitions and places states without them; the overlay draws R11's arrows, to every state, from the chosen state, the generator's current state and the chosen output's states. Absent in the plugin.
 
 **Files affected**:
-- `src/components/graph-labels.ts`: `bagOutgoing`.
+- `src/components/graph-labels.ts`: `bagOutgoing`, and `bagArrows`, which of those arrows are drawn.
 - `src/components/graph-overlay.ts`: the arrow layer.
 - `src/components/graph.tsx` and `graph-highlight.ts`: the `orderMatters` prop; the d3-graph effect builds no edges or loops when it is `false`; `highlightSelected` fades no state or label then (every state follows the chosen one; it would otherwise fade by the chain's `graph.edges`, which `Graph` still receives).
-- `src/components/graph-labels.test.ts`: `bagOutgoing` and labels over it.
+- `src/components/graph-labels.test.ts`: `bagOutgoing`, labels over it, and `bagArrows`.
+- `src/components/graph-overlay.test.ts`: `drawnBagArrows`, the arrows' widths and places.
 
 **Estimated diff size**: ~200 lines
 
@@ -161,7 +162,7 @@ export const bagOutgoing = (nodes: Node[]): Outgoing => id => nodes.some(n => n.
 ```
 
 - `Graph` takes `orderMatters?: boolean`. When `false`, the d3-graph effect skips `graph.edges`, so `d3Graph.edges` is empty, no node `loops`, and the layout has no links; `orderMatters` joins that effect's dependencies, as `arrowWidths` does, since the switch changes nothing else it reads. With MARK-15's `keepPositions`, switching either way changes only edges, every state is placed and pinned, and no tick runs (R11's last sentence).
-- `drawOverlay` with `orderMatters === false` draws `g.bag-arrows` below the nodes: for each arrow it needs, a `D3Edge` built from the two `D3Node`s and run through `calculateEdges` (MARK-15's `graph-geometry.ts`), width from `edgeWeights(bagOutgoing(nodes)(id), arrowWidths)`, loops from `nodeLoopPath`. Which arrows: the chosen state's (not animating; orange, `outgoingArrow` marker); while animating, the current state's when `highlightAllNextNodes` (pink, dashed), and `highlightEdge` (pink); a chosen output's steps (pink), each only when both its states are drawn, so a step from or to a state the input no longer has gets no arrow (R7). It never draws arrows into a chosen state. All take no clicks (`pointer-events: none`), so arrows can't be chosen (R12). Labels use `bagOutgoing` as their `outgoing`, with `stepsOnly`, so a chosen output draws and labels only its steps (R7), a few arrows however many states there are.
+- `drawOverlay` with `orderMatters === false` draws `g.bag-arrows` below the nodes: for each arrow it needs, a `D3Edge` built from the two `D3Node`s and run through `calculateEdges` (MARK-15's `graph-geometry.ts`), width from `edgeWeights(bagOutgoing(nodes)(id), arrowWidths)`, loops from `nodeLoopPath`. Which arrows: the chosen state's (not animating; orange, `outgoingArrow` marker); while animating, the current state's when `highlightAllNextNodes` (pink, dashed), and `highlightEdge` (pink); a chosen output's steps (pink), each only when both its states are drawn, so a step from or to a state the input no longer has gets no arrow (R7). It never draws arrows into a chosen state. None has a click handler, so arrows can't be chosen, and they keep catching clicks, so a click on one does nothing rather than reaching the background and clearing the choice (R12); a loop has no fill, so only its line catches them. Labels use `bagOutgoing` as their `outgoing`, with `stepsOnly`, so a chosen output draws and labels only its steps (R7), a few arrows however many states there are.
 - The arrows and labels rebuild on each highlight change: at 700 states a chosen state draws 700 arrows and, with probabilities on, 700 labels, against the 700 states and the chain's arrows the graph already draws. A chosen output draws and labels only its steps (`stepsOnly`, Self-Review, Performance Engineer).
 - Tests: `bagOutgoing` over `the cat the mat the` gives `the` 60%, `cat` 20%, `mat` 20% from any state, itself included; labels over it for the chosen output `the cat the` with `stepsOnly` are exactly `the → cat` 20% and `cat → the` 60%, both full (fails if `stepsOnly` is ignored, which adds four faded labels); with the input changed to `the cat the mat the`, the output `dog the cat` labels only `the → cat` (fails without `bagOutgoing`'s check, which labels `dog → the` 60%).
 

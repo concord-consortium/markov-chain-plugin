@@ -19,6 +19,12 @@ export const percentOf = (value: number, total: number) => total > 0 ? Math.roun
 // a Markov chain's arrows leaving a state, loops included
 export const chainOutgoing = (edges: Edge[]): Outgoing => id => edges.filter(e => e.from === id);
 
+// a bag of words' arrows leaving a state: one to every state, itself included, weighted by that state's count; none
+// from a state the graph doesn't have, such as a chosen output's state the input no longer holds
+export const bagOutgoing = (nodes: Node[]): Outgoing => id => nodes.some(n => n.id === id)
+  ? nodes.map(n => ({ from: id, to: n.id, value: n.value }))
+  : [];
+
 const labelsFrom = (outgoing: Outgoing, id: string, strength: (to: string) => ProbabilityLabel["strength"]) => {
   const edges = outgoing(id);
   const total = edges.reduce((sum, e) => sum + e.value, 0);
@@ -39,4 +45,26 @@ export const probabilityLabels = (s: LabelState): ProbabilityLabel[] => {
     return s.stepsOnly ? labels.filter(label => label.strength === "full") : labels;
   }
   return s.selectedNodeId ? labelsFrom(s.outgoing, s.selectedNodeId, () => "full") : [];
+};
+
+export type BagArrow = Edge & { kind: "chosen" | "candidate" | "step" };
+
+// the only arrows a bag of words draws: a generating step's, a chosen output's steps, or a chosen state's
+export const bagArrows = (s: Omit<LabelState, "stepsOnly"> & { highlightEdge?: Edge }): BagArrow[] => {
+  const leaving = (id: string, kind: BagArrow["kind"]) => s.outgoing(id).map(e => ({ ...e, kind }));
+  const step = ({ from, to }: { from: string, to: string }) => leaving(from, "step").filter(e => e.to === to);
+
+  if (s.animating) {
+    return [
+      ...(s.highlightNode && s.highlightAllNextNodes ? leaving(s.highlightNode.id, "candidate") : []),
+      ...(s.highlightEdge ? step(s.highlightEdge) : []),
+    ];
+  }
+  const path = s.highlightOutputNodes;
+  if (path && path.length > 0) {
+    const steps = new Map(path.slice(1).map((n, i) =>
+      [JSON.stringify([path[i].id, n.id]), { from: path[i].id, to: n.id }]));
+    return [...steps.values()].flatMap(step);
+  }
+  return s.selectedNodeId ? leaving(s.selectedNodeId, "chosen") : [];
 };

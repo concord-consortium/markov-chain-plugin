@@ -28,6 +28,8 @@ export interface HighlightSelectedOptions {
   selectedEdge?: { from: string, to: string };
   animating: boolean;
   graph: GraphData;
+  // false: every state follows the chosen one, so none fades, whatever the chain's transitions
+  orderMatters?: boolean;
 }
 
 const highlightSelectedEdge = (svg: GraphSelection, { from, to }: { from: string, to: string }) => {
@@ -68,7 +70,7 @@ const highlightSelectedEdge = (svg: GraphSelection, { from, to }: { from: string
 };
 
 export const highlightSelected = (svg: GraphSelection,
-  { selectedNodeId, selectedEdge, animating, graph }: HighlightSelectedOptions) => {
+  { selectedNodeId, selectedEdge, animating, graph, orderMatters }: HighlightSelectedOptions) => {
   if (animating) {
     return;
   }
@@ -84,13 +86,14 @@ export const highlightSelected = (svg: GraphSelection,
     .filter(e => e.from === selectedNodeId || e.to === selectedNodeId)
     .map(e => e.from === selectedNodeId ? e.to: e.from)
     .concat(selectedNodeId);
+  const connected = (id: string) => orderMatters === false || connectedNodeIds.includes(id);
 
   // highlight selected node
   svg
     .selectAll("g.node")
     .selectAll("ellipse")
     .style("opacity", unselectedOpacity)
-    .filter((d: any) => connectedNodeIds.includes(d.id))
+    .filter((d: any) => connected(d.id))
     .style("opacity", 1)
     .filter((d: any) => selectedNodeId === d.id)
     .attr("fill", selectedNodeColor);
@@ -134,7 +137,7 @@ export const highlightSelected = (svg: GraphSelection,
     .selectAll("g.node")
     .selectAll("text")
     .style("opacity", unselectedOpacity)
-    .filter((d: any) => connectedNodeIds.includes(d.id))
+    .filter((d: any) => connected(d.id))
     .style("opacity", 1);
 };
 

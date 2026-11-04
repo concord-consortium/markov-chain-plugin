@@ -1,4 +1,4 @@
-import { chainOutgoing, LabelState, percentOf, probabilityLabels } from "./graph-labels";
+import { bagArrows, bagOutgoing, chainOutgoing, LabelState, percentOf, probabilityLabels } from "./graph-labels";
 import { Edge, Node } from "../type";
 
 const node = (id: string): Node => ({ id, label: id, value: 1 });
@@ -84,6 +84,76 @@ describe("probabilityLabels", () => {
     it("leaves out the faded labels with stepsOnly", () => {
       const highlightOutputNodes = [node("a"), node("b")];
       expect(summary(state(edges, { highlightOutputNodes, stepsOnly: true }))).toEqual(["a>b 67% full"]);
+    });
+  });
+});
+
+describe("the bag of words", () => {
+  // "the cat the mat the"
+  const nodes = [{ ...node("the"), value: 3 }, node("cat"), node("mat")];
+  const outgoing = bagOutgoing(nodes);
+  const bag = (rest: Partial<LabelState>): LabelState => ({
+    outgoing, animating: false, highlightAllNextNodes: false, stepsOnly: true, ...rest
+  });
+
+  describe("bagOutgoing", () => {
+    it("goes from any state to every state, itself included, weighted by count", () => {
+      const percents = ["the>the 60% full", "the>cat 20% full", "the>mat 20% full"];
+      expect(summary(bag({ selectedNodeId: "the" }))).toEqual(percents);
+      expect(summary(bag({ selectedNodeId: "cat" }))).toEqual(percents.map(label => label.replace("the>", "cat>")));
+    });
+
+    it("goes nowhere from a state the graph doesn't have", () => {
+      expect(outgoing("dog")).toEqual([]);
+    });
+  });
+
+  it("labels a generating step's candidates", () => {
+    expect(summary(bag({ animating: true, highlightNode: node("cat"), highlightAllNextNodes: true })))
+      .toEqual(["cat>the 60% full", "cat>cat 20% full", "cat>mat 20% full"]);
+  });
+
+  describe("a chosen output's labels", () => {
+    it("label exactly its steps, with stepsOnly", () => {
+      const highlightOutputNodes = [node("the"), node("cat"), node("the")];
+      expect(summary(bag({ highlightOutputNodes }))).toEqual(["the>cat 20% full", "cat>the 60% full"]);
+    });
+
+    it("skip a step from a state the input no longer has", () => {
+      const highlightOutputNodes = [node("dog"), node("the"), node("cat")];
+      expect(summary(bag({ highlightOutputNodes }))).toEqual(["the>cat 20% full"]);
+    });
+  });
+
+  describe("bagArrows", () => {
+    const arrows = (rest: Partial<Parameters<typeof bagArrows>[0]>) =>
+      bagArrows({ ...bag({}), ...rest }).map(({ from, to, kind }) => `${from}>${to} ${kind}`);
+
+    it("draws nothing with nothing chosen", () => {
+      expect(arrows({})).toEqual([]);
+    });
+
+    it("draws a chosen state's arrows to every state, and none into it", () => {
+      expect(arrows({ selectedNodeId: "cat" })).toEqual(["cat>the chosen", "cat>cat chosen", "cat>mat chosen"]);
+    });
+
+    it("draws a generating step's candidates, and then only the step taken", () => {
+      const animating = { animating: true, selectedNodeId: "mat" };
+      expect(arrows({ ...animating, highlightNode: node("cat"), highlightAllNextNodes: true }))
+        .toEqual(["cat>the candidate", "cat>cat candidate", "cat>mat candidate"]);
+      expect(arrows({ ...animating, highlightNode: node("the"), highlightEdge: { from: "cat", to: "the", value: 3 } }))
+        .toEqual(["cat>the step"]);
+      expect(arrows({ ...animating, highlightNode: node("the") })).toEqual([]);
+    });
+
+    it("draws a chosen output's steps once each, over a chosen state", () => {
+      const highlightOutputNodes = [node("the"), node("cat"), node("the"), node("cat")];
+      expect(arrows({ highlightOutputNodes, selectedNodeId: "mat" })).toEqual(["the>cat step", "cat>the step"]);
+    });
+
+    it("draws no step from or to a state the input no longer has", () => {
+      const highlightOutputNodes = [node("dog"), node("the"), node("bird")];
+      expect(arrows({ highlightOutputNodes })).toEqual([]);
     });
   });
 });

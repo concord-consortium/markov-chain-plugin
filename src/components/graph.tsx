@@ -70,6 +70,8 @@ type Props = {
   // labels the arrows the highlights point out with their probabilities
   probabilityLabels?: boolean;
   arrowWidths?: ArrowWidths;
+  // false draws a bag of words: the states, and only the arrows the highlights point out
+  orderMatters?: boolean;
 };
 
 // a press that moves this many px or less is still a click, and a gesture that moves the view no more isn't a zoom
@@ -85,7 +87,7 @@ export const Graph = (props: Props) => {
          fitViewAt, recenterViewAt, onAutoArrangeEnd, opacity,
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed, keepPositions, selectedEdge,
          onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs,
-         probabilityLabels, arrowWidths = "byState" } = props;
+         probabilityLabels, arrowWidths = "byState", orderMatters } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -116,8 +118,8 @@ export const Graph = (props: Props) => {
   }, [highlightOutputNodes]);
 
   const highlightSelected = useCallback((svg: GraphSelection) => {
-    highlightSelectedNodes(svg, { selectedNodeId, selectedEdge, animating, graph });
-  }, [selectedNodeId, selectedEdge, animating, graph]);
+    highlightSelectedNodes(svg, { selectedNodeId, selectedEdge, animating, graph, orderMatters });
+  }, [selectedNodeId, selectedEdge, animating, graph, orderMatters]);
 
   const unhighlightNonOutput = useCallback((svg: GraphSelection) => {
     unhighlightNonOutputNodes(svg, { highlightOutputNodes, animating });
@@ -131,7 +133,8 @@ export const Graph = (props: Props) => {
   const overlayRef = useRef<() => void>(() => undefined);
   useLayoutEffect(() => {
     overlayRef.current = () => drawOverlay(d3.select(svgRef.current).select("g.root"), d3Graph, {
-      graph, probabilityLabels, animating, selectedNodeId, highlightNode, highlightAllNextNodes, highlightOutputNodes,
+      graph, probabilityLabels, arrowWidths, orderMatters, animating, selectedNodeId, highlightNode, highlightEdge,
+      highlightAllNextNodes, highlightOutputNodes,
     });
   });
 
@@ -190,7 +193,7 @@ export const Graph = (props: Props) => {
 
     const edgeWeight = edgeWeights(graph.edges, arrowWidths);
 
-    graph.edges.forEach((edge) => {
+    (orderMatters === false ? [] : graph.edges).forEach((edge) => {
       if (edge.from === edge.to) {
         d3NodeMap[edge.from].loops = true;
         d3NodeMap[edge.from].loopWeight = edgeWeight(edge);
@@ -209,7 +212,7 @@ export const Graph = (props: Props) => {
     if (graphSignature(d3Graph) !== graphSignature(newD3Graph)) {
       setD3Graph(newD3Graph);
     }
-  }, [d3Graph, graph, keepPositions, arrowWidths]);
+  }, [d3Graph, graph, keepPositions, arrowWidths, orderMatters]);
 
   // enable zooming
   useEffect(() => {
@@ -282,7 +285,7 @@ export const Graph = (props: Props) => {
 
   }, [svgRef, d3Graph.nodes, selectedNodeId, selectedEdge, highlightNode, highlightLoopOnNode,
       highlightEdge, highlightAllNextNodes, highlightSelected, highlightOutputNodes,
-      unhighlightNonOutput, highlightOutputEdges, probabilityLabels]);
+      unhighlightNonOutput, highlightOutputEdges, probabilityLabels, arrowWidths]);
 
   const fitOrCenter = useCallback((op: "fit" | "center") => {
     if (!width || !height || !zoomRef.current) {
