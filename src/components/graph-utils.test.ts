@@ -1,6 +1,6 @@
 import {
   arrowHeadReach, calculateNodeFontSizes, graphSignature, isPlaced, layoutFor, nodeLoopPath, pullBackLineEnd,
-  startPosition, stateEdgeWeights
+  startPosition, startPositions, stateEdgeWeights
 } from "./graph-utils";
 
 describe("stateEdgeWeights", () => {
@@ -110,17 +110,19 @@ describe("calculateNodeFontSizes", () => {
   });
 
   // a large graph draws slowly when each label lays the page out once for each size it tries
-  it("measures every label at once, and takes the labels out of the page after", () => {
-    const inPageWhenMeasured: number[] = [];
+  it("sets every label's size before measuring any, and takes the labels out of the page after", () => {
+    const sizedWhenFirstMeasured: string[] = [];
     jest.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function(this: HTMLElement) {
-      inPageWhenMeasured.push(document.body.children.length);
+      if (sizedWhenFirstMeasured.length === 0) {
+        sizedWhenFirstMeasured.push(...[...document.body.children].map(child => (child as HTMLElement).style.fontSize));
+      }
       return (this.textContent?.length ?? 0) * 5;
     });
     const sizes = calculateNodeFontSizes([
       { label: "a", radius: 30 }, { label: "abcdefghijk", radius: 30 }, { label: "abc", radius: 50 }
     ]);
     expect(sizes.map(size => size.label)).toEqual(["a", "abcdef...", "abc"]);
-    expect(inPageWhenMeasured[0]).toBe(3);
+    expect(sizedWhenFirstMeasured).toEqual(["24px", "24px", "40px"]);
     expect(document.body.children).toHaveLength(0);
   });
 });
@@ -207,5 +209,26 @@ describe("startPosition", () => {
 
   it("ignores an arrow from a state that isn't placed", () => {
     expect(startPosition("b", [{ from: "c", to: "b" }], placed)).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("startPositions", () => {
+  const distance = 75;
+  const placed = new Map([["a", { x: 100, y: 0 }]]);
+
+  it("starts the states a commit adds from one state an arrow's length apart", () => {
+    const starts = startPositions(["b", "c"], [{ from: "a", to: "b" }, { from: "a", to: "c" }], placed);
+    const [b, c] = [starts.get("b")!, starts.get("c")!];
+    expect(Math.hypot(b.x - c.x, b.y - c.y)).toBeGreaterThanOrEqual(distance - 0.001);
+  });
+
+  it("starts a chain added in one commit from its own new states", () => {
+    const starts = startPositions(["b", "c"], [{ from: "a", to: "b" }, { from: "b", to: "c" }], placed);
+    const [b, c] = [starts.get("b")!, starts.get("c")!];
+    expect(Math.hypot(b.x - c.x, b.y - c.y)).toBeCloseTo(distance);
+  });
+
+  it("starts only the states it is given, and leaves the placed ones out", () => {
+    expect([...startPositions(["b"], [{ from: "a", to: "b" }], placed).keys()]).toEqual(["b"]);
   });
 });

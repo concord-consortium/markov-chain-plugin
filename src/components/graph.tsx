@@ -3,7 +3,7 @@ import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
-import { graphSignature, isPlaced, settings, startPosition, stateEdgeWeights } from "./graph-utils";
+import { graphSignature, isPlaced, settings, startPositions, stateEdgeWeights } from "./graph-utils";
 import { D3Graph, D3Node } from "./graph-geometry";
 import {
   GraphSelection, highlightAnimation, highlightSelected as highlightSelectedNodes,
@@ -151,9 +151,12 @@ export const Graph = (props: Props) => {
       }
     });
 
+    const newIds = graph.nodes.filter((_, index) => !placed[index]).map(node => node.id);
+    const starts = keepPositions ? startPositions(newIds, graph.edges, placedPositions) : undefined;
+
     graph.nodes.forEach((node, index) => {
       const oldD3Node = oldD3Nodes[index];
-      const start = keepPositions && !placed[index] ? startPosition(node.id, graph.edges, placedPositions) : undefined;
+      const start = starts?.get(node.id);
       const x = start?.x ?? oldD3Node?.x ?? node.x ?? 0;
       const y = start?.y ?? oldD3Node?.y ?? node.y ?? 0;
 

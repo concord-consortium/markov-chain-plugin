@@ -108,8 +108,8 @@ export const nodeLoopPath = (node: {x: number, y: number, radius: number}, arrow
   return d;
 };
 
-// A state's label being fitted: the largest font size, down to settings.minFontSize, at which the label fits the
-// state, then the label cut short with "..." until it fits, measured in text, an element the page's font sets.
+// A state's label being fitted to the state: its font shrinks to settings.minFontSize, then the label is cut short
+// with "...", then the font shrinks again, until it fits, measured in text, an element the page's font sets.
 interface LabelFit {
   original: string;
   label: string;
@@ -128,12 +128,8 @@ const stepLabelFit = (fit: LabelFit, height: number, width: number) => {
       fit.fontSize--;
     } else {
       fit.truncateLabelAt--;
-      if (fit.truncateLabelAt >= 0) {
-        fit.label = fit.original.substring(0, fit.truncateLabelAt) + "...";
-        fit.text.textContent = fit.label;
-      } else {
-        fit.done = true;
-      }
+      fit.label = fit.original.substring(0, fit.truncateLabelAt) + "...";
+      fit.text.textContent = fit.label;
     }
   } else {
     fit.done = true;
@@ -141,7 +137,7 @@ const stepLabelFit = (fit: LabelFit, height: number, width: number) => {
 };
 
 // Every state's label and font size. Each label has its own element, and the labels take their steps together, all
-// sizes set and then all read, so a step lays the page out once for every label rather than once for each.
+// sizes set and then all read, so each step lays the page out once for all of them.
 export const calculateNodeFontSizes = (nodes: {label: string, radius: number}[]) => {
   const fits: LabelFit[] = nodes.map(d => {
     const text = document.createElement("span");
@@ -210,4 +206,18 @@ export const startPosition = (id: string, edges: { from: string, to: string }[],
     ? clear.reduce((a, b) => b.fromCenter < a.fromCenter ? b : a)
     : candidates.reduce((a, b) => b.clearance > a.clearance ? b : a);
   return best.at;
+};
+
+// where each of the new states (in order) starts, each also clear of the new states started before it, so states a
+// commit adds from one state don't start on one spot, and a chain added in one commit starts from its own states
+export const startPositions = (ids: string[], edges: { from: string, to: string }[],
+  placed: Map<string, { x: number, y: number }>) => {
+  const started = new Map(placed);
+  const starts = new Map<string, { x: number, y: number }>();
+  ids.forEach(id => {
+    const start = startPosition(id, edges, started);
+    started.set(id, start);
+    starts.set(id, start);
+  });
+  return starts;
 };
