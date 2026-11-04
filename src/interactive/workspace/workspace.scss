@@ -215,6 +215,14 @@
       white-space: normal;
     }
 
+    .setting-switch-name, .setting-switch-value {
+      cursor: pointer;
+    }
+
+    &.disabled .setting-switch-name, &.disabled .setting-switch-value {
+      cursor: default;
+    }
+
     .setting-switch-track {
       position: relative;
       flex: none;
