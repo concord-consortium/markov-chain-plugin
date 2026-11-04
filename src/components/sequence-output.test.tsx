@@ -41,6 +41,13 @@ describe("SequenceOutput", () => {
     expect(scrollTops).toEqual([]);
   });
 
+  it("heads the output as the plugin does, or with the heading its layout gives", () => {
+    const { rerender } = render(<SequenceOutput {...props([])} />);
+    expect(screen.getByText("Output:")).toBeInTheDocument();
+    rerender(<SequenceOutput {...props([])} heading="Output" />);
+    expect(screen.getByText("Output")).toBeInTheDocument();
+  });
+
   it("chooses an output with Enter or Space when its layout asks for keyboard choosing", () => {
     const outputProps = props([group([a, b])]);
     render(<SequenceOutput {...outputProps} keyboardSelect />);

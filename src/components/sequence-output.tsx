@@ -51,11 +51,12 @@ export interface SequenceOutputProps {
   onCancel: () => void;
   // each output also takes Tab and is chosen with Enter or Space, reporting whether it is chosen
   keyboardSelect?: boolean;
+  heading?: string;
 }
 
 export const SequenceOutput = ({
   sequenceGroups, graphEmpty, generationMode, lengthLimit, highlightOutput, onToggleHighlight, onClear, onCancel,
-  keyboardSelect
+  keyboardSelect, heading = "Output:"
 }: SequenceOutputProps) => {
   const animating = generationMode !== "ready";
   const disabled = sequenceGroups.length === 0;
@@ -75,7 +76,7 @@ export const SequenceOutput = ({
 
   return (
     <div className="sequence-output">
-      <label>Output:</label>
+      <label>{ heading }</label>
       <div className="output">
         <div className="inner-output" ref={innerOutputRef}>
           { sequenceGroups.map((group, i) => {

@@ -71,6 +71,37 @@ describe("the interactive's workspace", () => {
     });
   });
 
+  it("heads the generator's controls beside the output's heading, with their toggle 10 px in from the line", () => {
+    start({ startingText: "the cat sat" });
+    const box = (selector: string) => cy.interactive().find(selector).first()
+      .then(found => found[0].getBoundingClientRect());
+    const middle = (rect: DOMRect) => rect.top + rect.height / 2;
+    cy.interactive().find(".generator-controls-header h3").should("have.text", "Controls");
+    cy.interactive().find(".sequence-output > label").should("have.text", "Output");
+    box(".generator-controls-header h3").then(heading => box(".sequence-output > label").then(output =>
+      expect(middle(heading)).to.be.closeTo(middle(output), 1)));
+    box(".controls-toggle").then(toggle => {
+      expect([toggle.width, toggle.height]).to.deep.equal([20, 20]);
+      box(".generator-controls select").then(select => expect(toggle.right).to.be.closeTo(select.right, 0.5));
+      box(".generator-controls")
+        .then(column => expect(column.right - paneBorder - toggle.right).to.be.closeTo(10, 0.5));
+    });
+    cy.interactive().find(".generator-controls-header svg path").invoke("attr", "d").then(minus =>
+      cy.interactive().find(".pane-header .pane-toggle svg path").first().should("have.attr", "d", minus));
+    cy.interactive().find(".generator-pane").then(pane => {
+      const border = getComputedStyle(pane[0]).borderTopColor;
+      const hasTheLine = () => cy.interactive().find(".generator-controls").should(column => {
+        expect(getComputedStyle(column[0]).borderRightColor).to.equal(border);
+        expect(getComputedStyle(column[0]).borderRightWidth).to.equal(`${paneBorder}px`);
+      });
+      hasTheLine();
+      cy.interactive().find(".controls-toggle").click();
+      cy.interactive().find(".controls-toggle").should("have.attr", "aria-expanded", "false");
+      cy.interactive().find(".generator-controls-header h3").should("not.exist");
+      hasTheLine();
+    });
+  });
+
   it("keeps the graph drawn while the student types and chooses", () => {
     start({ startingText: "the cat sat" });
     cy.interactive().find("g.node").should("have.length", 3);
@@ -1018,7 +1049,7 @@ describe("the workspace's dividers", () => {
       });
     });
     resized().should("have.length", 1).its(0)
-      .should("deep.equal", ["PaneResized", { divider: "input", sizes: { input: 340, inspect: 260, top: 330 } }]);
+      .should("deep.equal", ["PaneResized", { divider: "input", sizes: { input: 340, inspect: 260, top: 315 } }]);
     dragDivider("Resize Input and Graph", -1000, 0);
     widthOf(".input-pane").should("equal", 160);
   });
@@ -1034,8 +1065,8 @@ describe("the workspace's dividers", () => {
     cy.frameFitsInteractive();
     cy.get("iframe#interactive").invoke("height").then(frameHeight => {
       dragDivider("Resize the panes and the generator", 0, -100);
-      height(".top-row").should("equal", 230);
-      height(".generator-pane").should("equal", 320);
+      height(".top-row").should("equal", 215);
+      height(".generator-pane").should("equal", 335);
       cy.frameFitsInteractive();
       cy.get("iframe#interactive").invoke("height").should("equal", frameHeight);
     });
@@ -1062,7 +1093,7 @@ describe("the workspace's dividers", () => {
     widthOf(".inspect-pane").should("equal", 250);
     divider("Resize the panes and the generator").focus();
     divider("Resize the panes and the generator").type("{upArrow}");
-    height(".top-row").should("equal", 320);
+    height(".top-row").should("equal", 305);
     height(".input-text-part .text-input").then(before => {
       divider("Resize the text box and the table").focus();
       divider("Resize the text box and the table").type("{downArrow}");
@@ -1280,7 +1311,7 @@ describe("the workspace's dividers", () => {
 
   it("keeps the toolbar inside the Graph pane just below the row height that fits one column", () => {
     start({ startingText: "the cat sat" });
-    dragDivider("Resize the panes and the generator", 0, -115);
+    dragDivider("Resize the panes and the generator", 0, -100);
     height(".top-row").should("equal", 215);
     toolbarInsideGraphPane(2);
     dragDivider("Resize the panes and the generator", 0, 7);

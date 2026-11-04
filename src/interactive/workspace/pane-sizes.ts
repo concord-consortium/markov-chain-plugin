@@ -1,8 +1,8 @@
 // Pane sizes in px: the graph takes what the row leaves, and the generator what the height leaves.
 export interface PaneSizes { input: number, inspect: number, top: number }
 
-export const defaultPaneSizes: PaneSizes = { input: 280, inspect: 260, top: 330 };
-export const minPaneSizes = { input: 160, graph: 200, inspect: 220, top: 200, generator: 220 };
+export const defaultPaneSizes: PaneSizes = { input: 280, inspect: 260, top: 315 };
+export const minPaneSizes = { input: 160, graph: 200, inspect: 220, top: 200, generator: 235 };
 // the generator starts at its minimum
 export const workspaceHeight = defaultPaneSizes.top + minPaneSizes.generator;
 

@@ -29,17 +29,17 @@ describe("pane sizes", () => {
 
   it("fits the toolbar to the starting row's height while the panes are stacked", () => {
     expect(drawnRowHeight(200, false)).toBe(200);
-    expect(drawnRowHeight(200, true)).toBe(330);
+    expect(drawnRowHeight(200, true)).toBe(315);
     expect(toolbarColumns(5, graphBodyHeight(drawnRowHeight(200, true)))).toBe(1);
   });
 });
 
 describe("dragDivider", () => {
   it("moves each divider", () => {
-    expect(dragDivider(defaultPaneSizes, "input", 60, room, allOpen)).toEqual({ input: 340, inspect: 260, top: 330 });
+    expect(dragDivider(defaultPaneSizes, "input", 60, room, allOpen)).toEqual({ input: 340, inspect: 260, top: 315 });
     expect(dragDivider(defaultPaneSizes, "inspect", -40, room, allOpen))
-      .toEqual({ input: 280, inspect: 300, top: 330 });
-    expect(dragDivider(defaultPaneSizes, "rows", -100, room, allOpen)).toEqual({ input: 280, inspect: 260, top: 230 });
+      .toEqual({ input: 280, inspect: 300, top: 315 });
+    expect(dragDivider(defaultPaneSizes, "rows", -100, room, allOpen)).toEqual({ input: 280, inspect: 260, top: 215 });
   });
 
   it("stops the Input/Graph divider at Input's minimum and at the graph's", () => {
@@ -56,8 +56,8 @@ describe("dragDivider", () => {
 
   it("stops the row divider at the row's minimum and at the generator's", () => {
     expect(dragDivider(defaultPaneSizes, "rows", -500, room, allOpen).top).toBe(200);
-    // the workspace's 550 less the generator's 220
-    expect(dragDivider({ ...defaultPaneSizes, top: 250 }, "rows", 200, room, allOpen).top).toBe(330);
+    // the workspace's 550 less the generator's 235
+    expect(dragDivider({ ...defaultPaneSizes, top: 250 }, "rows", 200, room, allOpen).top).toBe(315);
   });
 
   it("doesn't count a collapsed Inspect against Input's maximum", () => {
@@ -102,11 +102,11 @@ describe("fitPaneSizes", () => {
 
   it("shrinks Input and Inspect in proportion to what each has above its minimum", () => {
     // 740 needed in 680: Input has 120 spare and Inspect 40, so they give up 45 and 15
-    expect(fitPaneSizes(defaultPaneSizes, 680, allOpen)).toEqual({ input: 235, inspect: 245, top: 330 });
+    expect(fitPaneSizes(defaultPaneSizes, 680, allOpen)).toEqual({ input: 235, inspect: 245, top: 315 });
   });
 
   it("stops at both minimums", () => {
-    expect(fitPaneSizes(defaultPaneSizes, 300, allOpen)).toEqual({ input: 160, inspect: 220, top: 330 });
+    expect(fitPaneSizes(defaultPaneSizes, 300, allOpen)).toEqual({ input: 160, inspect: 220, top: 315 });
   });
 
   it("holds back no width for a collapsed graph", () => {
@@ -122,19 +122,19 @@ describe("dividerLimits", () => {
 
 describe("resizedPanes", () => {
   it("changes only the size the divider sets in a row with room, so the other keeps the student's width", () => {
-    expect(resizedPanes({ input: 400, inspect: 300, top: 330 }, "input", -100, room, allOpen))
-      .toEqual({ input: 300, inspect: 300, top: 330 });
+    expect(resizedPanes({ input: 400, inspect: 300, top: 315 }, "input", -100, room, allOpen))
+      .toEqual({ input: 300, inspect: 300, top: 315 });
   });
 
   // in 680 px the defaults are drawn at 235 and 245, with the graph at its 200 px minimum
   it("moves from the drawn sizes in a row too narrow for the stored ones", () => {
     const moved = resizedPanes(defaultPaneSizes, "input", -40, 680, allOpen);
-    expect(moved).toEqual({ input: 195, inspect: 245, top: 330 });
+    expect(moved).toEqual({ input: 195, inspect: 245, top: 315 });
     expect(fitPaneSizes(moved, 680, allOpen).input).toBe(195);
   });
 
   it("keeps the stored widths for a row divider drag in a row too narrow for them", () => {
-    expect(resizedPanes(defaultPaneSizes, "rows", -20, 680, allOpen)).toEqual({ input: 280, inspect: 260, top: 310 });
+    expect(resizedPanes(defaultPaneSizes, "rows", -20, 680, allOpen)).toEqual({ input: 280, inspect: 260, top: 295 });
   });
 
   it("never narrows Input for a drag to the right in a row too narrow for the stored sizes", () => {

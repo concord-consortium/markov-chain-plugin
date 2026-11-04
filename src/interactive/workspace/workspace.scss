@@ -1,6 +1,8 @@
 @use "../../components/markov-panel" as *;
 @use "../visually-hidden";
 
+$pane-border-color: #c7c7c7;
+
 // the pane layout's sizes come from pane-sizes.ts, set as custom properties on the workspace
 .markov-workspace {
   position: relative;
@@ -103,7 +105,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    border: var(--pane-border) solid #c7c7c7;
+    border: var(--pane-border) solid $pane-border-color;
     border-radius: 3px;
     background-color: #fff;
 
@@ -605,9 +607,10 @@
     }
 
     .generator-controls {
-      position: relative;
       flex: none;
       min-width: 160px;
+      padding-right: 10px;
+      border-right: var(--pane-border) solid $pane-border-color;
       overflow-x: hidden;
       overflow-y: auto;
 
@@ -626,17 +629,19 @@
         min-width: 0;
       }
 
-      // in the corner beside the first control's label
-      .controls-toggle {
-        position: absolute;
-        top: 0;
-        right: 0;
-        padding: 0 6px;
-        color: $markov-teal;
-      }
+      // as tall as the toggle, and as far above the controls as the output's heading is above the output
+      .generator-controls-header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        margin-bottom: 5px;
 
-      &.collapsed .controls-toggle {
-        position: static;
+        h3 {
+          flex: 1;
+          margin: 0;
+          font-size: inherit;
+          font-weight: bold;
+        }
       }
     }
 

@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { Generator } from "../../components/generator";
 import { SequenceOutput } from "../../components/sequence-output";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
+import { ToggleIcon } from "./pane";
 
 interface GeneratorPaneProps {
   tool: MarkovToolApi;
@@ -17,16 +18,19 @@ export const GeneratorPane = ({ tool, controlsOpen, onToggleControls }: Generato
   return (
     <div className="generator-pane-content">
       <div className={clsx("generator-controls", { collapsed: !controlsOpen })}>
-        <button type="button" className="controls-toggle" aria-expanded={controlsOpen} aria-controls={controlsId}
-          aria-label={`${action} the generator's controls`} title={`${action} the generator's controls`}
-          onClick={onToggleControls}>
-          <span aria-hidden="true">{ controlsOpen ? "‹" : "›" }</span>
-        </button>
+        <div className="generator-controls-header">
+          { controlsOpen && <h3>Controls</h3> }
+          <button type="button" className="pane-toggle controls-toggle" aria-expanded={controlsOpen}
+            aria-controls={controlsId} aria-label={`${action} the generator's controls`}
+            title={`${action} the generator's controls`} onClick={onToggleControls}>
+            <ToggleIcon open={controlsOpen} />
+          </button>
+        </div>
         <div id={controlsId} className="generator-controls-body" hidden={!controlsOpen}>
           <Generator {...tool.generatorProps} />
         </div>
       </div>
-      <SequenceOutput {...tool.outputProps} keyboardSelect />
+      <SequenceOutput {...tool.outputProps} keyboardSelect heading="Output" />
     </div>
   );
 };
