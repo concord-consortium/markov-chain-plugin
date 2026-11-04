@@ -1,6 +1,6 @@
 import {
-  arrowHeadReach, calculateNodeFontSizes, graphSignature, isPlaced, layoutFor, nodeLoopPath, pullBackLineEnd,
-  linkDistance, settings, startPosition, startPositions, stateEdgeWeights
+  arrowHeadReach, calculateNodeFontSizes, edgeWeights, graphSignature, isPlaced, layoutFor, nodeLoopPath,
+  pullBackLineEnd, linkDistance, settings, startPosition, startPositions, stateEdgeWeights
 } from "./graph-utils";
 
 describe("stateEdgeWeights", () => {
@@ -33,11 +33,41 @@ describe("stateEdgeWeights", () => {
   });
 });
 
+describe("edgeWeights", () => {
+  const oneOfFour = { from: "a", to: "b", value: 1 };
+  const threeOfFour = { from: "a", to: "c", value: 3 };
+  const edges = [oneOfFour, threeOfFour];
+
+  it("gives every arrow the thinnest width with equal widths", () => {
+    const weight = edgeWeights(edges, "equal");
+    expect(weight(oneOfFour)).toBe(2);
+    expect(weight(threeOfFour)).toBe(2);
+  });
+
+  it("gives each arrow its share of its state's arrows by state", () => {
+    const weight = edgeWeights(edges, "byState");
+    expect(weight(oneOfFour)).toBe(2.625);
+    expect(weight(threeOfFour)).toBe(3.875);
+  });
+});
+
 describe("graphSignature", () => {
   it("changes when only a node's loop width changes", () => {
     const node = { id: "a", label: "a", weight: 1, radius: 30, x: 0, y: 0, loopWeight: 0 };
     expect(graphSignature({ nodes: [node], edges: [] }))
       .not.toEqual(graphSignature({ nodes: [{ ...node, loopWeight: 4.5 }], edges: [] }));
+  });
+
+  it("changes when an arrow of the same width gains or loses all its value", () => {
+    const edge = { source: { id: "a" }, target: { id: "b" }, weight: 2, value: 1 };
+    expect(graphSignature({ nodes: [], edges: [edge] }))
+      .not.toEqual(graphSignature({ nodes: [], edges: [{ ...edge, value: 0 }] }));
+  });
+
+  it("stays the same when an arrow of the same width only changes value", () => {
+    const edge = { source: { id: "a" }, target: { id: "b" }, weight: 2, value: 1 };
+    expect(graphSignature({ nodes: [], edges: [edge] }))
+      .toEqual(graphSignature({ nodes: [], edges: [{ ...edge, value: 3 }] }));
   });
 });
 

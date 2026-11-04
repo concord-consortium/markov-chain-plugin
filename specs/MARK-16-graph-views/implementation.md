@@ -71,7 +71,7 @@ orderMatters?: boolean;
 - `src/components/graph.tsx`: the `probabilityLabels` prop, an overlay ref called from the highlight effect and from `tick`.
 - `src/components/graph-draw.ts`: `tick` calls the overlay callback it is given.
 - `src/interactive/workspace/inspect-rows.ts`: `TransitionRow` gains `percent`, from `percentOf`, which its `probability` text uses too, so the graph and Inspect round alike (R3).
-- `src/components/graph-utils.ts` and `graph-utils.test.ts`: `ArrowWidths` and `edgeWeights`.
+- `src/components/graph-utils.ts` and `graph-utils.test.ts`: `ArrowWidths` and `edgeWeights`; `graphSignature` includes whether an arrow has value, since equal widths no longer reveal that change.
 
 **Estimated diff size**: ~280 lines, about 110 of them tests
 
@@ -113,9 +113,8 @@ export const probabilityLabels = (s: LabelState): ProbabilityLabel[] => {
   if (path && path.length > 0) {
     const steps = new Set(path.slice(1).map((n, i) => JSON.stringify([path[i].id, n.id])));
     const from = [...new Set(path.slice(0, -1).map(n => n.id))];
-    // concat, not flatMap: tsconfig's lib is es2018
-    const labels = ([] as ProbabilityLabel[]).concat(
-      ...from.map(id => labelsFrom(s.outgoing, id, to => steps.has(JSON.stringify([id, to])) ? "full" : "faded")));
+    const labels = from.flatMap(id =>
+      labelsFrom(s.outgoing, id, to => steps.has(JSON.stringify([id, to])) ? "full" : "faded"));
     return s.stepsOnly ? labels.filter(label => label.strength === "full") : labels;
   }
   return s.selectedNodeId ? labelsFrom(s.outgoing, s.selectedNodeId, () => "full") : [];

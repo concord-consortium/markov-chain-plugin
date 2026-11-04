@@ -32,16 +32,22 @@ export const stateEdgeWeights = (edges: Edge[]) => {
   };
 };
 
+// "byState": an arrow's share of its own state's outgoing arrows; "equal": every arrow the thinnest width
+export type ArrowWidths = "byState" | "equal";
+export const edgeWeights = (edges: Edge[], widths: ArrowWidths) =>
+  widths === "equal" ? () => settings.minStroke : stateEdgeWeights(edges);
+
 type SignatureGraph = {
   nodes: {id: string, label: string, weight: number, radius: number, x: number, y: number, loopWeight: number}[];
-  edges: {source: {id: string}, target: {id: string}, weight: number}[];
+  edges: {source: {id: string}, target: {id: string}, weight: number, value: number}[];
 };
 
-// loops are drawn from their nodes, not from the edge list, so a loop's width is part of its node's signature
+// loops are drawn from their nodes, not from the edge list, so a loop's width is part of its node's signature;
+// an arrow of no value is drawn differently whatever its width
 export const graphSignature = (graph: SignatureGraph) => {
   const nodeSignature = graph.nodes.map(n =>
     `${n.id}/${n.label}/${n.weight}/${n.radius}/${n.x}/${n.y}/${n.loopWeight}`);
-  const edgeSignature = graph.edges.map(e => `${e.source.id}/${e.target.id}/${e.weight}`);
+  const edgeSignature = graph.edges.map(e => `${e.source.id}/${e.target.id}/${e.weight}/${e.value > 0}`);
   return `${nodeSignature}::${edgeSignature}`;
 };
 

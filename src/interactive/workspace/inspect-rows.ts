@@ -1,5 +1,6 @@
 import { GraphData } from "../../type";
 import { compareStateLabels } from "../../components/app-utils";
+import { percentOf } from "../../components/graph-labels";
 
 export interface StateRow { id: string, label: string, count: number }
 export interface TransitionRow {
@@ -9,6 +10,8 @@ export interface TransitionRow {
   count: number,
   // the count of every transition out of the from state
   outOf: number,
+  // the whole percent the graph's labels show too
+  percent: number,
   // "2 of 3 = 67%"
   probability: string,
 }
@@ -30,12 +33,12 @@ export const transitionRows = (graph: GraphData): TransitionRow[] => {
   graph.edges.forEach(edge => outOf.set(edge.from, (outOf.get(edge.from) ?? 0) + edge.value));
   return graph.edges.map(edge => {
     const total = outOf.get(edge.from) ?? 0;
-    const percent = total > 0 ? Math.round(100 * edge.value / total) : 0;
+    const percent = percentOf(edge.value, total);
     const fromLabel = labels.get(edge.from) ?? edge.from;
     const toLabel = labels.get(edge.to) ?? edge.to;
     return {
       from: edge.from, to: edge.to, fromLabel, toLabel, label: `${fromLabel} → ${toLabel}`, count: edge.value,
-      outOf: total, probability: `${edge.value} of ${total} = ${percent}%`,
+      outOf: total, percent, probability: `${edge.value} of ${total} = ${percent}%`,
     };
   }).sort(compareTransitionRows);
 };

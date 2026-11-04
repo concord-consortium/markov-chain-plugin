@@ -31,6 +31,8 @@ export interface DrawGraphOptions {
   lastClickTimeRef: React.MutableRefObject<number | undefined>;
   lastClickIdRef: React.MutableRefObject<string | undefined>;
   draggedRef: React.MutableRefObject<boolean>;
+  // after each tick has moved the states and arrows
+  onTick?: () => void;
 }
 
 // draws the graph into the svg, replacing what it held, and returns the layout's simulation when it auto-arranges
@@ -38,7 +40,7 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
   options: DrawGraphOptions) => {
   const { transform, allowDragging, autoArrange, rubberBand, drawingMode, keepPositions, selectionRef,
     onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd,
-    lastClickTimeRef, lastClickIdRef, draggedRef } = options;
+    lastClickTimeRef, lastClickIdRef, draggedRef, onTick } = options;
   const selectEdges = !!onEdgeSelect && drawingMode !== "delete";
   let simulation: d3.Simulation<D3Node, undefined>|undefined;
 
@@ -195,6 +197,7 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
 
     loopBackgrounds.attr("d", d => nodeLoopPath(d));
     loops.attr("d", d => nodeLoopPath(d, d.loopWeight));
+    onTick?.();
   };
 
   if (autoArrange) {

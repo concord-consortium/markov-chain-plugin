@@ -3,13 +3,14 @@ import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
-import { graphSignature, isPlaced, settings, startPositions, stateEdgeWeights } from "./graph-utils";
+import { ArrowWidths, edgeWeights, graphSignature, isPlaced, settings, startPositions } from "./graph-utils";
 import { D3Graph, D3Node } from "./graph-geometry";
 import {
   GraphSelection, highlightAnimation, highlightSelected as highlightSelectedNodes,
   unhighlightNonOutput as unhighlightNonOutputNodes
 } from "./graph-highlight";
 import { drawGraph } from "./graph-draw";
+import { drawOverlay, moveOverlay } from "./graph-overlay";
 
 import PlusIcon from "../assets/plus.svg";
 import MinusIcon from "../assets/minus.svg";
@@ -66,6 +67,9 @@ type Props = {
   onUserZoom?: () => void;
   // fits animate over this many ms; absent, they are instant
   fitTransitionMs?: number;
+  // labels the arrows the highlights point out with their probabilities
+  probabilityLabels?: boolean;
+  arrowWidths?: ArrowWidths;
 };
 
 // a press that moves this many px or less is still a click, and a gesture that moves the view no more isn't a zoom
@@ -80,7 +84,8 @@ export const Graph = (props: Props) => {
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
          fitViewAt, recenterViewAt, onAutoArrangeEnd, opacity,
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed, keepPositions, selectedEdge,
-         onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs } = props;
+         onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs,
+         probabilityLabels, arrowWidths = "byState" } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -121,6 +126,13 @@ export const Graph = (props: Props) => {
   const selectionRef = useRef({ selectedNodeId, setSelectedNodeId, highlightSelected });
   useLayoutEffect(() => {
     selectionRef.current = { selectedNodeId, setSelectedNodeId, highlightSelected };
+  });
+
+  const overlayRef = useRef<() => void>(() => undefined);
+  useLayoutEffect(() => {
+    overlayRef.current = () => drawOverlay(d3.select(svgRef.current).select("g.root"), d3Graph, {
+      graph, probabilityLabels, animating, selectedNodeId, highlightNode, highlightAllNextNodes, highlightOutputNodes,
+    });
   });
 
   // calculate the svg dimensions
@@ -176,7 +188,7 @@ export const Graph = (props: Props) => {
       d3NodeMap[node.id] = d3Node;
     });
 
-    const edgeWeight = stateEdgeWeights(graph.edges);
+    const edgeWeight = edgeWeights(graph.edges, arrowWidths);
 
     graph.edges.forEach((edge) => {
       if (edge.from === edge.to) {
@@ -197,7 +209,7 @@ export const Graph = (props: Props) => {
     if (graphSignature(d3Graph) !== graphSignature(newD3Graph)) {
       setD3Graph(newD3Graph);
     }
-  }, [d3Graph, graph, keepPositions]);
+  }, [d3Graph, graph, keepPositions, arrowWidths]);
 
   // enable zooming
   useEffect(() => {
@@ -240,8 +252,10 @@ export const Graph = (props: Props) => {
     const simulation = drawGraph(d3.select(svgRef.current), d3Graph, {
       transform: transformRef.current, allowDragging, autoArrange, rubberBand, drawingMode, keepPositions,
       selectionRef, onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd,
-      lastClickTimeRef, lastClickIdRef, draggedRef
+      lastClickTimeRef, lastClickIdRef, draggedRef,
+      onTick: () => moveOverlay(d3.select(svgRef.current).select("g.root")),
     });
+    overlayRef.current();
 
     return () => {
       simulation?.stop();
@@ -264,10 +278,11 @@ export const Graph = (props: Props) => {
 
     unhighlightNonOutput(root);
     highlightSelected(root);
+    overlayRef.current();
 
   }, [svgRef, d3Graph.nodes, selectedNodeId, selectedEdge, highlightNode, highlightLoopOnNode,
       highlightEdge, highlightAllNextNodes, highlightSelected, highlightOutputNodes,
-      unhighlightNonOutput, highlightOutputEdges]);
+      unhighlightNonOutput, highlightOutputEdges, probabilityLabels]);
 
   const fitOrCenter = useCallback((op: "fit" | "center") => {
     if (!width || !height || !zoomRef.current) {
