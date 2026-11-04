@@ -9,11 +9,6 @@ describe("tokenize", () => {
       ["the", "cat", ",", "sat", ".", "On", "the", "mat", "?", "yes", "!", "a", ":", "b", ";"]);
   });
 
-  it("drops the separators the plugin's text drops", () => {
-    expect(words("a\"b(c)d{e}f_g+h=i|j\\k/l<m>n")).toEqual(
-      ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n"]);
-  });
-
   it("splits and drops characters as the plugin's text does, outside brackets", () => {
     const text = "The Cat, sat.\tOn  the mat? yes! a: b; \"c\" (d) {e} f_g+h=i|j\\k/l<m>n";
     const states = tokenize(text, "lowercase").flatMap(token => token.kind === "word" ? [token.state] : []);
@@ -117,6 +112,10 @@ describe("textChange", () => {
 
   it("counts an emoji removed as one character", () => {
     expect(textChange("a 🍕", "a ")).toEqual({ inserted: "", removed: 1 });
+    // 🍕 and 🍔 share their first code unit, 🍕 and 🝕 their last
+    expect(textChange("🍕🍔", "🍔")).toEqual({ inserted: "", removed: 1 });
+    expect(textChange("🍕", "🍔")).toEqual({ inserted: "🍔", removed: 1 });
+    expect(textChange("🍕", "🝕")).toEqual({ inserted: "🝕", removed: 1 });
   });
 });
 
@@ -125,7 +124,7 @@ describe("commitsOnTyping", () => {
     [" ", "\n", "\t", ".", ",", "?", "!", ":", ";", "]"].forEach(char => expect(commitsOnTyping(char)).toBe(true));
   });
 
-  it("waits on letters, digits and the separators that open or join words", () => {
+  it("waits on letters, digits and the characters that open or join words", () => {
     ["a", "Z", "7", "[", "(", "-", "'", "+"].forEach(char => expect(commitsOnTyping(char)).toBe(false));
   });
 });

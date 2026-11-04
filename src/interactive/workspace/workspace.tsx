@@ -139,6 +139,7 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
   const liveTokens = useMemo(() => tokenize(text, capitalization), [text, capitalization]);
   const highlights = useMemo(() => highlightsFor(tool.selection, committed.tokens),
     [tool.selection, committed.tokens]);
+  const liveHighlights = useMemo(() => highlightsFor(tool.selection, liveTokens), [tool.selection, liveTokens]);
 
   // A commit that takes the chosen state or transition out of the graph clears it, logging nothing; an output stays.
   // It runs before the panes' effects, so a choice one makes for the same commit, such as the row Up or Down reaches,
@@ -427,7 +428,7 @@ const DataWorkspace = ({ authoredState, savedInput, onSaveInput, hosted, config 
         return (
           <InputPane caseSwitch={caseSwitch} view={inputView} split={inputSplit} onSplitChange={setInputSplit}
             onSplitResized={handleSplitResized} text={text} liveTokens={liveTokens}
-            liveHighlights={highlightsFor(tool.selection, liveTokens)} committed={committed}
+            liveHighlights={liveHighlights} committed={committed}
             highlights={highlights}
             readOnly={tool.animating} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
             onTableCommit={handleTableCommit} onRowBlur={handleBlurCommit} afterPress={afterPress}

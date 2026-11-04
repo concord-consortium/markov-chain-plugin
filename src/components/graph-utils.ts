@@ -176,15 +176,16 @@ export const isPlaced = (keepPositions: boolean, drawn: boolean, node: { x?: num
 export const layoutFor = (placed: number, total: number): "whole" | "new" | "none" =>
   placed === total ? "none" : (total - placed) * 2 > total ? "whole" : "new";
 
-// the length the layout gives an arrow between two states of these radii
+// the distance the layout aims for between the centers of two states of these radii
 export const linkDistance = (radius: number, otherRadius: number) => (radius + otherRadius) * 1.5;
 
 const startDistance = linkDistance(settings.minRadius, settings.minRadius);
 const startAngles = 12;
 
-// Where a new state starts: one arrow's length from the first placed state with an arrow to it, at the spot nearest
-// the layout's center (the origin) that is that far from every other placed state, so a chain added a word at a time
-// winds around the graph rather than running off in one direction; where no spot is that clear, the clearest one.
+// Where a new state starts: the layout's distance between two of the smallest states from the first placed state
+// with an arrow to it, at the spot nearest the layout's center (the origin) that is that far from every other placed
+// state, so a chain added a word at a time winds around the graph rather than running off in one direction; where no
+// spot is that clear, the clearest one.
 // With no placed source, at the origin.
 export const startPosition = (id: string, edges: { from: string, to: string }[],
   placed: Map<string, { x: number, y: number }>) => {

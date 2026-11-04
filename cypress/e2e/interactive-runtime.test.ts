@@ -64,7 +64,7 @@ describe("the interactive's runtime", () => {
     cy.interactiveMessages("interactiveState").should("have.length", 0);
   });
 
-  it("shows a student's work read-only in a report, and saves nothing", () => {
+  it("lists the authored settings in a report, and saves nothing", () => {
     cy.startInteractive({ mode: "report", width: 600, authoredState: { modes: { useData: true, draw: false } } });
     cy.interactive().should("contain.text", "shown read-only in a report");
     listedSettings().should("deep.include", ["Usable mode(s)", "Data"]);
@@ -85,9 +85,11 @@ describe("the interactive's runtime", () => {
     cy.frameFitsInteractive();
     // taller than a frame's default 150px, so a frame that never resized would fail
     cy.get("iframe#interactive").invoke("height").should("be.greaterThan", 150);
+    // past the fonts' and the graph's first layouts
+    cy.wait(1000);
     cy.interactiveMessages("height").its("length").then(before => {
       cy.wait(3000);
-      cy.interactiveMessages("height").its("length").should("be.at.most", before + 5);
+      cy.interactiveMessages("height").should("have.length", before);
     });
   });
 

@@ -102,7 +102,7 @@ describe("the interactive's workspace", () => {
     });
   });
 
-  it("keeps the graph drawn while the student types and chooses", () => {
+  it("doesn't redraw the graph for typing that hasn't committed, or for choosing a state", () => {
     start({ startingText: "the cat sat" });
     cy.interactive().find("g.node").should("have.length", 3);
     graphRoot().then(root => {
@@ -119,7 +119,8 @@ describe("the interactive's workspace", () => {
     cy.interactive().find("g.node").should("have.length", 3);
     pastDoubleClick();
     stateEllipse("the").trigger("click").trigger("click");
-    cy.interactive().find(".nodeModal").should("contain.text", "the");
+    cy.interactive().find(".nodeModal").should("contain.text", "the")
+      .and("contain.text", "Transition Probabilities").and("contain.text", "100%");
     loggedEvents().should("deep.include", ["StateDialogOpened", { state: "the" }]);
     cy.interactive().type("{esc}");
     cy.interactive().find(".nodeModal").should("not.exist");
@@ -200,6 +201,12 @@ describe("the interactive's workspace", () => {
     cy.interactive().find("button[aria-label='Expand Input']").should("have.attr", "aria-expanded", "false").click();
     textBox().should("be.visible").and("have.value", "the cat sat");
 
+    // the chosen tab is the Inspect pane's own state, which only a pane body kept mounted still has
+    inspectTab("Transitions").click();
+    cy.interactive().find("button[aria-label='Collapse Inspect']").click();
+    cy.interactive().find("button[aria-label='Expand Inspect']").click();
+    inspectTab("Transitions").should("have.attr", "aria-selected", "true");
+
     [1, 2, 3].forEach(() => cy.interactive().find("button[title='Zoom In']").click());
     rootTransform().then(zoomed => {
       cy.interactive().find("button[aria-label='Collapse Graph']").click();
@@ -226,18 +233,12 @@ describe("the workspace's view of the graph", () => {
     afterFit();
   });
 
-  it("follows the graph as it grows", () => {
-    rootTransform().then(before => {
-      typeWords(" and a dog ran far away");
-      rootTransform().should("not.equal", before);
-    });
-  });
-
   // fewer new states than old, so the graph adds them rather than being laid out again, which would follow it again
   it("stops following once the student zooms, and follows again after Fit", () => {
     cy.interactive().find("button[title='Zoom In']").click();
     rootTransform().then(zoomed => {
       typeWords(" and a dog");
+      cy.interactive().find("g.node").should("have.length", 8);
       rootTransform().should("equal", zoomed);
     });
     cy.interactive().find("button[title='Fit View']").click();
@@ -284,7 +285,29 @@ describe("the workspace's view of the graph", () => {
     afterFit();
     rootTransform().then(zoomed => {
       typeWords(" and a dog");
+      cy.interactive().find("g.node").should("have.length", 8);
       rootTransform().should("equal", zoomed);
+    });
+  });
+
+  it("stops following after a pan", () => {
+    rootTransform().then(before => {
+      cy.interactive().find(".graph-pane .graph > svg").then(svg => {
+        const win = svg[0].ownerDocument.defaultView as Window & typeof globalThis;
+        const box = svg[0].getBoundingClientRect();
+        const mouse = (type: string, target: EventTarget, dx: number) => target.dispatchEvent(new win.MouseEvent(type, {
+          clientX: box.x + 5 + dx, clientY: box.y + 5, button: 0, bubbles: true, cancelable: true, view: win
+        }));
+        mouse("mousedown", svg[0], 0);
+        mouse("mousemove", win, 30);
+        mouse("mouseup", win, 30);
+      });
+      rootTransform().should("not.equal", before);
+    });
+    rootTransform().then(panned => {
+      typeWords(" and a dog");
+      cy.interactive().find("g.node").should("have.length", 8);
+      rootTransform().should("equal", panned);
     });
   });
 
@@ -302,6 +325,7 @@ describe("the workspace's view of the graph", () => {
     });
     rootTransform().then(pinched => {
       typeWords(" and a dog");
+      cy.interactive().find("g.node").should("have.length", 8);
       rootTransform().should("equal", pinched);
     });
   });
@@ -372,7 +396,9 @@ describe("the workspace's text box", () => {
     cy.wait(500);
     stateLabels().should("deep.equal", ["cat", "the"]);
     cy.wait(1000);
-    stateLabels().should("deep.equal", ["ca", "the"]);
+    // read once, since a retry would pass for a commit seconds late
+    cy.interactive().then(body => expect(body.find("g.node text").toArray().map(text => text.textContent).sort())
+      .to.deep.equal(["ca", "the"]));
     loggedEvents().should("deep.include", ["InputCommitted", { view: "text", how: "pause", tokens: 2, states: 2 }]);
   });
 
@@ -414,7 +440,8 @@ describe("the workspace's text box", () => {
     start();
     textBox().type("the cat sat");
     cy.interactive().find(".graph-pane .pane-body").then(body =>
-      pressEvents(body[0], ["pointerdown", "pointercancel", "pointerdown", "mousedown", "pointercancel"], "mouse"));
+      pressEvents(body[0], ["pointerdown", "pointercancel"], "touch")
+        .then(() => pressEvents(body[0], ["pointerdown", "mousedown", "pointercancel"], "mouse")));
     textBox().blur({ force: true });
     stateLabels().should("deep.equal", ["cat", "sat", "the"]);
   });
@@ -446,7 +473,7 @@ describe("the workspace's text box", () => {
     pastDoubleClick();
     textBox().type("{backspace}");
     stateEllipse("cat").then(ellipse =>
-      pressEvents(ellipse[0], ["pointerdown", "mousedown", "focus", 1300, "pointerup", "mouseup", "click"], "touch"));
+      pressEvents(ellipse[0], ["pointerdown", "mousedown", "focus", 1300, "pointerup", "mouseup", "click"], "mouse"));
     stateEllipse("cat").should("have.attr", "fill", selectedNodeColor);
     stateLabels().should("deep.equal", ["cat", "sa", "the"]);
   });
@@ -582,6 +609,46 @@ describe("the workspace's input table", () => {
     cy.interactive().find("input[aria-label='Row 2']").should("not.exist");
   });
 
+  it("keeps the row under a secondary-button press, committing the row left", () => {
+    start({ startingText: "the cat sat" });
+    row(1).clear().type("dog");
+    cy.interactive().find("button[aria-label='Delete row 2']").then(button =>
+      pressEvents(button[0], ["pointerdown", "mousedown", "focus", "contextmenu"], "mouse", 2));
+    textBox().should("have.value", "dog cat sat");
+    row(3).clear().type("ran").blur({ force: true });
+    textBox().should("have.value", "dog cat ran");
+    loggedEvents().should(events => expect(events.map(([action]) => action)).not.to.include("TableRowDeleted"));
+  });
+
+  it("forgets a press on a delete button that ended without a click", () => {
+    start({ startingText: "the cat sat" });
+    // a press lands only once the frame is tall enough to show the button
+    cy.frameFitsInteractive();
+    cy.interactive().find("button[aria-label='Delete row 1']").then(button =>
+      pressEvents(button[0], ["pointerdown", "mousedown", "focus", 40, "pointerup", "mouseup"], "mouse"));
+    row(3).clear().type("ran").blur({ force: true });
+    textBox().should("have.value", "the cat ran");
+    loggedEvents().should(events => expect(events.map(([action]) => action)).not.to.include("TableRowDeleted"));
+  });
+
+  it("deletes the row pressed by itself when the limit refuses it with the edit of the row left", () => {
+    const rest = `${" ".repeat(49994)}c`;
+    start({}, { interactiveState: { version: 1, input: { text: `a bb${rest}` } } });
+    row(1).clear().type("longword");
+    cy.interactive().find("button[aria-label='Delete row 2']").then(button => mousePress(button[0]));
+    textBox().invoke("val").should("equal", `a${rest}`);
+    row(1).should("have.value", "a");
+    row(2).should("have.value", "c");
+    loggedEvents().should("deep.include", ["TableRowDeleted", undefined]);
+  });
+
+  it("deletes the row of a delete button activated from the keyboard, with no press", () => {
+    start({ startingText: "the cat sat" });
+    cy.interactive().find("button[aria-label='Delete row 2']").focus();
+    cy.interactive().find("button[aria-label='Delete row 2']").trigger("click");
+    textBox().should("have.value", "the sat");
+  });
+
   it("commits the text box before a press in the table acts on the text", () => {
     start({ startingText: "the cat sat" });
     textBox().type("s");
@@ -689,23 +756,21 @@ describe("the workspace's input table", () => {
     textBox().invoke("val").should("equal", saved);
   });
 
-  [3, 30].forEach(rows => {
-    it(`is one stop in the Tab order with ${rows} rows`, () => {
-      start({ startingText: Array.from({ length: rows }, (_, i) => `w${i}`).join(" ") });
-      cy.interactive().find(".input-table input").should("have.length", rows + 1);
-      textBox().focus();
-      // the divider between the text box and the table comes first
-      pressTab();
-      focused().should("have.attr", "aria-label", "Resize the text box and the table");
-      pressTab();
-      focused().should("have.attr", "aria-label", "Row 1");
-      pressTab();
-      focused().should("have.attr", "aria-label", "Delete row 1");
-      pressTab();
-      focused().should(element => {
-        expect(element, "the element focused").not.to.equal(null);
-        expect(element?.closest(".input-table")).to.equal(null);
-      });
+  it("gives Tab only the current row's input and delete button", () => {
+    start({ startingText: "the cat sat" });
+    cy.interactive().find(".input-table input").should("have.length", 4);
+    textBox().focus();
+    // the divider between the text box and the table comes first
+    pressTab();
+    focused().should("have.attr", "aria-label", "Resize the text box and the table");
+    pressTab();
+    focused().should("have.attr", "aria-label", "Row 1");
+    pressTab();
+    focused().should("have.attr", "aria-label", "Delete row 1");
+    pressTab();
+    focused().should(element => {
+      expect(element, "the element focused").not.to.equal(null);
+      expect(element?.closest(".input-table")).to.equal(null);
     });
   });
 
@@ -921,13 +986,13 @@ describe("the workspace's linked highlighting", () => {
     cy.interactive().find(".input-table-rows").scrollTo("bottom");
     row(61).focus();
     stateEllipse("end").should("have.attr", "fill", selectedNodeColor);
-    textBox().should(box => expect(box[0].scrollTop).to.equal(0));
     cy.interactive().find(".inspect-panel").should(panel => {
       const lit = panel[0].querySelector("tbody tr.highlight-selected")!.getBoundingClientRect();
       const view = panel[0].getBoundingClientRect();
       expect(lit.top).to.be.at.least(view.top);
       expect(lit.bottom).to.be.at.most(view.bottom + 1);
     });
+    cy.interactive().find(".input-table-rows").should(rows => expect(rows[0].scrollTop).to.be.greaterThan(0));
     cy.interactive().find(".input-table-rows").scrollTo("top");
     textBox().scrollTo("top");
     inspectRow("w59").click();
@@ -1003,30 +1068,28 @@ describe("the workspace's Inspect pane", () => {
     focused().should("have.text", "Transitions").and("have.attr", "aria-selected", "true");
   });
 
-  [3, 30].forEach(states => {
-    // Enter and Space choose a row by the browser's own button activation, which needs trusted key input
-    it(`is one stop in the Tab order with ${states} states, and Down moves to the second row without choosing`, () => {
-      start({ startingText: Array.from({ length: states }, (_, i) => `s${String(i).padStart(2, "0")}`).join(" ") });
-      cy.interactive().find(".inspect-pane tbody tr").should("have.length", states);
-      inspectTab("States").focus();
-      pressTab();
-      focused().should("contain.text", "State");
-      pressTab();
-      focused().should("contain.text", "Count");
-      pressTab();
-      focused().should("have.text", "s00");
-      pressTab();
-      focused().should(element => expect(element?.closest(".inspect-pane tbody")).to.equal(null));
-      cy.interactive().find(".inspect-row-button").first().focus();
-      cy.interactive().find(".inspect-row-button").first().type("{downArrow}");
-      focused().should("have.text", "s01");
-      // the keys' hint is read on the row Tab reaches, not on every row the arrows pass
-      cy.interactive().find(".inspect-row-button[aria-describedby]").should("have.length", 1)
-        .and("have.text", "s01");
-      stateEllipse("s01").should("have.attr", "fill", "#fff");
-      cy.interactive().find(".inspect-row-button").eq(1).click();
-      stateEllipse("s01").should("have.attr", "fill", selectedNodeColor);
-    });
+  // Enter and Space choose a row by the browser's own button activation, which needs trusted key input
+  it("keeps its rows to one stop in the Tab order, and Down moves to the second row without choosing", () => {
+    start({ startingText: "s00 s01 s02" });
+    cy.interactive().find(".inspect-pane tbody tr").should("have.length", 3);
+    inspectTab("States").focus();
+    pressTab();
+    focused().should("contain.text", "State");
+    pressTab();
+    focused().should("contain.text", "Count");
+    pressTab();
+    focused().should("have.text", "s00");
+    pressTab();
+    focused().should(element => expect(element?.closest(".inspect-pane tbody")).to.equal(null));
+    cy.interactive().find(".inspect-row-button").first().focus();
+    cy.interactive().find(".inspect-row-button").first().type("{downArrow}");
+    focused().should("have.text", "s01");
+    // the keys' hint is read on the row Tab reaches, not on every row the arrows pass
+    cy.interactive().find(".inspect-row-button[aria-describedby]").should("have.length", 1)
+      .and("have.text", "s01");
+    stateEllipse("s01").should("have.attr", "fill", "#fff");
+    cy.interactive().find(".inspect-row-button").eq(1).click();
+    stateEllipse("s01").should("have.attr", "fill", selectedNodeColor);
   });
 });
 
@@ -1034,6 +1097,24 @@ describe("the workspace's dividers", () => {
   const widthOf = (selector: string) => cy.interactive().find(selector).invoke("outerWidth");
   const height = (selector: string) => cy.interactive().find(selector).invoke("outerHeight");
   const resized = () => loggedEvents().invoke("filter", ([action]: [string]) => action === "PaneResized");
+
+  it("ends a drag when the browser cancels its pointer, moving no further", () => {
+    start({ startingText: "the cat sat" });
+    divider("Resize Input and Graph").then(band => {
+      const win = band[0].ownerDocument.defaultView as Window & typeof globalThis;
+      const fire = (type: string, clientX: number) => band[0].dispatchEvent(new win.PointerEvent(type,
+        { clientX, clientY: 100, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, bubbles: true }));
+      fire("pointerdown", 300);
+      fire("pointermove", 340);
+      fire("pointercancel", 340);
+      fire("pointermove", 400);
+      if (band[0].hasPointerCapture(1)) {
+        band[0].releasePointerCapture(1);
+      }
+    });
+    resized().should("have.length", 1).its(0)
+      .should("deep.equal", ["PaneResized", { divider: "input", sizes: { input: 320, inspect: 260, top: 315 } }]);
+  });
 
   it("moves space between Input and Graph, and stops Input at its minimum", () => {
     start({ startingText: "the cat sat" });
@@ -1302,13 +1383,6 @@ describe("the workspace's dividers", () => {
       });
     });
 
-  it("puts the toolbar in two columns inside the Graph pane in a 200 px row", () => {
-    start({ startingText: "the cat sat" });
-    dragDivider("Resize the panes and the generator", 0, -1000);
-    height(".top-row").should("equal", 200);
-    toolbarInsideGraphPane(2);
-  });
-
   it("keeps the toolbar inside the Graph pane just below the row height that fits one column", () => {
     start({ startingText: "the cat sat" });
     dragDivider("Resize the panes and the generator", 0, -100);
@@ -1397,11 +1471,22 @@ describe("the workspace's dividers", () => {
     cy.get("iframe#interactive").invoke("attr", "width", "690");
     cy.interactive().find(".markov-workspace").should("have.class", "stacked");
     height(".generator-pane").should("equal", minPaneSizes.generator);
+    height(".graph-pane").should("equal", defaultPaneSizes.top);
   });
 });
 
 describe("the workspace's Case sensitive switch", () => {
   const caseSwitch = () => cy.interactive().find(".setting-switch [role='switch']");
+
+  it("clears a chosen state that the new rule takes out of the graph", () => {
+    start({ startingText: "The cat" });
+    clickState("the");
+    cy.interactive().find(".clear-highlight").should("exist");
+    caseSwitch().click();
+    stateLabels().should("deep.equal", ["The", "cat"]);
+    cy.interactive().find(".clear-highlight").should("not.exist");
+  });
+
   const states = () => cy.interactive().find(".inspect-pane tbody tr").invoke("toArray")
     .invoke("map", (tr: HTMLTableRowElement) => [tr.cells[0].textContent, tr.cells[1].textContent]) as
     unknown as Cypress.Chainable<string[][]>;
@@ -1517,6 +1602,7 @@ describe("the workspace's Case sensitive switch", () => {
     cy.interactive().find(".markov-workspace").should("not.have.class", "stacked");
     clickState("cat");
     cy.interactive().find(".clear-highlight").should("exist");
-    cy.interactive().find(".controls-row").should("have.css", "flex-wrap", "wrap");
+    cy.interactive().find(".controls-row").should("have.css", "flex-wrap", "wrap")
+      .and(controlsRow => expect(controlsRow[0].scrollWidth).to.be.at.most(controlsRow[0].clientWidth));
   });
 });

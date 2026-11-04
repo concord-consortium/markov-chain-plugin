@@ -31,8 +31,8 @@ interface InspectPaneProps {
   onSelectTransition: (edge: { from: string, to: string }) => void;
 }
 
-// The graph's states and transitions as tables, in tabs. Each table is one Tab stop: Up and Down move between its
-// rows, and Enter or Space chooses one.
+// The graph's states and transitions as tables, in tabs. Each table's rows are one Tab stop: Up and Down move between
+// them, and Enter or Space chooses one. Its column headers' sort buttons take Tab too.
 const InspectPaneContent = ({
   graph, selection, highlights, log, onSelectState, onSelectTransition
 }: InspectPaneProps) => {

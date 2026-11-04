@@ -583,7 +583,7 @@ $pane-border-color: #c7c7c7;
       }
     }
 
-    // a toolbar taller than the pane puts its buttons in two columns, in their order
+    // a toolbar taller than the pane's body puts its buttons in two columns, in their order
     &.two-columns .toolbar {
       display: grid;
       grid-template-columns: repeat(2, var(--toolbar-button));

@@ -77,7 +77,7 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
   addArrowMarker("outgoingArrow", outgoingArrowColor);
   addArrowMarker("selectedLoopArrow", selectedLoopArrowColor);
   addArrowMarker("unselectedArrow", "black", unselectedOpacity);
-  addArrowMarker("unselectedLoopArrow", "black", unselectedOpacity / lineAndLoopOpacity); // 0
+  addArrowMarker("unselectedLoopArrow", "black", unselectedOpacity / lineAndLoopOpacity);
 
   // draw nodes
   const nodes = root

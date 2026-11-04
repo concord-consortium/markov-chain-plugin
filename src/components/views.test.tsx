@@ -70,6 +70,37 @@ describe("Drawing's log", () => {
   });
 });
 
+describe("Drawing's log of changes to the graph", () => {
+  it("logs a transition deleted by its states' labels", () => {
+    const log = drawingLog();
+    fireEvent.click(screen.getByTitle("Delete"));
+    act(() => mockGraphProps.onEdgeClick({ from: "n1", to: "n2" }));
+
+    expect(log.mock.calls).toEqual([["TransitionDeleted", { from: "cat", to: "dog" }]]);
+  });
+
+  it("logs a state edited, with its new name and transitions", () => {
+    const log = drawingLog();
+    act(() => mockGraphProps.onNodeDoubleClick("n1"));
+    fireEvent.change(screen.getByDisplayValue("cat"), { target: { value: "kitten" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(log.mock.calls).toEqual([
+      ["StateDialogOpened", { state: "cat" }],
+      ["StateEdited", { state: "kitten", transitions: [{ to: "dog", value: 1 }] }],
+    ]);
+  });
+
+  it("logs a reset once it is confirmed", () => {
+    const log = drawingLog();
+    fireEvent.click(screen.getByTitle("Reset"));
+    expect(log).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Ok" }));
+
+    expect(log.mock.calls).toEqual([["GraphReset", undefined]]);
+  });
+});
+
 describe("Dataset's log", () => {
   it("logs a state's dialog opened and a state moved", () => {
     const host: MarkovHost = {

@@ -53,7 +53,7 @@ type Props = {
   onAutoArrangeEnd?: (nodes: D3Node[]) => void;
   // states already drawn keep their places when the graph changes and only new ones are laid out, unless most are new
   keepPositions?: boolean;
-  // a transition to highlight as chosen, and clicks on arrows in the select tool
+  // a transition to highlight as chosen, and clicks on arrows in any tool but Delete
   selectedEdge?: { from: string, to: string };
   onEdgeSelect?: (edge: { from: string, to: string }) => void;
   // a click on the SVG's background, which d3-zoom doesn't send after a pan

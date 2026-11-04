@@ -38,6 +38,7 @@ describe("workspaceConfig", () => {
 
   it("shows Draw mode's panes, without an Input pane or the Order matters switch, with Draw alone", () => {
     expect(workspaceConfig(withModes("draw", "draw"))).toEqual(drawConfig);
+    expect(workspaceConfig({ ...withModes("draw", "draw"), inputView: "table" })).toEqual(drawConfig);
   });
 
   it("adds the Data/Draw switch with both modes, in either starting mode", () => {
@@ -55,20 +56,12 @@ describe("workspaceConfig", () => {
     expect(workspaceConfig(withModes("both", "useData"), "draw").mode).toBe("draw");
   });
 
-  it("gives Data mode the authored input view", () => {
-    expect(workspaceConfig(authored({ inputView: "table" }))).toHaveProperty("inputView", "table");
-    expect(workspaceConfig(authored({ inputView: "text" }))).toHaveProperty("inputView", "text");
+  it.each(["table", "text", "textAndTable"] as const)("gives Data mode the authored %s view", view => {
+    const viewed = (state: MarkovAuthoredState) => ({ ...state, inputView: view });
+    expect(workspaceConfig(viewed(withModes("useData")))).toEqual({ ...dataConfig, inputView: view });
+    expect(workspaceConfig(viewed(withModes("both", "useData"))))
+      .toEqual({ ...dataConfig, inputView: view, modeSwitch: true });
   });
-
-  it.each(["table", "text", "textAndTable"] as const)("gives every mode and starting mode in full with the %s view",
-    view => {
-      const viewed = (state: MarkovAuthoredState) => ({ ...state, inputView: view });
-      expect(workspaceConfig(viewed(withModes("useData")))).toEqual({ ...dataConfig, inputView: view });
-      expect(workspaceConfig(viewed(withModes("both", "useData"))))
-        .toEqual({ ...dataConfig, inputView: view, modeSwitch: true });
-      expect(workspaceConfig(viewed(withModes("both", "draw")))).toEqual({ ...drawConfig, modeSwitch: true });
-      expect(workspaceConfig(viewed(withModes("draw", "draw")))).toEqual(drawConfig);
-    });
 
   it.each(["input", "graph", "inspect", "generator"] as const)(
     "leaves out the %s pane in Data mode when it isn't available, and starts it collapsed when it doesn't start open",

@@ -25,13 +25,14 @@ const defaultFastSimulation = false;
 const nextSelectedNodeId = (id: string | undefined, selectedNodeId: string | undefined, skipToggle?: boolean) =>
   (!id || id === selectedNodeId) && !skipToggle ? undefined : id;
 
-// The Markov tool's state and handlers, apart from any layout: MarkovTool lays them out for the CODAP plugin.
+// The Markov tool's state and handlers, apart from any layout: MarkovTool lays them out for the CODAP plugin and the
+// workspace for the Activity Player.
 export interface MarkovToolApi {
   handle: MarkovToolHandle;
   graph: GraphData;
   graphEmpty: boolean;
   animating: boolean;
-  // what the graph draws: the animation's highlights and the chosen state or output
+  // what the graph draws: the animation's highlights and the chosen state, transition or output
   graphHighlights: {
     highlightNode?: Node, highlightLoopOnNode?: Node, highlightEdge?: Edge, highlightAllNextNodes: boolean,
     highlightOutputNodes?: Node[], selectedNodeId?: string, selectedEdge?: { from: string, to: string },
@@ -367,6 +368,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     if ((generationMode !== "stepping") && (generationMode !== "paused")) {
       setGenerationMode("stepping");
       await generateNewSequence();
+      if (unmountedRef.current) {
+        return;
+      }
       log("SequenceStepped", sequenceSettings());
       animateCurrentSequenceIndex();
     } else if (currentSequenceAnimating()) {
@@ -386,6 +390,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     setHighlightOutput(undefined);
     setGenerationMode("playing");
     await generateNewSequence();
+    if (unmountedRef.current) {
+      return;
+    }
     animateCurrentSequenceIndex();
     startAnimationInterval();
   }, [generateNewSequence, animateCurrentSequenceIndex, startAnimationInterval, log, startingLabel, lengthLimit,
@@ -500,6 +507,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
         setGraph({ nodes: [], edges: [] });
         setResetViewAt(Date.now());
         setTimeout(() => {
+          if (unmountedRef.current) {
+            return;
+          }
           const restoredGraph = graphToRestore(viewMode, initialGraph, datasetValuesRef.current);
           if (restoredGraph) {
             setGraph(restoredGraph);

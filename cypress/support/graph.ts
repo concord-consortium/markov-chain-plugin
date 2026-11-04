@@ -30,5 +30,6 @@ export const graphInsideView = () =>
     expect(graph.bottom).to.be.at.most(view.bottom);
   });
 
-export const ellipse = (label: string) =>
-  cy.plugin().find("g.node").filter((i, node) => node.textContent === label).find("ellipse");
+export const ellipseIn = (root: Cypress.Chainable<JQuery<HTMLElement>>, label: string) =>
+  root.find("g.node").filter((i, node) => node.textContent === label).find("ellipse");
+export const ellipse = (label: string) => ellipseIn(cy.plugin(), label);

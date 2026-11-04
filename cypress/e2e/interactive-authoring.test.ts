@@ -255,6 +255,12 @@ describe("the interactive's authoring form", () => {
   describe("a setup that leaves students nothing to work with", () => {
     const alert = () => cy.interactive().find("[role='alert']");
     const dataOnly = withChange({ modes: { useData: true, draw: false } });
+    // messages arrive in order, so one that shouldn't have been sent is here once a later valid one is
+    const nothingSentWithoutInput = () => cy.interactiveMessages("authoredState").should(states => {
+      expect(states.length).to.be.greaterThan(0);
+      expect((states as MarkovAuthoredState[]).filter(state => !state.panes.input.available && !state.startingText))
+        .to.have.length(0);
+    });
 
     it("isn't sent with the Input pane off and no starting data, until starting data is typed", () => {
       cy.startInteractive({ mode: "authoring", authoredState: {} });
@@ -270,6 +276,7 @@ describe("the interactive's authoring form", () => {
         ...dataOnly, panes: { ...dataOnly.panes, input: { available: false, startsOpen: true } },
         startingText: "the cat",
       });
+      nothingSentWithoutInput();
     });
 
     it("isn't sent with every pane off", () => {
@@ -278,9 +285,13 @@ describe("the interactive's authoring form", () => {
       cy.interactive().find("#startingText").type("the cat");
       ["input", "graph", "inspect", "generator"].forEach(pane => cy.interactive().find(`#pane-${pane}`).uncheck());
       alert().should("contain.text", "Turn on at least one pane, or students will see nothing.");
-      lastSaved().its("panes").should(panes => {
-        const available = Object.values(panes as Record<string, { available: boolean }>).map(pane => pane.available);
-        expect(available).to.include(true);
+      cy.interactive().find("#pane-graph").check();
+      alert().should("not.exist");
+      lastSaved().its("panes.graph.available").should("equal", true);
+      cy.interactiveMessages("authoredState").should(states => {
+        expect(states.length).to.be.greaterThan(0);
+        (states as MarkovAuthoredState[]).forEach(state =>
+          expect(Object.values(state.panes).map(pane => pane.available)).to.include(true));
       });
     });
 
@@ -291,7 +302,12 @@ describe("the interactive's authoring form", () => {
       cy.interactive().find("#pane-inspect").uncheck();
       cy.interactive().find("#pane-inspect").should("not.be.checked");
       alert().should("contain.text", "With the Input pane off, add starting data");
-      cy.interactiveMessages("authoredState").should("have.length", 0);
+      cy.interactive().find("#startingText").type("a");
+      alert().should("not.exist");
+      cy.interactiveMessages("authoredState").should(states => {
+        expect(states).to.have.length(1);
+        expect(states[0]).to.include({ startingText: "a" });
+      });
     });
   });
 });

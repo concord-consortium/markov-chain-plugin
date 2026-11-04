@@ -1,4 +1,6 @@
-import { closingBracket, endsWord, isWhitespace, punctuation, rowText, textForRow, Token } from "./tokenizer";
+import {
+  closingBracket, commonEnds, endsWord, isWhitespace, punctuation, rowText, textForRow, Token
+} from "./tokenizer";
 
 // Each returns the new text; tokens are the text's current tokens, and row indexes count breaks as rows.
 
@@ -50,7 +52,8 @@ export const editRow = (text: string, tokens: Token[], row: number, value: strin
   if (word) {
     return write(text, token.start, token.end, textForRow(word));
   }
-  // an emptied row is a blank line, which takes in the whitespace around the word
+  // an emptied row is a blank line, which takes in the whitespace around the word; at either end of the input the
+  // tokenizer reads no break there, so the row goes
   let start = token.start;
   let end = token.end;
   while (start > 0 && isWhitespace(text[start - 1])) {
@@ -106,15 +109,7 @@ export const deleteRow = (text: string, tokens: Token[], row: number): string =>
 // common end: a place before the run keeps its offset, one after it moves with the change in length, and one inside
 // it is placed at the run's start.
 export const placeAfterEdit = (before: string, after: string, place: number) => {
-  const shorter = Math.min(before.length, after.length);
-  let start = 0;
-  while (start < shorter && before[start] === after[start]) {
-    start++;
-  }
-  let end = 0;
-  while (end < shorter - start && before[before.length - 1 - end] === after[after.length - 1 - end]) {
-    end++;
-  }
+  const { prefix: start, suffix: end } = commonEnds(before, after);
   if (place < start) {
     return { place, inside: false };
   }

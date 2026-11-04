@@ -52,6 +52,27 @@ describe("useMarkovTool", () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
+  it("starts no timer for a sequence whose tool unmounts while it generates", async () => {
+    const { handle, unmount } = renderTool(recordingHost("drawing"));
+    act(() => handle.current!.loadDrawing(drawing, 2));
+    const intervals = jest.spyOn(window, "setInterval");
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    unmount();
+    await act(async () => jest.advanceTimersByTime(100));
+    expect(intervals).not.toHaveBeenCalled();
+    intervals.mockRestore();
+  });
+
+  it("logs no step for a sequence whose tool unmounts while it generates", async () => {
+    const host = recordingHost("drawing");
+    const { handle, unmount } = renderTool(host);
+    act(() => handle.current!.loadDrawing(drawing, 2));
+    fireEvent.click(screen.getByRole("button", { name: "Step" }));
+    unmount();
+    await act(async () => jest.advanceTimersByTime(100));
+    expect(host.log.mock.calls.map(([event]) => event)).not.toContain("SequenceStepped");
+  });
+
   it("stops waiting for the graph's size to move an old drawing's origin when it unmounts", () => {
     const { handle, unmount } = renderTool(recordingHost("drawing"));
     act(() => handle.current!.loadDrawing(JSON.parse(JSON.stringify(drawing)), 1));
@@ -174,6 +195,21 @@ describe("useMarkovTool's log", () => {
     await act(async () => jest.advanceTimersByTime(30000));
 
     expect(loggedEvents(host)).toEqual(["SequencePlayed", "SequenceCanceled"]);
+  });
+
+  it("logs a pause, a resume and clearing the outputs", async () => {
+    const host = recordingHost("drawing");
+    const { handle } = renderTool(host);
+    act(() => handle.current!.loadDrawing(drawing, 2));
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Resume" }));
+    await screen.findByRole("button", { name: "Pause" });
+    expect(loggedEvents(host)).toEqual(["SequencePlayed", "SequencePaused", "SequenceResumed"]);
+
+    await act(async () => jest.advanceTimersByTime(30000));
+    fireEvent.click(await screen.findByRole("button", { name: "Clear Output" }));
+    expect(loggedEvents(host)).toContain("OutputCleared");
   });
 
   it("logs Max Length once when Enter and then a blur commit the same value", () => {

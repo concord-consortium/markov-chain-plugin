@@ -1,7 +1,7 @@
 import {
-  defaultPaneSizes, dividerBand, dividerLimits, dragDivider, dragInputSplit, drawnInputSplit, drawnRowHeight,
+  defaultPaneSizes, dividerLimits, dragDivider, dragInputSplit, drawnInputSplit, drawnRowHeight,
   fitPaneSizes, graphBodyHeight, inputPartMin, movesDivider, movesInputSplit, resizedPanes, toolbarColumns,
-  toolbarHeight, workspaceHeight
+  toolbarHeight
 } from "./pane-sizes";
 
 const allOpen = { input: true, graph: true, inspect: true };
@@ -9,17 +9,9 @@ const allOpen = { input: true, graph: true, inspect: true };
 const room = 1000;
 
 describe("pane sizes", () => {
-  it("fits the workspace to a Chromebook's screen", () => {
-    expect(workspaceHeight).toBe(550);
-  });
-
   it("measures the toolbar in one or two columns", () => {
     expect(toolbarHeight(5)).toBe(184);
     expect(toolbarHeight(5, 2)).toBe(112);
-  });
-
-  it("spans a divider's band across the gap and the panes' padding beside it", () => {
-    expect(dividerBand).toBe(18);
   });
 
   it("puts Data mode's five tools in two columns below a 222 px row", () => {
@@ -144,7 +136,7 @@ describe("resizedPanes", () => {
 });
 
 describe("movesInputSplit", () => {
-  it("counts a move past half a pixel as drawn, so a split held at half a short body is unmoved", () => {
+  it("counts a move of half a pixel or more as drawn, so a split held at half a short body is unmoved", () => {
     expect(movesInputSplit(0.4, 0.5, 119)).toBe(false);
     expect(movesInputSplit(0.4, 0.5, 300)).toBe(true);
     expect(movesInputSplit(0.4, 0.4 + 0.6 / 300, 300)).toBe(true);

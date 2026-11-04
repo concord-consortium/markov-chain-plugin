@@ -86,8 +86,7 @@ export const resizedPanes = (stored: PaneSizes, divider: PaneDivider, delta: num
   open: OpenPanes): PaneSizes =>
   dragDivider(divider === "rows" ? stored : fitPaneSizes(stored, room, open), divider, delta, room, open);
 
-// the linked Input pane's split: the text box's share of a body bodyHeight px tall, moved by delta px (down),
-// stopped where the text box or the table reaches its minimum
+// the linked Input pane's split: the text box's share of the pane's body
 export const defaultInputSplit = 0.4;
 export const minInputPart = 60;
 // each part's minimum, or half the body where it is too short for both
@@ -99,6 +98,8 @@ export const drawnInputSplit = (split: number, bodyHeight: number) => bodyHeight
 // whether a split stored as to draws the split divider somewhere other than a split stored as from
 export const movesInputSplit = (from: number, to: number, bodyHeight: number) =>
   Math.abs(drawnInputSplit(to, bodyHeight) - drawnInputSplit(from, bodyHeight)) * bodyHeight >= minDividerMove;
+// the split moved by delta px (down) in a body bodyHeight px tall, stopped where the text box or the table reaches its
+// minimum
 export const dragInputSplit = (split: number, delta: number, bodyHeight: number) =>
   drawnInputSplit((drawnInputSplit(split, bodyHeight) * bodyHeight + delta) / bodyHeight, bodyHeight);
 

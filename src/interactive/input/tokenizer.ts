@@ -96,18 +96,34 @@ export const textForRow = (text: string) => {
   return tokens.length === 1 && token.kind === "word" && token.text === text ? text : `[${text}]`;
 };
 
-// what an edit from one text to the next inserted and how many characters (code points, so an emoji is one) it
-// removed, past their common prefix and suffix
-export const textChange = (old: string, next: string) => {
-  let prefix = 0;
+const isHighSurrogate = (unit: number) => unit >= 0xd800 && unit <= 0xdbff;
+const isLowSurrogate = (unit: number) => unit >= 0xdc00 && unit <= 0xdfff;
+
+// how long the two texts' common start (prefix) and, after it, common end (suffix) are, in whole characters, so that
+// two emoji sharing half their code units stay whole
+export const commonEnds = (old: string, next: string) => {
   const shorter = Math.min(old.length, next.length);
+  let prefix = 0;
   while (prefix < shorter && old[prefix] === next[prefix]) {
     prefix++;
+  }
+  if (prefix > 0 && isHighSurrogate(old.charCodeAt(prefix - 1))) {
+    prefix--;
   }
   let suffix = 0;
   while (suffix < shorter - prefix && old[old.length - 1 - suffix] === next[next.length - 1 - suffix]) {
     suffix++;
   }
+  if (suffix > 0 && isLowSurrogate(old.charCodeAt(old.length - suffix))) {
+    suffix--;
+  }
+  return { prefix, suffix };
+};
+
+// what an edit from one text to the next inserted and how many characters (code points, so an emoji is one) it
+// removed, past their common prefix and suffix
+export const textChange = (old: string, next: string) => {
+  const { prefix, suffix } = commonEnds(old, next);
   const removed = [...old.slice(prefix, old.length - suffix)].length;
   return { inserted: next.slice(prefix, next.length - suffix), removed };
 };

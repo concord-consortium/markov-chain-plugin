@@ -1,9 +1,8 @@
-import { pastDoubleClick } from "./graph";
+import { ellipseIn, pastDoubleClick } from "./graph";
 
 // Helpers for the Markov Interactive's workspace, in the fake Activity Player page's frame.
 
-export const stateEllipse = (label: string) =>
-  cy.interactive().find("g.node").filter((i, node) => node.textContent === label).find("ellipse");
+export const stateEllipse = (label: string) => ellipseIn(cy.interactive(), label);
 // invoke, not then, so a should() after it retries the query until the labels match
 export const stateLabels = () => cy.interactive().find("g.node text").invoke("toArray")
   .invoke("map", (text: Element) => text.textContent).invoke("sort");
@@ -106,9 +105,9 @@ export const pressTab = () => cy.get<HTMLIFrameElement>("iframe#interactive").th
   const takesTab = [...doc.querySelectorAll<HTMLElement>("input, textarea, button, select, a[href], [tabindex]")]
     .filter(element => element.tabIndex >= 0 && !(element as HTMLButtonElement).disabled &&
       element.getClientRects().length > 0);
-  const from = doc.activeElement;
-  const next = takesTab.find(element => from?.compareDocumentPosition(element) === Node.DOCUMENT_POSITION_FOLLOWING);
-  next?.focus();
+  const inOrder = [...doc.querySelectorAll("*")];
+  const from = doc.activeElement ? inOrder.indexOf(doc.activeElement) : -1;
+  takesTab.find(element => inOrder.indexOf(element) > from)?.focus();
 });
 
 export const divider = (label: string) => cy.interactive().find(`[role='separator'][aria-label='${label}']`);

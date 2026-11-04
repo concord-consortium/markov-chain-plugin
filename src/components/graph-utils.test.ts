@@ -157,15 +157,18 @@ describe("layoutFor", () => {
   });
 });
 
-// one arrow's length between two of the smallest states, as the layout draws it
+// the layout's distance between the centers of two of the smallest states
 const distance = linkDistance(settings.minRadius, settings.minRadius);
+
+describe("linkDistance", () => {
+  it("aims for one and a half times the two radii", () => {
+    expect(linkDistance(20, 30)).toBe(75);
+  });
+});
 
 describe("startPosition", () => {
   const placed = new Map([["a", { x: 100, y: 50 }]]);
 
-  it("starts a new state 75 px from its source, the arrow between two of the smallest states", () => {
-    expect(distance).toBe(75);
-  });
   const at = (angle: number, from: { x: number, y: number }) => ({
     x: from.x + distance * Math.cos(angle * Math.PI / 180), y: from.y + distance * Math.sin(angle * Math.PI / 180)
   });

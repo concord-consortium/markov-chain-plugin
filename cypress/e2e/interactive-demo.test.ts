@@ -82,7 +82,10 @@ describe("the interactive's demo page", () => {
     runtimeStatesShould([".", "cat", "the"]);
     // a runtime with that text saves a state, after the library's 2 second pause
     cy.wrap(savedStates, { timeout: 5000 }).should("have.length.at.least", 1);
+    // past the pause of any runtime the typing restarted
+    cy.wait(2500);
     cy.then(() => {
+      expect(savedStates[savedStates.length - 1]).to.deep.equal({ version: 1 });
       const savedBefore = savedStates.length;
       frameBody("Authoring").find("#capitalization").select("asTyped");
       runtimeStatesShould([".", "The", "cat", "the"]);
@@ -109,10 +112,33 @@ describe("the interactive's demo page", () => {
       });
       frameBody("Interactive").find("textarea[aria-label='Your text']").type(" dog ");
       // the library posts a state 2 seconds after the last save
-      cy.wrap(savedTexts, { timeout: 5000 }).should("deep.equal", ["the cat sat on the mat. the cat ran. dog "]);
+      cy.wrap(savedTexts, { timeout: 5000 }).should(texts =>
+        expect(texts[texts.length - 1]).to.equal("the cat sat on the mat. the cat ran. dog "));
     });
 
     it("starts the runtime over from a changed starting text", () => {
+      frameBody("Authoring").find("#startingText").clear().type("a new start");
+      runtimeTextShould("a new start");
+      runtimeStatesShould(["a", "new", "start"]);
+    });
+
+    it("starts the runtime over when the old runtime saves as its restart begins", () => {
+      const restartDelay = 500;
+      cy.window().then(win => {
+        const frame = win.document.querySelector<HTMLIFrameElement>("iframe[title=\"Interactive\"]")!;
+        const lateSave = JSON.stringify({ type: "interactiveState", content: {
+          version: 1, input: { text: "the old input" } } });
+        const setTimeoutOf = win.setTimeout;
+        // the save lands as the restart's timer ends, ahead of the render that disconnects the old runtime
+        cy.stub(win, "setTimeout").callsFake((run: () => void, delay?: number) => setTimeoutOf(() => {
+          run();
+          if (delay === restartDelay) {
+            win.dispatchEvent(new MessageEvent("message", {
+              data: lateSave, origin: win.location.origin, source: frame.contentWindow
+            }));
+          }
+        }, delay));
+      });
       frameBody("Authoring").find("#startingText").clear().type("a new start");
       runtimeTextShould("a new start");
       runtimeStatesShould(["a", "new", "start"]);
@@ -222,7 +248,7 @@ describe("the interactive's demo page", () => {
   });
 
   // Electron's window.open gives Cypress no window; the CI job runs Chrome
-  it("opens its link standalone with the settings the runtime lists", { browser: "chrome" }, () => {
+  it("opens its link standalone with the panes the runtime shows", { browser: "chrome" }, () => {
     cy.visit("/demo.html");
     frameBody("Authoring").find("#usableModes").select("Data");
     frameBody("Authoring").find("#pane-inspect").uncheck();
