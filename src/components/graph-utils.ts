@@ -156,16 +156,33 @@ export const isPlaced = (keepPositions: boolean, drawn: boolean, node: { x?: num
 export const layoutFor = (placed: number, total: number): "whole" | "new" | "none" =>
   placed === total ? "none" : (total - placed) * 2 > total ? "whole" : "new";
 
-const newStateOffset = 30;
+// the length the layout gives an arrow between two states of these radii
+export const linkDistance = (radius: number, otherRadius: number) => (radius + otherRadius) * 1.5;
 
-// where a new state starts: beside the first placed state with an arrow to it, else at the origin
+const startDistance = linkDistance(settings.minRadius, settings.minRadius);
+const startAngles = 12;
+
+// Where a new state starts: one arrow's length from the first placed state with an arrow to it, at the spot nearest
+// the layout's center (the origin) that is that far from every other placed state, so a chain added a word at a time
+// winds around the graph rather than running off in one direction; where no spot is that clear, the clearest one.
+// With no placed source, at the origin.
 export const startPosition = (id: string, edges: { from: string, to: string }[],
   placed: Map<string, { x: number, y: number }>) => {
-  for (const edge of edges) {
-    const source = edge.to === id ? placed.get(edge.from) : undefined;
-    if (source) {
-      return { x: source.x + newStateOffset, y: source.y + newStateOffset };
-    }
+  const sourceEdge = edges.find(edge => edge.to === id && placed.has(edge.from));
+  const source = sourceEdge && placed.get(sourceEdge.from);
+  if (!sourceEdge || !source) {
+    return { x: 0, y: 0 };
   }
-  return { x: 0, y: 0 };
+  const others = [...placed].filter(([other]) => other !== sourceEdge.from && other !== id).map(([, at]) => at);
+  const candidates = Array.from({ length: startAngles }, (_, i) => {
+    const angle = 2 * Math.PI * i / startAngles;
+    const at = { x: source.x + startDistance * Math.cos(angle), y: source.y + startDistance * Math.sin(angle) };
+    const clearance = Math.min(Infinity, ...others.map(o => Math.hypot(o.x - at.x, o.y - at.y)));
+    return { at, clearance, fromCenter: Math.hypot(at.x, at.y) };
+  });
+  const clear = candidates.filter(c => c.clearance >= startDistance);
+  const best = clear.length > 0
+    ? clear.reduce((a, b) => b.fromCenter < a.fromCenter ? b : a)
+    : candidates.reduce((a, b) => b.clearance > a.clearance ? b : a);
+  return best.at;
 };

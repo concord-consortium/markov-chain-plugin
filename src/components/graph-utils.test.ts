@@ -142,14 +142,48 @@ describe("layoutFor", () => {
 
 describe("startPosition", () => {
   const placed = new Map([["a", { x: 100, y: 50 }]]);
+  // one arrow's length between two of the smallest states, as the layout draws it
+  const distance = 75;
+  const at = (angle: number, from: { x: number, y: number }) => ({
+    x: from.x + distance * Math.cos(angle * Math.PI / 180), y: from.y + distance * Math.sin(angle * Math.PI / 180)
+  });
+  // to the hundredth of a px, with -0 as 0
+  const rounded = ({ x, y }: { x: number, y: number }) =>
+    ({ x: Math.round(x * 100) / 100 + 0, y: Math.round(y * 100) / 100 + 0 });
+  const startOfB = (edges: { from: string, to: string }[], states: Map<string, { x: number, y: number }>) =>
+    rounded(startPosition("b", edges, states));
 
-  it("starts a new state beside a placed state with an arrow to it", () => {
-    expect(startPosition("b", [{ from: "c", to: "d" }, { from: "a", to: "b" }], placed)).toEqual({ x: 130, y: 80 });
+  it("starts a new state an arrow's length from its placed source, on the side toward the center", () => {
+    const edges = [{ from: "c", to: "d" }, { from: "a", to: "b" }];
+    expect(startOfB(edges, placed)).toEqual(rounded(at(210, { x: 100, y: 50 })));
   });
 
-  it("starts a state beside the first of its placed sources, in arrow order", () => {
-    const sources = new Map([["a", { x: 100, y: 50 }], ["c", { x: -40, y: 10 }]]);
-    expect(startPosition("b", [{ from: "c", to: "b" }, { from: "a", to: "b" }], sources)).toEqual({ x: -10, y: 40 });
+  it("starts a state from the first of its placed sources, in arrow order", () => {
+    const sources = new Map([["a", { x: 100, y: 50 }], ["c", { x: -200, y: 0 }]]);
+    const edges = [{ from: "c", to: "b" }, { from: "a", to: "b" }];
+    expect(startOfB(edges, sources)).toEqual(rounded(at(0, { x: -200, y: 0 })));
+  });
+
+  it("starts a state clear of the other placed states, not on them", () => {
+    const states = new Map([["a", { x: 100, y: 10 }], ["c", { x: 30, y: 10 }]]);
+    expect(startOfB([{ from: "a", to: "b" }], states)).toEqual(rounded(at(270, { x: 100, y: 10 })));
+  });
+
+  it("starts a state where it is clearest when no spot is an arrow's length from every state", () => {
+    const states = new Map([
+      ["a", { x: 0, y: 0 }], ["c", { x: 50, y: 0 }], ["d", { x: -45, y: 5 }], ["e", { x: 0, y: 50 }],
+      ["f", { x: 0, y: -50 }]
+    ]);
+    expect(startOfB([{ from: "a", to: "b" }], states)).toEqual(rounded(at(210, { x: 0, y: 0 })));
+  });
+
+  it("winds a chain added a state at a time around the center rather than running it in a line", () => {
+    const chain = new Map([["s0", { x: 0, y: 0 }]]);
+    for (let i = 1; i < 12; i++) {
+      chain.set(`s${i}`, startPosition(`s${i}`, [{ from: `s${i - 1}`, to: `s${i}` }], chain));
+    }
+    const farthest = Math.max(...[...chain.values()].map(p => Math.hypot(p.x, p.y)));
+    expect(farthest).toBeLessThan(4 * distance);
   });
 
   it("starts a state with no placed source at the origin", () => {

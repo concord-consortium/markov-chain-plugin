@@ -1,7 +1,7 @@
 import React from "react";
 import * as d3 from "d3";
 
-import { calculateNodeFontSize, layoutFor, nodeLoopPath, ry } from "./graph-utils";
+import { calculateNodeFontSize, layoutFor, linkDistance, nodeLoopPath, ry } from "./graph-utils";
 import { calculateEdges, D3Graph, D3Node, lineDashArray, lineEnd } from "./graph-geometry";
 import {
   animatedArrowColor, arrowUrl, incomingArrowColor, lineAndLoopOpacity, outgoingArrowColor, selectedLoopArrowColor,
@@ -215,7 +215,7 @@ export const drawGraph = (svg: d3.Selection<SVGSVGElement, unknown, null, undefi
     // Create a new force simulation and assign forces
     simulation = d3
       .forceSimulation(d3Graph.nodes)
-      .force("link", d3.forceLink(d3Graph.edges).distance(e => (e.source.radius + e.target.radius) * 1.5))
+      .force("link", d3.forceLink(d3Graph.edges).distance(e => linkDistance(e.source.radius, e.target.radius)))
       .force("charge", d3.forceManyBody().strength(-350))
       .force("x", d3.forceX())
       .force("y", d3.forceY())
