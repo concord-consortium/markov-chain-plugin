@@ -8,6 +8,7 @@ import { ArrowWidths } from "./graph-utils";
 
 import { DragIcon } from "./drawing/drag-icon";
 import { NodeModal } from "./drawing/node-modal";
+import { nextStateLabel } from "./drawing/state-labels";
 import { Tool, Toolbar } from "./toolbar";
 import { AddText } from "./drawing/add-text";
 import { textToWords, wordsToGraph } from "../utils/text-to-graph";
@@ -55,6 +56,10 @@ interface Props {
   fitTransitionMs?: number;
   // Escape closes an open state editor and does nothing else; absent in the plugin
   closeEditorOnEscape?: boolean;
+  // every state's label is its own: new states skip names in use, and the editor refuses an empty or taken one
+  uniqueLabels?: boolean;
+  // the state editor's slider takes keys, touch and pen, and its fields are named; absent in the plugin
+  accessibleEditor?: boolean;
 }
 
 export const Drawing = (props: Props) => {
@@ -63,7 +68,7 @@ export const Drawing = (props: Props) => {
          fitViewAt, recenterViewAt, onClearHighlightOutput, graphOpacity, resetViewAt,
          selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView, log,
          tools: shownTools = tools, probabilityLabels, arrowWidths, selectedEdge, onEdgeSelect, onBackgroundClick,
-         onUserZoom, fitTransitionMs, closeEditorOnEscape } = props;
+         onUserZoom, fitTransitionMs, closeEditorOnEscape, uniqueLabels, accessibleEditor } = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
@@ -169,7 +174,7 @@ export const Drawing = (props: Props) => {
 
   const addNode = useCallback(({ x, y }: {x: number, y: number}) => {
     const id = nanoid();
-    const newLabel = `State ${graph.nodes.length + 1}`;
+    const newLabel = uniqueLabels ? nextStateLabel(graph.nodes.map(n => n.label)) : `State ${graph.nodes.length + 1}`;
     setGraph(prev => {
       const newNode: Node = { id, label: newLabel, value: 1, x, y };
       return {
@@ -178,7 +183,7 @@ export const Drawing = (props: Props) => {
       };
     });
     log("StateAdded", { state: newLabel });
-  }, [graph, setGraph, log]);
+  }, [graph, setGraph, log, uniqueLabels]);
 
   const addEdge = useCallback(({ from, to }: {from: string, to: string}) => {
     if (!graph.edges.some(e => e.from === from && e.to === to)) {
@@ -413,6 +418,8 @@ export const Drawing = (props: Props) => {
         graph={graph}
         onChange={handleChangeNode}
         onCancel={handleClearSelectedNode}
+        uniqueLabels={uniqueLabels}
+        accessibleEditor={accessibleEditor}
       />
       <AddText
         ref={textAreaRef}

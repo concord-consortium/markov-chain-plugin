@@ -81,4 +81,74 @@ describe("NodeModal", () => {
     fireEvent.click(save);
     expect(onChange.mock.calls[0][2][0].value).toBeCloseTo(7);
   });
+
+  describe("with uniqueLabels", () => {
+    const named = {
+      nodes: [state("a"), state("b")],
+      edges: [{ from: "a", to: "b", value: 1 }],
+    };
+    const renderUnique = (onChange = jest.fn()) => render(<NodeModal viewMode="drawing" node={named.nodes[0]}
+      graph={named} onChange={onChange} onCancel={jest.fn()} uniqueLabels />);
+    const nameField = () => screen.getByRole("textbox");
+    const save = () => screen.getByRole("button", { name: "Save" });
+
+    it("refuses an empty name, saying why", () => {
+      renderUnique();
+      fireEvent.change(nameField(), { target: { value: " " } });
+      expect(screen.getByRole("alert")).toHaveTextContent("Give the state a name.");
+      expect(save()).toBeDisabled();
+    });
+
+    it("refuses another state's name, and won't save it with Enter", () => {
+      const onChange = jest.fn();
+      renderUnique(onChange);
+      fireEvent.change(nameField(), { target: { value: "b" } });
+      expect(screen.getByRole("alert")).toHaveTextContent(`Another state is already named "b".`);
+      fireEvent.submit(nameField());
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("saves its own name or a new one", () => {
+      const onChange = jest.fn();
+      renderUnique(onChange);
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      fireEvent.change(nameField(), { target: { value: "c" } });
+      expect(save()).toBeEnabled();
+      fireEvent.click(save());
+      expect(onChange).toHaveBeenCalledWith("a", expect.objectContaining({ label: "c" }), expect.anything());
+    });
+  });
+
+  it("takes any name without uniqueLabels", () => {
+    const graphOfTwo = { nodes: [state("a"), state("b")], edges: [] };
+    render(<NodeModal viewMode="drawing" node={graphOfTwo.nodes[0]} graph={graphOfTwo} onChange={jest.fn()}
+      onCancel={jest.fn()} />);
+    expect(screen.getByRole("textbox")).not.toHaveAttribute("aria-label");
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "b" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+  });
+
+  it("saves no value below 0 when a key takes the last share to nothing", async () => {
+    const onChange = jest.fn();
+    const uneven = {
+      nodes: [state("a"), state("b"), state("c"), state("d")],
+      edges: [{ from: "a", to: "b", value: 4 }, { from: "a", to: "c", value: 7 }, { from: "a", to: "d", value: 1 }],
+    };
+    render(<NodeModal viewMode="drawing" node={uneven.nodes[0]} graph={uneven} onChange={onChange}
+      onCancel={jest.fn()} accessibleEditor />);
+    fireEvent.keyDown(await screen.findByRole("slider", { name: "Probability of c" }),
+      { key: "ArrowRight", shiftKey: true });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const [, , edges] = onChange.mock.calls[0];
+    expect(edges.map((edge: { value: number }) => edge.value >= 0)).toEqual([true, true, true]);
+  });
+
+  it("names its field and gives its slider keys when accessible", async () => {
+    render(<NodeModal viewMode="drawing" node={graph.nodes[0]} graph={graph} onChange={jest.fn()}
+      onCancel={jest.fn()} accessibleEditor />);
+    expect(screen.getByRole("textbox", { name: "State name" })).toBeInTheDocument();
+    expect(await screen.findAllByRole("slider")).toHaveLength(2);
+  });
 });

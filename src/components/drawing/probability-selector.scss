@@ -15,6 +15,16 @@
         cursor: pointer;
       }
     }
+
+    &.accessible svg {
+      touch-action: none;
+
+      circle:focus-visible {
+        outline: none;
+        stroke: #000;
+        stroke-width: 2px;
+      }
+    }
   }
 
   .percentages {

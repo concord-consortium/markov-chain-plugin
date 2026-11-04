@@ -162,6 +162,34 @@ describe("Drawing", () => {
     });
   });
 
+  describe("naming a new state", () => {
+    const named = { nodes: [{ id: "a", label: "State 2", value: 1, x: 0, y: 0 }], edges: [] };
+    const addedLabel = () => {
+      fireEvent.click(button("Add State"));
+      act(() => mockGraphProps.onClick({ clientX: 0, clientY: 0 }));
+      return baseProps.setGraph.mock.calls[0][0]({ nodes: [], edges: [] }).nodes[0].label;
+    };
+
+    it("skips names in use with uniqueLabels", () => {
+      render(<Drawing {...baseProps} graph={named} tools={workspaceTools} uniqueLabels />);
+      expect(addedLabel()).toBe("State 3");
+    });
+
+    it("counts the states without it", () => {
+      render(<Drawing {...baseProps} graph={named} tools={workspaceTools} />);
+      expect(addedLabel()).toBe("State 2");
+    });
+  });
+
+  it("passes the editor's options to the state editor", () => {
+    const two = { nodes: [...baseProps.graph.nodes, { id: "b", label: "b", value: 1, x: 0, y: 0 }], edges: [] };
+    render(<Drawing {...baseProps} graph={two} accessibleEditor uniqueLabels />);
+    act(() => mockGraphProps.onNodeDoubleClick("a"));
+    const name = screen.getByRole("textbox", { name: "State name" });
+    fireEvent.change(name, { target: { value: "b" } });
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+
   it("passes the workspace's graph options through", () => {
     const selectedEdge = { from: "a", to: "a" };
     render(<Drawing {...baseProps} probabilityLabels arrowWidths="equal" selectedEdge={selectedEdge}
