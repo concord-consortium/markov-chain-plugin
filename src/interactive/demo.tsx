@@ -119,11 +119,20 @@ const Demo = () => {
   const [authoredState, setAuthoredState] = useState<unknown>(initialAuthoredState);
   const [runtimeAuthoredState, setRuntimeAuthoredState] = useState<unknown>(initialAuthoredState);
   const [widthId, setWidthId] = useState<DemoWidthId>(() => readDemoWidth(window.location.search));
-  // kept across the runtime's restarts, as the Activity Player keeps a student's state
+  // kept across the runtime's restarts, as the Activity Player keeps a student's state, until the starting text
+  // changes: saved input comes before the starting text, so a new one would otherwise never show here
   const interactiveStateRef = useRef<unknown>(null);
+  const runtimeStartingTextRef = useRef(initialAuthoredState.startingText);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setRuntimeAuthoredState(authoredState), restartDelay);
+    const timeout = window.setTimeout(() => {
+      const { startingText } = readAuthoredState(authoredState);
+      if (startingText !== runtimeStartingTextRef.current) {
+        runtimeStartingTextRef.current = startingText;
+        interactiveStateRef.current = null;
+      }
+      setRuntimeAuthoredState(authoredState);
+    }, restartDelay);
     return () => window.clearTimeout(timeout);
   }, [authoredState]);
 

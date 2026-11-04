@@ -80,13 +80,51 @@ describe("the interactive's demo page", () => {
     // the demo's own text has no capital letter
     frameBody("Authoring").find("#startingText").clear().type("The cat. the cat");
     runtimeStatesShould([".", "cat", "the"]);
-    // the first runtime saves a state, after the library's 2 second pause
-    cy.wrap(savedStates, { timeout: 5000 }).should("have.length", 1);
-    frameBody("Authoring").find("#capitalization").select("asTyped");
-    runtimeStatesShould([".", "The", "cat", "the"]);
-    // started with that state, the restarted runtime has nothing to save
-    cy.wait(2500);
-    cy.wrap(savedStates).should("deep.equal", [{ version: 1 }]);
+    // a runtime with that text saves a state, after the library's 2 second pause
+    cy.wrap(savedStates, { timeout: 5000 }).should("have.length.at.least", 1);
+    cy.then(() => {
+      const savedBefore = savedStates.length;
+      frameBody("Authoring").find("#capitalization").select("asTyped");
+      runtimeStatesShould([".", "The", "cat", "the"]);
+      // started with that state, the restarted runtime has nothing to save
+      cy.wait(2500);
+      cy.wrap(savedStates).should("have.length", savedBefore);
+    });
+  });
+
+  describe("with words typed in the running interactive", () => {
+    const textBoxIn = (doc: Document) => doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']");
+    const runtimeTextShould = (expected: string) => cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument")
+      .should((doc: Document) => expect(textBoxIn(doc)?.value).to.equal(expected));
+
+    beforeEach(() => {
+      const savedTexts: unknown[] = [];
+      cy.visit("/demo.html", {
+        onBeforeLoad: win => win.addEventListener("message", event => {
+          const message = messageOf(event.data);
+          if (message?.type === "interactiveState" && message.content?.input) {
+            savedTexts.push(message.content.input.text);
+          }
+        })
+      });
+      frameBody("Interactive").find("textarea[aria-label='Your text']").type(" dog ");
+      // the library posts a state 2 seconds after the last save
+      cy.wrap(savedTexts, { timeout: 5000 }).should("deep.equal", ["the cat sat on the mat. the cat ran. dog "]);
+    });
+
+    it("starts the runtime over from a changed starting text", () => {
+      frameBody("Authoring").find("#startingText").clear().type("a new start");
+      runtimeTextShould("a new start");
+      runtimeStatesShould(["a", "new", "start"]);
+    });
+
+    it("keeps what was typed when another setting changes", () => {
+      frameBody("Authoring").find("#capitalization").select("asTyped");
+      cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument")
+        .should(doc => expect(doc.querySelector(".setting-switch [role='switch']")?.getAttribute("aria-checked"))
+          .to.equal("true"));
+      runtimeTextShould("the cat sat on the mat. the cat ran. dog ");
+    });
   });
 
   it("links to the interactive standalone with the settings that differ from the defaults", () => {
