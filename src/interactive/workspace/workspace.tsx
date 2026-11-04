@@ -26,7 +26,7 @@ import {
 import { Divider } from "./divider";
 import { scrollTextToMark, scrollToLit } from "./scroll-to-lit";
 import { SettingLabel, SettingSwitch } from "./setting-switch";
-import { useLatest } from "./use-latest";
+import { useLatest } from "../../hooks/use-latest";
 import { useMeasuredSize } from "./use-measured-size";
 import { WorkspaceConfig, workspaceConfig, WorkspacePaneId } from "./workspace-config";
 

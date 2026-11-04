@@ -4,7 +4,7 @@ import { maxInputLength } from "../interactive-state";
 import { deleteRow, editRow, insertRow, placeAfterEdit } from "../input/table-edits";
 import { rowText, Token, tokenize } from "../input/tokenizer";
 import { Highlights } from "./highlights";
-import { useLatest } from "./use-latest";
+import { useLatest } from "../../hooks/use-latest";
 
 interface InputTableProps {
   // the committed input, which the rows are the tokens of

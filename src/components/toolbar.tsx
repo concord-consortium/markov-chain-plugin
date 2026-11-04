@@ -55,6 +55,8 @@ interface ToolbarButtonProps {
   tool: Tool
   disabled: boolean
   selectedTool: Tool;
+  // tells screen readers which of the drawing tools is pressed
+  reportPressed?: boolean;
   onClick: (tool: Tool) => void;
 }
 
@@ -68,11 +70,14 @@ interface ToolbarProps {
   onRecenterView: () => void;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
+  // the pressed tool, for a host that keeps it; absent, the toolbar keeps its own
+  selectedTool?: Tool;
 }
 
-export const ToolbarButton = ({ tool, disabled, selectedTool, onClick }: ToolbarButtonProps) => {
+export const ToolbarButton = ({ tool, disabled, selectedTool, reportPressed, onClick }: ToolbarButtonProps) => {
   const handleClick = () => onClick(tool);
-  const selected = toggleableTools.includes(tool) && tool === selectedTool;
+  const toggleable = toggleableTools.includes(tool);
+  const selected = toggleable && tool === selectedTool;
   const notImplemented = notImplementedTools.includes(tool);
   const title = `${toolTitles[tool]}${notImplemented ? " (NOT YET IMPLEMENTED)" : ""}`;
   const ToolIcon = toolIcons[tool];
@@ -82,6 +87,7 @@ export const ToolbarButton = ({ tool, disabled, selectedTool, onClick }: Toolbar
       title={title}
       onClick={handleClick}
       className={clsx({ selected, notImplemented })}
+      aria-pressed={reportPressed && toggleable ? selected : undefined}
       disabled={disabled || notImplemented}
     >
       <ToolIcon />
@@ -92,7 +98,9 @@ export const ToolbarButton = ({ tool, disabled, selectedTool, onClick }: Toolbar
 export const Toolbar = (props: ToolbarProps) => {
   const { tools, disabled, onToolSelected, onReset, onReturnToMainMenu, onFitView, onRecenterView, onZoomIn, onZoomOut }
     = props;
-  const [selectedTool, setSelectedTool] = useState<Tool>("select");
+  const [ownSelectedTool, setSelectedTool] = useState<Tool>("select");
+  const selectedTool = props.selectedTool ?? ownSelectedTool;
+  const reportPressed = props.selectedTool !== undefined;
 
   const handleToolSelected = useCallback((tool: Tool) => {
     if (toggleableTools.includes(tool)) {
@@ -129,6 +137,7 @@ export const Toolbar = (props: ToolbarProps) => {
             disabled={disabled}
             tool={tool}
             selectedTool={selectedTool}
+            reportPressed={reportPressed}
             onClick={handleToolSelected}
           />)
         ) }
@@ -140,6 +149,7 @@ export const Toolbar = (props: ToolbarProps) => {
             disabled={disabled}
             tool={tool}
             selectedTool={selectedTool}
+            reportPressed={reportPressed}
             onClick={handleToolSelected}
           />)
         ) }

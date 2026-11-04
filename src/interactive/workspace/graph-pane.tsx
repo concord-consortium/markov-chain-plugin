@@ -1,11 +1,12 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { clsx } from "clsx";
-import { Graph, zoomInStep, zoomOutStep } from "../../components/graph";
+import { Graph } from "../../components/graph";
 import { Tool, Toolbar } from "../../components/toolbar";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { MarkovHost } from "../../components/host";
+import { useZoomRequest } from "../../hooks/use-zoom-request";
 import { graphBodyHeight, toolbarColumns } from "./pane-sizes";
-import { useLatest } from "./use-latest";
+import { useLatest } from "../../hooks/use-latest";
 
 const tools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
 const noop = () => undefined;
@@ -27,7 +28,6 @@ interface GraphPaneProps {
 export const GraphPane = ({
   tool, log, top, emptyMessage, onUserZoom, onFit, onResized, onDoubleClickState
 }: GraphPaneProps) => {
-  const [zoomRequest, setZoomRequest] = useState<{ id: number, by: number }>();
   const toolRef = useLatest(tool);
   const onUserZoomRef = useLatest(onUserZoom);
   const onDoubleClickStateRef = useLatest(onDoubleClickState);
@@ -49,11 +49,7 @@ export const GraphPane = ({
     onResizedRef.current();
   }, [toolRef, onResizedRef]);
   const handleUserZoom = useCallback(() => onUserZoomRef.current(), [onUserZoomRef]);
-
-  const zoom = (by: number) => {
-    onUserZoom();
-    setZoomRequest(request => ({ id: (request?.id ?? 0) + 1, by }));
-  };
+  const { zoomRequest, zoomIn, zoomOut } = useZoomRequest(handleUserZoom);
 
   const columns = toolbarColumns(tools.length, graphBodyHeight(top));
   const { graphHighlights, view } = tool;
@@ -68,8 +64,8 @@ export const GraphPane = ({
         onReturnToMainMenu={noop}
         onFitView={onFit}
         onRecenterView={view.onRecenterView}
-        onZoomIn={() => zoom(zoomInStep)}
-        onZoomOut={() => zoom(zoomOutStep)}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
       />
       <Graph
         graph={tool.graph}

@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 
 import { D3Node, DrawingMode, Graph, Point, RubberBand, Transform } from "./graph";
 import { Edge, GraphData, Node } from "../type";
+import { ArrowWidths } from "./graph-utils";
 
 import { DragIcon } from "./drawing/drag-icon";
 import { NodeModal } from "./drawing/node-modal";
@@ -11,6 +12,8 @@ import { Tool, Toolbar } from "./toolbar";
 import { AddText } from "./drawing/add-text";
 import { textToWords, wordsToGraph } from "../utils/text-to-graph";
 import { MarkovHost } from "./host";
+import { useLatest } from "../hooks/use-latest";
+import { useZoomRequest } from "../hooks/use-zoom-request";
 
 import "./drawing.scss";
 
@@ -40,13 +43,27 @@ interface Props {
   onDimensions?: (dimensions: {width: number, height: number}) => void;
   onClearHighlightOutput?: () => void;
   log: MarkovHost["log"];
+  // the toolbar's tools; absent, the CODAP plugin's list
+  tools?: Tool[];
+  probabilityLabels?: boolean;
+  arrowWidths?: ArrowWidths;
+  selectedEdge?: { from: string, to: string };
+  onEdgeSelect?: (edge: { from: string, to: string }) => void;
+  onBackgroundClick?: () => void;
+  // the student's own zoom or pan, from the graph or the toolbar; absent in the plugin, which has no following
+  onUserZoom?: () => void;
+  fitTransitionMs?: number;
+  // Escape closes an open state editor and does nothing else; absent in the plugin
+  closeEditorOnEscape?: boolean;
 }
 
 export const Drawing = (props: Props) => {
   const { highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, setGraph, setHighlightNode, setSelectedNodeId: _setSelectedNodeId,
          fitViewAt, recenterViewAt, onClearHighlightOutput, graphOpacity, resetViewAt,
-         selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView, log } = props;
+         selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView, log,
+         tools: shownTools = tools, probabilityLabels, arrowWidths, selectedEdge, onEdgeSelect, onBackgroundClick,
+         onUserZoom, fitTransitionMs, closeEditorOnEscape } = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
@@ -58,6 +75,10 @@ export const Drawing = (props: Props) => {
   const [addTextWidth, setAddTextWidth] = useState(0);
   const prevWordsRef = useRef<string[]>([]);
   const textAreaRef = createRef<HTMLTextAreaElement>();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const { zoomRequest, zoomIn, zoomOut } = useZoomRequest(onUserZoom);
+
+  const isHidden = () => !!rootRef.current?.closest("[hidden]");
 
   const setSelectedNodeId = useCallback((id?: string, skipToggle?: boolean) => {
     if (drawingMode === "select") {
@@ -65,25 +86,27 @@ export const Drawing = (props: Props) => {
     }
   }, [drawingMode, _setSelectedNodeId]);
 
-  const handleDimensionChange = ({ width, height }: {width: number, height: number}) => {
+  const onDimensionsRef = useLatest(props.onDimensions);
+
+  const handleDimensionChange = useCallback(({ width, height }: {width: number, height: number}) => {
     widthRef.current = width;
     heightRef.current = height;
     setAddTextWidth(width - 40); // for 10px margin and padding
 
     // also tell the app so that it can translate the origin of any loaded data if needed
-    props.onDimensions?.({ width, height });
-  };
+    onDimensionsRef.current?.({ width, height });
+  }, [onDimensionsRef]);
 
   const handleTransformed = (transform: Transform) => {
     transformRef.current = transform;
   };
 
   const translateToGraphPoint = (e: MouseEvent|React.MouseEvent<HTMLDivElement>): Point => {
-    // the offsets were determined visually to put the state centered on the mouse
+    const svg = rootRef.current?.querySelector(".graph > svg")?.getBoundingClientRect();
     const { x, y, k } = transformRef.current ?? { x: 0, y: 0, k: 1 };
     return {
-      x: ((e.clientX - 50 - (widthRef.current / 2)) - x) / k,
-      y: ((e.clientY - 10 - (heightRef.current / 2)) - y) / k,
+      x: ((e.clientX - (svg?.left ?? 0) - (widthRef.current / 2)) - x) / k,
+      y: ((e.clientY - (svg?.top ?? 0) - (heightRef.current / 2)) - y) / k,
     };
   };
 
@@ -98,6 +121,9 @@ export const Drawing = (props: Props) => {
   useEffect(() => {
     if (drawingMode === "addEdge" && firstEdgeNode) {
       const updateRubberBand = (e: MouseEvent) => {
+        if (isHidden()) {
+          return;
+        }
         const newRubberBand: RubberBand = { from: firstEdgeNode.id, to: translateToGraphPoint(e) };
         // redraw before the next mouse event, so a press on a state never spans a redraw
         flushSync(() => setRubberBand(newRubberBand));
@@ -109,14 +135,19 @@ export const Drawing = (props: Props) => {
 
   useEffect(() => {
     const listenForEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        clearSelections();
-        setDrawingMode("select");
+      if (e.key !== "Escape" || isHidden()) {
+        return;
       }
+      if (closeEditorOnEscape && selectedNodeForModal) {
+        setSelectedNodeForModal(undefined);
+        return;
+      }
+      clearSelections();
+      setDrawingMode("select");
     };
     window.addEventListener("keydown", listenForEscape);
     return () => window.removeEventListener("keydown", listenForEscape);
-  }, [drawingMode, setDrawingMode, clearSelections]);
+  }, [drawingMode, setDrawingMode, clearSelections, closeEditorOnEscape, selectedNodeForModal]);
 
   useEffect(() => {
     if (drawingMode === "addText" && textAreaRef.current) {
@@ -327,15 +358,18 @@ export const Drawing = (props: Props) => {
   }, [setGraph, onFitView, log]);
 
   return (
-    <div className="drawing">
+    <div className="drawing" ref={rootRef}>
       <Toolbar
         disabled={animating}
-        tools={tools}
+        tools={shownTools}
+        selectedTool={props.tools ? drawingMode : undefined}
         onToolSelected={handleToolSelected}
         onReset={onReset}
         onReturnToMainMenu={onReturnToMainMenu}
         onFitView={onFitView}
         onRecenterView={onRecenterView}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
       />
       <Graph
         drawingMode={drawingMode}
@@ -362,6 +396,15 @@ export const Drawing = (props: Props) => {
         onAutoArrangeEnd={handleAutoArrangeEnd}
         fitViewAt={fitViewAt}
         recenterViewAt={recenterViewAt}
+        probabilityLabels={probabilityLabels}
+        arrowWidths={arrowWidths}
+        selectedEdge={selectedEdge}
+        onEdgeSelect={drawingMode === "select" ? onEdgeSelect : undefined}
+        onBackgroundClick={drawingMode === "select" ? onBackgroundClick : undefined}
+        zoomButtons={!shownTools.includes("zoomIn")}
+        zoomRequest={zoomRequest}
+        onUserZoom={onUserZoom}
+        fitTransitionMs={fitTransitionMs}
       />
       <DragIcon drawingMode={drawingMode} />
       <NodeModal

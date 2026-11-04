@@ -178,6 +178,7 @@ export const bagOutgoing = (nodes: Node[]): Outgoing => id => nodes.some(n => n.
 - `src/components/toolbar.tsx`: an optional `selectedTool`, which, when given, is the pressed tool in place of the toolbar's own state, and gives the drawing tools `aria-pressed`.
 - `src/hooks/use-zoom-request.ts` (new): MARK-15's `GraphPane` zoom state, moved.
 - `src/interactive/workspace/graph-pane.tsx`: uses the hook.
+- `src/components/drawing.test.tsx` (new): the new props, with the graph mocked.
 
 **Estimated diff size**: ~140 lines
 
