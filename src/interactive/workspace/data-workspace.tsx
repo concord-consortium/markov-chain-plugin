@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NodeModal } from "../../components/drawing/node-modal";
 import { MarkovHost } from "../../components/host";
-import { layoutFor } from "../../components/graph-utils";
+import { ArrowWidths, layoutFor } from "../../components/graph-utils";
 import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { Node } from "../../type";
@@ -33,7 +33,13 @@ interface DataWorkspaceProps {
   hidden: boolean;
   // the shell's controls, first in the row
   controls: React.ReactNode;
+  probabilities: boolean;
+  arrowWidths: ArrowWidths;
+  orderMatters: boolean;
+  onOrderMattersChange: (orderMatters: boolean) => void;
 }
+
+const orderMattersLabel = "Order matters";
 
 // panes a commit redraws, so a press there would lose its click; a press elsewhere commits at once
 const redrawnByCommit = ".graph-pane .pane-body, .inspect-pane .pane-body";
@@ -51,7 +57,8 @@ const laidOutWhole = (before: string[], after: string[]) => {
 
 // Data mode's body: the authored panes around the student's input
 export const DataWorkspace = ({
-  authoredState, savedInput, onSaveInput, host, tool, config, stacked, hidden, controls
+  authoredState, savedInput, onSaveInput, host, tool, config, stacked, hidden, controls, probabilities, arrowWidths,
+  orderMatters, onOrderMattersChange
 }: DataWorkspaceProps) => {
   const { inputView } = config;
   const toolRef = useLatest(tool);
@@ -122,13 +129,32 @@ export const DataWorkspace = ({
     <SettingSwitch label={caseSensitiveLabel} value={isCaseSensitive} onChange={handleCaseChange}
       disabled={tool.animating} />;
 
+  const handleOrderChange = (on: boolean) => {
+    // a transition can't be chosen in a bag of words; the logged change says why it went
+    if (!on && tool.selection?.kind === "transition") {
+      tool.setSelectedNodeId();
+    }
+    onOrderMattersChange(on);
+    host.log("OrderMattersToggled", { on });
+  };
+  const orderSwitch = config.orderMatters.showSwitch &&
+    <SettingSwitch label={orderMattersLabel} value={orderMatters} onChange={handleOrderChange}
+      disabled={tool.animating} />;
+  const switches = (orderSwitch || caseSwitch) &&
+    <div className="setting-switches">{ orderSwitch }{ caseSwitch }</div>;
+
   const [dialogNode, setDialogNode] = useState<Node>();
   const dialogNodeRef = useLatest(dialogNode);
+  const orderMattersRef = useLatest(orderMatters);
   const handleDoubleClickState = useCallback((id: string) => {
+    // every state's probabilities are the states' counts, which Inspect and the labels already show
+    if (!orderMattersRef.current) {
+      return;
+    }
     const node = toolRef.current.graph.nodes.find(n => n.id === id);
     setDialogNode(node);
     host.log("StateDialogOpened", { state: node?.label ?? id });
-  }, [host, toolRef]);
+  }, [host, toolRef, orderMattersRef]);
 
   // mouse events (a tap's mousedown follows its pointerup), captured on the window ahead of d3-drag, which stops the
   // mouseup there; a secondary button's menu can swallow its mouseup, so only the primary button presses
@@ -210,7 +236,8 @@ export const DataWorkspace = ({
     switch (id) {
       case "input":
         return (
-          <InputPane caseSwitch={caseSwitch} view={inputView} split={inputSplit} onSplitChange={setInputSplit}
+          <InputPane switches={switches} rowLayout={orderMatters ? "prose" : "list"} view={inputView} split={inputSplit}
+            onSplitChange={setInputSplit}
             onSplitResized={handleSplitResized} text={text} liveTokens={liveTokens}
             liveHighlights={liveHighlights} committed={committed}
             highlights={highlights}
@@ -221,14 +248,15 @@ export const DataWorkspace = ({
         );
       case "graph":
         return (
-          <GraphPane tool={tool} log={host.log} top={top}
+          <GraphPane tool={tool} log={host.log} top={top} probabilities={probabilities} arrowWidths={arrowWidths}
+            orderMatters={orderMatters}
             emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFit}
             onResized={handleGraphResized}
             onDoubleClickState={handleDoubleClickState} />
         );
       case "inspect":
         return (
-          <InspectPane mode="useData" orderMatters={true} graph={tool.graph} selection={tool.selection}
+          <InspectPane mode="useData" orderMatters={orderMatters} graph={tool.graph} selection={tool.selection}
             highlights={highlights} log={host.log}
             onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} />
         );
@@ -241,7 +269,8 @@ export const DataWorkspace = ({
     <div className="workspace-body" hidden={hidden} ref={rootRef}>
       <ControlsRow tool={tool}>
         { controls }
-        { hasInputPane ? undefined : caseSwitch }
+        { hasInputPane ? undefined : switches }
+        { !config.orderMatters.showSwitch && <SettingLabel label={orderMattersLabel} value={orderMatters} /> }
         { !config.caseSwitch && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
       </ControlsRow>
       <WorkspacePanes layout={layout} stacked={stacked} sourcePaneRef={sourcePaneRef} renderPane={renderPane} />

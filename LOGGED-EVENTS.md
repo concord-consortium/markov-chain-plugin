@@ -60,8 +60,10 @@ A state is named by its label. The generator's settings, which several events ca
 | `InspectTabChosen` | `{ tab: "states" \| "transitions" }` | The student chooses an Inspect tab |
 | `InspectSorted` | `{ tab, column, direction: "ascending" \| "descending" }` | The student sorts an Inspect table by a column |
 
-## Modes
+## Modes and views
 
 | Event | Parameters | When |
 |-------|-----------|------|
 | `ModeSwitched` | `{ mode }` | The student switches between Data and Draw; `mode` is the mode switched to |
+| `ProbabilitiesToggled` | `{ on }` | The student presses "Show probabilities" |
+| `OrderMattersToggled` | `{ on }` | The student changes the "Order matters" switch |

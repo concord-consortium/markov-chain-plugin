@@ -6,11 +6,13 @@ import {
   animatedNodeColor, incomingArrowColor, outgoingArrowColor, selectedNodeColor
 } from "../../components/graph-highlight";
 import { MarkovAuthoredState, ModeId } from "../authored-state";
+import { ArrowWidths } from "../../components/graph-utils";
 import { useApHost } from "./ap-host";
 import { ArrowMarkers } from "./arrow-markers";
 import { DataWorkspace } from "./data-workspace";
 import { DrawWorkspace } from "./draw-workspace";
 import { ModeSwitch } from "./mode-switch";
+import { ProbabilitiesToggle } from "./probabilities-toggle";
 import {
   collapsedStrip, controlsRowHeight, defaultPaneSizes, dividerBand, paneBorder, paneGap, paneHeader, panePadding,
   stackBelow, toolbarButton, toolbarGap
@@ -45,7 +47,11 @@ export const Workspace = ({ authoredState, savedInput, onSaveInput, hosted }: Wo
   const [configs] = useState(() => ({
     useData: workspaceConfig(authoredState, "useData"), draw: workspaceConfig(authoredState, "draw"),
   }));
-  const hosts = { useData: useApHost(hosted, "useData"), draw: useApHost(hosted, "draw") };
+  const [probabilities, setProbabilities] = useState(configs.useData.probabilities.startsOn);
+  const [orderMatters, setOrderMatters] = useState(configs.useData.orderMatters.startsOn);
+  // arrows keep their probability widths whether or not probabilities are shown
+  const arrowWidths: ArrowWidths = "byState";
+  const hosts = { useData: useApHost(hosted, "useData", orderMatters), draw: useApHost(hosted, "draw") };
   const tools = { useData: useMarkovTool(hosts.useData), draw: useMarkovTool(hosts.draw) };
 
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -66,8 +72,21 @@ export const Workspace = ({ authoredState, savedInput, onSaveInput, hosted }: Wo
     }
   }, [mode]);
 
-  const controls = configs.useData.modeSwitch &&
-    <ModeSwitch mode={mode} disabled={tools[mode].animating} onChange={handleModeChange} />;
+  const handleProbabilitiesChange = (on: boolean) => {
+    setProbabilities(on);
+    hosts[mode].log("ProbabilitiesToggled", { on });
+  };
+
+  const controls = (
+    <>
+      { configs.useData.modeSwitch &&
+        <ModeSwitch mode={mode} disabled={tools[mode].animating} onChange={handleModeChange} />
+      }
+      { configs[mode].probabilities.showToggle &&
+        <ProbabilitiesToggle on={probabilities} onChange={handleProbabilitiesChange} />
+      }
+    </>
+  );
 
   return (
     <div className={clsx("markov-workspace", { stacked })} style={cssValues} ref={rootRef}>
@@ -75,11 +94,12 @@ export const Workspace = ({ authoredState, savedInput, onSaveInput, hosted }: Wo
       { authoredState.modes.useData &&
         <DataWorkspace authoredState={authoredState} savedInput={savedInput} onSaveInput={onSaveInput}
           host={hosts.useData} tool={tools.useData} config={configs.useData} stacked={stacked}
-          hidden={mode !== "useData"} controls={controls} />
+          hidden={mode !== "useData"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
+          orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
       }
       { authoredState.modes.draw &&
         <DrawWorkspace host={hosts.draw} tool={tools.draw} config={configs.draw} stacked={stacked}
-          hidden={mode !== "draw"} controls={controls} />
+          hidden={mode !== "draw"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths} />
       }
     </div>
   );

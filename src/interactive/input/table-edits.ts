@@ -65,19 +65,29 @@ export const editRow = (text: string, tokens: Token[], row: number, value: strin
   return text.slice(0, start) + "\n\n" + text.slice(end);
 };
 
-export const insertRow = (text: string, tokens: Token[], after: number, value: string): string => {
+// a row added to prose, or on a line of its own, which reads as a list; a single line break doesn't break the chain
+export type RowLayout = "prose" | "list";
+
+export const insertRow = (text: string, tokens: Token[], after: number, value: string,
+  layout: RowLayout = "prose"): string => {
   const word = rowText(value);
   if (!word) {
     return text;
   }
   const written = textForRow(word);
+  const list = layout === "list";
   if (after < 0) {
-    return tokens.length > 0 ? write(text, tokens[0].start, tokens[0].start, `${written} `) : text + written;
+    return tokens.length > 0
+      ? write(text, tokens[0].start, tokens[0].start, list ? `${written}\n` : `${written} `)
+      : text + written;
   }
   const token = tokens[after];
   if (token.kind === "break") {
     // after a blank line, so it doesn't run into the next word
-    return write(text, token.end, token.end, `${written} `);
+    return write(text, token.end, token.end, list ? `${written}\n` : `${written} `);
+  }
+  if (list) {
+    return write(text, token.end, token.end, `\n${written}`);
   }
   const isPunctuation = written.length === 1 && punctuation.includes(written);
   return write(text, token.end, token.end, isPunctuation ? written : ` ${written}`);

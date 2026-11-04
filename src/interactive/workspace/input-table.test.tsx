@@ -7,7 +7,8 @@ import { InputTable } from "./input-table";
 const noHighlights = (): Highlights => ({ tokens: new Set(), states: new Set(), transitions: new Map() });
 
 const table = (text: string) => (
-  <InputTable text={text} tokens={tokenize(text, "lowercase")} highlights={noHighlights()} readOnly={false}
+  <InputTable rowLayout="prose" text={text} tokens={tokenize(text, "lowercase")} highlights={noHighlights()}
+    readOnly={false}
     onCommit={jest.fn()} onRowAdded={jest.fn()} onRowDeleted={jest.fn()} onRowBlur={jest.fn()} afterPress={jest.fn()}
     onFocusToken={jest.fn()} />
 );

@@ -1,5 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import { ConfirmModal } from "../../components/confirm-modal";
+import { ArrowWidths } from "../../components/graph-utils";
 import { MarkovHost } from "../../components/host";
 import { Tool } from "../../components/toolbar";
 import { useLatest } from "../../hooks/use-latest";
@@ -26,10 +27,14 @@ interface DrawWorkspaceProps {
   hidden: boolean;
   // the shell's controls, first in the row
   controls: React.ReactNode;
+  probabilities: boolean;
+  arrowWidths: ArrowWidths;
 }
 
 // Draw mode's body: a drawing in the Graph pane, with Inspect and the generator as the author set them
-export const DrawWorkspace = ({ host, tool, config, stacked, hidden, controls }: DrawWorkspaceProps) => {
+export const DrawWorkspace = ({
+  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths
+}: DrawWorkspaceProps) => {
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sourcePaneRef = useRef<WorkspacePaneId>(undefined);
@@ -58,6 +63,7 @@ export const DrawWorkspace = ({ host, tool, config, stacked, hidden, controls }:
       case "graph":
         return (
           <GraphPane variant="draw" tools={drawModeTools} tool={tool} log={host.log} top={layout.top}
+            probabilities={probabilities} arrowWidths={arrowWidths}
             onUserZoom={layout.handleUserZoom} onFit={layout.handleFit} onResized={layout.handleGraphResized} />
         );
       case "inspect":

@@ -1,13 +1,15 @@
 import React, { useCallback } from "react";
 import { clsx } from "clsx";
 import { Drawing } from "../../components/drawing";
+import { ArrowWidths } from "../../components/graph-utils";
 import { Graph } from "../../components/graph";
 import { Tool, Toolbar } from "../../components/toolbar";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { MarkovHost } from "../../components/host";
 import { useZoomRequest } from "../../hooks/use-zoom-request";
-import { graphBodyHeight, toolbarColumns } from "./pane-sizes";
+import { graphBodyHeight, paneGap, toolbarColumns, toolbarWidth } from "./pane-sizes";
 import { useLatest } from "../../hooks/use-latest";
+import { graphNotes } from "./graph-notes";
 
 const dataTools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
 const noop = () => undefined;
@@ -26,12 +28,17 @@ interface GraphPaneProps {
   onFit: () => void;
   onResized: () => void;
   onDoubleClickState?: (id: string) => void;
+  probabilities: boolean;
+  arrowWidths: ArrowWidths;
+  // false draws a bag of words, whose arrows can't be chosen; a drawing is always a Markov chain
+  orderMatters?: boolean;
 }
 
 // The graph and its toolbar. Every callback handed to Graph keeps its identity, reading the tool through a ref,
 // since a new callback redraws the whole graph.
 export const GraphPane = ({
-  variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onResized, onDoubleClickState
+  variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onResized, onDoubleClickState,
+  probabilities, arrowWidths, orderMatters = true
 }: GraphPaneProps) => {
   const toolRef = useLatest(tool);
   const onUserZoomRef = useLatest(onUserZoom);
@@ -58,6 +65,9 @@ export const GraphPane = ({
 
   const columns = toolbarColumns(tools.length, graphBodyHeight(top));
   const { graphHighlights, view } = tool;
+  const notes = graphNotes({
+    probabilities, orderMatters, stateChosen: tool.selection?.kind === "state", animating: tool.animating
+  });
 
   return (
     <div className={clsx("graph-pane-content", { columns: columns > 1 })}
@@ -84,6 +94,8 @@ export const GraphPane = ({
             onBackgroundClick={handleBackgroundClick}
             onUserZoom={handleUserZoom}
             fitTransitionMs={fitMs}
+            probabilityLabels={probabilities}
+            arrowWidths={arrowWidths}
             closeEditorOnEscape
             uniqueLabels
             accessibleEditor
@@ -116,15 +128,21 @@ export const GraphPane = ({
             fitViewAt={view.fitViewAt}
             recenterViewAt={view.recenterViewAt}
             setSelectedNodeId={setSelectedNodeId}
-            onEdgeSelect={handleEdgeSelect}
+            onEdgeSelect={orderMatters ? handleEdgeSelect : undefined}
             onBackgroundClick={handleBackgroundClick}
             onNodeDoubleClick={handleNodeDoubleClick}
             onDragStop={handleDragStop}
             onDimensions={handleDimensions}
+            probabilityLabels={probabilities}
+            arrowWidths={arrowWidths}
+            orderMatters={orderMatters}
           />
           </>
       }
       { tool.graphEmpty && emptyMessage && <div className="graph-empty">{ emptyMessage }</div> }
+      <div className="graph-notes" aria-live="polite" style={{ left: toolbarWidth(columns) + paneGap }}>
+        { notes.map(note => <p key={note}>{ note }</p>) }
+      </div>
     </div>
   );
 };

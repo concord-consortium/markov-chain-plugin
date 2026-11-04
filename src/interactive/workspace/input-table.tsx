@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useId, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { maxInputLength } from "../interactive-state";
-import { deleteRow, editRow, insertRow, placeAfterEdit } from "../input/table-edits";
+import { deleteRow, editRow, insertRow, placeAfterEdit, RowLayout } from "../input/table-edits";
 import { rowText, Token, tokenize } from "../input/tokenizer";
 import { Highlights } from "./highlights";
 import { useLatest } from "../../hooks/use-latest";
@@ -20,6 +20,7 @@ interface InputTableProps {
   // runs once a press ends, or now with none
   afterPress: (run: () => void) => void;
   onFocusToken: (token: Token | undefined) => void;
+  rowLayout: RowLayout;
 }
 
 // A row: a token's (row), the one Enter opened below a token, not in the text until it has words (pending), or the
@@ -87,7 +88,8 @@ const InputTableRow = memo(InputTableRowContent);
 // The input's tokens, one per row, a break as an empty row. The rows are one stop in the Tab order, with the current
 // row's input and delete button taking Tab, and Up and Down move between rows.
 const InputTableRows = ({
-  text, tokens, highlights, readOnly, onCommit, onRowAdded, onRowDeleted, onRowBlur, afterPress, onFocusToken
+  text, tokens, highlights, readOnly, onCommit, onRowAdded, onRowDeleted, onRowBlur, afterPress, onFocusToken,
+  rowLayout
 }: InputTableProps) => {
   const hintId = useId();
   const [current, setCurrent] = useState<RowKey>({ kind: "row", index: 0 });
@@ -267,7 +269,7 @@ const InputTableRows = ({
       return value === committedValue(row) || commitText(editRow(text, tokens, row.index, value), andThen);
     }
     const added = !!rowText(value) && commitText(insertRow(text, tokens,
-      row.kind === "pending" ? Math.min(row.after, tokens.length - 1) : tokens.length - 1, value), andThen);
+      row.kind === "pending" ? Math.min(row.after, tokens.length - 1) : tokens.length - 1, value, rowLayout), andThen);
     if (added) {
       onRowAdded();
     }
