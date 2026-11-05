@@ -87,7 +87,7 @@ const savedPositions = (arranged: ModeReport["arranged"]) => !arranged || arrang
   // a dragged state's x trails its pin until the next tick
   : arranged.flatMap(({ x, y, fx, fy }) => [Math.round(fx ?? x ?? 0), Math.round(fy ?? y ?? 0)]);
 
-const savedDrawing = ({ nodes, edges }: GraphData): GraphData => ({
+export const savedDrawing = ({ nodes, edges }: GraphData): GraphData => ({
   nodes: nodes.map(node => ({ ...node, x: whole(node.x), y: whole(node.y) })), edges,
 });
 

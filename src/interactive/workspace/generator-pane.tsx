@@ -9,10 +9,11 @@ interface GeneratorPaneProps {
   tool: MarkovToolApi;
   controlsOpen: boolean;
   onToggleControls: () => void;
+  limitReached: boolean;
 }
 
 // The generator's controls in a column that collapses on its own, beside the output
-export const GeneratorPane = ({ tool, controlsOpen, onToggleControls }: GeneratorPaneProps) => {
+export const GeneratorPane = ({ tool, controlsOpen, onToggleControls, limitReached }: GeneratorPaneProps) => {
   const controlsId = useId();
   const action = controlsOpen ? "Collapse" : "Expand";
   return (
@@ -27,10 +28,15 @@ export const GeneratorPane = ({ tool, controlsOpen, onToggleControls }: Generato
           </button>
         </div>
         <div id={controlsId} className="generator-controls-body" hidden={!controlsOpen}>
-          <Generator {...tool.generatorProps} />
+          <Generator {...tool.generatorProps} limitReached={limitReached} />
         </div>
       </div>
-      <SequenceOutput {...tool.outputProps} keyboardSelect heading="Output" openAtNewest />
+      <div className="generator-output">
+        <SequenceOutput {...tool.outputProps} keyboardSelect heading="Output" openAtNewest />
+        <p role="status" className="output-limit">
+          { limitReached && "You have reached the maximum number of outputs." }
+        </p>
+      </div>
     </div>
   );
 };

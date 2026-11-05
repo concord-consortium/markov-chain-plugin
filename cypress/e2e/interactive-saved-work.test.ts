@@ -1,5 +1,5 @@
 import { defaultAuthoredState } from "../../src/interactive/authored-state";
-import { encodeOutputs } from "../../src/interactive/saved-outputs";
+import { encodeOutputs, maxOutputBytes, savedBytes } from "../../src/interactive/saved-outputs";
 import { Node } from "../../src/type";
 import { animatedNodeColor, pastDoubleClick, selectedNodeColor } from "../support/graph";
 import { divider, loggedEvents, parseTransform, stateEllipse } from "../support/workspace";
@@ -638,5 +638,127 @@ describe("saving work", () => {
         firstPost().then(check);
       });
     });
+  });
+});
+
+describe("the output limit", () => {
+  const fast = "?fastSpeed=20&normalSpeed=20";
+  const message = "You have reached the maximum number of outputs.";
+  const authoredState = { startingText: "a b a b a b" };
+  const start = (interactiveState: unknown) =>
+    cy.startInteractive({ mode: "runtime", width, search: fast, authoredState, interactiveState });
+
+  const oneState = { nodes: [{ id: "x", label: "x", value: 1, x: 0, y: 0 }], edges: [] };
+
+  // Draw mode's outputs, as long sequences of one state, within room bytes of the limit
+  const outputsWithin = (room: number) => {
+    const sequence = Array.from({ length: 100 }, () => node("x"));
+    const sequences = [sequence];
+    const bytes = () => savedBytes([[encodeOutputs([]), encodeOutputs([{
+      delimiter: " ", lengthLimit: 100, startingState: "", startingNode: undefined, sequences,
+    }])], oneState]);
+    while (bytes() < maxOutputBytes - 1000) {
+      sequences.push(sequence);
+    }
+    sequences.pop();
+    const last: Node[] = [];
+    sequences.push(last);
+    while (bytes() + 2 < maxOutputBytes - room) {
+      last.push(node("x"));
+    }
+    return encodeOutputs([{
+      delimiter: " ", lengthLimit: 100, startingState: "", startingNode: undefined, sequences,
+    }]);
+  };
+  const nearLimit = {
+    version: 1, draw: { outputs: outputsWithin(60), drawing: oneState },
+  };
+  const overLimit = {
+    version: 1, draw: { outputs: outputsWithin(-20), drawing: oneState },
+  };
+
+  const button = (body: () => Cypress.Chainable<JQuery<HTMLElement>>, name: string) =>
+    body().find(".generator-pane button").filter(`:contains('${name}')`);
+  const expectStopped = (body: () => Cypress.Chainable<JQuery<HTMLElement>>) => {
+    button(body, "Play").should("be.disabled");
+    button(body, "Step").should("be.disabled");
+  };
+  const limitEvents = () => loggedEvents().invoke("filter", ([action]: [string]) => action === "OutputLimitReached");
+  const generateOne = () => {
+    button(shown, "Play").click();
+    shown().contains(".generator-pane button", "Play", { timeout: 15000 });
+  };
+  const draw = () => shown().find(".mode-switch label").contains("Draw").click();
+
+  it("stops Play and Step in both modes once an output reaches it, and says so", () => {
+    start(nearLimit);
+    shown().find(".output-limit").should("be.empty").and("have.attr", "role", "status");
+    generateOne();
+    shown().find(".output-limit").should("have.text", message);
+    expectStopped(shown);
+    expectStopped(hiddenBody);
+    limitEvents().should("have.length", 1).its(0).its(1).its("outputs")
+      .should("equal", nearLimit.draw.outputs.groups[0].sequences.length + 1);
+  });
+
+  it("clearing the outputs in the other mode brings it back under, and enables them in both", () => {
+    start(nearLimit);
+    generateOne();
+    shown().find(".output-limit").should("have.text", message);
+    draw();
+    button(shown, "Clear Output").click();
+    shown().find(".output-limit").should("be.empty");
+    button(shown, "Play").should("be.enabled");
+    button(hiddenBody, "Step").should("be.enabled");
+  });
+
+  it("lets a sequence stepped past it finish, and only then stops", () => {
+    start(nearLimit);
+    shown().find(".generator-pane input[type='number']").clear().type("3{enter}");
+    // a sequence of three states takes five steps
+    Cypress._.times(5, () => button(shown, "Step").should("be.enabled").click());
+    expectStopped(shown);
+    shown().find(".output-limit").should("have.text", message);
+  });
+
+  it("logs each time a drawing grows past it", () => {
+    const addState = () => {
+      toolButton("Add State").click();
+      shown().find(".graph > svg").trigger("click", 60, 60);
+      shown().find("g.node").should("have.length", 2);
+      toolButton("Select").click();
+    };
+    start({ ...nearLimit, mode: "draw" });
+    shown().find("g.node").should("have.length", 1);
+    addState();
+    shown().find(".output-limit").should("have.text", message);
+    expectStopped(shown);
+    limitEvents().should("have.length", 1);
+
+    toolButton("Delete").click();
+    cy.wait(300);
+    shown().find("g.node").last().find("ellipse").trigger("click", { force: true });
+    shown().find("g.node").should("have.length", 1);
+    shown().find(".output-limit").should("be.empty");
+    addState();
+    limitEvents().should("have.length", 2);
+  });
+
+  it("counts the outputs of a mode the page doesn't offer", () => {
+    cy.startInteractive({
+      mode: "runtime", width, interactiveState: overLimit,
+      authoredState: { ...authoredState, modes: { useData: true, draw: false } },
+    });
+    shown().find(".output-limit").should("have.text", message);
+    expectStopped(shown);
+  });
+
+  it("reopens a state over it whole, with the message, logging nothing", () => {
+    start(overLimit);
+    hiddenBody().find(".sequence").should("have.length", overLimit.draw.outputs.groups[0].sequences.length);
+    shown().find(".output-limit").should("have.text", message);
+    expectStopped(shown);
+    cy.wait(300);
+    loggedEvents().should("have.length", 0);
   });
 });

@@ -1,4 +1,4 @@
-import { Node, SequenceGroup } from "../type";
+import { GraphData, Node, SequenceGroup } from "../type";
 import { isRecord } from "./parse-state";
 
 // the sequences' states once each, and each sequence as places in that table, which take about half the room of labels
@@ -10,6 +10,9 @@ export interface SavedOutputs {
     sequences: number[][],
   }[];
 }
+
+// what outputs and the drawing may take between them, a share of the 1 MB the Activity Player's answer document holds
+export const maxOutputBytes = 140 * 1024;
 
 // what a value costs as the Activity Player stores it: JSON held inside JSON
 export const savedBytes = (value: unknown) =>
@@ -43,6 +46,9 @@ export const encodeOutputs = (sequenceGroups: SequenceGroup[]): SavedOutputs => 
   }));
   return { states, groups };
 };
+
+export const outputsFull = (outputs: SequenceGroup[][], drawing: GraphData) =>
+  savedBytes([outputs.map(encodeOutputs), drawing]) >= maxOutputBytes;
 
 const isSavedGroup = (value: unknown): value is SavedOutputs["groups"][number] =>
   isRecord(value) && typeof value.delimiter === "string" && typeof value.lengthLimit === "number" &&

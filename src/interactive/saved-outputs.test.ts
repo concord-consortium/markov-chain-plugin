@@ -1,5 +1,10 @@
 import { Node, SequenceGroup } from "../type";
-import { decodeOutputs, encodeOutputs, isSavedOutputs, savedBytes, SavedOutputs } from "./saved-outputs";
+import { defaultAuthoredState, maxStartingTextLength } from "./authored-state";
+import { interactiveStateVersion, maxInputLength } from "./interactive-state";
+import {
+  decodeOutputs, encodeOutputs, isSavedOutputs, maxOutputBytes, outputsFull, savedBytes, SavedOutputs
+} from "./saved-outputs";
+import { maxSavedPositions } from "./workspace/build-state";
 
 const node = (id: string, label = id): Node => ({ id, label, value: 3 });
 
@@ -113,5 +118,101 @@ describe("savedBytes", () => {
   it("counts a quote's two escapes, and a character's UTF-8 bytes", () => {
     expect(savedBytes("\"")).toBe(8);
     expect(savedBytes("é")).toBe(6);
+  });
+});
+
+describe("outputsFull", () => {
+  const noDrawing = { nodes: [], edges: [] };
+  // a sequence of a hundred places is about 200 bytes
+  const sequences = (count: number) =>
+    Array.from({ length: count }, () => Array.from({ length: 100 }, () => node("a")));
+
+  it("is false with nothing saved", () => {
+    expect(outputsFull([[], []], noDrawing)).toBe(false);
+  });
+
+  it("counts outputs in either mode, and in both together", () => {
+    const half = [group(sequences(400))];
+    expect(outputsFull([half, []], noDrawing)).toBe(false);
+    expect(outputsFull([[], half], noDrawing)).toBe(false);
+    expect(outputsFull([half, half], noDrawing)).toBe(true);
+    expect(outputsFull([[group(sequences(800))], []], noDrawing)).toBe(true);
+    expect(outputsFull([[], [group(sequences(800))]], noDrawing)).toBe(true);
+  });
+
+  it("counts the drawing", () => {
+    const nodes = Array.from({ length: 2000 }, (_, i) =>
+      ({ id: `state${i}`, label: `State ${i}`, value: 1, x: 100, y: 100 }));
+    expect(outputsFull([[], []], { nodes: nodes.slice(0, 100), edges: [] })).toBe(false);
+    expect(outputsFull([[], []], { nodes, edges: [] })).toBe(true);
+  });
+});
+
+describe("outputsFull at the limit", () => {
+  const drawingOf = (labelLength: number) =>
+    ({ nodes: [{ id: "a", label: "x".repeat(labelLength), value: 1 }], edges: [] });
+  const bytes = (labelLength: number) => savedBytes([[[], []].map(encodeOutputs), drawingOf(labelLength)]);
+
+  it("is true at exactly the limit, and false a byte under it", () => {
+    const labelLength = maxOutputBytes - bytes(0);
+    expect(bytes(labelLength)).toBe(maxOutputBytes);
+    expect(outputsFull([[], []], drawingOf(labelLength))).toBe(true);
+    expect(outputsFull([[], []], drawingOf(labelLength - 1))).toBe(false);
+  });
+});
+
+describe("the largest state", () => {
+  // the Activity Player's getAnswerWithMetadata keeps the report state twice in one answer document, with some 600
+  // bytes of other fields
+  const answerDocumentBytes = (state: unknown, authoredState: unknown) => {
+    const reportState = JSON.stringify({
+      mode: "report", authoredState: JSON.stringify(authoredState), interactiveState: JSON.stringify(state),
+      interactive: { id: "interactive_1234", name: "Markov" }, version: 1,
+    });
+    return 2 * new Blob([reportState]).size + 600;
+  };
+
+  const fullOutputs = () => {
+    const sequence = Array.from({ length: 100 }, () => 0);
+    const groups: SavedOutputs["groups"] = [
+      { delimiter: "\"", lengthLimit: 100, startingState: "", sequences: [] },
+    ];
+    const saved: SavedOutputs = { states: ["\""], groups };
+    while (savedBytes(saved) < maxOutputBytes) {
+      groups[0].sequences.push(sequence);
+    }
+    return saved;
+  };
+
+  const fullMode = {
+    panes: { input: true, graph: true, inspect: true, generator: true },
+    controlsOpen: true,
+    sizes: { input: 280.123456789, inspect: 260.123456789, top: 315 },
+    inspect: {
+      tab: "transitions",
+      sorts: { states: { column: "count", ascending: true }, transitions: { column: "probability", ascending: true } },
+    },
+    generator: { startingState: "the", lengthLimit: 100, delimiter: "-", delimiterType: "other", fast: true },
+    selection: { kind: "output", group: 100, sequence: 1000 },
+    view: { x: -1234.56, y: -1234.56, k: 12.3456 },
+  };
+
+  it("fits the answer document beside the largest authored state", () => {
+    const state = {
+      version: interactiveStateVersion,
+      input: { text: "\"".repeat(maxInputLength) },
+      mode: "useData",
+      probabilities: true,
+      orderMatters: true,
+      caseSensitive: true,
+      useData: {
+        ...fullMode, outputs: fullOutputs(), inputSplit: 0.123456789,
+        positions: Array.from({ length: 2 * maxSavedPositions }, () => -12345),
+      },
+      draw: { ...fullMode, drawing: { nodes: [], edges: [] } },
+    };
+    const authoredState = { ...defaultAuthoredState, startingText: "\"".repeat(maxStartingTextLength) };
+    expect(savedBytes(state.useData.outputs)).toBeGreaterThanOrEqual(maxOutputBytes);
+    expect(answerDocumentBytes(state, authoredState)).toBeLessThan(1048576);
   });
 });

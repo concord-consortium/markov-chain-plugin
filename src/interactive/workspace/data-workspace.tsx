@@ -28,6 +28,7 @@ interface DataWorkspaceProps {
   inputSplit: number;
   start: RestoredMode;
   saving: ModeSaving;
+  limitReached: boolean;
   host: MarkovHost;
   tool: MarkovToolApi;
   config: DataWorkspaceConfig;
@@ -57,8 +58,8 @@ const laidOutWhole = (before: string[], after: string[]) => {
 
 // Data mode's body: the authored panes around the student's input
 export const DataWorkspace = ({
-  text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, saving, host, tool, config,
-  stacked, hidden, controls, probabilities, arrowWidths, orderMatters, onOrderMattersChange
+  text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, saving, limitReached, host,
+  tool, config, stacked, hidden, controls, probabilities, arrowWidths, orderMatters, onOrderMattersChange
 }: DataWorkspaceProps) => {
   const { inputView } = config;
   const toolRef = useLatest(tool);
@@ -261,7 +262,10 @@ export const DataWorkspace = ({
             report={saving.report} />
         );
       case "generator":
-        return <GeneratorPane tool={tool} controlsOpen={controlsOpen} onToggleControls={toggleControls} />;
+        return (
+          <GeneratorPane tool={tool} controlsOpen={controlsOpen} onToggleControls={toggleControls}
+            limitReached={limitReached} />
+        );
     }
   };
 

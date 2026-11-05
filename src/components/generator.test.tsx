@@ -102,3 +102,25 @@ describe("Generator's delimiter field", () => {
     expect(document.body).toHaveFocus();
   });
 });
+
+describe("Generator at the limit", () => {
+  const props: GeneratorProps = {
+    nodes: [{ id: "a", label: "a", value: 1 }], graphEmpty: false, generationMode: "ready", startingState: "",
+    lengthLimit: 5, delimiter: " ", delimiterType: "space", fastSimulation: false, onStartingStateChange: jest.fn(),
+    onLengthLimitChange: jest.fn(), onLengthLimitCommit: jest.fn(), onDelimiterTypeChange: jest.fn(),
+    onDelimiterChange: jest.fn(), onDelimiterCommit: jest.fn(), onSpeedChange: jest.fn(), onPlay: jest.fn(),
+    onPause: jest.fn(), onResume: jest.fn(), onStep: jest.fn(),
+  };
+
+  it("disables Play and Step", () => {
+    render(<Generator {...props} limitReached />);
+    expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Step" })).toBeDisabled();
+  });
+
+  it("leaves them enabled below it", () => {
+    render(<Generator {...props} />);
+    expect(screen.getByRole("button", { name: "Play" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Step" })).toBeEnabled();
+  });
+});

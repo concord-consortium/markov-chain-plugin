@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
+import { useLatest } from "../../hooks/use-latest";
 import { useMarkovTool } from "../../hooks/use-markov-tool";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import {
@@ -7,10 +8,11 @@ import {
 } from "../../components/graph-highlight";
 import { MarkovAuthoredState, ModeId } from "../authored-state";
 import { MarkovInteractiveState } from "../interactive-state";
+import { outputsFull } from "../saved-outputs";
 import { ArrowWidths } from "../../components/graph-utils";
 import { useApHost } from "./ap-host";
 import { ArrowMarkers } from "./arrow-markers";
-import { buildInteractiveState, ModeReport, toolParts } from "./build-state";
+import { buildInteractiveState, ModeReport, savedDrawing, toolParts } from "./build-state";
 import { DataWorkspace } from "./data-workspace";
 import { DrawWorkspace } from "./draw-workspace";
 import { ModeSwitch } from "./mode-switch";
@@ -65,9 +67,31 @@ export const Workspace = ({ authoredState, savedState, saver, hosted }: Workspac
     useData: useMarkovTool(hosts.useData, restored.useData.tool), draw: useMarkovTool(hosts.draw, restored.draw.tool),
   };
 
+  const animating = tools.useData.animating || tools.draw.animating;
+
+  // the limit is checked when outputs or the drawing change, not during a sequence, which can always finish; a mode the
+  // page doesn't offer still counts, since its saved outputs are kept
+  const dataGroups = tools.useData.outputProps.sequenceGroups;
+  const drawGroups = tools.draw.outputProps.sequenceGroups;
+  const drawing = tools.draw.graph;
+  const [limitReached, setLimitReached] = useState(() => outputsFull([dataGroups, drawGroups], savedDrawing(drawing)));
+  const limitReachedRef = useLatest(limitReached);
+  const logRef = useLatest(hosts[mode].log);
+  useEffect(() => {
+    if (animating) {
+      return;
+    }
+    const full = outputsFull([dataGroups, drawGroups], savedDrawing(drawing));
+    if (full && !limitReachedRef.current) {
+      const outputs = [...dataGroups, ...drawGroups].reduce((count, group) => count + group.sequences.length, 0);
+      logRef.current("OutputLimitReached", { outputs });
+    }
+    setLimitReached(full);
+  }, [animating, dataGroups, drawGroups, drawing, limitReachedRef, logRef]);
+
   const reportsRef = useRef<Record<ModeId, ModeReport>>({ useData: {}, draw: {} });
   const { afterDraw } = useSavedWork({
-    saver, request, activeRef, animating: tools.useData.animating || tools.draw.animating,
+    saver, request, activeRef, animating,
     build: () => buildInteractiveState(savedState, {
       offered: authoredState.modes,
       hasInputPane: authoredState.modes.useData && configs.useData.panes.some(pane => pane.id === "input"),
@@ -121,7 +145,8 @@ export const Workspace = ({ authoredState, savedState, saver, hosted }: Workspac
       <ArrowMarkers />
       { authoredState.modes.useData &&
         <DataWorkspace text={restored.text} capitalization={restored.capitalization} inputSplit={restored.inputSplit}
-          start={restored.useData} saving={saving.useData} host={hosts.useData} tool={tools.useData}
+          start={restored.useData} saving={saving.useData} limitReached={limitReached} host={hosts.useData}
+          tool={tools.useData}
           config={configs.useData} stacked={stacked}
           hidden={mode !== "useData"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
           orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
@@ -129,7 +154,7 @@ export const Workspace = ({ authoredState, savedState, saver, hosted }: Workspac
       { authoredState.modes.draw &&
         <DrawWorkspace host={hosts.draw} tool={tools.draw} config={configs.draw} stacked={stacked}
           hidden={mode !== "draw"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
-          start={restored.draw} saving={saving.draw} />
+          start={restored.draw} saving={saving.draw} limitReached={limitReached} />
       }
     </div>
   );

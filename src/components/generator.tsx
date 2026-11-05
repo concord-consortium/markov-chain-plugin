@@ -21,6 +21,8 @@ export interface GeneratorProps {
   fastSimulation: boolean;
   // false leaves focus where it is when the "other" delimiter's field shows
   delimiterAutoFocus?: boolean;
+  // true stops a new sequence; a host must not set it while a sequence runs, which can always finish
+  limitReached?: boolean;
   onStartingStateChange: React.ChangeEventHandler<HTMLSelectElement>;
   onLengthLimitChange: React.ChangeEventHandler<HTMLInputElement>;
   onLengthLimitCommit: () => void;
@@ -36,8 +38,8 @@ export interface GeneratorProps {
 
 export const Generator = ({
   nodes, graphEmpty, generationMode, startingState, lengthLimit, delimiter, delimiterType, fastSimulation,
-  delimiterAutoFocus = true, onStartingStateChange, onLengthLimitChange, onLengthLimitCommit, onDelimiterTypeChange,
-  onDelimiterChange, onDelimiterCommit, onSpeedChange, onPlay, onPause, onResume, onStep
+  delimiterAutoFocus = true, limitReached, onStartingStateChange, onLengthLimitChange, onLengthLimitCommit,
+  onDelimiterTypeChange, onDelimiterChange, onDelimiterCommit, onSpeedChange, onPlay, onPause, onResume, onStep
 }: GeneratorProps) => {
   const animating = generationMode !== "ready";
   const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
@@ -104,14 +106,14 @@ export const Generator = ({
         <button
           type="button"
           onClick={onPlayClick}
-          disabled={graphEmpty || lengthLimit === undefined}>
+          disabled={graphEmpty || lengthLimit === undefined || limitReached}>
           <PlayOrPauseIcon />
           { playLabel }
         </button>
         <button
           type="button"
           onClick={onStep}
-          disabled={graphEmpty || lengthLimit === undefined || generationMode === "playing"}>
+          disabled={graphEmpty || lengthLimit === undefined || generationMode === "playing" || limitReached}>
           <StepIcon />
           Step
         </button>

@@ -2,7 +2,7 @@
 // the two equal.
 export const logEvents = [
   "SequencePlayed", "SequenceStepped", "SequencePaused", "SequenceResumed", "SequenceCanceled", "SequenceGenerated",
-  "GeneratorSettingChanged", "OutputCleared", "OutputSelected",
+  "GeneratorSettingChanged", "OutputCleared", "OutputSelected", "OutputLimitReached",
   "StateSelected", "TransitionSelected", "SelectionCleared", "StateDialogOpened", "StateMoved",
   "StateAdded", "TransitionAdded", "StateDeleted", "TransitionDeleted", "StateEdited", "GraphReset",
   "InputCommitted", "CaseSensitivityChanged", "TableRowAdded", "TableRowDeleted", "PaneOpened", "PaneClosed",

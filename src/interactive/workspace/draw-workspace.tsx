@@ -32,11 +32,12 @@ interface DrawWorkspaceProps {
   arrowWidths: ArrowWidths;
   start: RestoredMode;
   saving: ModeSaving;
+  limitReached: boolean;
 }
 
 // Draw mode's body: a drawing in the Graph pane, with Inspect and the generator as the author set them
 export const DrawWorkspace = ({
-  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, start, saving
+  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, start, saving, limitReached
 }: DrawWorkspaceProps) => {
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -79,7 +80,8 @@ export const DrawWorkspace = ({
         );
       case "generator":
         return (
-          <GeneratorPane tool={tool} controlsOpen={layout.controlsOpen} onToggleControls={layout.toggleControls} />
+          <GeneratorPane tool={tool} controlsOpen={layout.controlsOpen} onToggleControls={layout.toggleControls}
+            limitReached={limitReached} />
         );
     }
   };

@@ -677,6 +677,19 @@ $pane-border-color: #c7c7c7;
       padding: var(--pane-padding);
     }
 
+    .generator-output {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .output-limit {
+      margin: 0;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
     .generator-controls {
       flex: none;
       min-width: 160px;
@@ -714,10 +727,6 @@ $pane-border-color: #c7c7c7;
           font-weight: bold;
         }
       }
-    }
-
-    .sequence-output {
-      min-width: 0;
     }
   }
 
