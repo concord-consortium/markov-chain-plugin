@@ -62,12 +62,13 @@ export const DataWorkspace = ({
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const layout = usePaneLayout(config, host, tool, stacked, hidden);
-  const { has, controlsOpen, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized, top } = layout;
-  const hasInputPane = has("input");
+  const {
+    hasPane, controlsOpen, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized, top
+  } = layout;
 
   // with no Input pane the student cannot edit the input, so a saved one is ignored
-  const [startingText] = useState(() => hasInputPane ? savedInput ?? authoredState.startingText
-                                                     : authoredState.startingText);
+  const [startingText] = useState(() => hasPane("input") ? savedInput ?? authoredState.startingText
+                                                         : authoredState.startingText);
   const [text, setText] = useState(startingText);
   const [committed, setCommitted] = useState<{ text: string, tokens: Token[] }>(
     () => ({ text: startingText, tokens: tokenize(startingText, config.capitalization) }));
@@ -218,7 +219,7 @@ export const DataWorkspace = ({
   const handleSplitResized = useCallback((split: number) =>
     host.log("PaneResized", { divider: "inputSplit", sizes: { inputSplit: split } }), [host]);
 
-  const emptyMessage = !hasInputPane
+  const emptyMessage = !hasPane("input")
     ? "No data was provided for this activity."
     : inputView === "table"
       ? "Type some words in the Input pane's table to build the chain."
@@ -267,7 +268,7 @@ export const DataWorkspace = ({
     <div className="workspace-body" hidden={hidden} ref={rootRef}>
       <ControlsRow tool={tool}>
         { controls }
-        { hasInputPane ? undefined : switches }
+        { hasPane("input") ? undefined : switches }
         { !config.orderMatters.showSwitch && <SettingLabel label={orderMattersLabel} value={orderMatters} /> }
         { !config.caseSwitch && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
       </ControlsRow>

@@ -19,7 +19,7 @@ const dividerLabels: Record<PaneDivider, string> = {
 export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: MarkovToolApi, stacked: boolean,
   hidden: boolean) => {
   const toolRef = useLatest(tool);
-  const has = (id: WorkspacePaneId) => config.panes.some(pane => pane.id === id);
+  const hasPane = (id: WorkspacePaneId) => config.panes.some(pane => pane.id === id);
 
   // the view follows the graph, fitting it after each commit, until the student zooms or pans
   const followRef = useRef(true);
@@ -63,15 +63,15 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   }, [hidden, handleFit]);
 
   const rowPanes = config.panes.filter(pane => pane.id !== "generator");
-  const graphOpen = has("graph") && open.graph;
-  const rowsDivider = !stacked && has("generator") && open.generator && rowPanes.some(pane => open[pane.id]);
+  const graphOpen = hasPane("graph") && open.graph;
+  const rowsDivider = !stacked && hasPane("generator") && open.generator && rowPanes.some(pane => open[pane.id]);
 
   // the sizes the student chose, kept while a narrow row draws them smaller and while a pane is collapsed
   const [paneSizes, setPaneSizes] = useState<PaneSizes>(defaultPaneSizes);
   const rowRef = useRef<HTMLDivElement | null>(null);
   const rowWidth = useMeasuredSize(rowRef)?.width;
   const openPanes: OpenPanes = {
-    input: has("input") && open.input, graph: graphOpen, inspect: has("inspect") && open.inspect
+    input: hasPane("input") && open.input, graph: graphOpen, inspect: hasPane("inspect") && open.inspect
   };
   // the width the open Input, Graph and Inspect panes share
   const room = (rowWidth ?? 0) - paneGap * (rowPanes.length - 1) -
@@ -171,7 +171,7 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
       : undefined;
 
   return {
-    has, open, controlsOpen, togglePane, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized,
+    hasPane, open, controlsOpen, togglePane, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized,
     rowPanes, rowsDivider, rowRef, top, paneStyle, dividerFor, paneDivider,
   };
 };

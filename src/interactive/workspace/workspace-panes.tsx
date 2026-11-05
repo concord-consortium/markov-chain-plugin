@@ -20,7 +20,7 @@ interface WorkspacePanesProps {
 
 // a mode's panes: Input, Graph and Inspect in a row, and the generator below them
 export const WorkspacePanes = ({ layout, stacked, sourcePaneRef, renderPane, fixedPane }: WorkspacePanesProps) => {
-  const { has, open, togglePane, rowPanes, rowsDivider, rowRef, top, paneStyle, dividerFor, paneDivider } = layout;
+  const { hasPane, open, togglePane, rowPanes, rowsDivider, rowRef, top, paneStyle, dividerFor, paneDivider } = layout;
   return (
     <>
       { rowPanes.length > 0 &&
@@ -35,7 +35,7 @@ export const WorkspacePanes = ({ layout, stacked, sourcePaneRef, renderPane, fix
           { rowsDivider && dividerFor("rows") }
         </div>
       }
-      { has("generator") &&
+      { hasPane("generator") &&
         <Pane className="generator-pane" title={paneTitles.generator} open={open.generator}
           onToggle={() => togglePane("generator")} onInteract={() => (sourcePaneRef.current = "generator")}
           style={open.generator ? { height: workspaceHeight - top } : undefined}>
