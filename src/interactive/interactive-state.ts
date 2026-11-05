@@ -153,9 +153,3 @@ export const readInteractiveState = (raw: unknown): MarkovInteractiveState => {
   });
   return { ...state, version: interactiveStateVersion };
 };
-
-// whatever the Activity Player hands back, read as the saved input text, or undefined for none; it never throws
-export const readSavedInput = (raw: unknown): string | undefined => {
-  const { input } = parseState(raw);
-  return isRecord(input) && typeof input.text === "string" ? input.text : undefined;
-};

@@ -6,6 +6,7 @@ import {
   animatedNodeColor, incomingArrowColor, outgoingArrowColor, selectedNodeColor
 } from "../../components/graph-highlight";
 import { MarkovAuthoredState, ModeId } from "../authored-state";
+import { MarkovInteractiveState } from "../interactive-state";
 import { ArrowWidths } from "../../components/graph-utils";
 import { useApHost } from "./ap-host";
 import { ArrowMarkers } from "./arrow-markers";
@@ -17,13 +18,14 @@ import {
   collapsedStrip, controlsRowHeight, defaultPaneSizes, dividerBand, paneBorder, paneGap, paneHeader, panePadding,
   stackBelow, toolbarButton, toolbarGap
 } from "./pane-sizes";
+import { restoreWork } from "./restore-work";
 import { workspaceConfig } from "./workspace-config";
 
 import "./workspace.scss";
 
 interface WorkspaceProps {
   authoredState: MarkovAuthoredState;
-  savedInput?: string;
+  savedState: MarkovInteractiveState;
   // saves the input; absent standalone
   onSaveInput?: (text: string) => void;
   hosted: boolean;
@@ -42,17 +44,20 @@ const cssValues = {
 
 // The student's workspace: one tool per mode, each mode's body staying mounted, hidden while the other shows, so each
 // keeps its work
-export const Workspace = ({ authoredState, savedInput, onSaveInput, hosted }: WorkspaceProps) => {
-  const [mode, setMode] = useState<ModeId>(authoredState.startingMode);
+export const Workspace = ({ authoredState, savedState, onSaveInput, hosted }: WorkspaceProps) => {
   const [configs] = useState(() => ({
     useData: workspaceConfig(authoredState, "useData"), draw: workspaceConfig(authoredState, "draw"),
   }));
-  const [probabilities, setProbabilities] = useState(configs.useData.probabilities.startsOn);
-  const [orderMatters, setOrderMatters] = useState(configs.useData.orderMatters.startsOn);
+  const [restored] = useState(() => restoreWork(savedState, authoredState, configs));
+  const [mode, setMode] = useState<ModeId>(restored.mode);
+  const [probabilities, setProbabilities] = useState(restored.probabilities);
+  const [orderMatters, setOrderMatters] = useState(restored.orderMatters);
   // arrows keep their probability widths whether or not probabilities are shown
   const arrowWidths: ArrowWidths = "byState";
   const hosts = { useData: useApHost(hosted, "useData", orderMatters), draw: useApHost(hosted, "draw") };
-  const tools = { useData: useMarkovTool(hosts.useData), draw: useMarkovTool(hosts.draw) };
+  const tools = {
+    useData: useMarkovTool(hosts.useData, restored.useData.tool), draw: useMarkovTool(hosts.draw, restored.draw.tool),
+  };
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(rootRef);
@@ -92,14 +97,16 @@ export const Workspace = ({ authoredState, savedInput, onSaveInput, hosted }: Wo
     <div className={clsx("markov-workspace", { stacked })} style={cssValues} ref={rootRef}>
       <ArrowMarkers />
       { authoredState.modes.useData &&
-        <DataWorkspace authoredState={authoredState} savedInput={savedInput} onSaveInput={onSaveInput}
-          host={hosts.useData} tool={tools.useData} config={configs.useData} stacked={stacked}
+        <DataWorkspace text={restored.text} capitalization={restored.capitalization} inputSplit={restored.inputSplit}
+          start={restored.useData} onSaveInput={onSaveInput} host={hosts.useData} tool={tools.useData}
+          config={configs.useData} stacked={stacked}
           hidden={mode !== "useData"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
           orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
       }
       { authoredState.modes.draw &&
         <DrawWorkspace host={hosts.draw} tool={tools.draw} config={configs.draw} stacked={stacked}
-          hidden={mode !== "draw"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths} />
+          hidden={mode !== "draw"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
+          start={restored.draw} />
       }
     </div>
   );

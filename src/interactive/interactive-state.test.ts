@@ -1,4 +1,4 @@
-import { copyState, MarkovInteractiveState, readInteractiveState, readSavedInput } from "./interactive-state";
+import { copyState, MarkovInteractiveState, readInteractiveState } from "./interactive-state";
 import { inspectColumns } from "./workspace/inspect-rows";
 
 const deepFreeze = <T, >(value: T): T => {
@@ -186,26 +186,5 @@ describe("readInteractiveState", () => {
     expect(readInteractiveState(state).draw?.drawing).toEqual({
       nodes: [good], edges: [{ from: "a", to: "a", value: 1 }],
     });
-  });
-});
-
-describe("readSavedInput", () => {
-  it("reads no saved input from nothing, an empty state, or the version alone", () => {
-    expect(readSavedInput(null)).toBeUndefined();
-    expect(readSavedInput(undefined)).toBeUndefined();
-    expect(readSavedInput({})).toBeUndefined();
-    expect(readSavedInput({ version: 1 })).toBeUndefined();
-  });
-
-  it("reads no saved input from a malformed state", () => {
-    expect(readSavedInput("{not json")).toBeUndefined();
-    expect(readSavedInput({ version: 1, input: "the cat" })).toBeUndefined();
-    expect(readSavedInput({ version: 1, input: { text: 3 } })).toBeUndefined();
-  });
-
-  it("reads the saved text from an object or a JSON string", () => {
-    expect(readSavedInput({ version: 1, input: { text: "the cat" } })).toBe("the cat");
-    expect(readSavedInput(JSON.stringify({ version: 1, input: { text: "the cat" } }))).toBe("the cat");
-    expect(readSavedInput({ version: 1, input: { text: "" } })).toBe("");
   });
 });

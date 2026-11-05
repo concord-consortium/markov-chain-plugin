@@ -44,7 +44,8 @@ describe("SequenceOutput", () => {
   describe("with openAtNewest", () => {
     let observers: { callback: () => void, target?: Element, disconnected: boolean }[];
     let clientHeight: number;
-    const notify = () => observers.forEach(observer => observer.target && !observer.disconnected && observer.callback());
+    const notify = () => observers.filter(observer => observer.target && !observer.disconnected)
+      .forEach(observer => observer.callback());
 
     beforeEach(() => {
       observers = [];

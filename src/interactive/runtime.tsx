@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { setInteractiveState } from "@concord-consortium/lara-interactive-api";
 import { MarkovAuthoredState } from "./authored-state";
-import { interactiveStateVersion, MarkovInteractiveState, readSavedInput } from "./interactive-state";
+import { interactiveStateVersion, MarkovInteractiveState, readInteractiveState } from "./interactive-state";
 import { settingsSummary } from "./settings-summary";
 import { Workspace } from "./workspace/workspace";
 
@@ -28,6 +28,8 @@ export const Runtime = ({ authoredState, interactiveState, view = "hosted" }: Pr
   const handleSaveInput = useCallback((text: string) =>
     setInteractiveState<MarkovInteractiveState>({ version: interactiveStateVersion, input: { text } }), []);
 
+  const savedState = useMemo(() => readInteractiveState(interactiveState), [interactiveState]);
+
   if (view === "report") {
     return <ReportPlaceholder authoredState={authoredState} />;
   }
@@ -39,7 +41,7 @@ export const Runtime = ({ authoredState, interactiveState, view = "hosted" }: Pr
           Opened outside the Activity Player: the settings come from this page&apos;s link, and nothing is saved.
         </p>
       ) }
-      <Workspace authoredState={authoredState} savedInput={readSavedInput(interactiveState)} hosted={hosted}
+      <Workspace authoredState={authoredState} savedState={savedState} hosted={hosted}
         onSaveInput={hosted ? handleSaveInput : undefined} />
     </>
   );

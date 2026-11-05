@@ -5,7 +5,7 @@ import { ArrowWidths, layoutFor } from "../../components/graph-utils";
 import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { Node } from "../../type";
-import { Capitalization, caseSensitiveLabel, MarkovAuthoredState, orderMattersLabel } from "../authored-state";
+import { Capitalization, capitalizationFor, caseSensitiveLabel, orderMattersLabel } from "../authored-state";
 import { Token, tokenize, tokensToValues } from "../input/tokenizer";
 import { CommitHow, CommitView } from "./commit";
 import { ControlsRow } from "./controls-row";
@@ -14,7 +14,7 @@ import { GraphPane } from "./graph-pane";
 import { highlightsFor } from "./highlights";
 import { InputPane } from "./input-pane";
 import { InspectPane } from "./inspect-pane";
-import { defaultInputSplit } from "./pane-sizes";
+import { RestoredMode } from "./restore-work";
 import { SettingLabel, SettingSwitch } from "./setting-switch";
 import { useClearGoneSelection, useEscape, useInspectChoices, useScrollToChoice } from "./use-mode-body";
 import { usePaneLayout } from "./use-pane-layout";
@@ -22,8 +22,11 @@ import { DataWorkspaceConfig, WorkspacePaneId } from "./workspace-config";
 import { WorkspacePanes } from "./workspace-panes";
 
 interface DataWorkspaceProps {
-  authoredState: MarkovAuthoredState;
-  savedInput?: string;
+  // the input and its case rule to open with
+  text: string;
+  capitalization: Capitalization;
+  inputSplit: number;
+  start: RestoredMode;
   // saves the input; absent standalone
   onSaveInput?: (text: string) => void;
   host: MarkovHost;
@@ -55,32 +58,25 @@ const laidOutWhole = (before: string[], after: string[]) => {
 
 // Data mode's body: the authored panes around the student's input
 export const DataWorkspace = ({
-  authoredState, savedInput, onSaveInput, host, tool, config, stacked, hidden, controls, probabilities, arrowWidths,
-  orderMatters, onOrderMattersChange
+  text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, onSaveInput, host, tool, config,
+  stacked, hidden, controls, probabilities, arrowWidths, orderMatters, onOrderMattersChange
 }: DataWorkspaceProps) => {
   const { inputView } = config;
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const layout = usePaneLayout(config, host, tool, stacked, hidden);
+  const layout = usePaneLayout(config, host, tool, stacked, hidden, start);
   const {
     hasPane, controlsOpen, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized, top
   } = layout;
 
-  // with no Input pane the student cannot edit the input, so a saved one is ignored
-  const [startingText] = useState(() => hasPane("input") ? savedInput ?? authoredState.startingText
-                                                         : authoredState.startingText);
-  const [text, setText] = useState(startingText);
+  const [text, setText] = useState(startText);
   const [committed, setCommitted] = useState<{ text: string, tokens: Token[] }>(
-    () => ({ text: startingText, tokens: tokenize(startingText, config.capitalization) }));
-  const [firstValues] = useState(() => tokensToValues(committed.tokens));
-  useEffect(() => {
-    tool.handle.dataChanged(firstValues);
-  }, [tool.handle, firstValues]);
+    () => ({ text: startText, tokens: tokenize(startText, startCapitalization) }));
 
-  const lastValuesRef = useRef(firstValues);
-  const lastSavedRef = useRef(startingText);
+  const lastValuesRef = useRef(start.tool.values ?? []);
+  const lastSavedRef = useRef(startText);
 
-  const [capitalization, setCapitalization] = useState(config.capitalization);
+  const [capitalization, setCapitalization] = useState(startCapitalization);
   // reads the text under a rule and hands the core its values when they changed, returning its tokens if they did
   const commitText = useCallback((nextText: string, rule: Capitalization) => {
     const tokens = tokenize(nextText, rule);
@@ -118,7 +114,7 @@ export const DataWorkspace = ({
   const textRef = useLatest(text);
 
   const handleCaseChange = (caseSensitive: boolean) => {
-    const rule = caseSensitive ? "asTyped" : "lowercase";
+    const rule = capitalizationFor(caseSensitive);
     setCapitalization(rule);
     commitText(textRef.current, rule);
     host.log("CaseSensitivityChanged", { caseSensitive, states: stateCount(lastValuesRef.current) });
@@ -215,7 +211,7 @@ export const DataWorkspace = ({
     }
   });
 
-  const [inputSplit, setInputSplit] = useState(defaultInputSplit);
+  const [inputSplit, setInputSplit] = useState(startSplit);
   const handleSplitResized = useCallback((split: number) =>
     host.log("PaneResized", { divider: "inputSplit", sizes: { inputSplit: split } }), [host]);
 
@@ -250,14 +246,14 @@ export const DataWorkspace = ({
           <GraphPane tool={tool} log={host.log} top={top} probabilities={probabilities} arrowWidths={arrowWidths}
             orderMatters={orderMatters}
             emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFit}
-            onResized={handleGraphResized}
+            onResized={handleGraphResized} initialView={start.view}
             onDoubleClickState={handleDoubleClickState} />
         );
       case "inspect":
         return (
           <InspectPane mode="useData" orderMatters={orderMatters} graph={tool.graph} selection={tool.selection}
             highlights={highlights} log={host.log}
-            onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} />
+            onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} start={start.inspect} />
         );
       case "generator":
         return <GeneratorPane tool={tool} controlsOpen={controlsOpen} onToggleControls={toggleControls} />;

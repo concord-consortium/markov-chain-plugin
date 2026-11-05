@@ -33,6 +33,7 @@ export type InputView = typeof inputViews[number];
 
 export const capitalizations = ["lowercase", "asTyped"] as const;
 export type Capitalization = typeof capitalizations[number];
+export const capitalizationFor = (caseSensitive: boolean): Capitalization => caseSensitive ? "asTyped" : "lowercase";
 
 export const maxStartingTextLength = 20000;
 

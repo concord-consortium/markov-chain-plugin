@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { clsx } from "clsx";
 import { Drawing } from "../../components/drawing";
 import { ArrowWidths } from "../../components/graph-utils";
-import { Graph } from "../../components/graph";
+import { Graph, GraphView } from "../../components/graph";
 import { graphLabels } from "../../components/graph-labels";
 import { Tool, Toolbar } from "../../components/toolbar";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
@@ -28,6 +28,7 @@ interface GraphPaneProps {
   onUserZoom: () => void;
   onFit: () => void;
   onResized: () => void;
+  initialView?: GraphView;
   onDoubleClickState?: (id: string) => void;
   probabilities: boolean;
   arrowWidths: ArrowWidths;
@@ -38,8 +39,8 @@ interface GraphPaneProps {
 // The graph and its toolbar. Every callback handed to Graph keeps its identity, reading the tool through a ref,
 // since a new callback redraws the whole graph.
 export const GraphPane = ({
-  variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onResized, onDoubleClickState,
-  probabilities, arrowWidths, orderMatters = true
+  variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onResized, initialView,
+  onDoubleClickState, probabilities, arrowWidths, orderMatters = true
 }: GraphPaneProps) => {
   const toolRef = useLatest(tool);
   const onUserZoomRef = useLatest(onUserZoom);
@@ -97,6 +98,7 @@ export const GraphPane = ({
             onEdgeSelect={handleEdgeSelect}
             onBackgroundClick={handleBackgroundClick}
             onUserZoom={handleUserZoom}
+            initialView={initialView}
             fitTransitionMs={fitMs}
             probabilityLabels={probabilities}
             arrowWidths={arrowWidths}
@@ -128,6 +130,7 @@ export const GraphPane = ({
             zoomButtons={false}
             zoomRequest={zoomRequest}
             onUserZoom={handleUserZoom}
+            initialView={initialView}
             fitTransitionMs={fitMs}
             fitViewAt={view.fitViewAt}
             recenterViewAt={view.recenterViewAt}

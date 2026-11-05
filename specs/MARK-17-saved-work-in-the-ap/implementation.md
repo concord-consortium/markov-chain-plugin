@@ -155,8 +155,8 @@ interface RestoredMode {
   panes: Record<string, boolean>;
   controlsOpen: boolean;
   sizes: PaneSizes;
-  inspect?: { tab: InspectTab, sorts: Record<InspectTab, Sort> };
-  view?: SavedView;
+  inspect: SavedMode["inspect"];
+  view: SavedView | undefined;
 }
 ```
 
@@ -165,7 +165,7 @@ interface RestoredMode {
 - `positions` are applied to `tool.graph.nodes` in order when `positions.length === 2 * nodes.length` and `saved.caseSensitive` matches the rule in use, so a hand-written test state needs that field.
 - `view` is kept only for the starting mode, and never with `readOnly`.
 - `selection` is mapped to a `Selection` (an output through the decoded groups), dropped when R17 says so.
-- `sizes` clamp to `minPaneSizes` and the row's maximum; `inputSplit` to between 0 and 1.
+- `sizes` clamp to `minPaneSizes`, and `top` to the row's maximum, `maxRowHeight`, which the row divider reads too: a width too wide for the row is fitted to it as usual. `inputSplit` clamps to between 0 and 1.
 
 `Workspace` takes `savedState: MarkovInteractiveState` in place of `savedInput`, computes `restored` once in `useState`, starts its state from it, and passes `restored.useData.tool` and `restored.draw.tool` to the hooks. `usePaneLayout` takes a `start: RestoredMode` for `open`, `controlsOpen`, `paneSizes` and `followRef` (`useRef(!start.view)`). `GraphPane` takes `initialView`. `InspectPane` takes `start` for `tab` and `sorts`. `DataWorkspace` takes `text`, `capitalization` and `inputSplit`, and loses `authoredState`, which it read only for the starting text.
 

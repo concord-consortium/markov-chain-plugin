@@ -10,6 +10,7 @@ import { GeneratorPane } from "./generator-pane";
 import { GraphPane } from "./graph-pane";
 import { highlightsFor } from "./highlights";
 import { InspectPane } from "./inspect-pane";
+import { RestoredMode } from "./restore-work";
 import { useClearGoneSelection, useEscape, useInspectChoices, useScrollToChoice } from "./use-mode-body";
 import { usePaneLayout } from "./use-pane-layout";
 import { DrawWorkspaceConfig, WorkspacePaneId } from "./workspace-config";
@@ -29,16 +30,17 @@ interface DrawWorkspaceProps {
   controls: React.ReactNode;
   probabilities: boolean;
   arrowWidths: ArrowWidths;
+  start: RestoredMode;
 }
 
 // Draw mode's body: a drawing in the Graph pane, with Inspect and the generator as the author set them
 export const DrawWorkspace = ({
-  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths
+  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, start
 }: DrawWorkspaceProps) => {
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sourcePaneRef = useRef<WorkspacePaneId>(undefined);
-  const layout = usePaneLayout(config, host, tool, stacked, hidden);
+  const layout = usePaneLayout(config, host, tool, stacked, hidden, start);
   const highlights = useMemo(() => highlightsFor(tool.selection, [], tool.graph.edges),
     [tool.selection, tool.graph.edges]);
 
@@ -65,13 +67,14 @@ export const DrawWorkspace = ({
         return (
           <GraphPane variant="draw" tools={drawModeTools} tool={tool} log={host.log} top={layout.top}
             probabilities={probabilities} arrowWidths={arrowWidths}
-            onUserZoom={layout.handleUserZoom} onFit={layout.handleFit} onResized={layout.handleGraphResized} />
+            onUserZoom={layout.handleUserZoom} onFit={layout.handleFit} onResized={layout.handleGraphResized}
+            initialView={start.view} />
         );
       case "inspect":
         return (
           <InspectPane mode="draw" orderMatters={true} graph={tool.graph} selection={tool.selection}
             highlights={highlights} log={host.log} onSelectState={handleSelectState}
-            onSelectTransition={handleSelectTransition} />
+            onSelectTransition={handleSelectTransition} start={start.inspect} />
         );
       case "generator":
         return (

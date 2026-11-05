@@ -4,9 +4,10 @@ import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { Divider } from "./divider";
 import {
-  collapsedStrip, defaultPaneSizes, dividerLimits, drawnRowHeight, fitPaneSizes, movesDivider, OpenPanes, PaneDivider,
+  collapsedStrip, dividerLimits, drawnRowHeight, fitPaneSizes, movesDivider, OpenPanes, PaneDivider,
   paneGap, PaneSizes, resizedPanes
 } from "./pane-sizes";
+import { RestoredMode } from "./restore-work";
 import { useMeasuredSize } from "./use-measured-size";
 import { WorkspaceConfig, WorkspacePaneId } from "./workspace-config";
 
@@ -17,16 +18,20 @@ const dividerLabels: Record<PaneDivider, string> = {
 // One mode's panes: which are open, their sizes and dividers, and the view following the graph until the student zooms
 // or pans. Each mode calls it, so each keeps its own.
 export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: MarkovToolApi, stacked: boolean,
-  hidden: boolean) => {
+  hidden: boolean, start: RestoredMode) => {
   const toolRef = useLatest(tool);
   const hasPane = (id: WorkspacePaneId) => config.panes.some(pane => pane.id === id);
 
   // the view follows the graph, fitting it after each commit, until the student zooms or pans
-  const followRef = useRef(true);
+  const followRef = useRef(!start.view);
+  useEffect(() => {
+    if (!start.view) {
+      toolRef.current.view.onFitView();
+    }
+  }, [toolRef, start.view]);
 
-  const [open, setOpen] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(config.panes.map(pane => [pane.id, pane.startsOpen])));
-  const [controlsOpen, setControlsOpen] = useState(true);
+  const [open, setOpen] = useState(start.panes);
+  const [controlsOpen, setControlsOpen] = useState(start.controlsOpen);
   const togglePane = (id: WorkspacePaneId) => {
     const opening = !open[id];
     setOpen(prev => ({ ...prev, [id]: opening }));
@@ -67,7 +72,7 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   const rowsDivider = !stacked && hasPane("generator") && open.generator && rowPanes.some(pane => open[pane.id]);
 
   // the sizes the student chose, kept while a narrow row draws them smaller and while a pane is collapsed
-  const [paneSizes, setPaneSizes] = useState<PaneSizes>(defaultPaneSizes);
+  const [paneSizes, setPaneSizes] = useState<PaneSizes>(start.sizes);
   const rowRef = useRef<HTMLDivElement | null>(null);
   const rowWidth = useMeasuredSize(rowRef)?.width;
   const openPanes: OpenPanes = {
@@ -125,16 +130,16 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
     setPaneSizes(next);
   };
   const endResize = (divider: PaneDivider) => {
-    const start = resizeStartRef.current;
+    const startSizes = resizeStartRef.current;
     const moved = movedToRef.current;
     resizeStartRef.current = undefined;
     movedToRef.current = undefined;
-    if (!start || !moved) {
+    if (!startSizes || !moved) {
       return;
     }
     // a move that changed nothing on screen keeps the sizes the student chose
     if (!movedOnScreenRef.current) {
-      setPaneSizes(start);
+      setPaneSizes(startSizes);
     } else {
       host.log("PaneResized", { divider, sizes: moved });
       if (followRef.current) {
