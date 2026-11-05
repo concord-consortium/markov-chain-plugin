@@ -28,14 +28,16 @@ export type SavedSelection =
   | { kind: "transition", from: string, to: string }
   | { kind: "output", group: number, sequence: number };
 
+export interface SavedGenerator {
+  startingState: string, lengthLimit?: number, delimiter: string, delimiterType: DelimiterType, fast: boolean,
+}
+
 export interface SavedMode {
   panes?: Partial<Record<WorkspacePaneId, boolean>>;
   controlsOpen?: boolean;
   sizes?: Partial<PaneSizes>;
-  inspect?: { tab: InspectTab, sorts: Record<InspectTab, Sort> };
-  generator?: {
-    startingState: string, lengthLimit?: number, delimiter: string, delimiterType: DelimiterType, fast: boolean,
-  };
+  inspect?: { tab?: InspectTab, sorts?: Partial<Record<InspectTab, Sort>> };
+  generator?: Partial<SavedGenerator>;
   outputs?: SavedOutputs;
   selection?: SavedSelection;
   view?: SavedView;
@@ -55,7 +57,7 @@ export interface MarkovInteractiveState {
 
 `InspectTab` and `Sort` move from `inspect-pane.tsx` to `inspect-rows.ts`, so `interactive-state.ts` imports types only.
 
-`readInteractiveState(raw: unknown): MarkovInteractiveState` starts from `copyState(parseState(raw))`, since the library deep-freezes the init message and the workspace goes on to edit what it reads, and removes each known field that fails a small checker (`isRecord`, `typeof`, `Number.isFinite`, a list of allowed values), so fields it doesn't know stay (R14). `copyState` is `JSON.parse(JSON.stringify(state))`: a state is JSON, and `structuredClone` isn't defined in Jest's jsdom, where `standalone.test.tsx` renders the real `Runtime`. A drawing is kept only with arrays of nodes (string `id` and `label`, numeric `value`, `x` and `y` numbers or absent) and edges, dropping bad entries and edges to missing nodes. `positions` must be an even-length list of finite numbers, and a `view`'s `k` above 0.
+`readInteractiveState(raw: unknown): MarkovInteractiveState` starts from `copyState(parseState(raw))`, since the library deep-freezes the init message and the workspace goes on to edit what it reads, and removes each known field that fails a small checker (`isRecord`, `typeof`, `Number.isFinite`, a list of allowed values), so fields it doesn't know stay (R14). `copyState` is `JSON.parse(JSON.stringify(state))`: a state is JSON, and `structuredClone` isn't defined in Jest's jsdom, where `standalone.test.tsx` renders the real `Runtime`. A drawing is kept only with arrays of nodes (string `id` and `label`, numeric `value`, `x` and `y` numbers or absent) and edges, dropping bad entries and edges to missing nodes. `positions` must be an even-length list of finite numbers, and a `view`'s `k` above 0. `inspect` and `generator` are read field by field, so one wrong setting leaves the others; `outputs`, `selection` and `view` are each one value, and go whole.
 
 ```ts
 // saved-outputs.ts

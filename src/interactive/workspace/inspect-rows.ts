@@ -17,6 +17,8 @@ export interface TransitionRow {
   probability: string,
 }
 export type SortColumn = "state" | "count" | "transition" | "probability";
+export type InspectTab = "states" | "transitions";
+export interface Sort { column: SortColumn, ascending: boolean }
 
 export const bagOfWordsExplanation = "All states are connected to all other states. " +
   "States that appear multiple times in the input data have higher probabilities of being selected.";

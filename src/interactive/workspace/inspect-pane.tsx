@@ -5,11 +5,9 @@ import { GraphData } from "../../type";
 import { ModeId } from "../authored-state";
 import { Highlights, transitionKey } from "./highlights";
 import {
-  bagOfWordsExplanation, inspectColumns, SortColumn, sortRows, StateRow, stateRows, TransitionRow, transitionRows
+  bagOfWordsExplanation, InspectTab, inspectColumns, Sort, SortColumn, sortRows, StateRow, stateRows, TransitionRow,
+  transitionRows
 } from "./inspect-rows";
-
-type InspectTab = "states" | "transitions";
-interface Sort { column: SortColumn, ascending: boolean }
 
 const tabs: { id: InspectTab, label: string }[] = [
   { id: "states", label: "States" }, { id: "transitions", label: "Transitions" }
