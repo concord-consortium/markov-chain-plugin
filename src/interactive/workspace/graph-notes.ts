@@ -4,8 +4,8 @@ export const outgoingOnlyNote = "Only arrows out of the chosen word are drawn";
 // the notes along the bottom of the Graph pane, each only while it applies
 // a chosen state stays chosen while a sequence plays, but its arrows give way to the generator's then
 export const graphNotes = (s: {
-  probabilities: boolean, orderMatters: boolean, stateChosen: boolean, animating: boolean
+  labelsShown: boolean, orderMatters: boolean, stateChosen: boolean, animating: boolean
 }) => [
-  ...(s.probabilities ? [roundingNote] : []),
+  ...(s.labelsShown ? [roundingNote] : []),
   ...(!s.orderMatters && s.stateChosen && !s.animating ? [outgoingOnlyNote] : []),
 ];

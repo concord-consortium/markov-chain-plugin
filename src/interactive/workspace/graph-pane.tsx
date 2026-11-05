@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { Drawing } from "../../components/drawing";
 import { ArrowWidths } from "../../components/graph-utils";
 import { Graph } from "../../components/graph";
+import { graphLabels } from "../../components/graph-labels";
 import { Tool, Toolbar } from "../../components/toolbar";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { MarkovHost } from "../../components/host";
@@ -65,8 +66,11 @@ export const GraphPane = ({
 
   const columns = toolbarColumns(tools.length, graphBodyHeight(top));
   const { graphHighlights, view } = tool;
+  // a generating step's labels come and go, so the note stays for the whole sequence and is read out once
+  const labelsShown = probabilities && (tool.animating ||
+    graphLabels(tool.graph, orderMatters, { ...graphHighlights, animating: tool.animating }).length > 0);
   const notes = graphNotes({
-    probabilities, orderMatters, stateChosen: tool.selection?.kind === "state", animating: tool.animating
+    labelsShown, orderMatters, stateChosen: tool.selection?.kind === "state", animating: tool.animating
   });
 
   return (

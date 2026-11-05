@@ -1,4 +1,4 @@
-import { Edge, Node } from "../type";
+import { Edge, GraphData, Node } from "../type";
 
 export type Outgoing = (id: string) => Edge[];
 export interface ProbabilityLabel { from: string, to: string, text: string, strength: "full" | "faded" }
@@ -51,6 +51,16 @@ export const probabilityLabels = (s: LabelState): ProbabilityLabel[] => {
   }
   return s.selectedNodeId ? labelsFrom(s.outgoing, s.selectedNodeId, () => "full") : [];
 };
+
+// the arrows leaving a state in a graph as it's drawn: the chain's, or with order off a bag of words'
+export const outgoingFor = (graph: GraphData, orderMatters?: boolean): Outgoing =>
+  orderMatters === false ? bagOutgoing(graph.nodes) : chainOutgoing(graph.edges);
+
+// the labels a graph draws, where a bag of words labels only a chosen output's steps
+export const graphLabels = (graph: GraphData, orderMatters: boolean | undefined,
+  highlights: Omit<LabelState, "outgoing" | "stepsOnly">) => probabilityLabels({
+  ...highlights, outgoing: outgoingFor(graph, orderMatters), stepsOnly: orderMatters === false,
+});
 
 export type BagArrow = Edge & { kind: "chosen" | "candidate" | "step" };
 

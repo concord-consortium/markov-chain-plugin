@@ -2134,6 +2134,17 @@ describe("the workspace's modes", () => {
         .should("have.attr", "stroke", animatedArrowColor);
     });
 
+    it("keeps the notes clear of its toolbar", () => {
+      startDrawing({ buttons: { probabilities: { available: true, startsOn: true } } });
+      drawThreeStates();
+      drawTransition("State 1", "State 2");
+      clickShownState("State 1");
+      shown().find(".graph-notes p").should(note => {
+        const toolbar = note[0].closest(".graph-pane-content")!.querySelector(".toolbar")!;
+        expect(note[0].getBoundingClientRect().left).to.be.at.least(toolbar.getBoundingClientRect().right);
+      });
+    });
+
     it("clears a chosen state when it is deleted, without logging a clear", () => {
       startDrawing();
       drawThreeStates();
@@ -2517,23 +2528,35 @@ describe("the workspace's probabilities", () => {
       .invoke("map", (label: Element) => label.textContent).should("deep.equal", ["60%", "40%"]);
   });
 
-  it("keeps the notes clear of a drawing's toolbar", () => {
-    start({ modes: { useData: false, draw: true }, startingMode: "draw", ...on });
-    cy.interactive().find(".graph-notes p").should(note => {
-      const toolbar = note[0].closest(".graph-pane-content")!.querySelector(".toolbar")!;
-      expect(note[0].getBoundingClientRect().left).to.be.at.least(toolbar.getBoundingClientRect().right);
-    });
-  });
-
-  it("notes the rounding only while probabilities show", () => {
-    start({ startingText: "the cat" });
-    notes().should("deep.equal", []);
+  it("notes the rounding only while labels show", () => {
+    start({ startingText: "the cat the" });
     toggle().click();
+    notes().should("deep.equal", []);
+    clickState("the");
+    labels().should("have.length", 1);
     notes().should("deep.equal", [rounding]);
     cy.interactive().find(".graph-notes").should("have.css", "pointer-events", "none")
       .and("have.attr", "aria-live", "polite");
     toggle().click();
     notes().should("deep.equal", []);
+  });
+
+  it("has no rounding note for a chosen state with no arrows out of it", () => {
+    start({ startingText: "the cat", ...on });
+    clickState("cat");
+    cy.interactive().find(".clear-highlight").should("exist");
+    labels().should("not.exist");
+    notes().should("deep.equal", []);
+  });
+
+  it("keeps the rounding note through both halves of a generating step", () => {
+    start({ startingText: "the cat the", ...on });
+    notes().should("deep.equal", []);
+    generatorButton("Step").click();
+    notes().should("deep.equal", [rounding]);
+    generatorButton("Step").click();
+    labels().should("not.exist");
+    notes().should("deep.equal", [rounding]);
   });
 });
 

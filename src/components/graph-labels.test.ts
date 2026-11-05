@@ -1,4 +1,6 @@
-import { bagArrows, bagOutgoing, chainOutgoing, LabelState, percentOf, probabilityLabels } from "./graph-labels";
+import {
+  bagArrows, bagOutgoing, chainOutgoing, graphLabels, LabelState, percentOf, probabilityLabels
+} from "./graph-labels";
 import { Edge, Node } from "../type";
 
 const node = (id: string): Node => ({ id, label: id, value: 1 });
@@ -179,6 +181,29 @@ describe("the bag of words", () => {
     it("draws no step from or to a state the input no longer has", () => {
       const highlightOutputNodes = [node("dog"), node("the"), node("bird")];
       expect(arrows({ highlightOutputNodes })).toEqual([]);
+    });
+  });
+
+  describe("graphLabels", () => {
+    const graph = { nodes: [node("a"), node("b"), node("c")], edges: [edge("a", "b"), edge("a", "c")] };
+    const labels = (orderMatters: boolean | undefined, chosen: Partial<LabelState>) =>
+      graphLabels(graph, orderMatters, { animating: false, highlightAllNextNodes: false, ...chosen })
+        .map(({ from, to, strength }) => `${from}>${to} ${strength}`);
+
+    it("labels the chain's arrows with order on, and every state's with it off", () => {
+      expect(labels(undefined, { selectedNodeId: "a" })).toEqual(["a>b full", "a>c full"]);
+      expect(labels(false, { selectedNodeId: "a" })).toEqual(["a>a full", "a>b full", "a>c full"]);
+    });
+
+    it("has nothing to label from a state with no arrows out of it, or with nothing chosen", () => {
+      expect(labels(undefined, { selectedNodeId: "b" })).toEqual([]);
+      expect(labels(undefined, {})).toEqual([]);
+    });
+
+    it("leaves out a chosen output's faded labels only with order off", () => {
+      const highlightOutputNodes = [node("a"), node("b")];
+      expect(labels(false, { highlightOutputNodes })).toEqual(["a>b full"]);
+      expect(labels(undefined, { highlightOutputNodes })).toEqual(["a>b full", "a>c faded"]);
     });
   });
 });

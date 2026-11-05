@@ -4,8 +4,7 @@ import { Edge, GraphData, Node } from "../type";
 import { calculateEdges, D3Edge, D3Graph, D3Node, lineEnd } from "./graph-geometry";
 import { animatedArrowColor, animatedArrowUrl, GraphSelection, lineAndLoopOpacity, outgoingArrowColor,
   outgoingArrowUrl } from "./graph-highlight";
-import { BagArrow, bagArrows, bagOutgoing, chainOutgoing, Outgoing, ProbabilityLabel, probabilityLabels
-} from "./graph-labels";
+import { BagArrow, bagArrows, graphLabels, Outgoing, outgoingFor, ProbabilityLabel } from "./graph-labels";
 import { ArrowWidths, edgeWeights, nodeLoopPath, ry } from "./graph-utils";
 
 export interface OverlayOptions {
@@ -164,20 +163,19 @@ export const drawOverlay = (root: GraphSelection, d3Graph: D3Graph, options: Ove
   }
 
   const nodes = new Map(d3Graph.nodes.map(node => [node.id, node]));
-  const outgoing = bag ? bagOutgoing(graph.nodes) : chainOutgoing(graph.edges);
-  const highlights = {
-    outgoing, animating, selectedNodeId, highlightNode, highlightAllNextNodes, highlightOutputNodes,
-  };
+  const highlights = { animating, selectedNodeId, highlightNode, highlightAllNextNodes, highlightOutputNodes };
 
   let edges = d3Graph.edges;
   if (bag) {
-    const { lines, loops } = drawnBagArrows(bagArrows({ ...highlights, highlightEdge }), outgoing, arrowWidths, nodes);
+    const outgoing = outgoingFor(graph, options.orderMatters);
+    const { lines, loops } = drawnBagArrows(bagArrows({ ...highlights, outgoing, highlightEdge }), outgoing,
+      arrowWidths, nodes);
     drawBagArrows(root, lines, loops);
     edges = lines;
   }
 
   if (options.probabilityLabels) {
-    drawLabels(root, placedLabels(probabilityLabels({ ...highlights, stepsOnly: bag }), edges, nodes));
+    drawLabels(root, placedLabels(graphLabels(graph, options.orderMatters, highlights), edges, nodes));
   }
 };
 
