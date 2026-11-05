@@ -123,15 +123,17 @@ describe("NodeModal", () => {
     const named = { nodes: [state("a")], edges: [] };
     const props = { viewMode: "drawing" as const, graph: named, onChange: jest.fn(), onCancel: jest.fn() };
     const { rerender, container } = render(<NodeModal {...props} uniqueLabels />);
-    const added: Node[] = [];
-    const observer = new MutationObserver(records => records.forEach(record => added.push(...record.addedNodes)));
+    // an alert raised and taken away within the update is only in the DOM afterward as a removed node
+    const changed: Node[] = [];
+    const observer = new MutationObserver(records => records.forEach(record =>
+      changed.push(...record.addedNodes, ...record.removedNodes)));
     observer.observe(container, { childList: true, subtree: true });
     rerender(<NodeModal {...props} uniqueLabels node={named.nodes[0]} />);
-    added.push(...observer.takeRecords().flatMap(record => [...record.addedNodes]));
+    changed.push(...observer.takeRecords().flatMap(record => [...record.addedNodes, ...record.removedNodes]));
     observer.disconnect();
     expect(screen.getByRole("textbox")).toHaveValue("a");
-    expect(added.length).toBeGreaterThan(0);
-    expect(added.some(node => node.textContent?.includes("Give the state a name."))).toBe(false);
+    expect(changed.length).toBeGreaterThan(0);
+    expect(changed.some(node => node.textContent?.includes("Give the state a name."))).toBe(false);
   });
 
   it("takes any name without uniqueLabels", () => {

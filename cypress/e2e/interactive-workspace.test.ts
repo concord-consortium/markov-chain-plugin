@@ -1811,7 +1811,9 @@ describe("the workspace's modes", () => {
           element.releasePointerCapture(1);
         }
       });
-      shown().find(".nodeModal").should("not.contain.text", "To State 2: 51%");
+      shown().find(".nodeModal").should(modal => {
+        expect(Number(/To State 2: (\d+)%/.exec(modal.text())?.[1])).to.be.lessThan(51);
+      });
     });
 
     it("saves a key's step to the Inspect probability", () => {
@@ -1855,6 +1857,7 @@ describe("the workspace's modes", () => {
       play().click();
       shown().find("g.node").filter((i, node) => node.textContent === "State 3").find("ellipse").trigger("click");
       shown().find("g.node").should("have.length", 2);
+      shown().find(".clear-highlight").should("exist");
       shown().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
       shown().find(".clear-highlight").should("not.exist");
     });
@@ -1984,9 +1987,11 @@ describe("the workspace's modes", () => {
       shown().find(".generator-pane select").first().select("State 1");
       shown().find(".generator-pane button").contains("Step").click();
       shown().find("text.probability-label").should("have.length", 1);
+      shown().find("line.edge[stroke-dasharray='4']").should("exist");
       cy.interactive().type("{esc}");
       cy.wait(100);
       shown().find("text.probability-label").should("have.length", 1);
+      shown().find("line.edge[stroke-dasharray='4']").should("exist");
     });
 
     it("keeps the tool's icon at the pointer, wherever the pane sits", () => {
@@ -2389,6 +2394,77 @@ describe("the workspace's modes", () => {
         dataIsAsLeft();
         switchTo("Draw");
         drawIsAsLeft();
+      });
+    });
+
+    it("keeps each mode's Inspect tab and sort", () => {
+      const shownHeader = (label: string) => shown().find(".inspect-pane th").filter((i, th) =>
+        th.textContent?.trim().startsWith(label) ?? false);
+      start({ modes: bothModes, startingText: "a b a" });
+      shownTab("Transitions").click();
+      shownHeader("Count").find("button").click();
+      shownHeader("Count").should("have.attr", "aria-sort", "ascending");
+      switchTo("Draw");
+      drawThreeStates();
+      shownTab("States").should("have.attr", "aria-selected", "true");
+      shownHeader("State").find("button").click();
+      shownHeader("State").should("have.attr", "aria-sort", "descending");
+
+      [1, 2].forEach(() => {
+        switchTo("Data");
+        shownTab("Transitions").should("have.attr", "aria-selected", "true");
+        shownHeader("Count").should("have.attr", "aria-sort", "ascending");
+        switchTo("Draw");
+        shownTab("States").should("have.attr", "aria-selected", "true");
+        shownHeader("State").should("have.attr", "aria-sort", "descending");
+      });
+    });
+
+    it("keeps each mode's generator settings", () => {
+      const startingState = () => shown().find(".generator-pane select").first();
+      const maxLengthField = () => shown().find(".generator-pane input[type='number']");
+      start({ modes: bothModes, startingText: "a b a" });
+      startingState().select("b");
+      setMaxLength(3);
+      switchTo("Draw");
+      drawThreeStates();
+      startingState().select("State 2");
+      setMaxLength(7);
+
+      [1, 2].forEach(() => {
+        switchTo("Data");
+        startingState().find("option:selected").should("have.text", "b");
+        maxLengthField().should("have.value", "3");
+        switchTo("Draw");
+        startingState().find("option:selected").should("have.text", "State 2");
+        maxLengthField().should("have.value", "7");
+      });
+    });
+
+    it("keeps where each mode's states are", () => {
+      const position = (label: string) => shownState(label).then(ellipse =>
+        [Number(ellipse.attr("cx")), Number(ellipse.attr("cy"))]);
+      // the layout moves a mode's states until it settles
+      const settledPosition = (label: string) => {
+        cy.wait(3000);
+        return position(label);
+      };
+      const isAt = (label: string, [x, y]: number[]) => position(label).should(([atX, atY]) => {
+        expect(atX).to.be.closeTo(x, 0.5);
+        expect(atY).to.be.closeTo(y, 0.5);
+      });
+      start({ modes: bothModes, startingText: "a b a" });
+      settledPosition("b").then(dataPlace => {
+        switchTo("Draw");
+        drawThreeStates();
+        settledPosition("State 2").then(drawPlace => {
+          [1, 2].forEach(() => {
+            switchTo("Data");
+            isAt("b", dataPlace as unknown as number[]);
+            switchTo("Draw");
+            isAt("State 2", drawPlace as unknown as number[]);
+          });
+        });
       });
     });
   });
