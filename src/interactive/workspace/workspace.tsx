@@ -96,7 +96,7 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
     saver, request, activeRef, animating,
     build: () => buildInteractiveState(savedState, {
       offered: authoredState.modes,
-      hasInputPane: authoredState.modes.useData && configs.useData.panes.some(pane => pane.id === "input"),
+      hasInputPane: restored.hasInputPane,
       authoredText: authoredState.startingText,
       mode, probabilities, orderMatters,
       tools: { useData: toolParts(tools.useData), draw: toolParts(tools.draw) },
@@ -148,9 +148,7 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
       { authoredState.modes.useData &&
         <DataWorkspace text={restored.text} capitalization={restored.capitalization} inputSplit={restored.inputSplit}
           start={restored.useData} saving={saving.useData} limitReached={limitReached} readOnly={readOnly}
-          host={hosts.useData}
-          tool={tools.useData}
-          config={configs.useData} stacked={stacked}
+          host={hosts.useData} tool={tools.useData} config={configs.useData} stacked={stacked}
           hidden={mode !== "useData"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
           orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
       }

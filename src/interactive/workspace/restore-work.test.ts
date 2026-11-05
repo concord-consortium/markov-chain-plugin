@@ -96,6 +96,12 @@ describe("restoreWork's input", () => {
     expect(restore({ input: { text: "a b" } }, { ...panesOff("input"), startingText: "c" }).text).toBe("c");
   });
 
+  it("has an Input pane only where the page offers Data mode", () => {
+    expect(restore({}).hasInputPane).toBe(true);
+    expect(restore({}, panesOff("input")).hasInputPane).toBe(false);
+    expect(restore({}, drawOnly).hasInputPane).toBe(false);
+  });
+
   it("reads the text under the case rule in use", () => {
     expect(restore({ input: { text: "A a" }, caseSensitive: true }).useData.tool.values).toEqual(["A", "a"]);
     expect(restore({ input: { text: "A a" }, caseSensitive: false }).useData.tool.values).toEqual(["a", "a"]);

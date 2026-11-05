@@ -19,6 +19,7 @@ export interface RestoredMode {
 
 export interface RestoredWork {
   mode: ModeId;
+  hasInputPane: boolean;
   probabilities: boolean;
   orderMatters: boolean;
   capitalization: Capitalization;
@@ -88,7 +89,7 @@ export const restoreWork = (saved: MarkovInteractiveState, authoredState: Markov
   const capitalization = (data.caseSwitch && savedCapitalization) || data.capitalization;
 
   // with no Input pane the student cannot edit the input, so a saved one is ignored
-  const hasInputPane = data.panes.some(pane => pane.id === "input");
+  const hasInputPane = authoredState.modes.useData && data.panes.some(pane => pane.id === "input");
   const text = hasInputPane ? saved.input?.text ?? authoredState.startingText : authoredState.startingText;
   const values = tokensToValues(tokenize(text, capitalization));
   const graph = graphFromValues(values);
@@ -103,7 +104,7 @@ export const restoreWork = (saved: MarkovInteractiveState, authoredState: Markov
   const viewOf = (id: ModeId) => id === mode && !readOnly ? saved[id]?.view : undefined;
   const useData = restoredMode(saved.useData, data, graph, orderMatters, viewOf("useData"));
   return {
-    mode, probabilities, orderMatters, capitalization, text,
+    mode, hasInputPane, probabilities, orderMatters, capitalization, text,
     inputSplit: clamp(saved.useData?.inputSplit ?? defaultInputSplit, 0, 1),
     useData: { ...useData, tool: { ...useData.tool, values } },
     draw: restoredMode(saved.draw, configs.draw, saved.draw?.drawing ?? { nodes: [], edges: [] }, true, viewOf("draw")),

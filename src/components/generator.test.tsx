@@ -82,14 +82,16 @@ describe("Generator", () => {
   });
 });
 
+const generatorProps = (overrides: Partial<GeneratorProps> = {}): GeneratorProps => ({
+  nodes: [{ id: "a", label: "a", value: 1 }], graphEmpty: false, generationMode: "ready", startingState: "",
+  lengthLimit: 5, delimiter: " ", delimiterType: "space", fastSimulation: false, onStartingStateChange: jest.fn(),
+  onLengthLimitChange: jest.fn(), onLengthLimitCommit: jest.fn(), onDelimiterTypeChange: jest.fn(),
+  onDelimiterChange: jest.fn(), onDelimiterCommit: jest.fn(), onSpeedChange: jest.fn(), onPlay: jest.fn(),
+  onPause: jest.fn(), onResume: jest.fn(), onStep: jest.fn(), ...overrides,
+});
+
 describe("Generator's delimiter field", () => {
-  const props: GeneratorProps = {
-    nodes: [], graphEmpty: false, generationMode: "ready", startingState: "", lengthLimit: 5, delimiter: "-",
-    delimiterType: "other", fastSimulation: false, onStartingStateChange: jest.fn(), onLengthLimitChange: jest.fn(),
-    onLengthLimitCommit: jest.fn(), onDelimiterTypeChange: jest.fn(), onDelimiterChange: jest.fn(),
-    onDelimiterCommit: jest.fn(), onSpeedChange: jest.fn(), onPlay: jest.fn(), onPause: jest.fn(),
-    onResume: jest.fn(), onStep: jest.fn(),
-  };
+  const props = generatorProps({ delimiter: "-", delimiterType: "other" });
 
   it("takes focus as it shows", () => {
     render(<Generator {...props} />);
@@ -104,13 +106,7 @@ describe("Generator's delimiter field", () => {
 });
 
 describe("Generator at the limit", () => {
-  const props: GeneratorProps = {
-    nodes: [{ id: "a", label: "a", value: 1 }], graphEmpty: false, generationMode: "ready", startingState: "",
-    lengthLimit: 5, delimiter: " ", delimiterType: "space", fastSimulation: false, onStartingStateChange: jest.fn(),
-    onLengthLimitChange: jest.fn(), onLengthLimitCommit: jest.fn(), onDelimiterTypeChange: jest.fn(),
-    onDelimiterChange: jest.fn(), onDelimiterCommit: jest.fn(), onSpeedChange: jest.fn(), onPlay: jest.fn(),
-    onPause: jest.fn(), onResume: jest.fn(), onStep: jest.fn(),
-  };
+  const props = generatorProps();
 
   it("disables Play and Step", () => {
     render(<Generator {...props} limitReached />);

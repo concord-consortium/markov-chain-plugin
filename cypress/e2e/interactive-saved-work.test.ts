@@ -29,6 +29,9 @@ const drawing = {
 
 const savedGenerator = { startingState: "the", lengthLimit: 7, delimiter: "-", delimiterType: "other", fast: true };
 
+const fast = "?fastSpeed=20&normalSpeed=20";
+const setting = (name: string) => shown().find(`.setting-switch:contains('${name}') [role='switch']`);
+const draw = () => shown().find(".mode-switch label").contains("Draw").click();
 const paneToggle = (name: string) => shown().find(`.pane-toggle[aria-label$=' ${name}']`);
 const expectCollapsed = (name: string) => paneToggle(name).should("have.attr", "aria-expanded", "false");
 const inspectHeader = (label: string) => shown().find(".inspect-pane th").filter(`:contains('${label}')`);
@@ -181,7 +184,6 @@ describe("reopening saved work", () => {
 
     it("reads the input under the saved switches", () => {
       reopen({ version: 1, input: { text: "The the cat" }, orderMatters: false, caseSensitive: true });
-      const setting = (name: string) => shown().find(`.setting-switch:contains('${name}') [role='switch']`);
       setting("Order matters").should("have.attr", "aria-checked", "false");
       setting("Case sensitive").should("have.attr", "aria-checked", "true");
       shown().find("g.node").should("have.length", 3);
@@ -336,7 +338,6 @@ describe("reopening saved work", () => {
 });
 
 describe("saving work", () => {
-  const fast = "?fastSpeed=20&normalSpeed=20";
   const startingText = "the cat sat the dog";
   const start = (authored: Record<string, unknown> = {}, interactiveState?: unknown) => cy.startInteractive({
     mode: "runtime", width, search: fast, interactiveState, authoredState: { startingText, ...authored },
@@ -516,8 +517,9 @@ describe("saving work", () => {
     pastDebounce();
     posts().should("have.length", 1);
     shown().find(".generator-pane button").contains("Cancel").click();
-    posts().should("have.length", 1);
     cy.interactiveMessages("interactiveState").should("have.length", 2);
+    pastDebounce();
+    posts().should("have.length", 2);
   });
 
   it("saves a sequence as far as it got at a page leave", () => {
@@ -551,7 +553,6 @@ describe("saving work", () => {
 
   describe("posts once for", () => {
     const withOutput = { version: 1, useData: { outputs: outputs([["the", "cat"]]) } };
-    const setting = (name: string) => shown().find(`.setting-switch:contains('${name}') [role='switch']`);
     const drawn = { version: 1, mode: "draw", draw: { drawing } };
 
     const oneArrow = {
@@ -562,9 +563,9 @@ describe("saving work", () => {
     const moments: [string, () => void, () => void, (state: any) => void][] = [
       ["the input's text at a commit", () => start(), () => typeWord("ran"),
         state => expect(state.input.text).to.equal(`${startingText} ran`)],
-      ["a sequence finishing", () => start(), playToTheEnd, state => {
+      ["a sequence finishing", () => start({ startingText: "a b a b a" }), playToTheEnd, state => {
         expect(state.useData.outputs.groups[0].sequences).to.have.length(1);
-        expect(state.useData.outputs.groups[0].sequences[0].length).to.be.greaterThan(1);
+        expect(state.useData.outputs.groups[0].sequences[0]).to.have.length(5);
       }],
       ["a sequence canceled", () => start(), () => {
         onStep();
@@ -642,7 +643,6 @@ describe("saving work", () => {
 });
 
 describe("the output limit", () => {
-  const fast = "?fastSpeed=20&normalSpeed=20";
   const message = "You have reached the maximum number of outputs.";
   const authoredState = { startingText: "a b a b a b" };
   const start = (interactiveState: unknown) =>
@@ -688,7 +688,6 @@ describe("the output limit", () => {
     button(shown, "Play").click();
     shown().contains(".generator-pane button", "Play", { timeout: 15000 });
   };
-  const draw = () => shown().find(".mode-switch label").contains("Draw").click();
 
   it("stops Play and Step in both modes once an output reaches it, and says so", () => {
     start(nearLimit);
@@ -776,7 +775,6 @@ describe("the read-only view", () => {
   const open = (interactiveState: unknown = saved, authoredState: Record<string, unknown> = {}) =>
     cy.startInteractive({ mode: "report", width, authoredState, interactiveState });
   const note = "This is a student's saved work. It can't be changed here.";
-  const draw = () => shown().find(".mode-switch label").contains("Draw").click();
   const noMessages = () => {
     // past the library's 2 second pause
     cy.wait(2500);
@@ -838,6 +836,19 @@ describe("the read-only view", () => {
     shown().find(".sequence.highlighted").should("have.length", 1);
     shown().find(".inspect-tab").contains("Transitions").click();
     shown().find(".inspect-tab.selected").should("have.text", "Transitions");
+    inspectHeader("Probability").find("button").click();
+    inspectHeader("Probability").should("have.attr", "aria-sort", "ascending");
+    shown().find(".inspect-pane tbody tr").first().find("button").click();
+    shown().find(".inspect-pane tbody button[aria-pressed='true']").should("have.length", 1);
+    shown().find(".clear-highlight").click();
+    shown().find(".inspect-pane tbody button[aria-pressed='true']").should("not.exist");
+    shownView().then(({ k }) => {
+      toolButton("Zoom In").click();
+      shownView().its("k").should("be.greaterThan", k);
+    });
+    shown().find(".graph > svg").trigger("wheel", { deltaY: -100 });
+    toolButton("Fit View").click();
+    shown().find("[role='separator'][aria-label='Resize Graph and Inspect']").focus().type("{leftArrow}");
     paneToggle("Inspect").click();
     expectCollapsed("Inspect");
     shown().find(".probabilities-toggle").click().should("have.attr", "aria-pressed", "true");

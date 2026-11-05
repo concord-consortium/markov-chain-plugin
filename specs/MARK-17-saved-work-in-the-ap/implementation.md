@@ -142,6 +142,7 @@ The event has no `sourceEvent`, so it isn't a student's zoom. Jest: with no `sta
 ```ts
 export interface RestoredWork {
   mode: ModeId;
+  hasInputPane: boolean;
   probabilities: boolean;
   orderMatters: boolean;
   capitalization: Capitalization;
@@ -287,7 +288,7 @@ export interface ModeReport {
 }
 ```
 
-`previous` is the state read at open, which is what keeps R14's fields, at both levels; `authoredText` is the authored starting text. `input` is written as undefined rather than left out so that going back to the starting text clears a previous edit, and `JSON` drops it. For the same reason `modeFields` and `positions` always name every field the builder owns, as undefined when there is none, or a `view` given back or a `positions` left out would keep its old value. `positions` is omitted above `maxSavedPositions` (6,000) and when the mode has no graph; each is `Math.round(node.fx ?? node.x)`, since a dragged state's `x` trails its pin until the next tick. `view` is written for the mode showing when `following()` is false, rounded to 2 places (`k` to 4). A `drawing`'s `x` and `y` are rounded. The builder is deterministic, so a page leave after a save compares equal in the Activity Player.
+`hasInputPane` comes from `restoreWork`, so the reader and the builder agree on it. `previous` is the state read at open, which is what keeps R14's fields, at both levels; `authoredText` is the authored starting text. `input` is written as undefined rather than left out so that going back to the starting text clears a previous edit, and `JSON` drops it. For the same reason `modeFields` and `positions` always name every field the builder owns, as undefined when there is none, or a `view` given back or a `positions` left out would keep its old value. `positions` is omitted above `maxSavedPositions` (6,000) and when the mode has no graph; each is `Math.round(node.fx ?? node.x)`, since a dragged state's `x` trails its pin until the next tick. `view` is written for the mode showing when `following()` is false, rounded to 2 places (`k` to 4). A `drawing`'s `x` and `y` are rounded. The builder is deterministic, so a page leave after a save compares equal in the Activity Player.
 
 A page leave builds a state only for a student who did something this session: every layout change logs or is a zoom, so `markActive` already covers them, and a student who did nothing gets the library's own copy of what they opened with, whatever the page has changed since.
 
