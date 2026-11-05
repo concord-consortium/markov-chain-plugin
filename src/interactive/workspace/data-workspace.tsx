@@ -254,7 +254,8 @@ export const DataWorkspace = ({
           <GraphPane tool={tool} log={host.log} top={top} probabilities={probabilities} arrowWidths={arrowWidths}
             orderMatters={orderMatters}
             emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFitPressed}
-            onRecenter={handleRecenterPressed} onResized={handleGraphResized} initialView={start.view} saving={saving} readOnly={readOnly}
+            onRecenter={handleRecenterPressed} onResized={handleGraphResized}
+            initialView={start.view} saving={saving} readOnly={readOnly}
             onDoubleClickState={handleDoubleClickState} />
         );
       case "inspect":

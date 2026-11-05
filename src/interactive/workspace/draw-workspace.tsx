@@ -71,7 +71,8 @@ export const DrawWorkspace = ({
           <GraphPane variant="draw" tools={readOnly ? dataTools : drawModeTools} tool={tool} log={host.log}
             top={layout.top} probabilities={probabilities} arrowWidths={arrowWidths}
             onUserZoom={layout.handleUserZoom} onFit={layout.handleFitPressed}
-            onRecenter={layout.handleRecenterPressed} onResized={layout.handleGraphResized} initialView={start.view} saving={saving} readOnly={readOnly} />
+            onRecenter={layout.handleRecenterPressed} onResized={layout.handleGraphResized}
+            initialView={start.view} saving={saving} readOnly={readOnly} />
         );
       case "inspect":
         return (
