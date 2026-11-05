@@ -1,5 +1,7 @@
 import { defaultAuthoredState } from "../../src/interactive/authored-state";
-import { decodeOutputs, encodeOutputs, maxOutputBytes, savedBytes } from "../../src/interactive/saved-outputs";
+import {
+  decodeOutputs, encodeOutputs, maxDelimiterLength, maxOutputBytes, savedBytes
+} from "../../src/interactive/saved-outputs";
 import { Node } from "../../src/type";
 import { animatedNodeColor, pastDoubleClick, selectedNodeColor } from "../support/graph";
 import { divider, loggedEvents, parseTransform, stateEllipse } from "../support/workspace";
@@ -43,6 +45,13 @@ const lastOutputInView = (body: () => Cypress.Chainable<JQuery<HTMLElement>>) =>
     expect(box.scrollHeight).to.be.greaterThan(box.clientHeight);
     expect(box.scrollTop + box.clientHeight).to.be.closeTo(box.scrollHeight, 1);
   });
+const chosenOutputInView = () => shown().find(".inner-output").should(output => {
+  const box = output[0].getBoundingClientRect();
+  const row = output.find(".sequence.highlighted")[0].getBoundingClientRect();
+  expect(output[0].scrollTop).to.be.greaterThan(0);
+  expect(row.top).to.be.within(box.top - 1, box.bottom);
+  expect(row.bottom).to.be.within(box.top, box.bottom + 1);
+});
 
 // a drag of a state with a mouse's events, dispatched in the interactive's frame
 const dragState = (label: string, dx: number, dy: number) => stateEllipse(label).then(ellipse => {
@@ -198,6 +207,20 @@ describe("reopening saved work", () => {
       reopen({ ...state, useData: { ...state.useData, outputs: manyOutputs, selection: undefined } });
       lastOutputInView(shown);
     });
+
+    it("opens outputs too long for their box at the chosen one", () => {
+      reopen({
+        ...state,
+        useData: { ...state.useData, outputs: manyOutputs, selection: { kind: "output", group: 0, sequence: 30 } },
+      });
+      chosenOutputInView();
+    });
+
+    it("limits the length of an other delimiter", () => {
+      reopen(state);
+      shown().find(".generate input[placeholder='delimiter']")
+        .should("have.attr", "maxlength", `${maxDelimiterLength}`);
+    });
   });
 
   describe("in Draw mode", () => {
@@ -299,6 +322,19 @@ describe("reopening saved work", () => {
     hiddenBody().find(".sequence").should("have.length", 60);
     shown().find(".mode-switch label").contains("Data").click();
     lastOutputInView(shown);
+  });
+
+  it("restores the mode not showing too, whose outputs open at the chosen one when it shows", () => {
+    reopen({
+      version: 1,
+      input: { text: "a b" },
+      mode: "draw",
+      useData: { outputs: manyOutputs, selection: { kind: "output", group: 0, sequence: 30 } },
+      draw: { drawing },
+    });
+    hiddenBody().find(".sequence").should("have.length", 60);
+    shown().find(".mode-switch label").contains("Data").click();
+    chosenOutputInView();
   });
 
   it("opens a state saved on a page with other settings under this page's", () => {

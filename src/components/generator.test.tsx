@@ -103,6 +103,13 @@ describe("Generator's delimiter field", () => {
     expect(screen.getByPlaceholderText("delimiter")).not.toHaveFocus();
     expect(document.body).toHaveFocus();
   });
+
+  it("limits the delimiter's field only when given a length", () => {
+    const { rerender } = render(<Generator {...props} />);
+    expect(screen.getByPlaceholderText("delimiter")).not.toHaveAttribute("maxlength");
+    rerender(<Generator {...props} delimiterMaxLength={10} />);
+    expect(screen.getByPlaceholderText("delimiter")).toHaveAttribute("maxlength", "10");
+  });
 });
 
 describe("Generator at the limit", () => {

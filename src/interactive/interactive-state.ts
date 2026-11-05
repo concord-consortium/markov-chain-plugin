@@ -2,7 +2,7 @@ import type { GraphView } from "../components/graph";
 import { DelimiterType, GraphData } from "../type";
 import { modeIds, ModeId } from "./authored-state";
 import { isRecord, parseState } from "./parse-state";
-import { isSavedOutputs, SavedOutputs } from "./saved-outputs";
+import { isSavedOutputs, maxDelimiterLength, SavedOutputs } from "./saved-outputs";
 import type { InspectTab, Sort, SortColumn } from "./workspace/inspect-rows";
 import type { PaneSizes } from "./workspace/pane-sizes";
 import type { WorkspacePaneId } from "./workspace/workspace-config";
@@ -111,7 +111,8 @@ const readMode = (mode: Fields) => {
   readRecord(mode, "sizes", sizes => keepValid(sizes, { input: isNumber, inspect: isNumber, top: isNumber }));
   readRecord(mode, "inspect", readInspect);
   readRecord(mode, "generator", generator => keepValid(generator, {
-    startingState: isString, lengthLimit: isNumber, delimiter: isString,
+    startingState: isString, lengthLimit: isNumber,
+    delimiter: value => isString(value) && (value as string).length <= maxDelimiterLength,
     delimiterType: isOneOf(["none", "space", "other"]), fast: isBoolean,
   }));
 };

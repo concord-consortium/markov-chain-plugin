@@ -1,4 +1,5 @@
 import { copyState, MarkovInteractiveState, readInteractiveState } from "./interactive-state";
+import { maxDelimiterLength } from "./saved-outputs";
 import { inspectColumns } from "./workspace/inspect-rows";
 
 const deepFreeze = <T, >(value: T): T => {
@@ -124,6 +125,7 @@ describe("readInteractiveState", () => {
     [["useData", "generator", "startingState"], 3],
     [["useData", "generator", "lengthLimit"], "7"],
     [["useData", "generator", "delimiter"], null],
+    [["useData", "generator", "delimiter"], "-".repeat(maxDelimiterLength + 1)],
     [["useData", "generator", "delimiterType"], "comma"],
     [["draw", "generator", "fast"], "fast"],
     [["useData", "outputs"], []],
@@ -157,6 +159,7 @@ describe("readInteractiveState", () => {
     [["useData", "selection"], { kind: "output", group: 1, sequence: 2 }],
     [["useData", "inspect", "tab"], "states"],
     [["useData", "inspect", "tab"], "transitions"],
+    [["useData", "generator", "delimiter"], "-".repeat(maxDelimiterLength)],
     [["useData", "generator", "delimiterType"], "none"],
     [["useData", "generator", "delimiterType"], "space"],
     [["useData", "generator", "delimiterType"], "other"],

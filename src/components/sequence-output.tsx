@@ -55,7 +55,7 @@ export interface SequenceOutputProps {
   // each output also takes Tab and is chosen with Enter or Space, reporting whether it is chosen
   keyboardSelect?: boolean;
   heading?: string;
-  // opens at the newest output, once it is shown
+  // opens at the chosen output, or else the newest, once it is shown
   openAtNewest?: boolean;
   // outputs can still be chosen, and not cleared
   readOnly?: boolean;
@@ -89,7 +89,10 @@ export const SequenceOutput = ({
     }
     const observer = new ResizeObserver(() => {
       if (output.clientHeight > 0) {
-        output.scrollTop = output.scrollHeight;
+        const chosen = output.querySelector(".sequence.highlighted");
+        output.scrollTop = chosen
+          ? chosen.getBoundingClientRect().top - output.getBoundingClientRect().top + output.scrollTop
+          : output.scrollHeight;
         observer.disconnect();
       }
     });

@@ -2,7 +2,8 @@ import { Node, SequenceGroup } from "../type";
 import { defaultAuthoredState, maxStartingTextLength } from "./authored-state";
 import { interactiveStateVersion, maxInputLength } from "./interactive-state";
 import {
-  decodeOutputs, encodeOutputs, isSavedOutputs, maxOutputBytes, outputsFull, savedBytes, SavedOutputs
+  decodeOutputs, encodeOutputs, isSavedOutputs, maxDelimiterLength, maxOutputBytes, outputsFull, savedBytes,
+  SavedOutputs
 } from "./saved-outputs";
 import { maxSavedPositions } from "./workspace/build-state";
 
@@ -192,7 +193,8 @@ describe("the largest state", () => {
       tab: "transitions",
       sorts: { states: { column: "count", ascending: true }, transitions: { column: "probability", ascending: true } },
     },
-    generator: { startingState: "the", lengthLimit: 100, delimiter: "-", delimiterType: "other", fast: true },
+    generator: { startingState: "the", lengthLimit: 100, delimiter: "\"".repeat(maxDelimiterLength),
+      delimiterType: "other", fast: true },
     selection: { kind: "output", group: 100, sequence: 1000 },
     view: { x: -1234.56, y: -1234.56, k: 12.3456 },
   };

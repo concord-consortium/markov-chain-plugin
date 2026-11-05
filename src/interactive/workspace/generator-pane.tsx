@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { Generator } from "../../components/generator";
 import { SequenceOutput } from "../../components/sequence-output";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
+import { maxDelimiterLength } from "../saved-outputs";
 import { ToggleIcon } from "./pane";
 
 interface GeneratorPaneProps {
@@ -18,7 +19,9 @@ export const GeneratorPane = ({
   tool, controlsOpen, onToggleControls, limitReached, readOnly
 }: GeneratorPaneProps) => {
   const controlsId = useId();
-  const generator = <Generator {...tool.generatorProps} limitReached={limitReached} />;
+  const generator = (
+    <Generator {...tool.generatorProps} limitReached={limitReached} delimiterMaxLength={maxDelimiterLength} />
+  );
   const action = controlsOpen ? "Collapse" : "Expand";
   return (
     <div className="generator-pane-content">

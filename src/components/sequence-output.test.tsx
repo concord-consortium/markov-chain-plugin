@@ -79,6 +79,20 @@ describe("SequenceOutput", () => {
       expect(scrollTops).toEqual([500]);
     });
 
+    it("scrolls to the chosen output in place of the end", () => {
+      const sequence = [a, b];
+      const chosen = group(sequence);
+      const rect = jest.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function(this: Element) {
+        return { top: this.classList.contains("highlighted") ? 120 : 20 } as DOMRect;
+      });
+      render(<SequenceOutput {...props([chosen, group([b, a])])} highlightOutput={{ group: chosen, sequence }}
+        openAtNewest />);
+      clientHeight = 40;
+      notify();
+      rect.mockRestore();
+      expect(scrollTops).toEqual([100]);
+    });
+
     it("stops observing when it unmounts", () => {
       const { unmount } = render(<SequenceOutput {...props([group([a, b])])} openAtNewest />);
       unmount();

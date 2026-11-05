@@ -14,6 +14,9 @@ export interface SavedOutputs {
 // what outputs and the drawing may take between them, a share of the 1 MB the Activity Player's answer document holds
 export const maxOutputBytes = 140 * 1024;
 
+// generator settings sit outside that limit, so a delimiter needs a limit of its own
+export const maxDelimiterLength = 100;
+
 // what a value costs as the Activity Player stores it: JSON held inside JSON
 export const savedBytes = (value: unknown) =>
   new Blob([JSON.stringify(JSON.stringify(value))]).size - 2;
