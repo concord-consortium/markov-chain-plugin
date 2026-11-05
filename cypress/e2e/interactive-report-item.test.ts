@@ -9,6 +9,8 @@ describe("the interactive's report item", () => {
     cy.requestReportItemAnswer("fullAnswer").then(answer => {
       expect(answer).to.include({ version: "2.1.0", platformUserId: "student1", itemsType: "fullAnswer" });
       expect(answer.items).to.have.length(2);
+      expect(answer.items[0]).to.deep.equal({ type: "links" });
+      expect(answer.items[1].html).to.contain("This student has saved work in the Markov interactive.");
     });
   });
 

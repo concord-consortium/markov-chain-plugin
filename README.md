@@ -113,11 +113,16 @@ beside the plugin:
 
 - `interactive.html`: the interactive, in LARA's authoring, the Activity Player's runtime, and the class dashboard's
   read-only page for one student's answer. Its runtime is the student's workspace: the Input, Graph and Inspect panes
-  and the sequence generator, around the plugin's shared Markov tool. The student's input is saved as the interactive
-  state, and the interactions the workspace logs to the Activity Player are listed in
-  [LOGGED-EVENTS.md](LOGGED-EVENTS.md).
-- `report-item.html`: its report item, which answers the class dashboard.
-- `demo.html`: the Demo and Standalone Authoring page, with the authoring form beside the interactive.
+  and the sequence generator, around the plugin's shared Markov tool. The interactive state holds the student's work
+  in both modes and its layout, so it reopens as they left it: their input, drawing, outputs and generator settings,
+  each state's place on the graph, and the panes. Nothing is saved until the student does something, and saves happen
+  at meaningful moments, not on every keystroke. The class dashboard's read-only page shows the same workspace. The
+  interactions the workspace logs to the Activity Player are listed in [LOGGED-EVENTS.md](LOGGED-EVENTS.md).
+- `report-item.html`: its report item, which answers the class dashboard with "View Work" and "Open in new tab" links
+  to a student's read-only work. With "Save Answer History" on, the dashboard's scrubber steps through each saved
+  moment.
+- `demo.html`: the Demo and Standalone Authoring page, with the authoring form beside the interactive and, once the
+  interactive saves, the teacher's read-only view of that save under it.
 
 A branch build is at `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/interactive.html`, and a
 tag's at `version/<tag>/interactive.html`. The release workflow doesn't copy the interactive anywhere: activities use

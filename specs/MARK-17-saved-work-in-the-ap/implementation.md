@@ -354,13 +354,13 @@ Cypress: a saved state in report mode, in both forms the dashboard sends (parsed
 
 **Files affected**:
 - `src/interactive/report-item-answer.ts` and its test: `hideViewInline` and its comment go; the placeholder's wording.
-- `src/interactive/demo.tsx`, `demo.scss`: a read-only frame.
+- `src/interactive/demo.tsx`: a read-only frame.
 - `cypress/e2e/interactive-report-item.test.ts`, `interactive-demo.test.ts`.
 - `README.md`.
 
 **Estimated diff size**: ~100 lines
 
-The demo keeps a `reportState` set with `savedRef`, and renders `<HostedFrame title="Teacher's view" mode="report" key={saveCount} ...>` under the runtime once there is a state, restarting with each save as a scrubber step does. `README.md`: the interactive's description now says what is saved, `report-item.html`'s line says what the links do, and a sentence notes "Save Answer History" for the scrubber.
+The demo keeps a `report` state set beside `savedRef`, and renders `<HostedFrame title="Teacher's view" mode="report" key={report.saves} ...>` under the runtime once there is a state, restarting with each save as a scrubber step does. `README.md`: the interactive's description now says what is saved, `report-item.html`'s line says what the links do, and a sentence notes "Save Answer History" for the scrubber.
 
 ## Verification
 

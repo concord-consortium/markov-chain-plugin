@@ -282,6 +282,33 @@ describe("the interactive's demo page", () => {
 
   it("shows the report item's full answer", () => {
     cy.visit("/demo.html");
-    frameText("Report item").should("contain", "This student opened the Markov interactive.");
+    frameText("Report item").should("contain", "This student has saved work in the Markov interactive.");
+  });
+
+  it("shows the teacher's view of the runtime's last save, starting it again with each", () => {
+    cy.visit("/demo.html");
+    cy.get("iframe[title=\"Teacher's view\"]").should("not.exist");
+    const typeInRuntime = (text: string) =>
+      frameBody("Interactive").find("textarea[aria-label='Your text']").type(text).blur({ force: true });
+    const teachersText = (expected: string) =>
+      cy.get("iframe[title=\"Teacher's view\"]").its("0.contentDocument").should((doc: Document) => {
+        expect(doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']")?.value).to.equal(expected);
+      });
+    typeInRuntime(" dog");
+    teachersText("the cat sat on the mat. the cat ran. dog");
+    frameText("Teacher's view").should("contain", "This is a student's saved work. It can't be changed here.");
+    typeInRuntime(" fox");
+    teachersText("the cat sat on the mat. the cat ran. dog fox");
+  });
+
+  it("starts the teacher's view under the authored state of the save, at the page width chosen", () => {
+    cy.visit("/demo.html?width=960");
+    frameBody("Authoring").find("#startingText").clear().type("a new start");
+    runtimeStatesShould(["a", "new", "start"]);
+    frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
+    cy.get("iframe[title=\"Teacher's view\"]").its("0.contentDocument").should((doc: Document) => {
+      expect(doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']")?.value).to.equal("a new start");
+      expect(doc.documentElement.clientWidth).to.equal(904);
+    });
   });
 });

@@ -346,9 +346,9 @@ describe("saving work", () => {
   const posts = () => cy.interactiveMessages("interactiveState") as Cypress.Chainable<any[]>;
   // the library sends interactive state 2 seconds after the last save
   const pastDebounce = () => cy.wait(2500);
-  const firstPost = () => cy.interactiveMessages("interactiveState", { timeout: 6000 }).should("not.be.empty")
+  const firstPost = () => cy.interactiveMessages("interactiveState").should("not.be.empty")
     .its(0) as Cypress.Chainable<any>;
-  const lastPost = () => cy.interactiveMessages("interactiveState", { timeout: 6000 }).should("not.be.empty")
+  const lastPost = () => cy.interactiveMessages("interactiveState").should("not.be.empty")
     .invoke("at", -1) as Cypress.Chainable<any>;
   const leavePage = () => cy.requestInteractiveState({ unloading: true });
   const graphReady = () => shown().find("g.node").should("have.length.at.least", 1);
@@ -517,7 +517,7 @@ describe("saving work", () => {
     posts().should("have.length", 1);
     shown().find(".generator-pane button").contains("Cancel").click();
     posts().should("have.length", 1);
-    cy.interactiveMessages("interactiveState", { timeout: 6000 }).should("have.length", 2);
+    cy.interactiveMessages("interactiveState").should("have.length", 2);
   });
 
   it("saves a sequence as far as it got at a page leave", () => {

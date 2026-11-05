@@ -127,6 +127,8 @@ const Demo = () => {
   // saved under: saved input comes before the starting text, so a new one would otherwise never show here. A restart
   // keeps only that input, since the whole state's panes, switches and mode would win over the authoring form.
   const savedRef = useRef<{ startingText: string, state: unknown }>(undefined);
+  // the state and authored state the teacher's view shows; each save starts it again, as a scrubber step does
+  const [report, setReport] = useState<{ saves: number, state: unknown, authoredState: unknown }>();
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setRuntimeAuthoredState(authoredState), restartDelay);
@@ -145,8 +147,10 @@ const Demo = () => {
       setAuthoredState(content);
     } else {
       savedRef.current = { startingText: readAuthoredState(frameState).startingText, state: content };
+      setReport(previous => ({ saves: (previous?.saves ?? 0) + 1, state: content, authoredState: frameState }));
     }
   }, []);
+  const getReportState = useCallback(() => report?.state, [report]);
 
   const selectWidth = (id: DemoWidthId) => {
     setWidthId(id);
@@ -187,6 +191,16 @@ const Demo = () => {
             <HostedFrame title="Interactive" mode="runtime" authoredState={runtimeAuthoredState}
               getInteractiveState={getInteractiveState} onMessage={handleMessage} width={frameWidth ?? "100%"} />
           </div>
+          { report && (
+            <>
+              <h2>Teacher&apos;s view</h2>
+              <div className="demo-runtime-frame">
+                <HostedFrame key={report.saves} title="Teacher's view" mode="report"
+                  authoredState={report.authoredState} getInteractiveState={getReportState} onMessage={handleMessage}
+                  width={frameWidth ?? "100%"} />
+              </div>
+            </>
+          ) }
           <h2>Report item, full answer</h2>
           <iframe title="Report item" className="demo-report-item" srcDoc={reportItemDocument(placeholderReportHtml)} />
         </section>
