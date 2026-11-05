@@ -59,7 +59,14 @@ describe("insertRow as a list", () => {
   });
 
   it("puts a word after a row in the middle on its own line", () => {
-    expect(insert("the cat", 0, "dog", "list")).toBe("the\ndog cat");
+    expect(insert("the cat", 0, "dog", "list")).toBe("the\ndog\ncat");
+    expect(insert("the  cat", 0, "dog", "list")).toBe("the\ndog\ncat");
+  });
+
+  it("adds no blank line where a line break already follows the row", () => {
+    expect(insert("the\ncat", 0, "dog", "list")).toBe("the\ndog\ncat");
+    expect(insert("the  \ncat", 0, "dog", "list")).toBe("the\ndog  \ncat");
+    expect(insert("a\n\nc", 0, "b", "list")).toBe("a\nb\n\nc");
   });
 
   it("puts punctuation on its own line too", () => {

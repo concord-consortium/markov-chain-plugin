@@ -87,7 +87,13 @@ export const insertRow = (text: string, tokens: Token[], after: number, value: s
     return write(text, token.end, token.end, list ? `${written}\n` : `${written} `);
   }
   if (list) {
-    return write(text, token.end, token.end, `\n${written}`);
+    let next = token.end;
+    while (isSpace(text[next])) {
+      next++;
+    }
+    return next < text.length && text[next] !== "\n"
+      ? write(text, token.end, next, `\n${written}\n`)
+      : write(text, token.end, token.end, `\n${written}`);
   }
   const isPunctuation = written.length === 1 && punctuation.includes(written);
   return write(text, token.end, token.end, isPunctuation ? written : ` ${written}`);
