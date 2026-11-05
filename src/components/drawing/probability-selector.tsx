@@ -262,8 +262,7 @@ export const ProbabilitySelector = ({
             }
           }).filter(thumb => !!thumb) }
           { /* Render thumbs with high cumulative percentage in reverse so they can be dragged left */ }
-          { /* A copy, since reversing the memoized list swaps the thumbs on a render that doesn't rebuild it */ }
-          { (accessible ? [...offsets].reverse() : offsets.reverse()).map((offset, _index) => {
+          { [...offsets].reverse().map((offset, _index) => {
             const index = offsets.length - _index - 1;
             if (offset.cur / lineLength >= reversePercent) {
               return renderThumb(offset, index);

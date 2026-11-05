@@ -18,6 +18,7 @@ const NormalAnimationDelay = isNaN(normalAnimationOverride) ? 1000 : normalAnima
 
 const defaultLengthLimit = 5;
 const defaultDelimiter = " ";
+const defaultDelimiterType: DelimiterType = "space";
 const defaultStartingState = "";
 const defaultFastSimulation = false;
 
@@ -133,8 +134,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   const [fastSimulation, setFastSimulation] = useState(defaultFastSimulation);
   const fastSimulationRef = useRef(false);
   const [highlightOutput, setHighlightOutput] = useState<{group: SequenceGroup, sequence: Node[]}|undefined>();
-  const [delimiterType, setDelimiterType] = useState<DelimiterType>(
-    delimiter === "" ? "none" : (delimiter === " " ? "space" : "other"));
+  const [delimiterType, setDelimiterType] = useState<DelimiterType>(defaultDelimiterType);
   const [confirmModal, setConfirmModal] = useState<IConfirmModal|undefined>(undefined);
   const [graphOpacity, setGraphOpacity] = useState(1);
 
@@ -507,6 +507,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
         setLengthLimit(defaultLengthLimit);
         loggedLengthLimitRef.current = defaultLengthLimit;
         setDelimiter(defaultDelimiter);
+        setDelimiterType(defaultDelimiterType);
         loggedDelimiterRef.current = defaultDelimiter;
         setStartingState(defaultStartingState);
         setSequenceGroups([]);

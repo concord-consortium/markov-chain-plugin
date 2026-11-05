@@ -141,19 +141,18 @@ describe("ProbabilitySelector", () => {
         removed.mockRestore();
       });
     });
+  });
 
-    it("keeps its thumbs on their states across a render that doesn't rebuild the offsets", () => {
-      const percentages = [20, 30, 50];
-      const props = {
-        viewMode: "drawing" as const, exactPercentages: percentages, onChange: jest.fn(), accessible: true,
-        edgeLabels: ["cat", "mat", "dog"]
-      };
-      const { rerender } = render(<ProbabilitySelector {...props} />);
-      const positions = () => screen.getAllByRole("slider").map(thumb => thumb.getAttribute("cx"));
-      const before = positions();
-      rerender(<ProbabilitySelector {...props} />);
-      expect(positions()).toEqual(before);
-    });
+  it.each([true, false])("keeps its thumbs on their states across a render that doesn't rebuild the offsets, " +
+    "accessible %s", (accessible) => {
+    const props = {
+      viewMode: "drawing" as const, exactPercentages: [20, 30, 50], onChange: jest.fn(), accessible,
+      edgeLabels: ["cat", "mat", "dog"]
+    };
+    const { asFragment, rerender } = render(<ProbabilitySelector {...props} />);
+    const before = asFragment();
+    rerender(<ProbabilitySelector {...props} />);
+    expect(asFragment()).toEqual(before);
   });
 
   it("gives its thumbs no role without accessible", () => {

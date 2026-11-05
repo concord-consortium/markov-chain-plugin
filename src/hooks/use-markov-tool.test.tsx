@@ -354,6 +354,20 @@ describe("useMarkovTool's log", () => {
     expect(host.log.mock.calls.map(([, data]) => data?.fast)).toEqual([false, false]);
   });
 
+  it("puts the Delimiter select back to space on Reset, with the other delimiter's field gone", () => {
+    const { handle } = renderTool(recordingHost("drawing"));
+    act(() => handle.current!.loadDrawing(drawing, 2));
+    fireEvent.change(screen.getByDisplayValue("space"), { target: { value: "other" } });
+    expect(screen.getByPlaceholderText("delimiter")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ok" }));
+    act(() => jest.advanceTimersByTime(10));
+
+    expect(screen.getByDisplayValue("space")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("delimiter")).not.toBeInTheDocument();
+  });
+
   it("logs the other delimiter's text once when its field loses focus with a changed value", () => {
     const host = recordingHost("drawing");
     const { handle } = renderTool(host);
