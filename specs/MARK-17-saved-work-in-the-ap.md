@@ -1,29 +1,18 @@
 # Saved Work in the AP Interactive, and the Teacher's History Scrubber
 
 **Jira**: https://concord-consortium.atlassian.net/browse/MARK-17
-**Repo**: https://github.com/concord-consortium/markov-chain-plugin
-**Implementation Spec**: [implementation.md](implementation.md)
-**Status**: **In Development**
+
+**Status**: **Closed**
 
 ## Overview
 
 A student's work in the AP interactive, in both modes and with its layout, reopens as they left it, and a teacher can scrub through its saved moments in the class dashboard, each shown read-only. Nothing is saved until the student does something.
 
-## Project Owner Overview
-
 MARK-15 and MARK-16 built the workspace, but only the input text survives a reload. This story saves the rest: the drawing, each mode's outputs and generator settings, every state's place on the graph, the zoom, and the layout. It replaces the report placeholder with a read-only view of the student's real work, which is what the class dashboard's scrubber opens for each saved moment when "Save Answer History" is on. Students appear in the dashboard once they do something in the interactive, not as soon as they open the page.
 
 Saves happen at meaningful moments rather than on every keystroke, since the Activity Player writes the whole state each time. Saved outputs have a limit, with Rebecca's message when a student reaches it. Saved work stays readable on a page whose settings differ from the page it was saved on, which covers an author changing a page after students start, and is what the linked-work stories in the backlog will need. The CODAP plugin, and the ELA module that uses it, do not change.
 
-## Background
-
 The story comes from question 4 and follow-up B of Rebecca's "Markov Tech Specs (AP)" doc and her answers of 2026-11-02 to layout questions 28, 29 and 35 and follow-up E. Older documents describe linked work as part of this story; the Jira story is right, and it is out of scope here (LARA-230, AP-149, MARK-26).
-
-What exists:
-
-- `src/interactive/runtime.tsx` saves `{ version: 1 }` on open when there is no state, saves `{ version: 1, input: { text } }` at each commit through `onSaveInput`, and in report mode shows a placeholder listing the authored settings. `app.tsx` doesn't pass `interactiveState` in report mode.
-- `Workspace` holds both modes' `useMarkovTool` hooks, the mode, the probabilities toggle and "Order matters". `DataWorkspace` holds the text and the case rule; `usePaneLayout` holds each mode's open panes, sizes and the generator controls' toggle; `InspectPane` holds its tab and sorts; `DataWorkspace` holds the linked split; `Graph` holds the laid-out positions and the zoom.
-- Nothing about a student's work is live yet: 0.6.0 is unreleased, so the only saved states are test runs of `{ version: 1 }` and `{ version: 1, input }`, which must still read.
 
 ## Requirements
 
@@ -54,7 +43,7 @@ What exists:
 - **R10.** No save happens while a sequence plays or steps; a change made then saves when it ends.
 - **R11.** Where the mode has a graph, the state posted for a change holds the positions the graph drew for it, so a scrubber step shows the new states where the student saw them.
 - **R12.** **Layout-only changes don't save.** Opening or collapsing a pane, moving a divider, zooming or panning, choosing a state, transition or output, Inspect's tab and sort, and switching modes ride along with the next save, or with the Activity Player's page-leave request (`getInteractiveState` with `unloading`), which the interactive answers through the library's `setOnUnload` with the whole state. Closing the browser tab sends no such request, so layout changed since the last save is lost then.
-- **R13.** **Anything the student does counts.** Any logged action, or a zoom or pan, marks the student as having done something, so at page leave their state is saved even if all they did was collapse a pane or choose a state. A page that leaves students nothing to save, such as Graph and Inspect over starting text, still shows a student who explored it, which the Activity Player's completion page and the dashboard need. These changes still save only at page leave, not when made.
+- **R13.** **Anything the student does counts.** Any logged action, a zoom or pan, or a press on Fit View or Recenter View marks the student as having done something, so at page leave their state is saved even if all they did was collapse a pane or choose a state. A page that leaves students nothing to save, such as Graph and Inspect over starting text, still shows a student who explored it, which the Activity Player's completion page and the dashboard need. These changes still save only at page leave, not when made.
 - **R14.** Work the page can't show is kept: with the Input pane left out, the saved `input` is written back unchanged, and with a mode not offered, that mode's saved fields are, and without Data mode so are `orderMatters` and `caseSensitive`. Fields this version doesn't know are kept too, at the top level and inside `useData` and `draw`.
 
 ### Reopening
@@ -162,7 +151,20 @@ A throwaway build on the fake Activity Player page, in headless Chrome, confirme
 - `loadDrawing` records an `initialGraph` that Reset goes back to, which R15 rules out for a reopened drawing.
 - MARK-23 needs nothing: an upload is a commit. MARK-18 stores its snapshots in object storage, so they aren't in this budget; its name counter is a new optional field the builder will carry.
 
-## Corrections to the Jira story
+### How it is built
+
+- **Reading.** `readInteractiveState` (`src/interactive/interactive-state.ts`) copies the state with `copyState`, a JSON copy, since `structuredClone` isn't defined in Jest's jsdom, then removes each known field that fails its check and keeps fields it doesn't know. `inspect` and `generator` are read field by field; `outputs`, `selection` and `view` are each one value and go whole. A drawing keeps only well-formed nodes and edges.
+- **Outputs.** `src/interactive/saved-outputs.ts` holds `encodeOutputs`, `decodeOutputs`, `savedBytes`, `maxOutputBytes` and `outputsFull`. The table is keyed on id and label together, since a state renamed between outputs is two entries with one id. `decodeOutputs` skips a group or sequence with a place outside the table. `savedBytes` uses `Blob` because Jest's jsdom has no `TextEncoder`.
+- **Reopening.** `restoreWork` (`workspace/restore-work.ts`) applies R17 and returns what each part starts from. `useMarkovTool`'s optional second argument, `MarkovToolStart`, takes those values, which the plugin never passes. A generator setting that is missing takes its default, so a Max Length left empty reopens at the default rather than empty. `initialGraph` stays undefined, so Draw mode's Reset clears a reopened drawing. `Graph`'s `initialView` is applied through `zoom.transform` and has no `sourceEvent`, so it doesn't count as a student's zoom. `openAtNewest` waits, through a `ResizeObserver`, for the output's first height, because a `scrollTop` written while it has none is lost.
+- **Saving.** `useApHost` calls `markActive` after any logged event and `requestSave` after one in `savingEvents`; a commit requests its own save, and a zoom, a pan or a press on Fit View or Recenter View marks the student active. Fits the workspace makes on its own go through `handleFit`, not `handleFitPressed`, so they don't count. The request is state, not a direct call, because several actions log before they set their state: the effect in `useSavedWork` runs once the render has both, and `animating` holds it until a sequence has finished. A save is sent again after the next draw, so the post holds the new states' positions (R11).
+- **The builder.** `buildInteractiveState` (`workspace/build-state.ts`) is pure and deterministic, so a page leave after a save compares equal in the Activity Player. It spreads the state read at open, which is what keeps R14's fields. Every field it owns is always named, as undefined when there is none, or a `view` given back or an input returned to the starting text would keep its old value. A position is `Math.round(node.fx ?? node.x)`, since a dragged state's `x` trails its pin until the next tick.
+- **The bodies.** What the builder reads from `DataWorkspace`, `DrawWorkspace` and their panes is reported into a `ModeReport` ref owned by `Workspace`, written in effects so it renders nothing. Children's effects run before `Workspace`'s, so the report is current when the save effect runs.
+- **The host.** `runtime.tsx` holds one module-level `Saver`, from `setInteractiveState` and `setOnUnload`, passed only when hosted, so the workspace never touches the library. Saved and final states go through `copyState`, since the library deep-freezes what it is handed. `setOnUnload`'s type refuses a function that may answer undefined, so it needs `async` and a cast; the library itself takes undefined.
+- **The limit.** `Workspace` measures both modes' encoded outputs and the rounded drawing in an effect that holds its last answer while a sequence runs, so `limitReached` is never newly true during one and a running sequence can always finish. A mode the page doesn't offer still counts, since R14 keeps its outputs. R21's Jest test fails if `maxOutputBytes` grows past about 150 KiB or `maxSavedPositions` past about 6,700.
+- **The read-only view.** `hosted` is false, so logging is off, and there is no `Saver`. The generator sits in `<fieldset disabled aria-label="Generator settings">`, only in that view, styled with no border, padding or margin and `min-width: 0`, since the browser's defaults shift the controls by about 3px.
+- **The demo page.** A restart keeps only `{ version: 1, input }`: handed the whole saved state, R17 would make every saved pane, switch and mode win over the authoring form. The Teacher's view restarts with each save, as a scrubber step does.
+
+### Corrections to the Jira story
 
 - "A second full copy" is right, but it is a second document, so it isn't why the budget is 450 KB: the state is twice in the answer document itself.
 - "toggles" sits in Jira's layout list and "each setting change" in its save list; R9 and R12 settle which is which.
@@ -178,9 +180,9 @@ A throwaway build on the fake Activity Player page, in headless Chrome, confirme
 - Saving at tab close, undo, or thinning the history.
 - Changes to the Activity Player, the class dashboard or LARA.
 
-## Open Questions
+## Decisions
 
-### RESOLVED: Should the CODAP plugin start saving its typed text?
+### Should the CODAP plugin start saving its typed text?
 **Context**: Jira leaves this open. Throwaway code on the fake CODAP page confirmed the graph reopens but the Create From Text box is empty, and typing then replaces the graph. One ELA document, `CreateAMarkovChain`, has students type there.
 **Options considered**:
 - A) Leave it out of MARK-17, and write a separate story if the ELA module's teachers need it.
@@ -189,7 +191,9 @@ A throwaway build on the fake Activity Player page, in headless Chrome, confirme
 
 **Decision**: A (Doug). Students lose nothing they have today, and this story must not change the plugin.
 
-### RESOLVED: What isn't brought back when a student returns?
+---
+
+### What isn't brought back when a student returns?
 **Options considered**:
 - A) Bring back everything except scroll positions, the output's open settings lines and the drawing tool, and open the output at its newest.
 - B) Also bring back the drawing tool.
@@ -197,7 +201,9 @@ A throwaway build on the fake Activity Player page, in headless Chrome, confirme
 
 **Decision**: A (Doug). A returning student sees their latest output, and the first click can't change the drawing by accident.
 
-### RESOLVED: What counts as doing something, so a student shows in the dashboard?
+---
+
+### What counts as doing something, so a student shows in the dashboard?
 **Context**: The Activity Player's completion page and `isActivityFinished` count an interactive with no answer as unanswered, so on an explore-only page a work-only rule could never read as finished.
 **Options considered**:
 - A) Only work counts: text, outputs, settings, the drawing.
@@ -206,7 +212,9 @@ A throwaway build on the fake Activity Player page, in headless Chrome, confirme
 
 **Decision**: B (Doug). Nobody who used the interactive is missed. Rebecca hears about it with the demo link.
 
-### RESOLVED: When an author changes a page after students start, what wins?
+---
+
+### When an author changes a page after students start, what wins?
 **Options considered**:
 - A) Rebecca's linked-work rules, and an input the student never edited follows the page.
 - B) The same rules, with saved input always staying.
@@ -214,45 +222,91 @@ A throwaway build on the fake Activity Player page, in headless Chrome, confirme
 
 **Decision**: A (Doug). The student keeps everything they did, and isn't left on starting text they never touched. It is also the reader MARK-26 needs.
 
-### RESOLVED: The teacher's view: its note, and "Show probabilities"
+---
+
+### The teacher's view: its note, and "Show probabilities"
 **Options considered**:
 - A) The note reads "This is a student's saved work. It can't be changed here.", and a teacher can use the toggle.
 - B) The same note, with the toggle fixed as the student left it.
 
 **Decision**: A (Doug). The toggle changes only what is drawn, and it goes back to the student's setting at each scrubber step, since each step is a new frame.
 
-### RESOLVED: Judgment call: are mode switches and the probabilities toggle saves or ride-alongs?
+---
+
+### Are mode switches and the probabilities toggle saves or ride-alongs?
 **Options considered**:
 - A) Everything in Jira's layout list rides along, including toggles.
 - B) A setting that changes what the graph shows saves; where the student is looking rides along.
 
 **Decision**: B. "Show probabilities" saves, so a teacher's scrubber shows it; switching modes rides along, since it changes no work. Both cost little either way.
 
-### RESOLVED: Judgment call: a fixed output budget, or whatever room the state has left?
+---
+
+### A fixed output budget, or whatever room the state has left?
 **Options considered**:
 - A) Stop outputs when the whole state reaches about 450 KB.
 - B) A fixed budget for outputs and the drawing.
 
 **Decision**: B. With A, a student at the limit who pastes a long text pushes the state past the document's limit, and the Activity Player's write then fails with nothing to tell them. A fixed budget makes that impossible.
 
-### RESOLVED: Judgment call: is a drag of a Data-mode state a save?
+---
+
+### Is a drag of a Data-mode state a save?
 **Options considered**:
 - A) It rides along, as layout.
 - B) It saves.
 
 **Decision**: B. It is a deliberate change to the student's graph, and it is rare enough not to matter to the write count.
 
-## Self-Review
+---
 
-Reviewed as senior engineer, QA engineer, student, teacher, education researcher and accessibility expert, each finding checked against the code and fixed above:
+### The size of the "View Work" frame
+**Context**: The code reads as a small inline frame (Technical Notes), which would show mostly the Input pane in Data mode.
 
-- Student: `Generator`'s "other" delimiter field has `autoFocus`, so a reopened one would take focus on load (R15).
-- Senior engineer: the live text can run ahead of the graph within a commit's pause, so positions would be dropped on reopening if it were saved (R2). An author can leave the Graph pane out, so a save can't wait for a draw (R11). `handleDragStop` stores unrounded positions, which cost a drawing about 12 bytes each (R1). Table entries doubled for Data mode, where ids are labels (R6).
-- Teacher: the inline frame's size, resolved below.
-- Student: an output in a hidden mode or a collapsed pane has no height at mount, so it opened at its oldest (R3).
-- Senior engineer: `orderMatters` and `caseSensitive` were overwritten on a page without Data mode, and unknown fields inside `useData` and `draw` were dropped (R14). A reopened student who did nothing posted a rebuilt state, a new history entry on a changed page (R15). R2 said any change of states, where R5 checks their number.
-- QA engineer: the limit's event fires for a drawing too (R19, R28), and the 1,000 states and 2,000 arrows were 256 KB as stored; 561 and 1,122 reach the limit, and short outputs fit 700 (R18).
+**Decision**: Doug: not an issue, and pane order stays as the student left it. A teacher has a full page for the student's work, with the scrubber at full size. R33 checks it on staging.
 
-#### RESOLVED: The size of the "View Work" frame
-The code reads as a small inline frame (Technical Notes), which would show mostly the Input pane in Data mode. Decision (Doug): not an issue, and pane order stays as the student left it. A teacher has a full page for the student's work, with the scrubber at full size. R33 checks it on staging.
+---
 
+### Starting values, or a load call after mount?
+**Options considered**:
+- A) `getSnapshot` and `loadSnapshot` on `MarkovToolHandle`, as the forward-check notes planned.
+- B) An optional starting argument to the hook, and read the tool's existing API.
+
+**Decision**: B. A load call runs after the first render, when `useClearGoneSelection` has already cleared a saved selection, and it would have to tell itself apart from a student's change to avoid a save. Throwaway code confirmed B.
+
+---
+
+### Trigger saves from log events, or from watching values?
+**Options considered**:
+- A) An effect on the tool's values.
+- B) The events already logged for each meaningful action.
+
+**Decision**: B. The Max Length and delimiter fields change on every keystroke and log only when committed, which is the distinction R9 wants, and the workspace can't see that from values. Throwaway code confirmed one post per commit, holding the new state's position, and the final output after Play.
+
+---
+
+### Report body state through a ref, or lift it to `Workspace`?
+**Options considered**:
+- A) Lift the panes, Inspect and split state into `Workspace`.
+- B) Leave it where MARK-15 and MARK-16 put it, and report it into a ref.
+
+**Decision**: B. Layout changes must not save or render the shell, and lifting would rewrite reviewed code on two open branches this one rebases onto.
+
+---
+
+### What the spec reviews changed
+
+Each finding was checked against the code or by throwaway code, and the requirements and notes above carry the result.
+
+- The generator's "other" delimiter field has `autoFocus`, so a reopened one would have taken focus on load (R15).
+- The live text can run ahead of the graph within a commit's pause, so saving it would have dropped positions on reopening (R2).
+- An author can leave the Graph pane out, so a save can't wait for a draw (R11).
+- `handleDragStop` stores unrounded positions, which cost a drawing about 12 bytes each (R1). Table entries doubled for Data mode, where ids are labels (R6).
+- An output in a hidden mode or a collapsed pane has no height at mount, so it opened at its oldest (R3).
+- `orderMatters` and `caseSensitive` were overwritten on a page without Data mode, and unknown fields inside `useData` and `draw` were dropped (R14).
+- A reopened student who did nothing posted a rebuilt state, a new history entry on a changed page (R15). A separate "had work" flag proved redundant once every layout change marks the student active, so it went.
+- The limit's event fires for a drawing too (R19, R28), and the first drawing figures were wrong: 561 states and 1,122 arrows reach the limit (R18).
+- `ManagedState` deep-freezes the state it is handed and the init message, which would freeze live graph objects, so both ends copy.
+- The mount fit shouldn't need an `exhaustive-deps` disable, so it goes through `toolRef`.
+- The demo page would have stopped showing authoring changes after a student's first save, so a restart keeps only the input.
+- The generator's `fieldset` needs a name, and only the read-only view needs it at all.
