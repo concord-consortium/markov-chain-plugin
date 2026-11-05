@@ -100,15 +100,15 @@ Jest: every field wrong on its own, leaving the others; a deep-frozen state read
 export interface MarkovToolStart {
   graph?: GraphData;
   values?: string[];
-  generator?: { startingState: string, lengthLimit?: number, delimiter: string, delimiterType: DelimiterType,
-                fast: boolean };
+  generator?: Partial<{ startingState: string, lengthLimit?: number, delimiter: string, delimiterType: DelimiterType,
+                        fast: boolean }>;
   sequenceGroups?: SequenceGroup[];
   selection?: Exclude<Selection, undefined>;
 }
 export const useMarkovTool = (host: MarkovHost, start?: MarkovToolStart): MarkovToolApi => { ... }
 ```
 
-Each `useState` default reads `start`, as do `fastSimulationRef`, `loggedLengthLimitRef`, `loggedDelimiterRef` (so a blur on a restored value logs nothing) and `datasetValuesRef`. `initialGraph` stays undefined, so Draw mode's Reset clears a reopened drawing (R15).
+A generator setting that is missing takes its default, so a Max Length left empty reopens at it. Each `useState` default reads `start`, as do `fastSimulationRef`, `loggedLengthLimitRef`, `loggedDelimiterRef` (so a blur on a restored value logs nothing) and `datasetValuesRef`. `initialGraph` stays undefined, so Draw mode's Reset clears a reopened drawing (R15).
 
 `generatorProps` gains `delimiterAutoFocus`, true unless the tool started with `start` and the student hasn't changed the delimiter's type since.
 

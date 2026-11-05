@@ -1,3 +1,4 @@
+import type { GraphView } from "../components/graph";
 import { DelimiterType, GraphData } from "../type";
 import { modeIds, ModeId } from "./authored-state";
 import { isRecord, parseState } from "./parse-state";
@@ -13,7 +14,7 @@ export const interactiveStateVersion = 1;
 // the most text the input takes, in the text box and through the table's edits
 export const maxInputLength = 50000;
 
-export interface SavedView { x: number, y: number, k: number }
+export type SavedView = GraphView;
 export type SavedSelection =
   | { kind: "state", id: string }
   | { kind: "transition", from: string, to: string }

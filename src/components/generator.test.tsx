@@ -1,5 +1,6 @@
 import React, { createRef } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { Generator, GeneratorProps } from "./generator";
 import { MarkovTool } from "./markov-tool";
 import { MarkovHost, MarkovToolHandle } from "./host";
 import { GraphData } from "../type";
@@ -78,5 +79,26 @@ describe("Generator", () => {
 
     fireEvent.blur(maxLength);
     expect(maxLength).toHaveValue(1);
+  });
+});
+
+describe("Generator's delimiter field", () => {
+  const props: GeneratorProps = {
+    nodes: [], graphEmpty: false, generationMode: "ready", startingState: "", lengthLimit: 5, delimiter: "-",
+    delimiterType: "other", fastSimulation: false, onStartingStateChange: jest.fn(), onLengthLimitChange: jest.fn(),
+    onLengthLimitCommit: jest.fn(), onDelimiterTypeChange: jest.fn(), onDelimiterChange: jest.fn(),
+    onDelimiterCommit: jest.fn(), onSpeedChange: jest.fn(), onPlay: jest.fn(), onPause: jest.fn(),
+    onResume: jest.fn(), onStep: jest.fn(),
+  };
+
+  it("takes focus as it shows", () => {
+    render(<Generator {...props} />);
+    expect(screen.getByPlaceholderText("delimiter")).toHaveFocus();
+  });
+
+  it("leaves focus where it was with delimiterAutoFocus false", () => {
+    render(<Generator {...props} delimiterAutoFocus={false} />);
+    expect(screen.getByPlaceholderText("delimiter")).not.toHaveFocus();
+    expect(document.body).toHaveFocus();
   });
 });

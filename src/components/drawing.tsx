@@ -2,7 +2,7 @@ import React, { createRef, useCallback, useEffect, useRef, useState } from "reac
 import { flushSync } from "react-dom";
 import { nanoid } from "nanoid";
 
-import { D3Node, DrawingMode, Graph, Point, RubberBand, Transform } from "./graph";
+import { D3Node, DrawingMode, Graph, GraphView, Point, RubberBand, Transform } from "./graph";
 import { Edge, GraphData, Node } from "../type";
 import { ArrowWidths } from "./graph-utils";
 
@@ -53,6 +53,8 @@ interface Props {
   onBackgroundClick?: () => void;
   // the student's own zoom or pan, from the graph or the toolbar; absent in the plugin, which has no following
   onUserZoom?: () => void;
+  onTransformed?: (transform: Transform) => void;
+  initialView?: GraphView;
   fitTransitionMs?: number;
   // Escape closes an open state editor and does nothing else; absent in the plugin
   closeEditorOnEscape?: boolean;
@@ -68,7 +70,8 @@ export const Drawing = (props: Props) => {
          fitViewAt, recenterViewAt, onClearHighlightOutput, graphOpacity, resetViewAt,
          selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView, log,
          tools: shownTools = tools, probabilityLabels, arrowWidths, selectedEdge, onEdgeSelect, onBackgroundClick,
-         onUserZoom, fitTransitionMs, closeEditorOnEscape, uniqueLabels, accessibleEditor } = props;
+         onUserZoom, onTransformed, initialView, fitTransitionMs, closeEditorOnEscape, uniqueLabels,
+         accessibleEditor } = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
@@ -104,6 +107,7 @@ export const Drawing = (props: Props) => {
 
   const handleTransformed = (transform: Transform) => {
     transformRef.current = transform;
+    onTransformed?.(transform);
   };
 
   const translateToGraphPoint = (e: MouseEvent|React.MouseEvent<HTMLDivElement>): Point => {
@@ -412,6 +416,7 @@ export const Drawing = (props: Props) => {
         zoomButtons={!shownTools.includes("zoomIn")}
         zoomRequest={zoomRequest}
         onUserZoom={onUserZoom}
+        initialView={initialView}
         fitTransitionMs={fitTransitionMs}
         keepOutputOnRedraw={!!props.tools}
         centerOffOrigin={!!props.tools}

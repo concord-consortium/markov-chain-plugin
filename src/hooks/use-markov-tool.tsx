@@ -58,14 +58,38 @@ export interface MarkovToolApi {
   };
 }
 
-export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
+// What a tool starts from in place of its defaults, for a host reopening saved work. Starting here rather than loading
+// after the first render keeps a saved selection, and leaves nothing to tell apart from a student's change. A drawing
+// started here isn't what Reset goes back to.
+export interface MarkovToolStart {
+  graph?: GraphData;
+  // dataset mode's values, which the graph was made from
+  values?: string[];
+  generator?: Partial<{
+    startingState: string, lengthLimit?: number, delimiter: string, delimiterType: DelimiterType, fast: boolean,
+  }>;
+  sequenceGroups?: SequenceGroup[];
+  selection?: Exclude<Selection, undefined>;
+}
+
+export const useMarkovTool = (host: MarkovHost, start?: MarkovToolStart): MarkovToolApi => {
   const { viewMode, orderMatters, stopAtNoValue, setViewMode, markDirty, outputSequence, log } = host;
-  const [lengthLimit, setLengthLimit] = useState<number | undefined>(defaultLengthLimit);
-  const [delimiter, setDelimiter] = useState(defaultDelimiter);
-  const [startingState, setStartingState] = useState(defaultStartingState);
-  const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>([]);
-  const [selectedNodeId, _setSelectedNodeId] = useState<string>();
-  const [selectedEdge, setSelectedEdge] = useState<{ from: string, to: string }>();
+  const startGenerator = {
+    lengthLimit: start?.generator?.lengthLimit ?? defaultLengthLimit,
+    delimiter: start?.generator?.delimiter ?? defaultDelimiter,
+    delimiterType: start?.generator?.delimiterType ?? defaultDelimiterType,
+    startingState: start?.generator?.startingState ?? defaultStartingState,
+    fast: start?.generator?.fast ?? defaultFastSimulation,
+  };
+  const startSelection = start?.selection;
+  const [lengthLimit, setLengthLimit] = useState<number | undefined>(startGenerator.lengthLimit);
+  const [delimiter, setDelimiter] = useState(startGenerator.delimiter);
+  const [startingState, setStartingState] = useState(startGenerator.startingState);
+  const [sequenceGroups, setSequenceGroups] = useState<SequenceGroup[]>(start?.sequenceGroups ?? []);
+  const [selectedNodeId, _setSelectedNodeId] = useState(
+    startSelection?.kind === "state" ? startSelection.id : undefined);
+  const [selectedEdge, setSelectedEdge] = useState<{ from: string, to: string } | undefined>(
+    startSelection?.kind === "transition" ? { from: startSelection.from, to: startSelection.to } : undefined);
   const [highlightNode, setHighlightNode] = useState<Node>();
   const [highlightLoopOnNode, setHighlightLoopOnNode] = useState<Node>();
   const [highlightEdge, setHighlightEdge] = useState<Edge>();
@@ -80,11 +104,11 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   const animationInterval = useRef<number | undefined>(undefined);
   const unmountedRef = useRef(false);
   // the last values logged for the settings that log when their field loses focus
-  const loggedLengthLimitRef = useRef<number | undefined>(defaultLengthLimit);
-  const loggedDelimiterRef = useRef(defaultDelimiter);
+  const loggedLengthLimitRef = useRef<number | undefined>(startGenerator.lengthLimit);
+  const loggedDelimiterRef = useRef(startGenerator.delimiter);
   // the starting state's label when the playing or stepping sequence started
   const startingLabelRef = useRef("");
-  const { graph, updateGraph, setGraph } = useGraph();
+  const { graph, updateGraph, setGraph } = useGraph(start?.graph);
   const [initialGraph, setInitialGraph] = useState<GraphData>();
   const [fitViewAt, setFitViewAt] = useState<number>();
   // fit in the render after the graph change, once Graph has drawn the new graph
@@ -98,7 +122,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
   }, [graph]);
   const [recenterViewAt, setRecenterViewAt] = useState<number>();
   const [resetViewAt, setResetViewAt] = useState<number>();
-  const datasetValuesRef = useRef<string[] | undefined>(undefined);
+  const datasetValuesRef = useRef(start?.values);
   const onDataChanged = useCallback((values: string[], options?: { fit?: boolean }) => {
     datasetValuesRef.current = values;
     updateGraph(values);
@@ -131,10 +155,13 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       done();
     }
   }, [setGraph]);
-  const [fastSimulation, setFastSimulation] = useState(defaultFastSimulation);
-  const fastSimulationRef = useRef(false);
-  const [highlightOutput, setHighlightOutput] = useState<{group: SequenceGroup, sequence: Node[]}|undefined>();
-  const [delimiterType, setDelimiterType] = useState<DelimiterType>(defaultDelimiterType);
+  const [fastSimulation, setFastSimulation] = useState(startGenerator.fast);
+  const fastSimulationRef = useRef(startGenerator.fast);
+  const [highlightOutput, setHighlightOutput] = useState<{group: SequenceGroup, sequence: Node[]}|undefined>(
+    startSelection?.kind === "output" ? { group: startSelection.group, sequence: startSelection.sequence } : undefined);
+  const [delimiterType, setDelimiterType] = useState<DelimiterType>(startGenerator.delimiterType);
+  // a field shown because the student just chose "other" takes focus, and one shown on reopening doesn't
+  const [delimiterAutoFocus, setDelimiterAutoFocus] = useState(!start);
   const [confirmModal, setConfirmModal] = useState<IConfirmModal|undefined>(undefined);
   const [graphOpacity, setGraphOpacity] = useState(1);
 
@@ -338,6 +365,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
 
   const handleChangeDelimiterType = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as DelimiterType;
+    setDelimiterAutoFocus(true);
     setDelimiterType(newType);
     const newDelimiter = newType === "space" ? " " : "";
     setDelimiter(newDelimiter);
@@ -589,7 +617,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
     setSelectedNodeId, selection, selectState, selectTransition, clearSelection,
     generatorProps: {
       nodes: graph.nodes, graphEmpty, generationMode, startingState, lengthLimit, delimiter, delimiterType,
-      fastSimulation,
+      fastSimulation, delimiterAutoFocus,
       onStartingStateChange: handleChangeStartingState,
       onLengthLimitChange: handleChangeLengthLimit,
       onLengthLimitCommit: handleCommitLengthLimit,

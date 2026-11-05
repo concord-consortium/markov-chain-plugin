@@ -55,16 +55,18 @@ export interface SequenceOutputProps {
   // each output also takes Tab and is chosen with Enter or Space, reporting whether it is chosen
   keyboardSelect?: boolean;
   heading?: string;
+  // opens at the newest output, once it is shown
+  openAtNewest?: boolean;
 }
 
 export const SequenceOutput = ({
   sequenceGroups, graphEmpty, generationMode, lengthLimit, highlightOutput, onToggleHighlight, onClear, onCancel,
-  keyboardSelect, heading = "Output:"
+  keyboardSelect, heading = "Output:", openAtNewest
 }: SequenceOutputProps) => {
   const animating = generationMode !== "ready";
   const disabled = sequenceGroups.length === 0;
 
-  // scroll to the newest output when the groups change, but not on mount, so a remounted output opens at the top
+  // scroll to the newest output when the groups change; on mount, an output opens at the top without openAtNewest
   const innerOutputRef = useRef<HTMLDivElement | null>(null);
   const scrolledGroupsRef = useRef(sequenceGroups);
   useEffect(() => {
@@ -76,6 +78,22 @@ export const SequenceOutput = ({
       innerOutputRef.current.scrollTop = innerOutputRef.current.scrollHeight;
     }
   }, [sequenceGroups]);
+
+  // an output in a hidden mode or a collapsed pane has no height, and a scrollTop written then is lost
+  useEffect(() => {
+    const output = innerOutputRef.current;
+    if (!openAtNewest || !output) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      if (output.clientHeight > 0) {
+        output.scrollTop = output.scrollHeight;
+        observer.disconnect();
+      }
+    });
+    observer.observe(output);
+    return () => observer.disconnect();
+  }, [openAtNewest]);
 
   return (
     <div className="sequence-output">

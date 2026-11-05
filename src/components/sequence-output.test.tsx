@@ -41,6 +41,55 @@ describe("SequenceOutput", () => {
     expect(scrollTops).toEqual([]);
   });
 
+  describe("with openAtNewest", () => {
+    let observers: { callback: () => void, target?: Element, disconnected: boolean }[];
+    let clientHeight: number;
+    const notify = () => observers.forEach(observer => observer.target && !observer.disconnected && observer.callback());
+
+    beforeEach(() => {
+      observers = [];
+      clientHeight = 0;
+      Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => clientHeight });
+      globalThis.ResizeObserver = class {
+        private readonly record: { callback: () => void, target?: Element, disconnected: boolean };
+        constructor(callback: ResizeObserverCallback) {
+          this.record = { callback: () => callback([], this), disconnected: false };
+          observers.push(this.record);
+        }
+        observe(target: Element) { this.record.target = target; }
+        unobserve() { /* notified by hand */ }
+        disconnect() { this.record.disconnected = true; }
+      };
+    });
+    afterEach(() => {
+      delete (HTMLElement.prototype as any).clientHeight;
+      delete (globalThis as any).ResizeObserver;
+    });
+
+    it("scrolls to the end the first time it has a height, and not while it has none", () => {
+      render(<SequenceOutput {...props([group([a, b])])} openAtNewest />);
+      expect(observers[0].target).toHaveClass("inner-output");
+      notify();
+      expect(scrollTops).toEqual([]);
+      clientHeight = 100;
+      notify();
+      expect(scrollTops).toEqual([500]);
+      notify();
+      expect(scrollTops).toEqual([500]);
+    });
+
+    it("stops observing when it unmounts", () => {
+      const { unmount } = render(<SequenceOutput {...props([group([a, b])])} openAtNewest />);
+      unmount();
+      expect(observers.map(observer => observer.disconnected)).toEqual([true]);
+    });
+
+    it("makes no observer without the prop", () => {
+      render(<SequenceOutput {...props([group([a, b])])} />);
+      expect(observers).toEqual([]);
+    });
+  });
+
   it("heads the output as the plugin does, or with the heading its layout gives", () => {
     const { rerender } = render(<SequenceOutput {...props([])} />);
     expect(screen.getByText("Output:")).toBeInTheDocument();

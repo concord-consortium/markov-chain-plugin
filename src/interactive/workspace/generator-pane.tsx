@@ -30,7 +30,7 @@ export const GeneratorPane = ({ tool, controlsOpen, onToggleControls }: Generato
           <Generator {...tool.generatorProps} />
         </div>
       </div>
-      <SequenceOutput {...tool.outputProps} keyboardSelect heading="Output" />
+      <SequenceOutput {...tool.outputProps} keyboardSelect heading="Output" openAtNewest />
     </div>
   );
 };

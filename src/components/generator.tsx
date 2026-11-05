@@ -19,6 +19,8 @@ export interface GeneratorProps {
   delimiter: string;
   delimiterType: DelimiterType;
   fastSimulation: boolean;
+  // false leaves focus where it is when the "other" delimiter's field shows
+  delimiterAutoFocus?: boolean;
   onStartingStateChange: React.ChangeEventHandler<HTMLSelectElement>;
   onLengthLimitChange: React.ChangeEventHandler<HTMLInputElement>;
   onLengthLimitCommit: () => void;
@@ -34,8 +36,8 @@ export interface GeneratorProps {
 
 export const Generator = ({
   nodes, graphEmpty, generationMode, startingState, lengthLimit, delimiter, delimiterType, fastSimulation,
-  onStartingStateChange, onLengthLimitChange, onLengthLimitCommit, onDelimiterTypeChange, onDelimiterChange,
-  onDelimiterCommit, onSpeedChange, onPlay, onPause, onResume, onStep
+  delimiterAutoFocus = true, onStartingStateChange, onLengthLimitChange, onLengthLimitCommit, onDelimiterTypeChange,
+  onDelimiterChange, onDelimiterCommit, onSpeedChange, onPlay, onPause, onResume, onStep
 }: GeneratorProps) => {
   const animating = generationMode !== "ready";
   const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
@@ -90,7 +92,7 @@ export const Generator = ({
               placeholder="delimiter"
               disabled={animating}
               style={{ width: 75, marginTop: 5 }}
-              autoFocus={true}
+              autoFocus={delimiterAutoFocus}
             /> }
           </div>
         </div>

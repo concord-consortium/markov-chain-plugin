@@ -1,7 +1,8 @@
 import React, { createRef } from "react";
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { MarkovTool } from "../components/markov-tool";
-import { useMarkovTool } from "./use-markov-tool";
+import { MarkovToolStart, useMarkovTool } from "./use-markov-tool";
+import { useClearGoneSelection } from "../interactive/workspace/use-mode-body";
 import { MarkovHost, MarkovToolHandle } from "../components/host";
 import { GraphData, SequenceGroup, ViewMode } from "../type";
 
@@ -443,5 +444,128 @@ describe("useMarkovTool's log", () => {
       ["StateSelected", { state: "b", source: "graph" }],
       ["SelectionCleared", { via: "background" }],
     ]);
+  });
+});
+
+describe("useMarkovTool's start", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const a = { id: "a", label: "a", value: 0 };
+  const b = { id: "b", label: "b", value: 0 };
+  const group: SequenceGroup = {
+    delimiter: "-", lengthLimit: 2, startingState: "", startingNode: undefined, sequences: [[a, b], [b, a]],
+  };
+
+  const startedTool = (start: MarkovToolStart, host = recordingHost("drawing")) =>
+    renderHook(() => useMarkovTool(host, start)).result;
+
+  it("keeps every default with no start", () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("drawing")));
+    expect(result.current.graph).toEqual({ nodes: [], edges: [] });
+    expect(result.current.selection).toBeUndefined();
+    expect(result.current.outputProps.sequenceGroups).toEqual([]);
+    expect(result.current.generatorProps).toMatchObject({
+      startingState: "", lengthLimit: 5, delimiter: " ", delimiterType: "space", fastSimulation: false,
+      delimiterAutoFocus: true,
+    });
+  });
+
+  it("starts from a graph and outputs", () => {
+    const tool = startedTool({ graph: drawing, sequenceGroups: [group] });
+    expect(tool.current.graph).toBe(drawing);
+    expect(tool.current.outputProps.sequenceGroups).toEqual([group]);
+  });
+
+  it("starts from generator settings, and takes the default of any left out", () => {
+    const tool = startedTool({ generator: {
+      startingState: "a", lengthLimit: 9, delimiter: "-", delimiterType: "other", fast: true,
+    } });
+    expect(tool.current.generatorProps).toMatchObject({
+      startingState: "a", lengthLimit: 9, delimiter: "-", delimiterType: "other", fastSimulation: true,
+    });
+    const expected = {
+      startingState: "", lengthLimit: 5, delimiter: "-", delimiterType: "space", fastSimulation: false,
+    };
+    expect(startedTool({ generator: { delimiter: "-" } }).current.generatorProps).toMatchObject(expected);
+    expect(startedTool({ generator: { delimiter: "-", lengthLimit: undefined } }).current.generatorProps)
+      .toMatchObject(expected);
+  });
+
+  // the mode body's rule, which would clear a choice whose graph arrived after the first render
+  const clearingTool = (start: MarkovToolStart) => renderHook(() => {
+    const tool = useMarkovTool(recordingHost("drawing"), start);
+    useClearGoneSelection(tool);
+    return tool;
+  }).result;
+
+  it("keeps a chosen state or transition through the first render, with its graph", () => {
+    expect(clearingTool({ graph: drawing, selection: { kind: "state", id: "a" } }).current.selection)
+      .toEqual({ kind: "state", id: "a" });
+    expect(clearingTool({ graph: drawing, selection: { kind: "transition", from: "a", to: "b" } }).current.selection)
+      .toEqual({ kind: "transition", from: "a", to: "b" });
+  });
+
+  it("clears a chosen state or transition with no graph to find it in", () => {
+    expect(clearingTool({ selection: { kind: "state", id: "a" } }).current.selection).toBeUndefined();
+    expect(clearingTool({ selection: { kind: "transition", from: "a", to: "b" } }).current.selection).toBeUndefined();
+  });
+
+  it("starts with a chosen output", () => {
+    const sequence = group.sequences[1];
+    const tool = startedTool({ sequenceGroups: [group], selection: { kind: "output", group, sequence } });
+    expect(tool.current.selection).toEqual({ kind: "output", group, sequence });
+    expect(tool.current.outputProps.highlightOutput).toEqual({ group, sequence });
+  });
+
+  it("logs nothing on a start, or for a committed field that didn't change from it", () => {
+    const host = recordingHost("drawing");
+    const tool = startedTool({ generator: { lengthLimit: 9, delimiter: "-", delimiterType: "other" } }, host);
+    act(() => {
+      tool.current.generatorProps.onLengthLimitCommit();
+      tool.current.generatorProps.onDelimiterCommit();
+    });
+    expect(host.log).not.toHaveBeenCalled();
+  });
+
+  it("logs a committed field that changed from its start", () => {
+    const host = recordingHost("drawing");
+    const tool = startedTool({ generator: { lengthLimit: 9 } }, host);
+    act(() => tool.current.generatorProps.onLengthLimitChange(
+      { target: { value: "8" } } as React.ChangeEvent<HTMLInputElement>));
+    act(() => tool.current.generatorProps.onLengthLimitCommit());
+    expect(host.log).toHaveBeenCalledWith("GeneratorSettingChanged", { setting: "maxLength", value: 8 });
+  });
+
+  it("generates at the speed it started with", async () => {
+    const host = recordingHost("drawing");
+    const tool = startedTool({ graph: drawing, generator: { fast: true } }, host);
+    await act(async () => { await tool.current.generatorProps.onPlay(); });
+    act(() => tool.current.generatorProps.onPause());
+    expect(host.log).toHaveBeenCalledWith("SequencePaused", expect.objectContaining({ fast: true }));
+  });
+
+  it("doesn't focus the delimiter's field until the student chooses a type", () => {
+    const tool = startedTool({ generator: { delimiterType: "other" } });
+    expect(tool.current.generatorProps.delimiterAutoFocus).toBe(false);
+    act(() => tool.current.generatorProps.onDelimiterTypeChange(
+      { target: { value: "other" } } as React.ChangeEvent<HTMLSelectElement>));
+    expect(tool.current.generatorProps.delimiterAutoFocus).toBe(true);
+  });
+
+  it("clears a started drawing on Reset, rather than going back to it", () => {
+    const tool = startedTool({ graph: drawing });
+    act(() => tool.current.view.onReset());
+    act(() => tool.current.view.confirmModal?.onOk?.());
+    act(() => { jest.advanceTimersByTime(10); });
+    expect(tool.current.graph).toEqual({ nodes: [], edges: [] });
+  });
+
+  it("restores a started dataset's graph on Reset", () => {
+    const tool = startedTool({ graph: drawing, values: ["a", "b", "a"] }, recordingHost("dataset"));
+    act(() => tool.current.view.onReset());
+    act(() => tool.current.view.confirmModal?.onOk?.());
+    act(() => { jest.advanceTimersByTime(10); });
+    expect(tool.current.graph.nodes.map(node => node.label)).toEqual(["a", "b"]);
   });
 });
