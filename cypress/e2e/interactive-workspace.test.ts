@@ -641,13 +641,15 @@ describe("the workspace's input table", () => {
 
   it("deletes the row pressed by itself when the limit refuses it with the edit of the row left", () => {
     const rest = `${" ".repeat(49994)}c`;
-    start({}, { interactiveState: { version: 1, input: { text: `a bb${rest}` } } });
+    // one switch, so the refusal's message leaves row 2 in view for the click
+    start({ orderMatters: { startsOn: true, showSwitch: false } },
+      { interactiveState: { version: 1, input: { text: `a bb${rest}` } } });
     row(1).clear().type("longword");
     cy.interactive().find("button[aria-label='Delete row 2']").then(button => mousePress(button[0]));
     textBox().invoke("val").should("equal", `a${rest}`);
     row(1).should("have.value", "a");
     row(2).should("have.value", "c");
-    loggedEvents().should("deep.include", ["TableRowDeleted", undefined]);
+    loggedEvents().should("deep.include", ["TableRowDeleted", { mode: "useData" }]);
   });
 
   it("deletes the row of a delete button activated from the keyboard, with no press", () => {
@@ -1139,7 +1141,8 @@ describe("the workspace's dividers", () => {
       }
     });
     resized().should("have.length", 1).its(0)
-      .should("deep.equal", ["PaneResized", { divider: "input", sizes: { input: 320, inspect: 260, top: 315 } }]);
+      .should("deep.equal",
+        ["PaneResized", { divider: "input", sizes: { input: 320, inspect: 260, top: 315 }, mode: "useData" }]);
   });
 
   it("moves space between Input and Graph, and stops Input at its minimum", () => {
