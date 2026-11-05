@@ -370,7 +370,7 @@ export const inspectColumns = (mode: ModeId) => mode === "draw"
 ```ts
 // src/interactive/workspace/ap-host.ts
 // One host per mode: Data mode is the core's dataset view, Draw mode its drawing view. Its functions keep their
-// identity when "Order matters" changes, as MARK-14's MarkovHost requires.
+// identity when "Order matters" changes, as MarkovHost requires.
 export const useApHost = (hosted: boolean, mode: ModeId, orderMatters?: boolean): MarkovHost => {
   const functions = useMemo(() => ({
     setViewMode: noop,

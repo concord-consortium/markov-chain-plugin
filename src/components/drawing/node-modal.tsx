@@ -125,7 +125,7 @@ export const NodeModal = ({
               accessible={accessibleEditor} />
             <div className="nodeModalButtons">
               <button type="submit" disabled={!!problem}>Save</button>
-              <button onClick={onCancel}>Cancel</button>
+              <button type="button" onClick={onCancel}>Cancel</button>
             </div>
           </form>
         </div>
