@@ -344,6 +344,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
 
   const handleClearOutput = useCallback(() => {
     setSequenceGroups([]);
+    setHighlightOutput(undefined);
     log("OutputCleared");
   }, [log]);
 

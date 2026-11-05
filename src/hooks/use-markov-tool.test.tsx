@@ -120,6 +120,22 @@ describe("useMarkovTool's selection", () => {
     expect(result.current.selection).toBeUndefined();
   });
 
+  it("unchooses the chosen output when the outputs are cleared, logging only the clearing", () => {
+    const host = recordingHost("dataset");
+    const result = toolWithValues(host);
+    const sequence = result.current.graph.nodes;
+    const group: SequenceGroup =
+      { delimiter: " ", lengthLimit: 5, startingState: "", startingNode: undefined, sequences: [sequence] };
+    act(() => result.current.outputProps.onToggleHighlight(group, sequence));
+    expect(result.current.selection).toEqual({ kind: "output", group, sequence });
+    host.log.mockClear();
+
+    act(() => result.current.outputProps.onClear());
+    expect(result.current.selection).toBeUndefined();
+    expect(result.current.graphHighlights.highlightOutputNodes).toBeUndefined();
+    expect(host.log.mock.calls).toEqual([["OutputCleared"]]);
+  });
+
   it("keeps one of a state, a transition and an output chosen at a time", () => {
     const result = toolWithValues();
     const sequence = result.current.graph.nodes;

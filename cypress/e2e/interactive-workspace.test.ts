@@ -954,6 +954,21 @@ describe("the workspace's linked highlighting", () => {
     loggedEvents().should(events => expect(events.map(([action]) => action)).not.to.include("SelectionCleared"));
   });
 
+  it("takes a chosen output's highlight away with Clear Output", () => {
+    start({ startingText: "a b a b" });
+    playButton().click();
+    // the button reads Pause while the sequence plays
+    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+    cy.interactive().find(".sequence-output .sequence").should("have.length", 1).click();
+    tableRows().eq(0).should("have.class", "highlight-output");
+    cy.interactive().find(".clear-highlight").should("exist");
+    cy.interactive().contains(".generator-pane button", "Clear Output").click();
+    cy.interactive().find(".sequence-output .sequence").should("not.exist");
+    cy.interactive().find(".clear-highlight").should("not.exist");
+    tableRows().eq(0).should("not.have.class", "highlight-output");
+    stateEllipse("a").should("have.attr", "fill", "#fff");
+  });
+
   it("keeps a chosen output through a commit that takes one of its states out", () => {
     start({ startingText: "a b a b" });
     playButton().click();
