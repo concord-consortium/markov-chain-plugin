@@ -677,6 +677,14 @@ $pane-border-color: #c7c7c7;
       padding: var(--pane-padding);
     }
 
+    // the read-only generator's: it disables what is in it, and adds nothing to its layout
+    fieldset {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
     .generator-output {
       display: flex;
       flex: 1;

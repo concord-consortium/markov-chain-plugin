@@ -77,7 +77,7 @@ const restoredMode = (saved: SavedMode | undefined, config: WorkspaceConfig, gra
 // the settings it was saved under. With no saved state, this is the workspace as authored.
 export const restoreWork = (saved: MarkovInteractiveState, authoredState: MarkovAuthoredState,
   configs: { useData: DataWorkspaceConfig, draw: DrawWorkspaceConfig },
-  { readOnly = false }: { readOnly?: boolean } = {}): RestoredWork => {
+  { readOnly }: { readOnly: boolean }): RestoredWork => {
   const mode = saved.mode && authoredState.modes[saved.mode] ? saved.mode : authoredState.startingMode;
   const data = configs.useData;
   const probabilities = configs[mode].probabilities.showToggle

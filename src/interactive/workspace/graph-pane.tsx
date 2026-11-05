@@ -13,7 +13,7 @@ import { useLatest } from "../../hooks/use-latest";
 import { graphNotes } from "./graph-notes";
 import { ModeSaving } from "./use-pane-layout";
 
-const dataTools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
+export const dataTools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
 const noop = () => undefined;
 const fitMs = 250;
 
@@ -31,6 +31,7 @@ interface GraphPaneProps {
   onResized: () => void;
   initialView?: GraphView;
   saving: ModeSaving;
+  readOnly: boolean;
   onDoubleClickState?: (id: string) => void;
   probabilities: boolean;
   arrowWidths: ArrowWidths;
@@ -42,7 +43,7 @@ interface GraphPaneProps {
 // since a new callback redraws the whole graph.
 export const GraphPane = ({
   variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onResized, initialView,
-  saving, onDoubleClickState, probabilities, arrowWidths, orderMatters = true
+  saving, readOnly, onDoubleClickState, probabilities, arrowWidths, orderMatters = true
 }: GraphPaneProps) => {
   const toolRef = useLatest(tool);
   const onUserZoomRef = useLatest(onUserZoom);
@@ -110,6 +111,7 @@ export const GraphPane = ({
             onUserZoom={handleUserZoom}
             onTransformed={handleTransformed}
             initialView={initialView}
+            readOnly={readOnly}
             fitTransitionMs={fitMs}
             probabilityLabels={probabilities}
             arrowWidths={arrowWidths}
@@ -135,7 +137,7 @@ export const GraphPane = ({
             {...graphHighlights}
             animating={tool.animating}
             opacity={view.graphOpacity}
-            allowDragging={!tool.animating}
+            allowDragging={!tool.animating && !readOnly}
             autoArrange={true}
             keepPositions={true}
             zoomButtons={false}

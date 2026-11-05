@@ -29,6 +29,7 @@ interface DataWorkspaceProps {
   start: RestoredMode;
   saving: ModeSaving;
   limitReached: boolean;
+  readOnly: boolean;
   host: MarkovHost;
   tool: MarkovToolApi;
   config: DataWorkspaceConfig;
@@ -58,8 +59,9 @@ const laidOutWhole = (before: string[], after: string[]) => {
 
 // Data mode's body: the authored panes around the student's input
 export const DataWorkspace = ({
-  text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, saving, limitReached, host,
-  tool, config, stacked, hidden, controls, probabilities, arrowWidths, orderMatters, onOrderMattersChange
+  text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, saving, limitReached,
+  readOnly, host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, orderMatters,
+  onOrderMattersChange
 }: DataWorkspaceProps) => {
   const { inputView } = config;
   const toolRef = useLatest(tool);
@@ -122,7 +124,7 @@ export const DataWorkspace = ({
   const isCaseSensitive = capitalization === "asTyped";
   const caseSwitch = config.caseSwitch &&
     <SettingSwitch label={caseSensitiveLabel} value={isCaseSensitive} onChange={handleCaseChange}
-      disabled={tool.animating} />;
+      disabled={tool.animating || readOnly} />;
 
   const handleOrderChange = (on: boolean) => {
     // a transition can't be chosen in a bag of words; the logged change says why it went
@@ -134,7 +136,7 @@ export const DataWorkspace = ({
   };
   const orderSwitch = config.orderMatters.showSwitch &&
     <SettingSwitch label={orderMattersLabel} value={orderMatters} onChange={handleOrderChange}
-      disabled={tool.animating} />;
+      disabled={tool.animating || readOnly} />;
   const switches = (orderSwitch || caseSwitch) &&
     <div className="setting-switches">{ orderSwitch }{ caseSwitch }</div>;
 
@@ -241,7 +243,7 @@ export const DataWorkspace = ({
             onSplitResized={handleSplitResized} text={text} liveTokens={liveTokens}
             liveHighlights={liveHighlights} committed={committed}
             highlights={highlights}
-            readOnly={tool.animating} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
+            readOnly={tool.animating || readOnly} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
             onTableCommit={handleTableCommit} onRowBlur={handleBlurCommit} afterPress={afterPress}
             onRowAdded={handleRowAdded}
             onRowDeleted={handleRowDeleted} onFocusToken={handleFocusToken} />
@@ -251,7 +253,7 @@ export const DataWorkspace = ({
           <GraphPane tool={tool} log={host.log} top={top} probabilities={probabilities} arrowWidths={arrowWidths}
             orderMatters={orderMatters}
             emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFit}
-            onResized={handleGraphResized} initialView={start.view} saving={saving}
+            onResized={handleGraphResized} initialView={start.view} saving={saving} readOnly={readOnly}
             onDoubleClickState={handleDoubleClickState} />
         );
       case "inspect":
@@ -264,7 +266,7 @@ export const DataWorkspace = ({
       case "generator":
         return (
           <GeneratorPane tool={tool} controlsOpen={controlsOpen} onToggleControls={toggleControls}
-            limitReached={limitReached} />
+            limitReached={limitReached} readOnly={readOnly} />
         );
     }
   };

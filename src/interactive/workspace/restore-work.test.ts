@@ -6,7 +6,7 @@ import { defaultInputSplit, defaultPaneSizes, maxRowHeight, minPaneSizes } from 
 import { restoreWork } from "./restore-work";
 import { workspaceConfig } from "./workspace-config";
 
-const restore = (saved: Partial<MarkovInteractiveState>, authored: unknown = {}, readOnly?: boolean) => {
+const restore = (saved: Partial<MarkovInteractiveState>, authored: unknown = {}, readOnly = false) => {
   const authoredState: MarkovAuthoredState = readAuthoredState(authored);
   const configs = { useData: workspaceConfig(authoredState, "useData"), draw: workspaceConfig(authoredState, "draw") };
   return restoreWork({ version: 1, ...saved }, authoredState, configs, { readOnly });

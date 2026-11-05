@@ -7,7 +7,7 @@ import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { ControlsRow } from "./controls-row";
 import { GeneratorPane } from "./generator-pane";
-import { GraphPane } from "./graph-pane";
+import { dataTools, GraphPane } from "./graph-pane";
 import { highlightsFor } from "./highlights";
 import { InspectPane } from "./inspect-pane";
 import { RestoredMode } from "./restore-work";
@@ -33,11 +33,12 @@ interface DrawWorkspaceProps {
   start: RestoredMode;
   saving: ModeSaving;
   limitReached: boolean;
+  readOnly: boolean;
 }
 
 // Draw mode's body: a drawing in the Graph pane, with Inspect and the generator as the author set them
 export const DrawWorkspace = ({
-  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, start, saving, limitReached
+  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, start, saving, limitReached, readOnly
 }: DrawWorkspaceProps) => {
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -67,10 +68,10 @@ export const DrawWorkspace = ({
     switch (id) {
       case "graph":
         return (
-          <GraphPane variant="draw" tools={drawModeTools} tool={tool} log={host.log} top={layout.top}
-            probabilities={probabilities} arrowWidths={arrowWidths}
+          <GraphPane variant="draw" tools={readOnly ? dataTools : drawModeTools} tool={tool} log={host.log}
+            top={layout.top} probabilities={probabilities} arrowWidths={arrowWidths}
             onUserZoom={layout.handleUserZoom} onFit={layout.handleFit} onResized={layout.handleGraphResized}
-            initialView={start.view} saving={saving} />
+            initialView={start.view} saving={saving} readOnly={readOnly} />
         );
       case "inspect":
         return (
@@ -81,7 +82,7 @@ export const DrawWorkspace = ({
       case "generator":
         return (
           <GeneratorPane tool={tool} controlsOpen={layout.controlsOpen} onToggleControls={layout.toggleControls}
-            limitReached={limitReached} />
+            limitReached={limitReached} readOnly={readOnly} />
         );
     }
   };

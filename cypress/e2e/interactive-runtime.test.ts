@@ -1,9 +1,6 @@
 import { defaultAuthoredState, MarkovAuthoredState } from "../../src/interactive/authored-state";
 import { clickState, stateLabels } from "../support/workspace";
 
-const listedSettings = () => cy.interactive().find(".runtime-placeholder dl").then(list =>
-  [...list.find("dt")].map((term, i) => [term.textContent, list.find("dd")[i].textContent]));
-
 // the workspace's panes, by their titles
 const panes = () => cy.interactive().find(".markov-workspace section.pane:visible > .pane-header h2")
   .then(titles => [...titles].map(title => title.textContent));
@@ -59,15 +56,6 @@ describe("the interactive's runtime", () => {
   it("leaves an existing interactive state alone", () => {
     cy.startInteractive({ mode: "runtime", authoredState: {}, interactiveState: { version: 1 } });
     cy.interactive().find("section.input-pane");
-    cy.wait(2500);
-    cy.interactiveMessages("interactiveState").should("have.length", 0);
-  });
-
-  it("lists the authored settings in a report, and saves nothing", () => {
-    cy.startInteractive({ mode: "report", width: 600, authoredState: { modes: { useData: true, draw: false } } });
-    cy.interactive().should("contain.text", "shown read-only in a report");
-    listedSettings().should("deep.include", ["Usable mode(s)", "Data"]);
-    // past the library's 2 second pause
     cy.wait(2500);
     cy.interactiveMessages("interactiveState").should("have.length", 0);
   });

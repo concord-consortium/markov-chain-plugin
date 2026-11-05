@@ -41,6 +41,21 @@ const lastOutputInView = (body: () => Cypress.Chainable<JQuery<HTMLElement>>) =>
     expect(box.scrollTop + box.clientHeight).to.be.closeTo(box.scrollHeight, 1);
   });
 
+// a drag of a state with a mouse's events, dispatched in the interactive's frame
+const dragState = (label: string, dx: number, dy: number) => stateEllipse(label).then(ellipse => {
+  const element = ellipse[0];
+  const win = element.ownerDocument.defaultView as Window & typeof globalThis;
+  const box = element.getBoundingClientRect();
+  const at = (x: number, y: number) => ({
+    clientX: box.x + box.width / 2 + x, clientY: box.y + box.height / 2 + y, bubbles: true, cancelable: true,
+    view: win, button: 0,
+  });
+  element.dispatchEvent(new win.MouseEvent("mousedown", at(0, 0)));
+  win.dispatchEvent(new win.MouseEvent("mousemove", at(dx / 2, dy / 2)));
+  win.dispatchEvent(new win.MouseEvent("mousemove", at(dx, dy)));
+  win.dispatchEvent(new win.MouseEvent("mouseup", at(dx, dy)));
+});
+
 describe("reopening saved work", () => {
   describe("in Data mode", () => {
     const state = {
@@ -343,21 +358,6 @@ describe("saving work", () => {
     play().click();
     shown().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
   };
-
-  // a drag of a state with a mouse's events, dispatched in the interactive's frame
-  const dragState = (label: string, dx: number, dy: number) => stateEllipse(label).then(ellipse => {
-    const element = ellipse[0];
-    const win = element.ownerDocument.defaultView as Window & typeof globalThis;
-    const box = element.getBoundingClientRect();
-    const at = (x: number, y: number) => ({
-      clientX: box.x + box.width / 2 + x, clientY: box.y + box.height / 2 + y, bubbles: true, cancelable: true,
-      view: win, button: 0,
-    });
-    element.dispatchEvent(new win.MouseEvent("mousedown", at(0, 0)));
-    win.dispatchEvent(new win.MouseEvent("mousemove", at(dx / 2, dy / 2)));
-    win.dispatchEvent(new win.MouseEvent("mousemove", at(dx, dy)));
-    win.dispatchEvent(new win.MouseEvent("mouseup", at(dx, dy)));
-  });
 
   it("posts nothing on open", () => {
     start();
@@ -760,5 +760,114 @@ describe("the output limit", () => {
     expectStopped(shown);
     cy.wait(300);
     loggedEvents().should("have.length", 0);
+  });
+});
+
+describe("the read-only view", () => {
+  const useData = {
+    outputs: outputs([["the", "cat"], ["cat", "sat"]]),
+    positions: [-100, -50, 20, 70, 150, -20],
+    view: { x: 30, y: -20, k: 3 },
+  };
+  const saved = {
+    version: 1, input: { text: "the cat sat" }, caseSensitive: false, useData,
+    draw: { drawing, selection: { kind: "state", id: "n1" } },
+  };
+  const open = (interactiveState: unknown = saved, authoredState: Record<string, unknown> = {}) =>
+    cy.startInteractive({ mode: "report", width, authoredState, interactiveState });
+  const note = "This is a student's saved work. It can't be changed here.";
+  const draw = () => shown().find(".mode-switch label").contains("Draw").click();
+  const noMessages = () => {
+    // past the library's 2 second pause
+    cy.wait(2500);
+    cy.interactiveMessages("interactiveState").should("have.length", 0);
+    cy.interactiveMessages("log").should("have.length", 0);
+  };
+
+  it("shows the student's work from a parsed state, with the note, and the graph fitted", () => {
+    open();
+    cy.interactive().find(".report-note").should("have.text", note);
+    shown().find("textarea[aria-label='Your text']").should("have.value", "the cat sat");
+    shown().find(".sequence").should("have.length", 2);
+    stateEllipse("cat").should("have.attr", "cx", "20");
+    cy.wait(500);
+    shownView().its("k").should("not.equal", 3);
+  });
+
+  it("shows the student's work from a state sent as a string", () => {
+    open(JSON.stringify(saved));
+    shown().find("textarea[aria-label='Your text']").should("have.value", "the cat sat");
+    shown().find(".sequence").should("have.length", 2);
+  });
+
+  it("shows the authored workspace with no state", () => {
+    open(null, { startingText: "a b" });
+    shown().find("textarea[aria-label='Your text']").should("have.value", "a b");
+    cy.interactive().find(".report-note").should("have.text", note);
+  });
+
+  it("lets nothing change Data mode's work", () => {
+    open();
+    shown().find("textarea[aria-label='Your text']").should("have.attr", "readonly");
+    shown().find(".input-table input").first().should("have.attr", "readonly");
+    shown().find(".setting-switch [role='switch']").each(toggle => expect(toggle).to.be.disabled);
+    shown().find(".generator-pane fieldset").should("be.disabled")
+      .and("have.attr", "aria-label", "Generator settings");
+    shown().find(".generate select, .generate input, .generate button").each(control => {
+      expect(control).to.match(":disabled");
+    });
+    shown().find(".generator-pane button").contains("Clear Output").should("be.disabled");
+  });
+
+  it("keeps a state where it is when dragged, in either mode", () => {
+    open();
+    dragState("cat", 40, 0);
+    // past the next tick of the layout, which moves a dragged state
+    cy.wait(300);
+    stateEllipse("cat").should("have.attr", "cx", "20");
+    draw();
+    dragState("Sun", 40, 0);
+    stateEllipse("Sun").should("have.attr", "cx", "-120");
+  });
+
+  it("lets a teacher look around", () => {
+    open();
+    stateEllipse("cat").trigger("click");
+    shown().find(".inspect-pane tbody tr[class*='highlight-']").should("exist");
+    shown().find(".sequence").first().click();
+    shown().find(".sequence.highlighted").should("have.length", 1);
+    shown().find(".inspect-tab").contains("Transitions").click();
+    shown().find(".inspect-tab.selected").should("have.text", "Transitions");
+    paneToggle("Inspect").click();
+    expectCollapsed("Inspect");
+    shown().find(".probabilities-toggle").click().should("have.attr", "aria-pressed", "true");
+    draw();
+    shown().find("g.node").should("have.length", 2);
+  });
+
+  it("offers Draw mode's view tools alone, and no state editor", () => {
+    open();
+    draw();
+    shown().find(".toolbar button").then(buttons => {
+      expect([...buttons].map(button => button.getAttribute("title")))
+        .to.deep.equal(["Select", "Fit View", "Recenter View", "Zoom In", "Zoom Out"]);
+    });
+    stateEllipse("Sun").trigger("click").trigger("click");
+    cy.wait(300);
+    shown().find(".nodeModal input").should("not.exist");
+  });
+
+  it("still opens Data mode's read-only state dialog", () => {
+    open();
+    stateEllipse("cat").trigger("click").trigger("click");
+    shown().find(".nodeModal").should("exist");
+  });
+
+  it("posts nothing and logs nothing as a teacher looks around", () => {
+    open();
+    shown().find(".sequence").first().click();
+    paneToggle("Inspect").click();
+    shown().find(".probabilities-toggle").click();
+    noMessages();
   });
 });

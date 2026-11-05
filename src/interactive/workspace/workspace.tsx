@@ -33,6 +33,8 @@ interface WorkspaceProps {
   // absent where nothing is saved
   saver?: Saver;
   hosted: boolean;
+  // a student's work shown in a report
+  readOnly: boolean;
 }
 
 // the sizes and colors the stylesheet reads, so none is written in both languages
@@ -48,11 +50,11 @@ const cssValues = {
 
 // The student's workspace: one tool per mode, each mode's body staying mounted, hidden while the other shows, so each
 // keeps its work
-export const Workspace = ({ authoredState, savedState, saver, hosted }: WorkspaceProps) => {
+export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }: WorkspaceProps) => {
   const [configs] = useState(() => ({
     useData: workspaceConfig(authoredState, "useData"), draw: workspaceConfig(authoredState, "draw"),
   }));
-  const [restored] = useState(() => restoreWork(savedState, authoredState, configs));
+  const [restored] = useState(() => restoreWork(savedState, authoredState, configs, { readOnly }));
   const [mode, setMode] = useState<ModeId>(restored.mode);
   const [probabilities, setProbabilities] = useState(restored.probabilities);
   const [orderMatters, setOrderMatters] = useState(restored.orderMatters);
@@ -145,7 +147,8 @@ export const Workspace = ({ authoredState, savedState, saver, hosted }: Workspac
       <ArrowMarkers />
       { authoredState.modes.useData &&
         <DataWorkspace text={restored.text} capitalization={restored.capitalization} inputSplit={restored.inputSplit}
-          start={restored.useData} saving={saving.useData} limitReached={limitReached} host={hosts.useData}
+          start={restored.useData} saving={saving.useData} limitReached={limitReached} readOnly={readOnly}
+          host={hosts.useData}
           tool={tools.useData}
           config={configs.useData} stacked={stacked}
           hidden={mode !== "useData"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
@@ -154,7 +157,7 @@ export const Workspace = ({ authoredState, savedState, saver, hosted }: Workspac
       { authoredState.modes.draw &&
         <DrawWorkspace host={hosts.draw} tool={tools.draw} config={configs.draw} stacked={stacked}
           hidden={mode !== "draw"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
-          start={restored.draw} saving={saving.draw} limitReached={limitReached} />
+          start={restored.draw} saving={saving.draw} limitReached={limitReached} readOnly={readOnly} />
       }
     </div>
   );

@@ -57,11 +57,13 @@ export interface SequenceOutputProps {
   heading?: string;
   // opens at the newest output, once it is shown
   openAtNewest?: boolean;
+  // outputs can still be chosen, and not cleared
+  readOnly?: boolean;
 }
 
 export const SequenceOutput = ({
   sequenceGroups, graphEmpty, generationMode, lengthLimit, highlightOutput, onToggleHighlight, onClear, onCancel,
-  keyboardSelect, heading = "Output:", openAtNewest
+  keyboardSelect, heading = "Output:", openAtNewest, readOnly
 }: SequenceOutputProps) => {
   const animating = generationMode !== "ready";
   const disabled = sequenceGroups.length === 0;
@@ -141,7 +143,7 @@ export const SequenceOutput = ({
         <button
           type="button"
           onClick={onClear}
-          disabled={disabled || lengthLimit === undefined || generationMode !== "ready"}>
+          disabled={disabled || lengthLimit === undefined || generationMode !== "ready" || readOnly}>
           Clear Output
         </button>
         <button

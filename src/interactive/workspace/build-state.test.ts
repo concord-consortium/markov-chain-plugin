@@ -168,7 +168,7 @@ describe("reading what buildInteractiveState builds", () => {
   const authoredState = readAuthoredState({ ...defaultAuthoredState, startingText: authoredText });
   const configs = { useData: workspaceConfig(authoredState, "useData"), draw: workspaceConfig(authoredState, "draw") };
   const reopen = (state: MarkovInteractiveState, authored = authoredState) =>
-    restoreWork(readInteractiveState(copyState(state)), authored, configs);
+    restoreWork(readInteractiveState(copyState(state)), authored, configs, { readOnly: false });
 
   it("gives back the parts", () => {
     const drawn = { nodes: [{ id: "n", label: "A", value: 1, x: 5, y: 6 }], edges: [{ from: "n", to: "n", value: 2 }] };
