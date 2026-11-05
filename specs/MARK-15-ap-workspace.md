@@ -101,7 +101,7 @@ It builds on MARK-13 (PR #88: `src/interactive/`, its authored state, the runtim
   - An output, in pink: its path in the graph; the States rows of its states and the Transitions rows of its steps; and every table row and word that is one of its states.
   - In each pane other than the one the choice was made in, the first highlighted row or word scrolls into view.
 - **R26.** The text box shows highlights behind the student's text while it stays an ordinary, editable text box.
-- **R27.** **Unclicking.** Clicking the chosen thing again clears it (a table row stays chosen while it has focus); so do clicking the graph's background, pressing Escape in the workspace, and a Clear highlight button shown while something is chosen.
+- **R27.** **Unclicking.** Clicking the chosen thing again clears it (a table row stays chosen while it has focus); so do clicking the graph's background, pressing Escape in the workspace, and a Clear highlight button shown while something is chosen. Clear Output also clears a chosen output.
 - **R28.** While a sequence plays or steps, nothing can be chosen, and the generator's own highlighting shows in the graph. A commit that removes the chosen state or transition clears the selection.
 
 ### The graph and the generator
@@ -139,7 +139,7 @@ It builds on MARK-13 (PR #88: `src/interactive/`, its authored state, the runtim
 
 - **R39.** Jest covers the pure parts with expected values written out: the tokenizer, the table's edits, the graph's placement rules (R29a), the dividers' limits and the narrow fit, the toolbar's height and two-column flip, the authoring check, the configuration function, the case switch's settings, the Inspect rows and sorting, the highlights, reading the interactive state, and the log list.
 - **R40.** Cypress, on MARK-13's fake Activity Player page, covers the commits, linked editing, each input view, each selection and way of unclicking, the output's pink path, collapsing, each divider (limits, keys, reported height), following the graph, the generator's 235 px fit, the toolbar's measured height and two columns, the proportional row, the no-data message, saved input on reopen, the log messages, a steady reported height, Lato, the case switch and label, the controls row's wrap, and the authoring form's new setting and error. MARK-13's runtime and demo tests that read the placeholder now check the workspace; `standalone.test.tsx` stubs `Graph` and `ResizeObserver`.
-- **R41.** Every existing plugin test passes unchanged, apart from `log: jest.fn()` in `markov-tool.test.tsx`'s recording host and the `calculateNodeFontSize` cases in `graph-utils.test.ts`, which call the renamed `calculateNodeFontSizes`. The plugin's test files gain only new cases and shared helpers: an `isPlaced` block in `graph-utils.test.ts`, the output's keyboard and heading options in `sequence-output.test.tsx`, the state with no transitions in `node-modal.test.tsx`, a Step-clears-fading case in `highlighting.test.ts`, and the double-click wait and graph colors in the Cypress support files. The CODAP plugin's production build differs from MARK-14's only in the code the plugin-side changes touch, each an option the plugin doesn't set or a change that leaves its behavior as it is, except two deliberate fixes: Reset also resets the speed the animation reads, so a sequence played after Reset runs at the Normal speed the switch shows; and a state with no transitions out shows "None" under "Transition Probabilities" in its read-only dialog, in place of "To : 100%". The drawing view's dialog doesn't change. Its compiled CSS is unchanged, and a headless check in CODAP 3.1.2 shows the plugin unchanged (MARK-12's R11 list).
+- **R41.** Every existing plugin test passes unchanged, apart from `log: jest.fn()` in `markov-tool.test.tsx`'s recording host and the `calculateNodeFontSize` cases in `graph-utils.test.ts`, which call the renamed `calculateNodeFontSizes`. The plugin's test files gain only new cases and shared helpers: an `isPlaced` block in `graph-utils.test.ts`, the output's keyboard and heading options in `sequence-output.test.tsx`, the state with no transitions in `node-modal.test.tsx`, a Step-clears-fading case in `highlighting.test.ts`, and the double-click wait and graph colors in the Cypress support files. The CODAP plugin's production build differs from MARK-14's only in the code the plugin-side changes touch, each an option the plugin doesn't set or a change that leaves its behavior as it is, except three deliberate fixes: Reset also resets the speed the animation reads, so a sequence played after Reset runs at the Normal speed the switch shows; and a state with no transitions out shows "None" under "Transition Probabilities" in its read-only dialog, in place of "To : 100%", though the drawing view's dialog doesn't change; and Clear Output also unchooses the chosen output, so a cleared sequence no longer stays highlighted in the graph. Its compiled CSS is unchanged, and a headless check in CODAP 3.1.2 shows the plugin unchanged (MARK-12's R11 list).
 - **R42.** The build, both `tsc` checks and the three lint commands are clean.
 - **R43.** README: the Markov Interactive section says the runtime is the student workspace, and points to `LOGGED-EVENTS.md`.
 
@@ -197,7 +197,7 @@ It builds on MARK-13 (PR #88: `src/interactive/`, its authored state, the runtim
 - The probabilities toggle, "Order matters" and its switch, the bag of words, Draw mode and the Data/Draw switch (MARK-16).
 - Saving outputs, layout (open panes and pane sizes), selection and generator settings; the read-only report view; the history scrubber (MARK-17).
 - Send to CODAP and Download tables (MARK-18); the dashboard summary (MARK-19).
-- Any change a CODAP user can see, including the ELA module's documents, apart from R41's two fixes (the Reset speed, and the dialog of a state with no transitions).
+- Any change a CODAP user can see, including the ELA module's documents, apart from R41's three fixes (the Reset speed, the dialog of a state with no transitions, and Clear Output unchoosing the chosen output).
 - Choosing tokens in the text box by clicking them: the text box is for editing.
 - Starting the input table from an uploaded CSV (MARK-23).
 
@@ -319,7 +319,7 @@ It builds on MARK-13 (PR #88: `src/interactive/`, its authored state, the runtim
 ---
 
 ### The Reset speed fix in the plugin
-**Decision**: Reset now also resets the speed the animation reads, not only the switch, so a sequence after Reset runs at the Normal speed shown. It is one of two deliberate behavior changes in the CODAP plugin (R41).
+**Decision**: Reset now also resets the speed the animation reads, not only the switch, so a sequence after Reset runs at the Normal speed shown. It is one of three deliberate behavior changes in the CODAP plugin (R41).
 
 ---
 
