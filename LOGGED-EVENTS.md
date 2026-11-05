@@ -17,7 +17,7 @@ A state is named by its label. The generator's settings, which several events ca
 | `SequenceCanceled` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Cancel while a sequence plays or steps |
 | `SequenceGenerated` | `{ sequence, startingState, maxLength, delimiter, fast, orderMatters }` | A sequence finishes, played or stepped to its end; `sequence` is its states |
 | `GeneratorSettingChanged` | `{ setting: "startingState" \| "maxLength" \| "delimiterType" \| "delimiter" \| "fast", value }` | The student changes a generator setting: the starting state, the delimiter's type and the speed when chosen, Max Length and the "other" delimiter's text when their field loses focus with a changed value |
-| `OutputCleared` | None | The student clicks Clear Output |
+| `OutputCleared` | `{ mode }` | The student clicks Clear Output |
 | `OutputSelected` | `{ sequence }` | The student clicks an output to highlight it; `sequence` is its states |
 
 ## Selection and highlighting
@@ -27,7 +27,7 @@ A state is named by its label. The generator's settings, which several events ca
 | `StateSelected` | `{ state, source: "graph" \| "inspect" \| "table" }` | The student chooses a state in the graph, an Inspect States row, or the input table |
 | `TransitionSelected` | `{ from, to, source: "graph" \| "inspect" }` | The student chooses a transition by its arrow in the graph or its Inspect Transitions row |
 | `SelectionCleared` | `{ via: "toggle" \| "background" \| "escape" \| "button" \| "table" }` | A chosen state, transition or output is cleared: by choosing it again, clicking the graph's background, pressing Escape, the Clear highlight button, or focusing an empty input table row |
-| `StateDialogOpened` | `{ state }` | The student double-clicks a state to see its probabilities, or in Draw mode to edit it |
+| `StateDialogOpened` | `{ state }` | The student double-clicks a state to see its probabilities, or in Draw mode to edit it. With "Order matters" off, a double-click in Data mode opens no dialog and logs nothing |
 | `StateMoved` | `{ state }` | The student drags a state to a new place |
 
 ## Drawing
@@ -39,7 +39,7 @@ A state is named by its label. The generator's settings, which several events ca
 | `StateDeleted` | `{ state }` | The student deletes a state |
 | `TransitionDeleted` | `{ from, to }` | The student deletes a transition |
 | `StateEdited` | `{ state, transitions: [{ to, value }] }` | The student saves a state's label and probabilities in its dialog |
-| `GraphReset` | None | The student confirms Reset |
+| `GraphReset` | `{ mode }` | The student confirms Reset |
 
 ## Input
 
@@ -47,8 +47,8 @@ A state is named by its label. The generator's settings, which several events ca
 |-------|-----------|------|
 | `InputCommitted` | `{ view: "text" \| "table", how: "separator" \| "insert" \| "remove" \| "pause" \| "blur" \| "row", tokens, states }` | The input commits and the graph changes: `tokens` (the words, plus one for each run of blank lines between words) and `states` are the counts after it |
 | `CaseSensitivityChanged` | `{ caseSensitive, states }` | The student changes the "Case sensitive" switch, which reads the input again; `states` is the count after it |
-| `TableRowAdded` | None | The student adds a row to the input table |
-| `TableRowDeleted` | None | The student deletes a row from the input table |
+| `TableRowAdded` | `{ mode }` | The student adds a row to the input table |
+| `TableRowDeleted` | `{ mode }` | The student deletes a row from the input table |
 
 ## Panes and Inspect
 
