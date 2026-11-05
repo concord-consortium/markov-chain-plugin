@@ -119,6 +119,11 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   // a resize changes the graph's size, which it can measure after the resize ends, so it is fitted again then, unless
   // the student has taken the view since
   const fitWhenResizedRef = useRef(false);
+  // stacking gives the graph a new width, including when a narrow workspace first measures itself; an effect, so a size
+  // the Graph measured before stacking doesn't use this up
+  useEffect(() => {
+    fitWhenResizedRef.current = true;
+  }, [stacked]);
   // how many times the graph's size has been laid out, and how many of those it had measured at its last measurement
   const graphLayoutsRef = useRef(0);
   const graphMeasuredRef = useRef(0);

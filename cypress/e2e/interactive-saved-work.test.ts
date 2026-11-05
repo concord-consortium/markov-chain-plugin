@@ -311,6 +311,37 @@ describe("reopening saved work", () => {
     });
   });
 
+  describe("in a frame too narrow for a row of panes", () => {
+    const narrow = 378;
+    const open = (mode: "runtime" | "report", interactiveState: unknown) =>
+      cy.startInteractive({ mode, width: narrow, authoredState: {}, interactiveState });
+    const fittedScale = () => {
+      shown().find(".graph > svg").should("be.visible");
+      cy.wait(1000);
+      shownView().then(opened => {
+        toolButton("Fit View").click();
+        cy.wait(500);
+        shownView().its("k").should("be.closeTo", opened.k, 0.1);
+      });
+    };
+
+    (["runtime", "report"] as const).forEach(mode => {
+      it(`fits a drawing as it opens in ${mode} mode`, () => {
+        open(mode, { version: 1, mode: "draw", draw: { drawing } });
+        shown().find("g.node").should("have.length", 2);
+        fittedScale();
+      });
+    });
+
+    it("keeps a saved view", () => {
+      const view = { x: 12, y: 34, k: 1.5 };
+      open("runtime", { version: 1, mode: "draw", draw: { drawing, view } });
+      shown().find("g.node").should("have.length", 2);
+      cy.wait(1000);
+      shownView().should("deep.include", view);
+    });
+  });
+
   it("restores the mode not showing too, whose outputs open at their newest when it shows", () => {
     reopen({
       version: 1,
