@@ -33,8 +33,10 @@ const arrowStyles: Record<BagArrow["kind"], { color: string, marker: string, das
   step: { color: animatedArrowColor, marker: animatedArrowUrl, dashes: "" },
 };
 
-// how far a label sits to the right of its arrow, the side a two-way pair's arrows part to
-const labelOffset = 8;
+export const labelFontSize = 13;
+// half the box of a label's longest text, "100%", at that size
+export const labelHalfWidth = 17;
+export const labelHalfHeight = 8;
 const alongArrow = 1 / 3;
 const loopLabelGap = 4;
 
@@ -46,9 +48,12 @@ export const labelPoint = ({ edge, loop }: Pick<PlacedLabel, "edge" | "loop">) =
   const dx = targetX - sourceX;
   const dy = targetY - sourceY;
   const length = Math.hypot(dx, dy) || 1;
+  // to the right of the arrow, the side a two-way pair's arrows part to, by as far as the label's box reaches in that
+  // direction, so the pair's boxes stay on either side of the line between them
+  const offset = (labelHalfWidth * Math.abs(dy) + labelHalfHeight * Math.abs(dx)) / length;
   return {
-    x: sourceX + dx * alongArrow - labelOffset * dy / length,
-    y: sourceY + dy * alongArrow + labelOffset * dx / length,
+    x: sourceX + dx * alongArrow - offset * dy / length,
+    y: sourceY + dy * alongArrow + offset * dx / length,
   };
 };
 
@@ -140,6 +145,7 @@ const drawLabels = (root: GraphSelection, labels: PlacedLabel[]) => {
     .attr("class", d => d.strength === "faded" ? "probability-label faded" : "probability-label")
     .attr("data-from", d => d.from)
     .attr("data-to", d => d.to)
+    .attr("font-size", labelFontSize)
     .attr("text-anchor", d => d.loop ? "end" : "middle")
     .text(d => d.text);
   placeLabels(drawn);

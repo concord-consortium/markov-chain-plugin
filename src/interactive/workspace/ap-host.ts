@@ -19,6 +19,6 @@ export const useApHost = (hosted: boolean, mode: ModeId, orderMatters?: boolean)
     log: hosted ? (event: LogEvent, data?: Record<string, unknown>) => log(event, { ...data, mode }) : noop,
   }), [hosted, mode]);
   return useMemo(() => ({
-    ...functions, viewMode: mode === "draw" ? "drawing" : "dataset", orderMatters,
+    ...functions, viewMode: mode === "draw" ? "drawing" : "dataset", orderMatters, stopAtNoValue: true,
   }), [functions, mode, orderMatters]);
 };

@@ -5,10 +5,12 @@ export type GenerateOptions = {
   lengthLimit: number;
   // false: a bag of words, where every next state is picked from all the states by count
   orderMatters?: boolean;
+  // a state whose arrows all have no value ends the sequence, rather than taking its first one
+  stopAtNoValue?: boolean;
 };
 
 export const generateSequence = async (graph: GraphData, options: GenerateOptions) => {
-  const { startingNode, lengthLimit, orderMatters } = options;
+  const { startingNode, lengthLimit, orderMatters, stopAtNoValue } = options;
   const generatedResult: Node[] = [];
 
   const chooseRandomNode = () => {
@@ -26,6 +28,9 @@ export const generateSequence = async (graph: GraphData, options: GenerateOption
     const edges = graph.edges.filter((iEdge: Edge) => iEdge.from === iNode?.id),
       sumEdgeValues = edges.reduce((iSum, iEdge) => iSum + (iEdge?.value ?? 0), 0),
       chosenSum = Math.random() * sumEdgeValues;
+    if (stopAtNoValue && sumEdgeValues === 0) {
+      return undefined;
+    }
     let tSum = 0;
     return edges.find((iEdge: Edge) => {
       tSum += (iEdge?.value ?? 0);

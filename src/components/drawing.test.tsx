@@ -114,6 +114,16 @@ describe("Drawing", () => {
     expect(mockGraphProps.drawingMode).toBe("addNode");
   });
 
+  it("keeps a generating step's highlight on Escape with a tool list, and clears it without one", () => {
+    const { rerender } = render(<Drawing {...baseProps} tools={workspaceTools} animating={true} />);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(baseProps.setHighlightNode).not.toHaveBeenCalled();
+
+    rerender(<Drawing {...baseProps} animating={true} />);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(baseProps.setHighlightNode).toHaveBeenCalledWith(undefined);
+  });
+
   it("ignores Escape while hidden", () => {
     render(<div hidden><Drawing {...baseProps} tools={workspaceTools} /></div>);
     fireEvent.click(screen.getByTitle("Add State"));

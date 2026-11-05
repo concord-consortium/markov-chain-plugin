@@ -38,6 +38,13 @@ describe("probabilityLabels", () => {
     expect(summary(state(edges, { selectedNodeId: "a" }))).toEqual(["a>a 25% full", "a>b 75% full"]);
   });
 
+  it("labels no candidate on an arrow of no value, which still counts for a chosen state", () => {
+    const edges = [edge("a", "b", 1), edge("a", "c", 0)];
+    expect(summary(state(edges, { animating: true, highlightNode: node("a"), highlightAllNextNodes: true })))
+      .toEqual(["a>b 100% full"]);
+    expect(summary(state(edges, { selectedNodeId: "a" }))).toEqual(["a>b 100% full", "a>c 0% full"]);
+  });
+
   it("treats an empty output as no output", () => {
     expect(summary(state(sentence, { highlightOutputNodes: [], selectedNodeId: "the" })))
       .toEqual(["the>cat 50% full", "the>mat 50% full"]);

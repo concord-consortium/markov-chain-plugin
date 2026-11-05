@@ -20,6 +20,12 @@ export const NodeModal = ({
   viewMode, node, graph, onChange, onCancel, uniqueLabels, accessibleEditor
 }: NodeModalProps) => {
   const [label, setLabel] = useState(node?.label || "");
+  // set while rendering, so a node never renders with the last one's label, which could read as a problem with it
+  const [labelNode, setLabelNode] = useState(node);
+  if (node !== labelNode) {
+    setLabelNode(node);
+    setLabel(node?.label || "");
+  }
   const [exactPercentages, _setExactPercentages] = useState<number[]>([]);
 
   const setExactPercentages = useCallback((percentages: number[]) => {
@@ -46,24 +52,24 @@ export const NodeModal = ({
   const edgeValues = useMemo(() => fromEdges.map(e => e.value), [fromEdges]);
   const sum = useMemo(() => reduceToSum(edgeValues), [edgeValues]);
 
-  useEffect(() => {
-    const percentages = edgeValues.map(edgeValue => percentage(edgeValue / sum));
-    setExactPercentages(percentages);
-  }, [edgeValues, sum, setExactPercentages]);
+  // arrows of no value share the state evenly in the editor, whose slider has nothing else to work from
+  const evenShares = !!accessibleEditor && sum === 0;
 
   useEffect(() => {
-    setLabel(node?.label || "");
-  }, [node, setLabel]);
+    const percentages = edgeValues.map(edgeValue => evenShares ? 100 / edgeValues.length : percentage(edgeValue / sum));
+    setExactPercentages(percentages);
+  }, [edgeValues, sum, evenShares, setExactPercentages]);
 
   const problem = uniqueLabels && node ? labelProblem(label, node.id, graph.nodes) : undefined;
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (node && !problem) {
-      const newEdges = applyStatePercentages(graph.edges, node.id, sum, exactPercentages);
+      const newEdges = applyStatePercentages(graph.edges, node.id, evenShares ? edgeValues.length : sum,
+        exactPercentages);
       onChange(node.id, { ...node, label: label.trim() }, newEdges);
     }
-  }, [label, node, problem, exactPercentages, graph.edges, sum, onChange]);
+  }, [label, node, problem, exactPercentages, graph.edges, sum, evenShares, edgeValues, onChange]);
 
   const handleChangeLabel = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLabel(e.target.value);

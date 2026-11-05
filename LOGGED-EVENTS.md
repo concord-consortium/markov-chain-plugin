@@ -27,7 +27,7 @@ A state is named by its label. The generator's settings, which several events ca
 | `StateSelected` | `{ state, source: "graph" \| "inspect" \| "table" }` | The student chooses a state in the graph, an Inspect States row, or the input table |
 | `TransitionSelected` | `{ from, to, source: "graph" \| "inspect" }` | The student chooses a transition by its arrow in the graph or its Inspect Transitions row |
 | `SelectionCleared` | `{ via: "toggle" \| "background" \| "escape" \| "button" \| "table" }` | A chosen state, transition or output is cleared: by choosing it again, clicking the graph's background, pressing Escape, the Clear highlight button, or focusing an empty input table row |
-| `StateDialogOpened` | `{ state }` | The student double-clicks a state to see its probabilities |
+| `StateDialogOpened` | `{ state }` | The student double-clicks a state to see its probabilities, or in Draw mode to edit it |
 | `StateMoved` | `{ state }` | The student drags a state to a new place |
 
 ## Drawing

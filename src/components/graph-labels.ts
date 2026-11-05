@@ -9,7 +9,7 @@ export interface LabelState {
   highlightNode?: Node;
   highlightAllNextNodes: boolean;
   highlightOutputNodes?: Node[];
-  // a chosen output labels only its steps, as the bag of words does
+  // leaves out a chosen output's faded labels
   stepsOnly?: boolean;
 }
 
@@ -25,16 +25,21 @@ export const bagOutgoing = (nodes: Node[]): Outgoing => id => nodes.some(n => n.
   ? nodes.map(n => ({ from: id, to: n.id, value: n.value }))
   : [];
 
-const labelsFrom = (outgoing: Outgoing, id: string, strength: (to: string) => ProbabilityLabel["strength"]) => {
+const labelsFrom = (outgoing: Outgoing, id: string, strength: (to: string) => ProbabilityLabel["strength"],
+  labeled: (edge: Edge) => boolean = () => true) => {
   const edges = outgoing(id);
   const total = edges.reduce((sum, e) => sum + e.value, 0);
-  return edges.map(e => ({ from: id, to: e.to, text: `${percentOf(e.value, total)}%`, strength: strength(e.to) }));
+  return edges.filter(labeled)
+    .map(e => ({ from: id, to: e.to, text: `${percentOf(e.value, total)}%`, strength: strength(e.to) }));
 };
 
 // the candidates of a generating step; else a chosen output's path; else a chosen state's arrows
 export const probabilityLabels = (s: LabelState): ProbabilityLabel[] => {
   if (s.animating) {
-    return s.highlightNode && s.highlightAllNextNodes ? labelsFrom(s.outgoing, s.highlightNode.id, () => "full") : [];
+    // an arrow of no value can't be taken, so it isn't a candidate
+    return s.highlightNode && s.highlightAllNextNodes
+      ? labelsFrom(s.outgoing, s.highlightNode.id, () => "full", e => e.value > 0)
+      : [];
   }
   const path = s.highlightOutputNodes;
   if (path && path.length > 0) {

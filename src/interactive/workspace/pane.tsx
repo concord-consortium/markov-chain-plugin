@@ -23,8 +23,8 @@ export const ToggleIcon = ({ open }: { open: boolean }) => (
   </svg>
 );
 
-// A workspace pane: a header with its title and a button that collapses and reopens it. A collapsed pane keeps its
-// body mounted, hidden, so what the student did in it is there when it reopens.
+// A workspace pane: a header with its title and, unless collapsible is false, a button that collapses and reopens
+// it. A collapsed pane keeps its body mounted, hidden, so what the student did in it is there when it reopens.
 export const Pane = ({
   className, title, open, onToggle, onInteract, style, divider, collapsible = true, children
 }: PaneProps) => {

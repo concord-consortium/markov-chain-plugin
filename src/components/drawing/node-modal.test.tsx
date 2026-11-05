@@ -119,6 +119,21 @@ describe("NodeModal", () => {
     });
   });
 
+  it("raises no alert while it opens on a state", () => {
+    const named = { nodes: [state("a")], edges: [] };
+    const props = { viewMode: "drawing" as const, graph: named, onChange: jest.fn(), onCancel: jest.fn() };
+    const { rerender, container } = render(<NodeModal {...props} uniqueLabels />);
+    const added: Node[] = [];
+    const observer = new MutationObserver(records => records.forEach(record => added.push(...record.addedNodes)));
+    observer.observe(container, { childList: true, subtree: true });
+    rerender(<NodeModal {...props} uniqueLabels node={named.nodes[0]} />);
+    added.push(...observer.takeRecords().flatMap(record => [...record.addedNodes]));
+    observer.disconnect();
+    expect(screen.getByRole("textbox")).toHaveValue("a");
+    expect(added.length).toBeGreaterThan(0);
+    expect(added.some(node => node.textContent?.includes("Give the state a name."))).toBe(false);
+  });
+
   it("takes any name without uniqueLabels", () => {
     const graphOfTwo = { nodes: [state("a"), state("b")], edges: [] };
     render(<NodeModal viewMode="drawing" node={graphOfTwo.nodes[0]} graph={graphOfTwo} onChange={jest.fn()}
@@ -143,6 +158,20 @@ describe("NodeModal", () => {
 
     const [, , edges] = onChange.mock.calls[0];
     expect(edges.map((edge: { value: number }) => edge.value >= 0)).toEqual([true, true, true]);
+  });
+
+  it("shares a state evenly among arrows of no value, and saves them with values", async () => {
+    const onChange = jest.fn();
+    const none = {
+      nodes: [state("a"), state("b"), state("c")],
+      edges: [{ from: "a", to: "b", value: 0 }, { from: "a", to: "c", value: 0 }],
+    };
+    render(<NodeModal viewMode="drawing" node={none.nodes[0]} graph={none} onChange={onChange}
+      onCancel={jest.fn()} accessibleEditor />);
+    expect(await screen.findByText("To b: 50%")).toBeInTheDocument();
+    expect(screen.getByRole("slider")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onChange.mock.calls[0][2].map((edge: { value: number }) => edge.value)).toEqual([1, 1]);
   });
 
   it("names its field and gives its slider keys when accessible", async () => {

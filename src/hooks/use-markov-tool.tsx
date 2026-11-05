@@ -58,7 +58,7 @@ export interface MarkovToolApi {
 }
 
 export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
-  const { viewMode, orderMatters, setViewMode, markDirty, outputSequence, log } = host;
+  const { viewMode, orderMatters, stopAtNoValue, setViewMode, markDirty, outputSequence, log } = host;
   const [lengthLimit, setLengthLimit] = useState<number | undefined>(defaultLengthLimit);
   const [delimiter, setDelimiter] = useState(defaultDelimiter);
   const [startingState, setStartingState] = useState(defaultStartingState);
@@ -199,10 +199,11 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       prevSequences.current = [...currentAnimatedSequenceGroup.current.sequences];
       // currentAnimatedSequenceGroup.current.sequences.push("");
 
-      currentSequence.current = await generateSequence(graph, { startingNode, lengthLimit: limit, orderMatters });
+      currentSequence.current =
+        await generateSequence(graph, { startingNode, lengthLimit: limit, orderMatters, stopAtNoValue });
       currentAnimationStep.current = "before";
     }
-  }, [graph, lengthLimit, startingState, sequenceGroups, delimiter, orderMatters]);
+  }, [graph, lengthLimit, startingState, sequenceGroups, delimiter, orderMatters, stopAtNoValue]);
 
   const currentSequenceAnimating = () => currentSequenceIndex.current < currentSequence.current.length - 1;
 
@@ -217,7 +218,9 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       setHighlightEdge(undefined);
       // highlight all the possible edges if we have a next node
       setHighlightAllNextNodes(!!nextNode);
-      setHighlightLoopOnNode(currentNode);
+      const noValueLoop = stopAtNoValue &&
+        graph.edges.some(e => e.from === currentNode.id && e.to === currentNode.id && e.value === 0);
+      setHighlightLoopOnNode(noValueLoop ? undefined : currentNode);
     } else {
       // a bag of words' step is usually not one of the chain's transitions
       const step = nextNode && orderMatters === false
@@ -239,7 +242,7 @@ export const useMarkovTool = (host: MarkovHost): MarkovToolApi => {
       setSequenceGroups([...prevAnimatedSequenceGroups.current, currentAnimatedSequenceGroup.current]);
     }
 
-  }, [setSequenceGroups, graph, orderMatters]);
+  }, [setSequenceGroups, graph, orderMatters, stopAtNoValue]);
 
   // the settings the playing or stepping sequence was started with, and the speed now
   const sequenceSettings = useCallback(() => {

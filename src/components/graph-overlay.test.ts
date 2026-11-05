@@ -1,4 +1,4 @@
-import { drawnBagArrows, labelPoint } from "./graph-overlay";
+import { drawnBagArrows, labelHalfHeight, labelHalfWidth, labelPoint } from "./graph-overlay";
 import { D3Edge, D3Node } from "./graph-geometry";
 import { bagArrows, bagOutgoing } from "./graph-labels";
 
@@ -15,7 +15,14 @@ describe("labelPoint", () => {
   });
 
   it("follows the arrow's direction", () => {
-    expect(labelPoint({ edge: arrow(0, 0, 0, 90) })).toEqual({ x: -8, y: 30 });
+    expect(labelPoint({ edge: arrow(0, 0, 0, 90) })).toEqual({ x: -17, y: 30 });
+  });
+
+  it("keeps a two-way pair's labels apart on a short diagonal", () => {
+    const there = labelPoint({ edge: arrow(0, 0, 30, 30) });
+    const back = labelPoint({ edge: arrow(30, 30, 0, 0) });
+    const apart = Math.abs(there.x - back.x) >= 2 * labelHalfWidth || Math.abs(there.y - back.y) >= 2 * labelHalfHeight;
+    expect(apart).toBe(true);
   });
 
   it("sits outside a loop's left edge", () => {

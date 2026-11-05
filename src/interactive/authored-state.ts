@@ -117,6 +117,8 @@ export const yesNo = (value: boolean) => value ? "Yes" : "No";
 // the switch's name, shared by the form, the summary and the workspace
 export const caseSensitiveLabel = "Case sensitive";
 
+export const orderMattersLabel = "Order matters";
+
 export const settingLabels = {
   modes: "Modes",
   usableModes: "Usable mode(s)",
@@ -126,8 +128,8 @@ export const settingLabels = {
   capitalization: `${caseSensitiveLabel} at the start`,
   showCaseSwitch: `Show students the "${caseSensitiveLabel}" switch`,
   ordering: "Ordering",
-  orderMattersStartsOn: "Start with \"Order matters\" on",
-  orderMattersShowSwitch: "Show students the \"Order matters\" switch",
+  orderMattersStartsOn: `Start with "${orderMattersLabel}" on`,
+  orderMattersShowSwitch: `Show students the "${orderMattersLabel}" switch`,
   startingText: "Starting data",
   whatStudentsSee: "What students can see",
   startsOpen: "Open at the start",

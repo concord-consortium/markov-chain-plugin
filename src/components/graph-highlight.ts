@@ -21,7 +21,6 @@ export const selectedLoopArrowUrl = "url(#selectedLoopArrow)";
 export const unselectedArrowUrl = "url(#unselectedArrow)";
 export const unselectedLoopArrowUrl = "url(#unselectedLoopArrow)";
 
-// the arrowheads the graph's arrows point their marker-end at
 export const arrowMarkers: { id: string, color: string, opacity?: number }[] = [
   { id: "arrow", color: "black" },
   { id: "loopArrow", color: "black" },

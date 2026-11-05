@@ -74,6 +74,8 @@ type Props = {
   orderMatters?: boolean;
   // a redraw keeps a chosen output's highlights, which it otherwise drops until the next highlight change
   keepOutputOnRedraw?: boolean;
+  // fits and recenters bring a graph off the origin to the view's center; absent, they move it half the way
+  centerOffOrigin?: boolean;
 };
 
 // a press that moves this many px or less is still a click, and a gesture that moves the view no more isn't a zoom
@@ -89,7 +91,8 @@ export const Graph = (props: Props) => {
          fitViewAt, recenterViewAt, onAutoArrangeEnd, opacity,
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed, keepPositions, selectedEdge,
          onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs,
-         probabilityLabels, arrowWidths = "byState", orderMatters, keepOutputOnRedraw } = props;
+         probabilityLabels, arrowWidths = "byState", orderMatters, keepOutputOnRedraw,
+         centerOffOrigin } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -318,8 +321,9 @@ export const Graph = (props: Props) => {
     const currentScale = transformRef.current?.k ?? 1;
     const fitScale = Math.min(width / bounds.width, height / bounds.height) * 0.8;
     const scale = op === "center" ? currentScale : fitScale;
-    const x = scale * (-center.x / 2);
-    const y = scale * (-center.y / 2);
+    const reach = centerOffOrigin ? 1 : 0.5;
+    const x = scale * -center.x * reach;
+    const y = scale * -center.y * reach;
     const transform = new d3.ZoomTransform(scale, x, y);
 
     if (fitTransitionMs && op === "fit") {
@@ -329,12 +333,12 @@ export const Graph = (props: Props) => {
     }
 
     return true;
-  }, [width, height, fitTransitionMs]);
+  }, [width, height, fitTransitionMs, centerOffOrigin]);
 
   // listen for fit view requests
   useEffect(() => {
     if ((fitViewAt ?? 0) > (lastFitViewAtRef.current ?? 0)) {
-      // with following, a fit with nothing to fit goes, or it would land later, over the view the student chose
+      // a host that follows the graph drops a fit with nothing to fit, or it would land later over the student's view
       if (fitOrCenter("fit") || (onUserZoom && width && height)) {
         lastFitViewAtRef.current = fitViewAt;
       }
@@ -344,11 +348,11 @@ export const Graph = (props: Props) => {
   // listen for recenter view requests
   useEffect(() => {
     if ((recenterViewAt ?? 0) > (lastRecenterViewAtRef.current ?? 0)) {
-      if (fitOrCenter("center")) {
+      if (fitOrCenter("center") || (onUserZoom && width && height)) {
         lastRecenterViewAtRef.current = recenterViewAt;
       }
     }
-  }, [recenterViewAt, fitOrCenter]);
+  }, [recenterViewAt, fitOrCenter, onUserZoom, width, height]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!autoArrange && onClick) {

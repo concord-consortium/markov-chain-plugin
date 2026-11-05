@@ -63,6 +63,19 @@ describe("generateSequence", () => {
     });
   });
 
+  describe("from a state whose arrows all have no value", () => {
+    const noValue = { nodes: [a, b, c], edges: [{ from: "a", to: "b", value: 0 }] };
+
+    it("ends the sequence with stopAtNoValue", async () => {
+      const options = { startingNode: a, lengthLimit: 3, stopAtNoValue: true };
+      expect(ids(await generateSequence(noValue, options))).toEqual(["a"]);
+    });
+
+    it("takes the first arrow without it", async () => {
+      expect(ids(await generateSequence(noValue, { startingNode: a, lengthLimit: 2 }))).toEqual(["a", "b"]);
+    });
+  });
+
   it("gives an empty sequence for an empty graph", async () => {
     expect(await generateSequence({ nodes: [], edges: [] }, { lengthLimit: 5 })).toEqual([]);
   });

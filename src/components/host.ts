@@ -8,6 +8,8 @@ export interface MarkovHost {
   viewMode?: ViewMode;
   // false makes the tool a bag of words; absent, as in the CODAP plugin, order matters
   orderMatters?: boolean;
+  // a state whose arrows all have no value ends a sequence; absent, as in the CODAP plugin, it takes its first arrow
+  stopAtNoValue?: boolean;
   setViewMode: (viewMode?: ViewMode) => void;
   markDirty: () => void;
   outputSequence: (labels: string[]) => Promise<void>;

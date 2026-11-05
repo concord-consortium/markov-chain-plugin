@@ -117,11 +117,15 @@ export const Drawing = (props: Props) => {
 
   const getNode = useCallback((id: string) => graph.nodes.find(n => n.id === id), [graph.nodes]);
 
+  // with a tool list, Escape leaves a generating step's highlight, which the generator clears
+  const keepHighlightNode = animating && !!props.tools;
   const clearSelections = useCallback(() => {
     setFirstEdgeNode(undefined);
-    setHighlightNode(undefined);
+    if (!keepHighlightNode) {
+      setHighlightNode(undefined);
+    }
     setRubberBand(undefined);
-  }, [setFirstEdgeNode, setHighlightNode]);
+  }, [setFirstEdgeNode, setHighlightNode, keepHighlightNode]);
 
   useEffect(() => {
     if (drawingMode === "addEdge" && firstEdgeNode) {
@@ -410,6 +414,7 @@ export const Drawing = (props: Props) => {
         onUserZoom={onUserZoom}
         fitTransitionMs={fitTransitionMs}
         keepOutputOnRedraw={!!props.tools}
+        centerOffOrigin={!!props.tools}
       />
       <DragIcon drawingMode={drawingMode} />
       <NodeModal

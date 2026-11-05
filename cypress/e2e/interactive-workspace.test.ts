@@ -1702,6 +1702,7 @@ describe("the workspace's modes", () => {
 
     it("is absent with one mode", () => {
       start({ startingText: "the cat" });
+      cy.interactive().find(".controls-row").should("exist");
       cy.interactive().find(".mode-switch").should("not.exist");
     });
 
@@ -1945,6 +1946,60 @@ describe("the workspace's modes", () => {
       shown().find(".inspect-pane tbody tr.highlight-in").should("contain.text", "State 3 → State 1");
     });
 
+    it("brings a drawing off the middle of the pane into view on Fit View and on returning to it", () => {
+      const inView = () => drawingSvg().should(svg => {
+        const view = svg[0].getBoundingClientRect();
+        const ellipses = svg[0].querySelectorAll("g.node ellipse");
+        expect(ellipses).to.have.length(2);
+        ellipses.forEach(ellipse => {
+          const box = ellipse.getBoundingClientRect();
+          expect(box.left).to.be.at.least(view.left);
+          expect(box.right).to.be.at.most(view.right);
+          expect(box.top).to.be.at.least(view.top);
+          expect(box.bottom).to.be.at.most(view.bottom);
+        });
+      });
+      start({ modes: bothModes, startingText: "a b" });
+      switchTo("Draw");
+      toolButton("Add State").click();
+      clickDrawing(500, 200);
+      clickDrawing(620, 220);
+      toolButton("Select").click();
+      toolButton("Fit View").click();
+      afterFit();
+      inView();
+      switchTo("Data");
+      switchTo("Draw");
+      afterFit();
+      inView();
+    });
+
+    it("keeps a generating step's candidates and labels on Escape", () => {
+      startDrawing({ buttons: { probabilities: { available: true, startsOn: true } } });
+      drawThreeStates();
+      drawTransition("State 1", "State 2");
+      shown().find(".generator-pane select").first().select("State 1");
+      shown().find(".generator-pane button").contains("Step").click();
+      shown().find("text.probability-label").should("have.length", 1);
+      cy.interactive().type("{esc}");
+      cy.wait(100);
+      shown().find("text.probability-label").should("have.length", 1);
+    });
+
+    it("keeps the tool's icon at the pointer, wherever the pane sits", () => {
+      startDrawing();
+      toolButton("Add State").click();
+      drawingSvg().then(svg => {
+        const win = svg[0].ownerDocument.defaultView as Window & typeof globalThis;
+        win.dispatchEvent(new win.MouseEvent("mousemove", { clientX: 300, clientY: 200, bubbles: true, view: win }));
+      });
+      shown().find(".dragIcon").should(icon => {
+        const box = icon[0].getBoundingClientRect();
+        expect(box.left).to.equal(280);
+        expect(box.top).to.equal(180);
+      });
+    });
+
     it("clears a chosen state on Escape", () => {
       startDrawing();
       drawThreeStates();
@@ -1989,6 +2044,54 @@ describe("the workspace's modes", () => {
       shownState("State 1").should("have.attr", "fill", selectedNodeColor);
       toolButton("Add State").should("have.attr", "aria-pressed", "true");
       loggedEvents().then(events => expect(events.map(([action]) => action)).not.to.include("SelectionCleared"));
+    });
+
+    it("leaves a student's view alone after a Recenter View on a blank drawing", () => {
+      startDrawing();
+      toolButton("Recenter View").click();
+      drawThreeStates();
+      drawingSvg().trigger("wheel", { deltaY: -200 });
+      shown().find(".graph > svg g.root").invoke("attr", "transform").then(view => {
+        dragDivider("Resize Graph and Inspect", -60, 0);
+        afterFit();
+        shown().find(".graph > svg g.root").should("have.attr", "transform", view);
+      });
+    });
+
+    it("shows no candidate on a loop of no value", () => {
+      startDrawing();
+      drawThreeStates();
+      drawTransition("State 1", "State 1");
+      shown().find("path.loop").should("have.length", 1);
+      drawTransition("State 1", "State 2");
+      openEditor("State 1");
+      [1, 2, 3, 4, 5].forEach(() => thumb("State 1").trigger("keydown", { key: "ArrowLeft", shiftKey: true }));
+      save().click();
+      shown().find(".generator-pane select").first().select("State 1");
+      shown().find(".generator-pane button").contains("Step").click();
+      shown().find("line.edge").should("have.attr", "stroke-dasharray", "4");
+      shown().find("path.loop").should("not.have.attr", "stroke-dasharray", "4");
+    });
+
+    it("ends a sequence at a state whose arrows all have no value", () => {
+      startDrawing();
+      drawThreeStates();
+      drawTransition("State 1", "State 2");
+      drawTransition("State 1", "State 3");
+      openEditor("State 1");
+      thumb("State 2").trigger("keydown", { key: "ArrowRight", shiftKey: true });
+      [1, 2, 3, 4].forEach(() => thumb("State 2").trigger("keydown", { key: "ArrowRight", shiftKey: true }));
+      save().click();
+      shownTab("Transitions").click();
+      inspectCells().should("deep.equal", ["State 1 → State 2", "100%", "State 1 → State 3", "0%"]);
+      toolButton("Delete").click();
+      shown().find("line.edge-background").filter((i, line) =>
+        (line as any).__data__.target.label === "State 2").trigger("click", { force: true });
+      shown().find("line.edge").should("have.length", 1);
+      toolButton("Select").click();
+      shown().find(".generator-pane select").first().select("State 1");
+      playToTheEnd();
+      shown().find(".sequence").should("have.text", "State 1");
     });
 
     it("leaves a zoom alone after Reset", () => {
@@ -2061,8 +2164,11 @@ describe("the workspace's modes", () => {
 
     it("has its nine tools in two columns at the starting row, and three at the smallest", () => {
       startDrawing();
-      shown().find(".toolbar button").should("have.length", 9);
-      toolButton("Create From Text").should("not.exist");
+      shown().find(".toolbar button").then(buttons => {
+        expect([...buttons].map(button => button.title)).to.deep.equal([
+          "Select", "Add State", "Add Transition", "Delete", "Fit View", "Recenter View", "Zoom In", "Zoom Out", "Reset"
+        ]);
+      });
       lefts().should("equal", 2);
 
       dragDivider("Resize the panes and the generator", 0, -1000);
@@ -2195,6 +2301,8 @@ describe("the workspace's modes", () => {
       scale().then(fitted => {
         drawingSvg().trigger("wheel", { deltaY: -400 });
         scale().should("not.equal", fitted);
+        // d3-zoom's wheel gesture lasts 150 ms, and a fit inside it reads as the student's own zoom
+        cy.wait(200);
         switchTo("Draw");
         switchTo("Data");
         afterFit();
@@ -2290,6 +2398,7 @@ describe("the workspace's probabilities", () => {
     toggle().should("have.attr", "aria-pressed", "true");
     labelTexts().should("deep.equal", ["50%", "50%"]);
     loggedEvents().should("deep.include", ["ProbabilitiesToggled", { on: true, mode: "useData" }]);
+    cy.interactive().find(".probability-labels").should("have.css", "pointer-events", "none");
     toggle().click();
     labels().should("not.exist");
   });
@@ -2358,16 +2467,21 @@ describe("the workspace's probabilities", () => {
 
   it("stays as authored without the toggle", () => {
     start({ startingText: "the cat the mat", buttons: { probabilities: { available: false, startsOn: true } } });
+    cy.interactive().find(".controls-row").should("exist");
     toggle().should("not.exist");
     clickState("the");
     labelTexts().should("deep.equal", ["50%", "50%"]);
   });
 
-  it("hides the toggle in Data mode without a Graph pane, and shows it in Draw mode", () => {
-    start({ startingText: "the cat", modes: { useData: true, draw: true }, panes: { graph: { available: false } } });
-    cy.interactive().find(".workspace-body:not([hidden]) .probabilities-toggle").should("not.exist");
-    cy.interactive().find(".workspace-body:not([hidden]) .mode-switch label").contains("Draw").click();
-    cy.interactive().find(".workspace-body:not([hidden]) .probabilities-toggle").should("exist");
+  it("hides the toggle in Data mode without a Graph pane", () => {
+    start({ startingText: "the cat", panes: { graph: { available: false } } });
+    cy.interactive().find(".inspect-pane").should("exist");
+    toggle().should("not.exist");
+  });
+
+  it("shows the toggle in Draw mode, whose Graph pane is always there", () => {
+    start({ modes: { useData: false, draw: true }, startingMode: "draw", panes: { graph: { available: false } } });
+    toggle().should("exist");
   });
 
   it("shares the toggle between the modes, and follows a drawing's weights", () => {
@@ -2398,6 +2512,14 @@ describe("the workspace's probabilities", () => {
     shown().find(".nodeModal button").contains("Save").click();
     shown().find("text.probability-label").invoke("toArray")
       .invoke("map", (label: Element) => label.textContent).should("deep.equal", ["60%", "40%"]);
+  });
+
+  it("keeps the notes clear of a drawing's toolbar", () => {
+    start({ modes: { useData: false, draw: true }, startingMode: "draw", ...on });
+    cy.interactive().find(".graph-notes p").should(note => {
+      const toolbar = note[0].closest(".graph-pane-content")!.querySelector(".toolbar")!;
+      expect(note[0].getBoundingClientRect().left).to.be.at.least(toolbar.getBoundingClientRect().right);
+    });
   });
 
   it("notes the rounding only while probabilities show", () => {
@@ -2473,6 +2595,91 @@ describe("the workspace's Order matters switch", () => {
       expect(generated.map(([, data]) => (data as { orderMatters: boolean }).orderMatters))
         .to.deep.equal([true, false]);
     });
+  });
+
+  it("moves a chosen state's arrows with it while it is dragged", () => {
+    start({ startingText: "the cat the mat the", ...off });
+    clickState("the");
+    bagLines().should("have.length", 2);
+    const arrowStart = () => bagLines().first().invoke("attr", "x1");
+    const loopPath = () => bagLoops().first().invoke("attr", "d");
+    arrowStart().then(x => loopPath().then(d => {
+      stateEllipse("the").then(ellipse => {
+        const win = ellipse[0].ownerDocument.defaultView as Window & typeof globalThis;
+        const box = ellipse[0].getBoundingClientRect();
+        const at = { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2, bubbles: true, view: win };
+        ellipse[0].dispatchEvent(new win.MouseEvent("mousedown", at));
+        win.dispatchEvent(new win.MouseEvent("mousemove", { ...at, clientX: at.clientX + 60 }));
+      });
+      bagLines().first().should(line => expect(line.attr("x1")).not.to.equal(x));
+      bagLoops().first().should(loop => expect(loop.attr("d")).not.to.equal(d));
+      stateEllipse("the").then(ellipse => {
+        const win = ellipse[0].ownerDocument.defaultView as Window & typeof globalThis;
+        win.dispatchEvent(new win.MouseEvent("mouseup", { bubbles: true, view: win }));
+      });
+    }));
+  });
+
+  it("leaves every state where it is, switched either way", () => {
+    start({ startingText: "the cat the mat the" });
+    afterFit();
+    const places = () => cy.interactive().find("g.node ellipse").then(ellipses =>
+      [...ellipses].map(ellipse => `${ellipse.getAttribute("cx")},${ellipse.getAttribute("cy")}`));
+    places().then(before => {
+      expect(before).to.have.length(3);
+      orderSwitch().click();
+      cy.interactive().find("line.edge").should("not.exist");
+      places().should("deep.equal", before);
+      orderSwitch().click();
+      cy.interactive().find("line.edge").should("exist");
+      places().should("deep.equal", before);
+    });
+  });
+
+  describe("with probabilities on", () => {
+    const both = { ...off, buttons: { probabilities: { available: true, startsOn: true } } };
+    const labelTexts = () => cy.interactive().find("text.probability-label").invoke("toArray")
+      .invoke("map", (label: Element) => label.textContent).invoke("sort");
+
+    it("labels a chosen state's arrows by the states' counts", () => {
+      start({ startingText: "the cat the mat the", ...both });
+      clickState("cat");
+      labelTexts().should("deep.equal", ["20%", "20%", "60%"]);
+    });
+
+    it("dashes and labels a step's candidates, and then draws only the step taken", () => {
+      start({ startingText: "the cat the mat the", ...both });
+      cy.interactive().find(".generator-pane select").first().select("cat");
+      cy.interactive().find(".generator-pane button").contains("Step").click();
+      cy.interactive().find(".bag-arrows line[stroke-dasharray='4']").should("have.length", 2);
+      cy.interactive().find(".bag-arrows path[stroke-dasharray='4']").should("have.length", 1);
+      labelTexts().should("deep.equal", ["20%", "20%", "60%"]);
+      cy.interactive().find(".generator-pane button").contains("Step").click();
+      cy.interactive().find(".bag-arrows line, .bag-arrows path").should("have.length", 1);
+      cy.interactive().find(".bag-arrows [stroke-dasharray='4']").should("not.exist");
+    });
+
+    it("labels exactly a chosen output's steps, with nothing faded", () => {
+      start({ startingText: "the cat the mat the", ...both });
+      cy.interactive().find(".generator-pane select").first().select("cat");
+      maxLength().clear();
+      maxLength().type("2{enter}");
+      playButton().click();
+      finished();
+      cy.interactive().find(".sequence").first().click();
+      cy.interactive().find("text.probability-label").should("have.length", 1);
+      cy.interactive().find("text.probability-label.faded").should("not.exist");
+      cy.interactive().find(".bag-arrows line, .bag-arrows path").should("have.length", 1);
+    });
+  });
+
+  it("fades no state when one is chosen, whatever the chain's transitions", () => {
+    start({ startingText: "a b c d", ...off });
+    clickState("a");
+    bagLines().should("have.length", 3);
+    stateEllipse("d").should("have.css", "opacity", "1");
+    cy.interactive().find("g.node").filter((i, node) => node.textContent === "d").find("text")
+      .should("have.css", "opacity", "1");
   });
 
   it("does nothing on a click on an arrow", () => {
@@ -2571,6 +2778,13 @@ describe("the workspace's Order matters switch", () => {
     start({ startingText: "the cat", orderMatters: { startsOn: false, showSwitch: false } });
     orderSetting().should("not.exist");
     orderLabel().should("have.text", "Order matters: No");
+  });
+
+  it("shows both read-only labels with both switches hidden, Order matters first", () => {
+    start({ startingText: "the cat", showCaseSwitch: false, orderMatters: { startsOn: true, showSwitch: false } });
+    cy.interactive().find(".controls-row .setting-label").should(labels => {
+      expect([...labels].map(label => label.textContent)).to.deep.equal(["Order matters: Yes", "Case sensitive: No"]);
+    });
   });
 
   it("says so when order matters and the switch is hidden", () => {

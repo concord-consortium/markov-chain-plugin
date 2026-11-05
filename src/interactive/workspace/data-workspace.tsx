@@ -5,7 +5,7 @@ import { ArrowWidths, layoutFor } from "../../components/graph-utils";
 import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { Node } from "../../type";
-import { Capitalization, caseSensitiveLabel, MarkovAuthoredState } from "../authored-state";
+import { Capitalization, caseSensitiveLabel, MarkovAuthoredState, orderMattersLabel } from "../authored-state";
 import { Token, tokenize, tokensToValues } from "../input/tokenizer";
 import { CommitHow, CommitView } from "./commit";
 import { ControlsRow } from "./controls-row";
@@ -38,8 +38,6 @@ interface DataWorkspaceProps {
   orderMatters: boolean;
   onOrderMattersChange: (orderMatters: boolean) => void;
 }
-
-const orderMattersLabel = "Order matters";
 
 // panes a commit redraws, so a press there would lose its click; a press elsewhere commits at once
 const redrawnByCommit = ".graph-pane .pane-body, .inspect-pane .pane-body";
