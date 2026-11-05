@@ -28,6 +28,7 @@ interface GraphPaneProps {
   emptyMessage?: string;
   onUserZoom: () => void;
   onFit: () => void;
+  onRecenter: () => void;
   onResized: () => void;
   initialView?: GraphView;
   saving: ModeSaving;
@@ -42,8 +43,8 @@ interface GraphPaneProps {
 // The graph and its toolbar. Every callback handed to Graph keeps its identity, reading the tool through a ref,
 // since a new callback redraws the whole graph.
 export const GraphPane = ({
-  variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onResized, initialView,
-  saving, readOnly, onDoubleClickState, probabilities, arrowWidths, orderMatters = true
+  variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onRecenter, onResized,
+  initialView, saving, readOnly, onDoubleClickState, probabilities, arrowWidths, orderMatters = true
 }: GraphPaneProps) => {
   const toolRef = useLatest(tool);
   const onUserZoomRef = useLatest(onUserZoom);
@@ -104,7 +105,7 @@ export const GraphPane = ({
             onReset={view.onReset}
             onReturnToMainMenu={noop}
             onFitView={onFit}
-            onRecenterView={view.onRecenterView}
+            onRecenterView={onRecenter}
             onDimensions={handleDimensions}
             onEdgeSelect={handleEdgeSelect}
             onBackgroundClick={handleBackgroundClick}
@@ -128,7 +129,7 @@ export const GraphPane = ({
             onReset={noop}
             onReturnToMainMenu={noop}
             onFitView={onFit}
-            onRecenterView={view.onRecenterView}
+            onRecenterView={onRecenter}
             onZoomIn={zoomIn}
             onZoomOut={zoomOut}
           />

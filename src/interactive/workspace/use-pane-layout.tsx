@@ -65,6 +65,14 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
     followRef.current = false;
     markActive();
   }, [markActive]);
+  const handleFitPressed = useCallback(() => {
+    markActive();
+    handleFit();
+  }, [markActive, handleFit]);
+  const handleRecenterPressed = useCallback(() => {
+    markActive();
+    toolRef.current.view.onRecenterView();
+  }, [markActive, toolRef]);
 
   // a hidden mode's graph has no size, so it is fitted when its mode shows again, as a reopened Graph pane is, and
   // again once the row is measured, since until then the panes beside it are drawn at their minimums
@@ -191,7 +199,7 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
       : undefined;
 
   return {
-    hasPane, open, controlsOpen, togglePane, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized,
-    rowPanes, rowsDivider, rowRef, top, paneStyle, dividerFor, paneDivider,
+    hasPane, open, controlsOpen, togglePane, toggleControls, followRef, handleFitPressed, handleRecenterPressed,
+    handleUserZoom, handleGraphResized, rowPanes, rowsDivider, rowRef, top, paneStyle, dividerFor, paneDivider,
   };
 };

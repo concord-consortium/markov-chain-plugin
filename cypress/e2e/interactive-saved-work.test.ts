@@ -1,5 +1,5 @@
 import { defaultAuthoredState } from "../../src/interactive/authored-state";
-import { encodeOutputs, maxOutputBytes, savedBytes } from "../../src/interactive/saved-outputs";
+import { decodeOutputs, encodeOutputs, maxOutputBytes, savedBytes } from "../../src/interactive/saved-outputs";
 import { Node } from "../../src/type";
 import { animatedNodeColor, pastDoubleClick, selectedNodeColor } from "../support/graph";
 import { divider, loggedEvents, parseTransform, stateEllipse } from "../support/workspace";
@@ -395,6 +395,19 @@ describe("saving work", () => {
     firstPost().its("useData.view.k").should("be.a", "number");
   });
 
+  ["Fit View", "Recenter View"].forEach(button => {
+    it(`saves a press on ${button} at a page leave, and not before`, () => {
+      start();
+      graphReady();
+      cy.wait(500);
+      toolButton(button).click();
+      pastDebounce();
+      posts().should("have.length", 0);
+      leavePage();
+      firstPost().its("version").should("equal", 1);
+    });
+  });
+
   it("saves a drawing's wheel zoom at a page leave", () => {
     startDrawing({ version: 1, mode: "draw", draw: { drawing } });
     graphReady();
@@ -523,14 +536,15 @@ describe("saving work", () => {
   });
 
   it("saves a sequence as far as it got at a page leave", () => {
-    start();
+    start({ startingText: "a b a b a" });
     graphReady();
-    shown().find(".generator-pane button").contains("Step").click();
-    shown().find(".generator-pane button").contains("Step").click();
+    [1, 2, 3, 4].forEach(() => shown().find(".generator-pane button").contains("Step").click());
     shown().find(".sequence").should("have.length", 1).invoke("text").then(soFar => {
+      const words = soFar.split(" ");
+      expect(words).to.have.length.within(2, 4);
       leavePage();
-      firstPost().its("useData.outputs.groups.0.sequences.0").should(sequence => {
-        expect(sequence).to.have.length(soFar.split(" ").length);
+      firstPost().its("useData.outputs").should(saved => {
+        expect(decodeOutputs(saved)[0].sequences[0].map(state => state.label)).to.deep.equal(words);
       });
     });
   });
@@ -557,6 +571,15 @@ describe("saving work", () => {
 
     const oneArrow = {
       version: 1, mode: "draw", draw: { drawing: { nodes: drawing.nodes, edges: [drawing.edges[0]] } },
+    };
+    const twoArrows = {
+      version: 1, mode: "draw",
+      draw: {
+        drawing: {
+          nodes: [...drawing.nodes, { id: "n3", label: "Fog", value: 1, x: 0, y: 120 }],
+          edges: [{ from: "n1", to: "n2", value: 1 }, { from: "n1", to: "n3", value: 1 }],
+        },
+      },
     };
     const onStep = () => shown().find(".generator-pane button").contains("Step").click();
 
@@ -612,6 +635,15 @@ describe("saving work", () => {
         shown().find(".nodeModal input[aria-label='State name']").should("have.value", "Sun").clear().type("Sky");
         shown().find(".nodeModal button").contains("Save").click();
       }, state => expect(state.draw.drawing.nodes[0].label).to.equal("Sky")],
+      ["an arrow's probability edited", () => startDrawing(twoArrows), () => {
+        pastDoubleClick();
+        stateEllipse("Sun").trigger("click").trigger("click");
+        shown().find("[aria-label='Probability of Rain']").trigger("keydown", { key: "ArrowRight", shiftKey: true });
+        shown().find(".nodeModal button").contains("Save").click();
+      }, state => {
+        const [rain, fog] = state.draw.drawing.edges;
+        expect(rain.value / (rain.value + fog.value)).to.be.closeTo(0.6, 0.001);
+      }],
       ["a drawn state deleted", () => startDrawing(drawn), () => {
         toolButton("Delete").click();
         cy.wait(300);

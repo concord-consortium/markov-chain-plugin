@@ -68,7 +68,8 @@ export const DataWorkspace = ({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const layout = usePaneLayout(config, host, tool, stacked, hidden, start, saving);
   const {
-    hasPane, controlsOpen, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized, top
+    hasPane, controlsOpen, toggleControls, followRef, handleFitPressed, handleRecenterPressed, handleUserZoom,
+    handleGraphResized, top,
   } = layout;
 
   const [text, setText] = useState(startText);
@@ -252,8 +253,8 @@ export const DataWorkspace = ({
         return (
           <GraphPane tool={tool} log={host.log} top={top} probabilities={probabilities} arrowWidths={arrowWidths}
             orderMatters={orderMatters}
-            emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFit}
-            onResized={handleGraphResized} initialView={start.view} saving={saving} readOnly={readOnly}
+            emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFitPressed}
+            onRecenter={handleRecenterPressed} onResized={handleGraphResized} initialView={start.view} saving={saving} readOnly={readOnly}
             onDoubleClickState={handleDoubleClickState} />
         );
       case "inspect":
