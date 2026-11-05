@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { clsx } from "clsx";
 import { Drawing } from "../../components/drawing";
 import { ArrowWidths } from "../../components/graph-utils";
-import { Graph, GraphView } from "../../components/graph";
+import { D3Node, Graph, GraphView, Transform } from "../../components/graph";
 import { graphLabels } from "../../components/graph-labels";
 import { Tool, Toolbar } from "../../components/toolbar";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
@@ -11,6 +11,7 @@ import { useZoomRequest } from "../../hooks/use-zoom-request";
 import { graphBodyHeight, paneGap, toolbarColumns, toolbarWidth } from "./pane-sizes";
 import { useLatest } from "../../hooks/use-latest";
 import { graphNotes } from "./graph-notes";
+import { ModeSaving } from "./use-pane-layout";
 
 const dataTools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
 const noop = () => undefined;
@@ -29,6 +30,7 @@ interface GraphPaneProps {
   onFit: () => void;
   onResized: () => void;
   initialView?: GraphView;
+  saving: ModeSaving;
   onDoubleClickState?: (id: string) => void;
   probabilities: boolean;
   arrowWidths: ArrowWidths;
@@ -40,7 +42,7 @@ interface GraphPaneProps {
 // since a new callback redraws the whole graph.
 export const GraphPane = ({
   variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onResized, initialView,
-  onDoubleClickState, probabilities, arrowWidths, orderMatters = true
+  saving, onDoubleClickState, probabilities, arrowWidths, orderMatters = true
 }: GraphPaneProps) => {
   const toolRef = useLatest(tool);
   const onUserZoomRef = useLatest(onUserZoom);
@@ -63,6 +65,14 @@ export const GraphPane = ({
     onResizedRef.current();
   }, [toolRef, onResizedRef]);
   const handleUserZoom = useCallback(() => onUserZoomRef.current(), [onUserZoomRef]);
+  const savingRef = useLatest(saving);
+  const handleTransformed = useCallback(({ x, y, k }: Transform) => {
+    savingRef.current.report.view = { x, y, k };
+  }, [savingRef]);
+  const handleArranged = useCallback((nodes: D3Node[]) => {
+    savingRef.current.report.arranged = nodes;
+    savingRef.current.afterDraw();
+  }, [savingRef]);
   const { zoomRequest, zoomIn, zoomOut } = useZoomRequest(handleUserZoom);
 
   const columns = toolbarColumns(tools.length, graphBodyHeight(top));
@@ -98,6 +108,7 @@ export const GraphPane = ({
             onEdgeSelect={handleEdgeSelect}
             onBackgroundClick={handleBackgroundClick}
             onUserZoom={handleUserZoom}
+            onTransformed={handleTransformed}
             initialView={initialView}
             fitTransitionMs={fitMs}
             probabilityLabels={probabilities}
@@ -130,6 +141,8 @@ export const GraphPane = ({
             zoomButtons={false}
             zoomRequest={zoomRequest}
             onUserZoom={handleUserZoom}
+            onTransformed={handleTransformed}
+            onAutoArrangeEnd={handleArranged}
             initialView={initialView}
             fitTransitionMs={fitMs}
             fitViewAt={view.fitViewAt}

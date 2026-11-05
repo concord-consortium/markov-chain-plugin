@@ -7,8 +7,7 @@ import type { InspectTab, Sort, SortColumn } from "./workspace/inspect-rows";
 import type { PaneSizes } from "./workspace/pane-sizes";
 import type { WorkspacePaneId } from "./workspace/workspace-config";
 
-// What the interactive saves for a student. The class dashboard counts a student as having opened the interactive
-// once their state isn't empty, so it always holds the version.
+// What the interactive saves for a student. Nothing is saved until the student does something.
 export const interactiveStateVersion = 1;
 
 // the most text the input takes, in the text box and through the table's edits

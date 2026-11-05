@@ -13,6 +13,8 @@ declare global {
       interactiveMessages(type: string, options?: Partial<Timeoutable>): Chainable<unknown[]>;
       /** Waits until the host's frame is as tall as the interactive's content, as its height messages ask. */
       frameFitsInteractive(): Chainable<void>;
+      /** Asks for the interactive's state, as the Activity Player does, with { unloading: true } on leaving a page. */
+      requestInteractiveState(options?: { unloading?: boolean }): Chainable<void>;
       /** Asks the report item for a student's answer (student1's by default), as the class dashboard does. */
       requestReportItemAnswer(itemsType: ItemsType, platformUserId?: string): Chainable<any>;
     }

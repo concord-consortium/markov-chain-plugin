@@ -183,7 +183,7 @@ Cypress, on the fake Activity Player page: a hand-written state reopens panes, s
 - `src/interactive/workspace/build-state.ts` (new) and its test.
 - `src/interactive/workspace/use-saved-work.ts` (new).
 - `src/interactive/workspace/ap-host.ts`: the saving events.
-- `src/interactive/runtime.tsx`, `workspace.tsx`, `data-workspace.tsx`, `draw-workspace.tsx`, `use-pane-layout.tsx`, `inspect-pane.tsx`, `input-pane.tsx`, `graph-pane.tsx`.
+- `src/interactive/runtime.tsx`, `workspace.tsx`, `data-workspace.tsx`, `draw-workspace.tsx`, `use-pane-layout.tsx`, `inspect-pane.tsx`, `graph-pane.tsx`.
 - `src/interactive/host-messages.ts`: `interactiveState ?? undefined`, so it is left out for none.
 - `src/interactive/demo.tsx`: a restart keeps only the saved input.
 - `cypress/fake-ap/fake-ap.ts`, `cypress/support/fake-ap.d.ts`, `fake-ap-commands.ts`: `requestInteractiveState(options)`.
@@ -192,7 +192,7 @@ Cypress, on the fake Activity Player page: a hand-written state reopens panes, s
 **Estimated diff size**: ~480 lines
 
 ```ts
-// ap-host.ts: the logged actions that change the student's work; layout changes ride along with the next of these
+// ap-host.ts: the logged actions that save; a commit requests its own, and layout changes ride along with the next save
 const savingEvents: ReadonlySet<LogEvent> = new Set<LogEvent>([
   "SequenceGenerated", "SequenceCanceled", "OutputCleared", "GeneratorSettingChanged", "StateMoved", "StateAdded",
   "TransitionAdded", "StateDeleted", "TransitionDeleted", "StateEdited", "GraphReset", "CaseSensitivityChanged",
@@ -253,7 +253,7 @@ export const useSavedWork = ({ saver, request, activeRef, animating, build }) =>
 
 The request is state, not a direct call, because several actions log before they set their state; the effect runs once the render has both. `SequenceGenerated` logs before the sequence's last group is stored, and `animating` holds the save until `finishAnimating` has finished.
 
-`Runtime` makes the `Saver` with `useMemo` when hosted, from `setInteractiveState` and `setOnUnload`, and passes nothing otherwise, so the workspace never touches the library. Its `save` and a built final state go through `copyState`, since the library deep-freezes what it is handed and the built state shares objects with live React state, such as the drawing's edges, which `Drawing` edits. The final state is undefined when the student did nothing, and `copyState` can't take that. `setOnUnload`'s type wants a function returning `Promise<{}>`, so a function that may answer undefined needs `async` and a cast to compile; the library itself takes undefined. `setFinalState(undefined)` calls `setOnUnload(undefined)`.
+`runtime.tsx` holds one module-level `Saver`, from `setInteractiveState` and `setOnUnload`, which `Runtime` passes when hosted and not otherwise, so the workspace never touches the library. Its `save` and a built final state go through `copyState`, since the library deep-freezes what it is handed and the built state shares objects with live React state, such as the drawing's edges, which `Drawing` edits. The final state is undefined when the student did nothing, and `copyState` can't take that. `setOnUnload`'s type wants a function returning `Promise<{}>`, so a function that may answer undefined needs `async` and a cast to compile; the library itself takes undefined. `setFinalState(undefined)` calls `setOnUnload(undefined)`.
 
 What the builder reads that lives in the bodies is reported into a ref owned by `Workspace`, written in effects so it never renders anything:
 
@@ -261,18 +261,18 @@ What the builder reads that lives in the bodies is reported into a ref owned by 
 export interface ModeReport {
   layout?: { open: Record<string, boolean>, controlsOpen: boolean, sizes: PaneSizes };
   following?: () => boolean;
-  inspect?: { tab: InspectTab, sorts: Record<InspectTab, Sort> };
+  inspect?: SavedMode["inspect"];
   view?: SavedView;
   // Data mode: the committed text, which the graph shows
   text?: string;
   capitalization?: Capitalization;
   inputSplit?: number;
   // the states as last drawn, which dragging moves
-  arranged?: { x: number, y: number, fx?: number | null, fy?: number | null }[];
+  arranged?: { x?: number, y?: number, fx?: number | null, fy?: number | null }[];
 }
 ```
 
-Children's effects run before `Workspace`'s, so the report is current when the save effect runs. `GraphPane` adds a stable `onAutoArrangeEnd` that stores the nodes and calls `afterDraw`, and `onTransformed`, in the data variant on `Graph` and in the draw variant on `Drawing`. `Drawing`'s own `handleAutoArrangeEnd` is untouched: the draw variant needs no positions from it.
+`Workspace` hands each body a `ModeSaving`: its report, `requestSave`, `markActive` and `afterDraw`. Children's effects run before `Workspace`'s, so the report is current when the save effect runs. `GraphPane` adds a stable `onAutoArrangeEnd` that stores the nodes and calls `afterDraw`, and `onTransformed`, in the data variant on `Graph` and in the draw variant on `Drawing`. `Drawing`'s own `handleAutoArrangeEnd` is untouched: the draw variant needs no positions from it.
 
 `buildInteractiveState(previous, parts)` is pure:
 

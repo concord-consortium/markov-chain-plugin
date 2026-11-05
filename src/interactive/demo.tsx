@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ParentEndpoint } from "iframe-phone";
 import { readAuthoredState } from "./authored-state";
+import { interactiveStateVersion, readInteractiveState } from "./interactive-state";
 import { demoWidths, DemoWidthId, readDemoWidth } from "./demo-widths";
 import { HostedMode, initInteractiveMessage } from "./host-messages";
 import { placeholderReportHtml } from "./report-item-answer";
@@ -123,7 +124,8 @@ const Demo = () => {
   const [runtimeAuthoredState, setRuntimeAuthoredState] = useState<unknown>(initialAuthoredState);
   const [widthId, setWidthId] = useState<DemoWidthId>(() => readDemoWidth(window.location.search));
   // kept across the runtime's restarts, as the Activity Player keeps a student's state, for the starting text it was
-  // saved under: saved input comes before the starting text, so a new one would otherwise never show here
+  // saved under: saved input comes before the starting text, so a new one would otherwise never show here. A restart
+  // keeps only that input, since the whole state's panes, switches and mode would win over the authoring form.
   const savedRef = useRef<{ startingText: string, state: unknown }>(undefined);
 
   useEffect(() => {
@@ -133,7 +135,9 @@ const Demo = () => {
 
   const getInteractiveState = useCallback((runtimeState: unknown) => {
     const saved = savedRef.current;
-    return saved?.startingText === readAuthoredState(runtimeState).startingText ? saved.state : null;
+    return saved?.startingText === readAuthoredState(runtimeState).startingText
+      ? { version: interactiveStateVersion, input: readInteractiveState(saved.state).input }
+      : undefined;
   }, []);
   const handleMessage = useCallback((type: "authoredState" | "interactiveState", content: unknown,
     frameState: unknown) => {

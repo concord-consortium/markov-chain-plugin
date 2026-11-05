@@ -47,12 +47,12 @@ describe("the interactive's runtime", () => {
   });
 
   [["no interactive state", undefined], ["{}", {}]].forEach(([name, interactiveState]) => {
-    it(`saves a version when it opens with ${name}`, () => {
+    it(`saves nothing when it opens with ${name}`, () => {
       cy.startInteractive({ mode: "runtime", authoredState: {}, interactiveState });
-      // the library sends interactive state after a 2 second pause
-      cy.interactiveMessages("interactiveState", { timeout: 5000 }).should(states => {
-        expect(states).to.deep.equal([{ version: 1 }]);
-      });
+      cy.interactive().find("section.input-pane");
+      // past the library's 2 second pause
+      cy.wait(2500);
+      cy.interactiveMessages("interactiveState").should("have.length", 0);
     });
   });
 
@@ -67,7 +67,7 @@ describe("the interactive's runtime", () => {
     cy.startInteractive({ mode: "report", width: 600, authoredState: { modes: { useData: true, draw: false } } });
     cy.interactive().should("contain.text", "shown read-only in a report");
     listedSettings().should("deep.include", ["Usable mode(s)", "Data"]);
-    // past the library's 2 second pause, after which a runtime started with no state would have saved one
+    // past the library's 2 second pause
     cy.wait(2500);
     cy.interactiveMessages("interactiveState").should("have.length", 0);
   });

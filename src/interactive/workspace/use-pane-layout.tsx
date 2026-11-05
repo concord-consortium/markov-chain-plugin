@@ -7,9 +7,18 @@ import {
   collapsedStrip, dividerLimits, drawnRowHeight, fitPaneSizes, movesDivider, OpenPanes, PaneDivider,
   paneGap, PaneSizes, resizedPanes
 } from "./pane-sizes";
+import { ModeReport } from "./build-state";
 import { RestoredMode } from "./restore-work";
 import { useMeasuredSize } from "./use-measured-size";
 import { WorkspaceConfig, WorkspacePaneId } from "./workspace-config";
+
+// what a mode's body shares with the shell's saving
+export interface ModeSaving {
+  report: ModeReport;
+  requestSave: () => void;
+  markActive: () => void;
+  afterDraw: () => void;
+}
 
 const dividerLabels: Record<PaneDivider, string> = {
   input: "Resize Input and Graph", inspect: "Resize Graph and Inspect", rows: "Resize the panes and the generator",
@@ -18,7 +27,8 @@ const dividerLabels: Record<PaneDivider, string> = {
 // One mode's panes: which are open, their sizes and dividers, and the view following the graph until the student zooms
 // or pans. Each mode calls it, so each keeps its own.
 export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: MarkovToolApi, stacked: boolean,
-  hidden: boolean, start: RestoredMode) => {
+  hidden: boolean, start: RestoredMode, saving: ModeSaving) => {
+  const { report, markActive } = saving;
   const toolRef = useLatest(tool);
   const hasPane = (id: WorkspacePaneId) => config.panes.some(pane => pane.id === id);
 
@@ -53,7 +63,8 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   }, [toolRef]);
   const handleUserZoom = useCallback(() => {
     followRef.current = false;
-  }, []);
+    markActive();
+  }, [markActive]);
 
   // a hidden mode's graph has no size, so it is fitted when its mode shows again, as a reopened Graph pane is, and
   // again once the row is measured, since until then the panes beside it are drawn at their minimums
@@ -73,6 +84,10 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
 
   // the sizes the student chose, kept while a narrow row draws them smaller and while a pane is collapsed
   const [paneSizes, setPaneSizes] = useState<PaneSizes>(start.sizes);
+  useEffect(() => {
+    report.layout = { open, controlsOpen, sizes: paneSizes };
+    report.following = () => followRef.current;
+  }, [report, open, controlsOpen, paneSizes]);
   const rowRef = useRef<HTMLDivElement | null>(null);
   const rowWidth = useMeasuredSize(rowRef)?.width;
   const openPanes: OpenPanes = {

@@ -12,7 +12,7 @@ import { highlightsFor } from "./highlights";
 import { InspectPane } from "./inspect-pane";
 import { RestoredMode } from "./restore-work";
 import { useClearGoneSelection, useEscape, useInspectChoices, useScrollToChoice } from "./use-mode-body";
-import { usePaneLayout } from "./use-pane-layout";
+import { ModeSaving, usePaneLayout } from "./use-pane-layout";
 import { DrawWorkspaceConfig, WorkspacePaneId } from "./workspace-config";
 import { WorkspacePanes } from "./workspace-panes";
 
@@ -31,16 +31,17 @@ interface DrawWorkspaceProps {
   probabilities: boolean;
   arrowWidths: ArrowWidths;
   start: RestoredMode;
+  saving: ModeSaving;
 }
 
 // Draw mode's body: a drawing in the Graph pane, with Inspect and the generator as the author set them
 export const DrawWorkspace = ({
-  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, start
+  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, start, saving
 }: DrawWorkspaceProps) => {
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sourcePaneRef = useRef<WorkspacePaneId>(undefined);
-  const layout = usePaneLayout(config, host, tool, stacked, hidden, start);
+  const layout = usePaneLayout(config, host, tool, stacked, hidden, start, saving);
   const highlights = useMemo(() => highlightsFor(tool.selection, [], tool.graph.edges),
     [tool.selection, tool.graph.edges]);
 
@@ -68,13 +69,13 @@ export const DrawWorkspace = ({
           <GraphPane variant="draw" tools={drawModeTools} tool={tool} log={host.log} top={layout.top}
             probabilities={probabilities} arrowWidths={arrowWidths}
             onUserZoom={layout.handleUserZoom} onFit={layout.handleFit} onResized={layout.handleGraphResized}
-            initialView={start.view} />
+            initialView={start.view} saving={saving} />
         );
       case "inspect":
         return (
           <InspectPane mode="draw" orderMatters={true} graph={tool.graph} selection={tool.selection}
             highlights={highlights} log={host.log} onSelectState={handleSelectState}
-            onSelectTransition={handleSelectTransition} start={start.inspect} />
+            onSelectTransition={handleSelectTransition} start={start.inspect} report={saving.report} />
         );
       case "generator":
         return (

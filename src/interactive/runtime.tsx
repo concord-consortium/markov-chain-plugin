@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo } from "react";
-import { setInteractiveState } from "@concord-consortium/lara-interactive-api";
+import React, { useMemo } from "react";
+import { setInteractiveState, setOnUnload } from "@concord-consortium/lara-interactive-api";
 import { MarkovAuthoredState } from "./authored-state";
-import { interactiveStateVersion, MarkovInteractiveState, readInteractiveState } from "./interactive-state";
+import { copyState, MarkovInteractiveState, readInteractiveState } from "./interactive-state";
 import { settingsSummary } from "./settings-summary";
+import { Saver } from "./workspace/use-saved-work";
 import { Workspace } from "./workspace/workspace";
 
 interface Props {
@@ -14,20 +15,19 @@ interface Props {
   view?: "hosted" | "standalone" | "report";
 }
 
+// The library deep-freezes what it is handed, and a built state shares objects with the workspace's live state, so it
+// gets a copy. Its type wants a state from setOnUnload, but it takes none as "post the state you have".
+const librarySaver: Saver = {
+  save: state => setInteractiveState<MarkovInteractiveState>(copyState(state)),
+  setFinalState: build => setOnUnload(build && (async () => {
+    const state = build();
+    return state && copyState(state);
+  }) as () => Promise<MarkovInteractiveState>),
+};
+
 // The student's workspace, or in a report a placeholder that lists the authored settings
 export const Runtime = ({ authoredState, interactiveState, view = "hosted" }: Props) => {
   const hosted = view === "hosted";
-  // the class dashboard shows a student only once there is interactive state, and counts {} as none
-  const hasState = !!interactiveState && Object.keys(interactiveState).length > 0;
-  useEffect(() => {
-    if (hosted && !hasState) {
-      setInteractiveState<MarkovInteractiveState>({ version: interactiveStateVersion });
-    }
-  }, [hosted, hasState]);
-
-  const handleSaveInput = useCallback((text: string) =>
-    setInteractiveState<MarkovInteractiveState>({ version: interactiveStateVersion, input: { text } }), []);
-
   const savedState = useMemo(() => readInteractiveState(interactiveState), [interactiveState]);
 
   if (view === "report") {
@@ -41,8 +41,8 @@ export const Runtime = ({ authoredState, interactiveState, view = "hosted" }: Pr
           Opened outside the Activity Player: the settings come from this page&apos;s link, and nothing is saved.
         </p>
       ) }
-      <Workspace authoredState={authoredState} savedState={savedState} hosted={hosted}
-        onSaveInput={hosted ? handleSaveInput : undefined} />
+      <Workspace authoredState={authoredState} savedState={savedState} saver={hosted ? librarySaver : undefined}
+        hosted={hosted} />
     </>
   );
 };

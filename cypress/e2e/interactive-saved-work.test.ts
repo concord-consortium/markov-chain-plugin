@@ -1,8 +1,8 @@
 import { defaultAuthoredState } from "../../src/interactive/authored-state";
 import { encodeOutputs } from "../../src/interactive/saved-outputs";
 import { Node } from "../../src/type";
-import { animatedNodeColor, selectedNodeColor } from "../support/graph";
-import { loggedEvents, parseTransform, stateEllipse } from "../support/workspace";
+import { animatedNodeColor, pastDoubleClick, selectedNodeColor } from "../support/graph";
+import { divider, loggedEvents, parseTransform, stateEllipse } from "../support/workspace";
 
 const width = 1044;
 const shown = () => cy.interactive().find(".workspace-body:not([hidden])");
@@ -317,5 +317,326 @@ describe("reopening saved work", () => {
     shown().find(".generate select").first().should("have.value", "");
     shown().find(".input-pane .pane-toggle").click();
     shown().find(".input-pane").should(pane => expect(pane.outerWidth()).to.be.closeTo(160, 1));
+  });
+});
+
+describe("saving work", () => {
+  const fast = "?fastSpeed=20&normalSpeed=20";
+  const startingText = "the cat sat the dog";
+  const start = (authored: Record<string, unknown> = {}, interactiveState?: unknown) => cy.startInteractive({
+    mode: "runtime", width, search: fast, interactiveState, authoredState: { startingText, ...authored },
+  });
+  const startDrawing = (interactiveState: unknown = undefined) => start({ startingMode: "draw" }, interactiveState);
+  const textBox = () => shown().find("textarea[aria-label='Your text']");
+  const posts = () => cy.interactiveMessages("interactiveState") as Cypress.Chainable<any[]>;
+  // the library sends interactive state 2 seconds after the last save
+  const pastDebounce = () => cy.wait(2500);
+  const firstPost = () => cy.interactiveMessages("interactiveState", { timeout: 6000 }).should("not.be.empty")
+    .its(0) as Cypress.Chainable<any>;
+  const lastPost = () => cy.interactiveMessages("interactiveState", { timeout: 6000 }).should("not.be.empty")
+    .invoke("at", -1) as Cypress.Chainable<any>;
+  const leavePage = () => cy.requestInteractiveState({ unloading: true });
+  const graphReady = () => shown().find("g.node").should("have.length.at.least", 1);
+  const typeWord = (word: string) => textBox().type(` ${word}`).blur({ force: true });
+  const play = () => shown().find(".generator-pane button").contains("Play");
+  const playToTheEnd = () => {
+    play().click();
+    shown().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+  };
+
+  // a drag of a state with a mouse's events, dispatched in the interactive's frame
+  const dragState = (label: string, dx: number, dy: number) => stateEllipse(label).then(ellipse => {
+    const element = ellipse[0];
+    const win = element.ownerDocument.defaultView as Window & typeof globalThis;
+    const box = element.getBoundingClientRect();
+    const at = (x: number, y: number) => ({
+      clientX: box.x + box.width / 2 + x, clientY: box.y + box.height / 2 + y, bubbles: true, cancelable: true,
+      view: win, button: 0,
+    });
+    element.dispatchEvent(new win.MouseEvent("mousedown", at(0, 0)));
+    win.dispatchEvent(new win.MouseEvent("mousemove", at(dx / 2, dy / 2)));
+    win.dispatchEvent(new win.MouseEvent("mousemove", at(dx, dy)));
+    win.dispatchEvent(new win.MouseEvent("mouseup", at(dx, dy)));
+  });
+
+  it("posts nothing on open", () => {
+    start();
+    graphReady();
+    pastDebounce();
+    posts().should("have.length", 0);
+  });
+
+  it("answers a page leave with nothing done by posting nothing", () => {
+    start();
+    graphReady();
+    leavePage();
+    posts().should(states => expect(states).to.deep.equal([undefined]));
+  });
+
+  it("saves a collapsed pane at a page leave, and not before", () => {
+    start();
+    graphReady();
+    paneToggle("Inspect").click();
+    pastDebounce();
+    posts().should("have.length", 0);
+    leavePage();
+    firstPost().its("useData.panes.inspect").should("equal", false);
+  });
+
+  it("saves a wheel zoom at a page leave, and not before", () => {
+    start();
+    graphReady();
+    cy.wait(500);
+    shown().find(".graph > svg").trigger("wheel", { deltaY: -100 });
+    pastDebounce();
+    posts().should("have.length", 0);
+    leavePage();
+    firstPost().its("useData.view.k").should("be.a", "number");
+  });
+
+  it("saves a drawing's wheel zoom at a page leave", () => {
+    startDrawing({ version: 1, mode: "draw", draw: { drawing } });
+    graphReady();
+    cy.wait(500);
+    shown().find(".graph > svg").trigger("wheel", { deltaY: -100 });
+    leavePage();
+    firstPost().its("draw.view.k").should("be.a", "number");
+  });
+
+  it("saves Inspect's tab and sort and the input's split at a page leave", () => {
+    start();
+    graphReady();
+    shown().find(".inspect-tab").contains("Transitions").click();
+    inspectHeader("Probability").find("button").click();
+    divider("Resize the text box and the table").focus().type("{downArrow}");
+    leavePage();
+    firstPost().then(state => {
+      expect(state.useData.inspect.tab).to.equal("transitions");
+      expect(state.useData.inspect.sorts.transitions).to.deep.equal({ column: "probability", ascending: true });
+      expect(state.useData.inputSplit).to.be.greaterThan(0.4);
+    });
+  });
+
+  it("carries a pane collapsed before a word was typed", () => {
+    start();
+    graphReady();
+    paneToggle("Inspect").click();
+    typeWord("ran");
+    firstPost().then(state => {
+      expect(state.useData.panes.inspect).to.equal(false);
+      expect(state.input.text).to.equal(`${startingText} ran`);
+    });
+  });
+
+  it("saves a pane collapsed by a student with work at a page leave", () => {
+    start({}, { version: 1, input: { text: "my words" } });
+    graphReady();
+    paneToggle("Inspect").click();
+    leavePage();
+    firstPost().then(state => {
+      expect(state.useData.panes.inspect).to.equal(false);
+      expect(state.input.text).to.equal("my words");
+    });
+  });
+
+  it("holds a typed word's position, as drawn", () => {
+    start();
+    graphReady();
+    typeWord("ran");
+    shown().find("g.node").should("have.length", 5);
+    firstPost().then(state => {
+      expect(state.useData.positions).to.have.length(10);
+      stateEllipse("ran").then(ellipse => {
+        expect(state.useData.positions[8]).to.equal(Math.round(Number(ellipse.attr("cx"))));
+        expect(state.useData.positions[9]).to.equal(Math.round(Number(ellipse.attr("cy"))));
+      });
+    });
+  });
+
+  it("gives back at a page leave what a student who did nothing opened with, under a changed page", () => {
+    const saved = {
+      version: 1, input: { text: "my words" }, mode: "useData", probabilities: true,
+      useData: { panes: { inspect: false }, later: 1 },
+    };
+    start({ startingText: "a changed text", panes: { inspect: { available: false } } }, saved);
+    graphReady();
+    leavePage();
+    posts().should(states => expect(states).to.deep.equal([saved]));
+  });
+
+  it("keeps the saved input with no Input pane", () => {
+    start({ panes: { ...defaultAuthoredState.panes, input: { available: false, startsOpen: true } } },
+      { version: 1, input: { text: "my words" } });
+    graphReady();
+    shown().find(".probabilities-toggle").click();
+    firstPost().its("input.text").should("equal", "my words");
+  });
+
+  it("reopens a saved Data mode to the same state", () => {
+    start();
+    graphReady();
+    typeWord("ran");
+    playToTheEnd();
+    paneToggle("Inspect").click();
+    shown().find(".probabilities-toggle").click();
+    dragState("cat", 30, 20);
+    pastDebounce();
+    lastPost().then(saved => {
+      start({}, saved);
+      graphReady();
+      paneToggle("Input").click();
+      paneToggle("Input").click();
+      leavePage();
+      lastPost().should("deep.equal", saved);
+    });
+  });
+
+  it("reopens a saved drawing to the same state", () => {
+    startDrawing({ version: 1, mode: "draw", draw: { drawing } });
+    graphReady();
+    playToTheEnd();
+    pastDebounce();
+    lastPost().then(saved => {
+      startDrawing(saved);
+      graphReady();
+      paneToggle("Inspect").click();
+      paneToggle("Inspect").click();
+      leavePage();
+      lastPost().should("deep.equal", saved);
+    });
+  });
+
+  it("posts nothing while a sequence steps, and once when it is canceled", () => {
+    start();
+    graphReady();
+    shown().find(".probabilities-toggle").click();
+    firstPost();
+    shown().find(".generator-pane button").contains("Step").click();
+    shown().find(".probabilities-toggle").click();
+    pastDebounce();
+    posts().should("have.length", 1);
+    shown().find(".generator-pane button").contains("Cancel").click();
+    posts().should("have.length", 1);
+    cy.interactiveMessages("interactiveState", { timeout: 6000 }).should("have.length", 2);
+  });
+
+  it("saves a sequence as far as it got at a page leave", () => {
+    start();
+    graphReady();
+    shown().find(".generator-pane button").contains("Step").click();
+    shown().find(".generator-pane button").contains("Step").click();
+    shown().find(".sequence").should("have.length", 1).invoke("text").then(soFar => {
+      leavePage();
+      firstPost().its("useData.outputs.groups.0.sequences.0").should(sequence => {
+        expect(sequence).to.have.length(soFar.split(" ").length);
+      });
+    });
+  });
+
+  it("keeps the other states where they were when a word is typed after reopening", () => {
+    start({}, {
+      version: 1, input: { text: "a b c" }, caseSensitive: false, useData: { positions: [-90, 0, 0, 60, 90, 0] },
+    });
+    graphReady();
+    typeWord("d");
+    shown().find("g.node").should("have.length", 4);
+    stateEllipse("a").should("have.attr", "cx", "-90");
+    stateEllipse("b").should("have.attr", "cy", "60");
+    stateEllipse("c").should("have.attr", "cx", "90");
+    firstPost().its("useData.positions").should(positions => {
+      expect(positions.slice(0, 6)).to.deep.equal([-90, 0, 0, 60, 90, 0]);
+      expect(positions).to.have.length(8);
+    });
+  });
+
+  describe("posts once for", () => {
+    const withOutput = { version: 1, useData: { outputs: outputs([["the", "cat"]]) } };
+    const setting = (name: string) => shown().find(`.setting-switch:contains('${name}') [role='switch']`);
+    const drawn = { version: 1, mode: "draw", draw: { drawing } };
+
+    const oneArrow = {
+      version: 1, mode: "draw", draw: { drawing: { nodes: drawing.nodes, edges: [drawing.edges[0]] } },
+    };
+    const onStep = () => shown().find(".generator-pane button").contains("Step").click();
+
+    const moments: [string, () => void, () => void, (state: any) => void][] = [
+      ["the input's text at a commit", () => start(), () => typeWord("ran"),
+        state => expect(state.input.text).to.equal(`${startingText} ran`)],
+      ["a sequence finishing", () => start(), playToTheEnd, state => {
+        expect(state.useData.outputs.groups[0].sequences).to.have.length(1);
+        expect(state.useData.outputs.groups[0].sequences[0].length).to.be.greaterThan(1);
+      }],
+      ["a sequence canceled", () => start(), () => {
+        onStep();
+        shown().find(".generator-pane button").contains("Cancel").click();
+      }, state => expect(state.useData.outputs.groups[0].sequences).to.have.length(1)],
+      ["the output cleared", () => start({}, withOutput),
+        () => shown().find(".generator-pane button").contains("Clear Output").click(),
+        state => expect(state.useData).not.to.have.property("outputs")],
+      ["Max Length", () => start(), () => shown().find(".generate input[type='number']").clear().type("9{enter}"),
+        state => expect(state.useData.generator.lengthLimit).to.equal(9)],
+      ["the delimiter's type", () => start(), () => shown().find(".generate select").eq(1).select("none"),
+        state => expect(state.useData.generator).to.include({ delimiterType: "none", delimiter: "" })],
+      ["the starting state", () => start(), () => shown().find(".generate select").first().select("cat"),
+        state => expect(state.useData.generator.startingState).to.equal("cat")],
+      ["the speed", () => start(), () => shown().find(".speedToggle input").click(),
+        state => expect(state.useData.generator.fast).to.equal(true)],
+      ["Order matters", () => start(), () => setting("Order matters").click(),
+        state => expect(state.orderMatters).to.equal(false)],
+      ["Case sensitive", () => start(), () => setting("Case sensitive").click(),
+        state => expect(state.caseSensitive).to.equal(true)],
+      ["Show probabilities", () => start(), () => shown().find(".probabilities-toggle").click(),
+        state => expect(state.probabilities).to.equal(true)],
+      ["a Data-mode state dragged", () => start(), () => dragState("cat", 30, 20), state => {
+        stateEllipse("cat").then(ellipse => {
+          expect(state.useData.positions[2]).to.be.closeTo(Number(ellipse.attr("cx")), 1);
+        });
+      }],
+      ["a state added to a drawing", () => startDrawing(drawn), () => {
+        toolButton("Add State").click();
+        shown().find(".graph > svg").trigger("click", 60, 60);
+      }, state => expect(state.draw.drawing.nodes).to.have.length(3)],
+      ["an arrow added to a drawing", () => startDrawing(oneArrow), () => {
+        toolButton("Add Transition").click();
+        pastDoubleClick();
+        stateEllipse("Rain").trigger("click");
+        pastDoubleClick();
+        stateEllipse("Sun").trigger("click");
+      }, state => expect(state.draw.drawing.edges).to.have.length(2)],
+      ["a drawn state moved", () => startDrawing(drawn), () => dragState("Sun", 30, 20),
+        state => expect(state.draw.drawing.nodes[0].x).not.to.equal(drawing.nodes[0].x)],
+      ["a drawn state edited", () => startDrawing(drawn), () => {
+        pastDoubleClick();
+        stateEllipse("Sun").trigger("click").trigger("click");
+        shown().find(".nodeModal input[aria-label='State name']").should("have.value", "Sun").clear().type("Sky");
+        shown().find(".nodeModal button").contains("Save").click();
+      }, state => expect(state.draw.drawing.nodes[0].label).to.equal("Sky")],
+      ["a drawn state deleted", () => startDrawing(drawn), () => {
+        toolButton("Delete").click();
+        cy.wait(300);
+        stateEllipse("Sun").trigger("click");
+      }, state => expect(state.draw.drawing.nodes).to.have.length(1)],
+      ["an arrow deleted", () => startDrawing(oneArrow), () => {
+        toolButton("Delete").click();
+        shown().find("line.edge-background").trigger("click", { force: true });
+      }, state => expect(state.draw.drawing.edges).to.have.length(0)],
+      ["Reset", () => startDrawing(drawn), () => {
+        toolButton("Reset").click();
+        shown().find(".confirmModal button").contains("Ok").click();
+      }, state => expect(state.draw.drawing.nodes).to.have.length(0)],
+    ];
+
+    moments.forEach(([name, open, act, check]) => {
+      it(name, () => {
+        open();
+        graphReady();
+        cy.wait(300);
+        act();
+        firstPost();
+        pastDebounce();
+        posts().should("have.length", 1);
+        firstPost().then(check);
+      });
+    });
   });
 });

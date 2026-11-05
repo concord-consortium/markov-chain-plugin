@@ -82,11 +82,16 @@ const requestReportItemAnswer = (itemsType: ItemsType, platformUserId = "student
   });
 });
 
+// asks for the state, as the Activity Player does on leaving a page with { unloading: true }
+const requestInteractiveState = (requestOptions?: { unloading?: boolean }) =>
+  phone?.post("getInteractiveState", requestOptions);
+
 const fakeAp = {
   messages,
   errors,
   start,
   requestReportItemAnswer,
+  requestInteractiveState,
 };
 
 export type FakeAp = typeof fakeAp;

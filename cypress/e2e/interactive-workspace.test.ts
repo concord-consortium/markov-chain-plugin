@@ -23,6 +23,8 @@ const inspectRow = (label: string) => cy.interactive().find(".inspect-pane tbody
   .filter((i, tr) => (tr as HTMLTableRowElement).cells[0].textContent === label);
 const inspectTab = (label: string) => cy.interactive().find(".inspect-tab").contains(label);
 const newRow = () => cy.interactive().find("input[aria-label='New row']");
+const lastSavedInput = () => cy.interactiveMessages("interactiveState", { timeout: 5000 })
+  .should("not.be.empty").invoke("at", -1).its("input");
 const commits = () => loggedEvents().invoke("filter", ([action]: [string]) => action === "InputCommitted");
 // the text box's value replaced by text(value), in one input event of init's kind
 const inputText = (text: (value: string) => string, init: InputEventInit = {}) => textBox().then(box => {
@@ -157,8 +159,7 @@ describe("the interactive's workspace", () => {
   it("saves the input when it commits, and shows it when it opens again", () => {
     start({ startingText: "the cat" });
     textBox().type(" sat").blur({ force: true });
-    cy.interactiveMessages("interactiveState", { timeout: 5000 })
-      .should("deep.include", { version: 1, input: { text: "the cat sat" } });
+    lastSavedInput().should("deep.equal", { text: "the cat sat" });
     start({ startingText: "the cat" }, { interactiveState: { version: 1, input: { text: "the cat sat" } } });
     textBox().should("have.value", "the cat sat");
     stateLabels().should("deep.equal", ["cat", "sat", "the"]);
@@ -514,8 +515,7 @@ describe("the workspace's text box", () => {
     stateLabels().should("deep.equal", ["cat", "the"]);
     textBox().focus().then(box => (box[0] as HTMLTextAreaElement).setSelectionRange(4, 5));
     textBox().type("c").blur({ force: true });
-    cy.interactiveMessages("interactiveState", { timeout: 5000 })
-      .should("deep.include", { version: 1, input: { text: "the cat" } });
+    lastSavedInput().should("deep.equal", { text: "the cat" });
     commits().should("have.length", 0);
   });
 

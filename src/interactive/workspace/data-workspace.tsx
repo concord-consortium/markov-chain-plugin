@@ -17,7 +17,7 @@ import { InspectPane } from "./inspect-pane";
 import { RestoredMode } from "./restore-work";
 import { SettingLabel, SettingSwitch } from "./setting-switch";
 import { useClearGoneSelection, useEscape, useInspectChoices, useScrollToChoice } from "./use-mode-body";
-import { usePaneLayout } from "./use-pane-layout";
+import { ModeSaving, usePaneLayout } from "./use-pane-layout";
 import { DataWorkspaceConfig, WorkspacePaneId } from "./workspace-config";
 import { WorkspacePanes } from "./workspace-panes";
 
@@ -27,8 +27,7 @@ interface DataWorkspaceProps {
   capitalization: Capitalization;
   inputSplit: number;
   start: RestoredMode;
-  // saves the input; absent standalone
-  onSaveInput?: (text: string) => void;
+  saving: ModeSaving;
   host: MarkovHost;
   tool: MarkovToolApi;
   config: DataWorkspaceConfig;
@@ -58,13 +57,13 @@ const laidOutWhole = (before: string[], after: string[]) => {
 
 // Data mode's body: the authored panes around the student's input
 export const DataWorkspace = ({
-  text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, onSaveInput, host, tool, config,
+  text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, saving, host, tool, config,
   stacked, hidden, controls, probabilities, arrowWidths, orderMatters, onOrderMattersChange
 }: DataWorkspaceProps) => {
   const { inputView } = config;
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const layout = usePaneLayout(config, host, tool, stacked, hidden, start);
+  const layout = usePaneLayout(config, host, tool, stacked, hidden, start, saving);
   const {
     hasPane, controlsOpen, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized, top
   } = layout;
@@ -85,7 +84,7 @@ export const DataWorkspace = ({
     setCommitted({ text: nextText, tokens });
     if (nextText !== lastSavedRef.current) {
       lastSavedRef.current = nextText;
-      onSaveInput?.(nextText);
+      saving.requestSave();
     }
     if (sameValues(values, lastValuesRef.current)) {
       return undefined;
@@ -96,7 +95,7 @@ export const DataWorkspace = ({
     lastValuesRef.current = values;
     tool.handle.dataChanged(values, { fit: followRef.current });
     return tokens;
-  }, [tool.handle, onSaveInput, followRef]);
+  }, [tool.handle, saving, followRef]);
 
   const commit = useCallback((nextText: string, how: CommitHow, view: CommitView) => {
     const tokens = commitText(nextText, capitalization);
@@ -212,6 +211,11 @@ export const DataWorkspace = ({
   });
 
   const [inputSplit, setInputSplit] = useState(startSplit);
+  useEffect(() => {
+    saving.report.text = committed.text;
+    saving.report.capitalization = capitalization;
+    saving.report.inputSplit = inputSplit;
+  }, [saving, committed.text, capitalization, inputSplit]);
   const handleSplitResized = useCallback((split: number) =>
     host.log("PaneResized", { divider: "inputSplit", sizes: { inputSplit: split } }), [host]);
 
@@ -246,14 +250,15 @@ export const DataWorkspace = ({
           <GraphPane tool={tool} log={host.log} top={top} probabilities={probabilities} arrowWidths={arrowWidths}
             orderMatters={orderMatters}
             emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFit}
-            onResized={handleGraphResized} initialView={start.view}
+            onResized={handleGraphResized} initialView={start.view} saving={saving}
             onDoubleClickState={handleDoubleClickState} />
         );
       case "inspect":
         return (
           <InspectPane mode="useData" orderMatters={orderMatters} graph={tool.graph} selection={tool.selection}
             highlights={highlights} log={host.log}
-            onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} start={start.inspect} />
+            onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} start={start.inspect}
+            report={saving.report} />
         );
       case "generator":
         return <GeneratorPane tool={tool} controlsOpen={controlsOpen} onToggleControls={toggleControls} />;
