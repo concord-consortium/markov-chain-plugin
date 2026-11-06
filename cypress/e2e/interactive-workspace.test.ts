@@ -609,6 +609,40 @@ describe("the workspace's input table", () => {
     row(2).should("have.value", "sat");
   });
 
+  it("deletes a row pressed after letters were added to the front of its word", () => {
+    start({ startingText: "the cat sat" });
+    row(2).focus().type("{moveToStart}s");
+    cy.interactive().find("button[aria-label='Delete row 2']").then(button => mousePress(button[0]));
+    textBox().should("have.value", "the sat");
+loggedEvents().should("deep.include", ["TableRowDeleted", undefined]);
+  });
+
+  it("deletes only the row pressed when the words after it repeat its word", () => {
+    start({ startingText: "the the the" });
+    row(2).focus().type("{moveToStart}s");
+    cy.interactive().find("button[aria-label='Delete row 2']").then(button => mousePress(button[0]));
+    textBox().should("have.value", "the the");
+  });
+
+  it("keeps a row left unedited for a press on its delete button that ended without a click", () => {
+    start({ startingText: "the cat sat" });
+    // a press lands only once the frame is tall enough to show the button
+    cy.frameFitsInteractive();
+    row(2).focus();
+    cy.interactive().find("button[aria-label='Delete row 2']").then(button =>
+      pressEvents(button[0], ["pointerdown", "mousedown", "focus", 40, "pointerup", "mouseup"], "mouse"));
+    row(3).clear().type("ran").blur({ force: true });
+    textBox().should("have.value", "the cat ran");
+    loggedEvents().should(events => expect(events.map(([action]) => action)).not.to.include("TableRowDeleted"));
+  });
+
+  it("keeps the word below a blank row pressed when emptying the first row took that blank row too", () => {
+    start({ startingText: "the\n\ncat sat" });
+    row(1).clear();
+    cy.interactive().find("button[aria-label='Delete row 2']").then(button => mousePress(button[0]));
+    textBox().should("have.value", "cat sat");
+  });
+
   it("deletes the row pressed when an emptied row above it goes", () => {
     start({ startingText: "the cat sat" });
     row(1).clear();
@@ -734,6 +768,48 @@ describe("the workspace's input table", () => {
     row(3).then(input => mousePress(input[0]));
     focused().should("have.attr", "aria-label", "Row 2").and("have.value", "sat");
     stateEllipse("sat").should("have.attr", "fill", selectedNodeColor);
+  });
+
+  it("opens Enter's row in the place of an emptied first row", () => {
+    start({ startingText: "the cat sat" });
+    row(1).clear().type("{enter}");
+    focused().should("have.attr", "aria-label", "Row 1").and("have.value", "");
+    focused().should("have.attr", "tabindex", "0");
+    row(2).should("have.value", "cat").and("have.attr", "tabindex", "-1");
+    row(1).type("dog").blur({ force: true });
+    textBox().should("have.value", "dog cat sat");
+  });
+
+  it("opens Enter's row in the place of an emptied last row", () => {
+    start({ startingText: "the cat sat" });
+    row(3).clear().type("{enter}");
+    focused().should("have.attr", "aria-label", "Row 3").and("have.value", "");
+    row(2).should("have.value", "cat");
+    row(3).type("dog").blur({ force: true });
+    textBox().should("have.value", "the cat dog");
+  });
+
+  it("opens Enter's row below the blank line an emptied row joins", () => {
+    start({ startingText: "the\n\ncat sat" });
+    row(3).clear().type("{enter}");
+    focused().should("have.attr", "aria-label", "Row 3").and("have.value", "");
+    row(4).should("have.value", "sat");
+    row(3).type("dog").blur({ force: true });
+    textBox().should("have.value", "the\n\ndog sat");
+  });
+
+  it("opens Enter's row below an emptied row that stays as a blank line", () => {
+    start({ startingText: "the cat sat" });
+    row(2).clear().type("{enter}");
+    focused().should("have.attr", "aria-label", "Row 3").and("have.value", "");
+    row(4).should("have.value", "sat");
+  });
+
+  it("opens Enter's row below a blank row", () => {
+    start({ startingText: "the\n\ncat" });
+    row(2).focus().type("{enter}");
+    focused().should("have.attr", "aria-label", "Row 3").and("have.value", "");
+    row(4).should("have.value", "cat");
   });
 
   it("drops a row Enter opened if it is left empty", () => {

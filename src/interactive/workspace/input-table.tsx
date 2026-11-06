@@ -95,6 +95,7 @@ const InputTableRows = ({
   const [current, setCurrent] = useState<RowKey>({ kind: "row", index: 0 });
   // the focused row's value while it is edited
   const [draft, setDraft] = useState<{ row: RowKey, value: string }>();
+  // the token the row Enter opened is below, -1 for the top
   const [pendingAfter, setPendingAfter] = useState<number>();
   // counts the refused edits since the last one that went in, so each refusal is announced
   const [refusals, setRefusals] = useState(0);
@@ -108,7 +109,7 @@ const InputTableRows = ({
   const [moveTo, setMoveTo] = useState<{ at: number, target?: { before: string, start: number } }>();
   // the row a delete button is being pressed on, and its token's start in the text then, since leaving a row as the
   // press starts can commit an edit that moves the rows before the click
-  const pressedDelete = useRef<{ at: number, before: string, start: number, done?: boolean }>(undefined);
+  const pressedDelete = useRef<{ at: number, row: RowKey, before: string, start: number, done?: boolean }>(undefined);
   // the place and part to focus once a row above the focus is dropped
   const [refocus, setRefocus] = useState<{ at: number, part: "input" | "button" }>();
 
@@ -116,6 +117,9 @@ const InputTableRows = ({
     const row: RowKey[] = [{ kind: "row", index }];
     return pendingAfter === index ? [...row, { kind: "pending", after: index }] : row;
   });
+  if (pendingAfter === -1) {
+    rows.unshift({ kind: "pending", after: -1 });
+  }
   rows.push({ kind: "append" });
   // the row that takes Tab: the current one, or the first once that row is gone
   const tabRow = rows.find(row => sameRow(row, current)) ?? rows[0];
@@ -159,7 +163,7 @@ const InputTableRows = ({
       if (row.kind !== "row") {
         return;
       }
-      const pressed = { at, before: text, start: tokens[row.index].start };
+      const pressed = { at, row, before: text, start: tokens[row.index].start };
       pressedDelete.current = pressed;
       // forgotten as the press ends, or at once for a secondary button's, which no click follows
       afterPress(() => {
@@ -287,13 +291,18 @@ const InputTableRows = ({
 
   // A row left for a press on a delete button: when the row's edit moves the rows, the button pressed can be gone, or
   // show another row, before its click, so the row pressed is deleted with the edit, in one commit, and the click
-  // does nothing. The row pressed is found in the edited text; one the edit took in is deleted where it covers the
-  // edit, so an emptied word's blank line goes, and one with nothing left there is gone already. When the input's limit
-  // refuses the two together, the click deletes the row by itself.
+  // does nothing. A press on the edited row's own button deletes the row, edit and all. Another row pressed is found
+  // in the edited text, and one the edit took in is gone already. When the input's limit refuses the two together, the
+  // click deletes the row by itself.
   const commitLeftRow = (row: RowKey) => {
     const pressed = pressedDelete.current;
     if (!pressed) {
       commitRow(row);
+      return;
+    }
+    if (row.kind === "row" && sameRow(pressed.row, row) && valueOf(row) !== committedValue(row)) {
+      pressed.done = true;
+      handleDelete(row.index);
       return;
     }
     let foldedIn = false;
@@ -301,8 +310,7 @@ const InputTableRows = ({
     const deleteAfterEdit = (edited: string) => {
       const editedTokens = tokenize(edited, "asTyped");
       const { place, inside } = placeAfterEdit(pressed.before, edited, pressed.start);
-      const index = editedTokens.findIndex(token =>
-        inside ? token.start <= place && place < token.end : token.start === place);
+      const index = inside ? -1 : editedTokens.findIndex(token => token.start === place);
       foldedIn = true;
       deletedAt = index >= 0 ? index : undefined;
       return index >= 0 ? deleteRow(edited, editedTokens, index) : edited;
@@ -336,6 +344,10 @@ const InputTableRows = ({
     onFocusToken(row.kind === "row" ? tokens[row.index] : undefined);
   };
 
+  // how many tokens come before where the token at index starts, once its row is edited to value
+  const tokensBefore = (index: number, value: string) =>
+    tokenize(editRow(text, tokens, index, value), "asTyped").filter(token => token.start < tokens[index].start).length;
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, row: RowKey, at: number) => {
     // an input method's Enter confirms what it composed
     if (e.nativeEvent.isComposing) {
@@ -360,8 +372,16 @@ const InputTableRows = ({
         setPendingAfter(after);
         setFocusRequest({ kind: "pending", after });
       } else {
-        setPendingAfter(row.index);
-        setFocusRequest({ kind: "pending", after: row.index });
+        // the row commits first, so the new row opens among the rows as they will be; an emptied word's row can go, or
+        // join a blank line beside it, and the new row then opens where it was
+        const value = valueOf(row);
+        const emptied = tokens[row.index].kind === "word" && !rowText(value);
+        const after = emptied ? tokensBefore(row.index, value) - 1 : row.index;
+        commitRow(row);
+        setPendingAfter(after);
+        setFocusRequest({ kind: "pending", after });
+        // the new row can take the place of the focused one, and then no focus event follows
+        handleFocus({ kind: "pending", after });
       }
     }
   };

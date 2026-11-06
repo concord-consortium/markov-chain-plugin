@@ -53,7 +53,7 @@ export const editRow = (text: string, tokens: Token[], row: number, value: strin
     return write(text, token.start, token.end, textForRow(word));
   }
   // an emptied row is a blank line, which takes in the whitespace around the word; at either end of the input the
-  // tokenizer reads no break there, so the row goes
+  // tokenizer reads no break there, so the row goes, and the whitespace with it
   let start = token.start;
   let end = token.end;
   while (start > 0 && isWhitespace(text[start - 1])) {
@@ -61,6 +61,9 @@ export const editRow = (text: string, tokens: Token[], row: number, value: strin
   }
   while (end < text.length && isWhitespace(text[end])) {
     end++;
+  }
+  if (row === 0 || row === tokens.length - 1) {
+    return cut(text, start, end);
   }
   return text.slice(0, start) + "\n\n" + text.slice(end);
 };
