@@ -1,3 +1,4 @@
+import { minInputPart, minPaneSizes } from "../../src/interactive/workspace/pane-sizes";
 import { clickState, dragDivider, loggedEvents, stateLabels } from "../support/workspace";
 
 const width = 1044;
@@ -120,6 +121,17 @@ describe("the interactive's Upload CSV button", () => {
     start({ inputView: "table" });
     choose(words);
     tableValues().should("deep.equal", ["cat", "dog"]);
+  });
+
+  it("asks before replacing a word typed just before the press", () => {
+    start();
+    fileInput().then(input => {
+      cy.stub(input[0], "click");
+    });
+    textBox().type("mine");
+    uploadButton().click();
+    choose(words);
+    question().should("exist");
   });
 
   it("asks before replacing words, and Cancel leaves them", () => {
@@ -312,10 +324,20 @@ describe("the interactive's Upload CSV button", () => {
     status().should("contain.text", "Read 2 values");
   });
 
+  it("shares the switches' line where the pane is wide enough", () => {
+    start({}, { width: 600 });
+    cy.interactive().find(".setting-switches").then(switches => {
+      uploadButton().should(button => {
+        expect(box(button).top).to.be.lessThan(box(switches).bottom);
+        expect(box(button).bottom).to.be.greaterThan(box(switches).top);
+      });
+    });
+  });
+
   it("stays inside the Input pane at its narrowest", () => {
     start();
     dragDivider("Resize Input and Graph", -1000, 0);
-    cy.interactive().find(".input-pane").should(pane => expect(box(pane).width).to.equal(160));
+    cy.interactive().find(".input-pane").should(pane => expect(box(pane).width).to.equal(minPaneSizes.input));
     cy.interactive().find(".input-pane .pane-body").then(body => {
       uploadButton().should(button => expect(box(button).right).to.be.at.most(box(body).right));
     });
@@ -325,7 +347,7 @@ describe("the interactive's Upload CSV button", () => {
     start();
     choose(words);
     status().should("contain.text", "Read 2 values");
-    textBox().should(text => expect(box(text).height).to.be.at.least(60));
-    cy.interactive().find(".input-table").should(table => expect(box(table).height).to.be.at.least(60));
+    textBox().should(text => expect(box(text).height).to.be.at.least(minInputPart));
+    cy.interactive().find(".input-table").should(table => expect(box(table).height).to.be.at.least(minInputPart));
   });
 });

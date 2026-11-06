@@ -71,8 +71,7 @@ export const editRow = (text: string, tokens: Token[], row: number, value: strin
 // a row added to prose, or on a line of its own, which reads as a list; a single line break doesn't break the chain
 export type RowLayout = "prose" | "list";
 
-// what goes before a row's written text added after a word: a line break in a list, else a space, or nothing before
-// one of . , ? ! : ;
+// what goes before a row's written text after a word: a line break in a list, else a space, or none before punctuation
 export const separatorBefore = (written: string, layout: RowLayout) => {
   if (layout === "list") {
     return "\n";
