@@ -3,6 +3,7 @@
 
 $pane-border-color: #c7c7c7;
 $error-color: #b00020;
+$setting-gap: 4px 12px;
 
 @mixin button-off {
   cursor: default;
@@ -47,7 +48,7 @@ $error-color: #b00020;
   .setting-switches {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 12px;
+    gap: $setting-gap;
     min-width: 0;
   }
 
@@ -348,7 +349,7 @@ $error-color: #b00020;
       flex-wrap: wrap;
       align-items: center;
       align-self: flex-start;
-      gap: 4px 12px;
+      gap: $setting-gap;
       max-width: 100%;
     }
 
