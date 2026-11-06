@@ -12,13 +12,14 @@ const node = (id: string, label = id): Node => ({ id, label, value: 3 });
 const group = (sequences: Node[][], settings: Partial<SequenceGroup> = {}): SequenceGroup =>
   ({ delimiter: " ", lengthLimit: 5, startingState: "", startingNode: undefined, sequences, ...settings });
 
+const decodedGroups = (saved: SavedOutputs) => decodeOutputs(saved).sequenceGroups;
 const labels = (groups: SequenceGroup[]) => groups.map(g => g.sequences.map(s => s.map(n => n.label)));
 const ids = (groups: SequenceGroup[]) => groups.map(g => g.sequences.map(s => s.map(n => n.id)));
 
 describe("encodeOutputs and decodeOutputs", () => {
   it("gives back no groups for no groups", () => {
     expect(encodeOutputs([])).toEqual({ states: [], groups: [] });
-    expect(decodeOutputs({ states: [], groups: [] })).toEqual([]);
+    expect(decodedGroups({ states: [], groups: [] })).toEqual([]);
   });
 
   it("gives back the settings, labels and ids of two groups that share a state", () => {
@@ -30,7 +31,7 @@ describe("encodeOutputs and decodeOutputs", () => {
     const encoded = encodeOutputs(groups);
     expect(encoded.states).toEqual(["the", "cat", "dog"]);
     expect(encoded.groups[0].sequences).toEqual([[0, 1], [1, 0]]);
-    const decoded = decodeOutputs(encoded);
+    const decoded = decodedGroups(encoded);
     expect(labels(decoded)).toEqual(labels(groups));
     expect(decoded[0]).toMatchObject({ delimiter: "-", lengthLimit: 2, startingState: "the" });
     expect(decoded[0].startingNode?.label).toBe("the");
@@ -40,7 +41,7 @@ describe("encodeOutputs and decodeOutputs", () => {
   });
 
   it("keeps an orderMatters of true, which a new sequence compares to join the group", () => {
-    const decoded = decodeOutputs(encodeOutputs([group([[node("a")]], { orderMatters: true })]));
+    const decoded = decodedGroups(encodeOutputs([group([[node("a")]], { orderMatters: true })]));
     expect(decoded[0].orderMatters).toBe(true);
   });
 
@@ -48,7 +49,7 @@ describe("encodeOutputs and decodeOutputs", () => {
     const groups = [group([[node("n1", "State 1"), node("same")]])];
     const encoded = encodeOutputs(groups);
     expect(encoded.states).toEqual([["n1", "State 1"], "same"]);
-    const decoded = decodeOutputs(encoded);
+    const decoded = decodedGroups(encoded);
     expect(ids(decoded)).toEqual([[["n1", "same"]]]);
     expect(labels(decoded)).toEqual([[["State 1", "same"]]]);
   });
@@ -57,11 +58,11 @@ describe("encodeOutputs and decodeOutputs", () => {
     const groups = [group([[node("n1", "old")], [node("n1", "new")]])];
     const encoded = encodeOutputs(groups);
     expect(encoded.states).toEqual([["n1", "old"], ["n1", "new"]]);
-    expect(labels(decodeOutputs(encoded))).toEqual([[["old"], ["new"]]]);
+    expect(labels(decodedGroups(encoded))).toEqual([[["old"], ["new"]]]);
   });
 
   it("makes one node for each table entry", () => {
-    const [decoded] = decodeOutputs(encodeOutputs([group([[node("a"), node("a")]])]));
+    const [decoded] = decodedGroups(encodeOutputs([group([[node("a"), node("a")]])]));
     expect(decoded.sequences[0][0]).toBe(decoded.sequences[0][1]);
     expect(decoded.sequences[0][0].value).toBe(0);
   });
@@ -69,7 +70,7 @@ describe("encodeOutputs and decodeOutputs", () => {
   it("gives back the same outputs after a trip through JSON", () => {
     const groups = [group([[node("a")]], { startingState: "a", startingNode: node("a"), orderMatters: false })];
     const encoded = encodeOutputs(groups);
-    expect(decodeOutputs(JSON.parse(JSON.stringify(encoded)))).toEqual(decodeOutputs(encoded));
+    expect(decodedGroups(JSON.parse(JSON.stringify(encoded)))).toEqual(decodedGroups(encoded));
   });
 });
 
@@ -78,12 +79,12 @@ describe("decodeOutputs with damaged groups", () => {
 
   it("drops only the sequence with a place outside the table", () => {
     const saved: SavedOutputs = { states: ["a"], groups: [{ ...good, sequences: [[0], [0, 1], [-1], [0.5], [0, 0]] }] };
-    expect(labels(decodeOutputs(saved))).toEqual([[["a"], ["a", "a"]]]);
+    expect(labels(decodedGroups(saved))).toEqual([[["a"], ["a", "a"]]]);
   });
 
   it("drops a sequence or place of the wrong type, without taking a list's own fields for places", () => {
     const sequences = [[0], "a", ["length"]] as unknown as number[][];
-    expect(labels(decodeOutputs({ states: ["a"], groups: [{ ...good, sequences }] }))).toEqual([[["a"]]]);
+    expect(labels(decodedGroups({ states: ["a"], groups: [{ ...good, sequences }] }))).toEqual([[["a"]]]);
   });
 
   it("drops a group whose starting state is outside the table, or that isn't a group", () => {
@@ -91,7 +92,18 @@ describe("decodeOutputs with damaged groups", () => {
       { ...good, start: 4 }, "a", { ...good, lengthLimit: "5" }, { ...good, delimiter: 3 },
       { ...good, startingState: 3 }, { ...good, sequences: "a" }, { ...good, orderMatters: "yes" }, good,
     ] as SavedOutputs["groups"];
-    expect(decodeOutputs({ states: ["a"], groups })).toHaveLength(1);
+    expect(decodedGroups({ states: ["a"], groups })).toHaveLength(1);
+  });
+
+  it("keeps each group and sequence at its saved place when an earlier one is left out", () => {
+    const groups = [{ ...good, start: 4 }, { ...good, sequences: [[7], [0], [0, 0]] }];
+    const { sequenceGroups, places } = decodeOutputs({ states: ["a"], groups });
+    expect(sequenceGroups).toHaveLength(1);
+    expect(places[0]).toBeUndefined();
+    expect(places[1]?.group).toBe(sequenceGroups[0]);
+    expect(places[1]?.sequences[0]).toBeUndefined();
+    expect(places[1]?.sequences[1]).toBe(sequenceGroups[0].sequences[0]);
+    expect(places[1]?.sequences[2]).toBe(sequenceGroups[0].sequences[1]);
   });
 });
 

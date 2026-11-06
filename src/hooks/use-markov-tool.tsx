@@ -75,7 +75,7 @@ export interface MarkovToolStart {
 export const useMarkovTool = (host: MarkovHost, start?: MarkovToolStart): MarkovToolApi => {
   const { viewMode, orderMatters, stopAtNoValue, setViewMode, markDirty, outputSequence, log } = host;
   const startGenerator = {
-    lengthLimit: start?.generator?.lengthLimit ?? defaultLengthLimit,
+    lengthLimit: clampLengthLimit(start?.generator?.lengthLimit) ?? defaultLengthLimit,
     delimiter: start?.generator?.delimiter ?? defaultDelimiter,
     delimiterType: start?.generator?.delimiterType ?? defaultDelimiterType,
     startingState: start?.generator?.startingState ?? defaultStartingState,

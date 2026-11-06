@@ -1,6 +1,9 @@
+import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { defaultAuthoredState, readAuthoredState } from "../authored-state";
-import { copyState, MarkovInteractiveState, readInteractiveState } from "../interactive-state";
-import { buildInteractiveState, maxSavedPositions, ModeReport, StateParts, ToolParts } from "./build-state";
+import { copyState, MarkovInteractiveState, readInteractiveState, statesKey } from "../interactive-state";
+import {
+  buildInteractiveState, maxSavedPositions, ModeReport, StateParts, ToolParts, toolParts
+} from "./build-state";
 import { restoreWork } from "./restore-work";
 import { defaultPaneSizes } from "./pane-sizes";
 import { workspaceConfig } from "./workspace-config";
@@ -36,7 +39,8 @@ const report = (overrides: Partial<ModeReport> = {}): ModeReport => ({
 });
 
 const dataReport = (overrides: Partial<ModeReport> = {}) => report({
-  text: authoredText, capitalization: "lowercase", inputSplit: 0.4, arranged: [{ x: 1.4, y: 2.6 }, { x: 3, y: 4 }],
+  text: authoredText, capitalization: "lowercase", inputSplit: 0.4,
+  arranged: [{ id: "the", x: 1.4, y: 2.6 }, { id: "cat", x: 3, y: 4 }],
   ...overrides,
 });
 
@@ -95,22 +99,44 @@ describe("buildInteractiveState", () => {
   });
 
   it("rounds a state's position, reading a dragged state from its pin", () => {
-    const reports = { useData: dataReport({ arranged: [{ x: 1.4, y: 2.6, fx: 10.2, fy: 20.7 }, { x: 3, y: 4 }] }),
+    const arranged = [{ id: "the", x: 1.4, y: 2.6, fx: 10.2, fy: 20.7 }, { id: "cat", x: 3, y: 4 }];
+    const reports = { useData: dataReport({ arranged }),
       draw: report() };
     expect(build({ reports }).useData?.positions).toEqual([10, 21, 3, 4]);
     expect(build().useData?.positions).toEqual([1, 3, 3, 4]);
   });
 
+  it("saves which states the positions are for, from the states drawn", () => {
+    const arranged = [{ id: "cat", x: 1, y: 2 }, { id: "the", x: 3, y: 4 }];
+    const reports = { useData: dataReport({ arranged }), draw: report() };
+    expect(build({ reports }).useData?.positionsKey).toBe(statesKey(["cat", "the"]));
+  });
+
+  it("saves a Max Length the student left out of range at its nearest allowed value, and an empty one as empty", () => {
+    const lengthLimit = (limit: number | undefined) => toolParts({
+      graph: { nodes: [], edges: [] },
+      generatorProps: { lengthLimit: limit },
+      outputProps: { sequenceGroups: [] },
+      selection: undefined,
+    } as unknown as MarkovToolApi).generator.lengthLimit;
+    expect(lengthLimit(-3)).toBe(1);
+    expect(lengthLimit(0)).toBe(1);
+    expect(lengthLimit(7)).toBe(7);
+    expect(lengthLimit(undefined)).toBeUndefined();
+  });
+
   it("leaves out positions past the most it saves, and for a mode with no graph", () => {
-    const arranged = (count: number) => Array.from({ length: count }, () => ({ x: 1, y: 2 }));
+    const arranged = (count: number) => Array.from({ length: count }, (_, i) => ({ id: `s${i}`, x: 1, y: 2 }));
     const withStates = (count: number) => build({
       reports: { useData: dataReport({ arranged: arranged(count) }), draw: report() }
     }).useData?.positions;
     expect(withStates(maxSavedPositions)).toHaveLength(2 * maxSavedPositions);
     expect(withStates(maxSavedPositions + 1)).toBeUndefined();
     const reports = { useData: dataReport({ arranged: undefined }), draw: report() };
-    expect(asSaved(build({ reports }, { version: 1, useData: { positions: [1, 2] } })).useData)
-      .not.toHaveProperty("positions");
+    const previous: MarkovInteractiveState = { version: 1, useData: { positions: [1, 2], positionsKey: "old" } };
+    const { useData } = asSaved(build({ reports }, previous));
+    expect(useData).not.toHaveProperty("positions");
+    expect(useData).not.toHaveProperty("positionsKey");
   });
 
   it("rounds a drawing's states to whole numbers and leaves an unplaced one so", () => {
@@ -193,7 +219,7 @@ describe("reading what buildInteractiveState builds", () => {
       reports: {
         useData: dataReport({
           text: "the cat ran", capitalization: "asTyped", inputSplit: 0.25, inspect,
-          arranged: [{ x: 1, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 6 }],
+          arranged: [{ id: "the", x: 1, y: 2 }, { id: "cat", x: 3, y: 4 }, { id: "ran", x: 5, y: 6 }],
           layout: { open, controlsOpen: false, sizes: { input: 300, inspect: 240, top: 250 } },
         }),
         draw: report({ following: () => false, view }),
@@ -214,6 +240,13 @@ describe("reading what buildInteractiveState builds", () => {
     expect(work.draw.tool.graph).toEqual(drawn);
     expect(work.draw.tool.selection).toEqual({ kind: "transition", from: "n", to: "n" });
     expect(work.draw.view).toEqual(view);
+  });
+
+  it("lays out afresh when the starting text changes to other states of the same number", () => {
+    const nodes = (startingText: string) =>
+      reopen(build(), { ...authoredState, startingText }).useData.tool.graph?.nodes;
+    expect(nodes("the cat")?.map(({ x, y }) => [x, y])).toEqual([[1, 3], [3, 4]]);
+    expect(nodes("a dog")?.map(({ x, y }) => [x, y])).toEqual([[undefined, undefined], [undefined, undefined]]);
   });
 
   it("reads a changed starting text for an input the student never edited", () => {

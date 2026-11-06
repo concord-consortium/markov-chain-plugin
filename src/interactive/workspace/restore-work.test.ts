@@ -1,6 +1,6 @@
 import { Node } from "../../type";
 import { defaultAuthoredState, MarkovAuthoredState, readAuthoredState } from "../authored-state";
-import { MarkovInteractiveState, SavedMode } from "../interactive-state";
+import { MarkovInteractiveState, SavedMode, statesKey } from "../interactive-state";
 import { encodeOutputs } from "../saved-outputs";
 import { defaultInputSplit, defaultPaneSizes, maxRowHeight, minPaneSizes } from "./pane-sizes";
 import { restoreWork } from "./restore-work";
@@ -175,6 +175,24 @@ describe("restoreWork's positions", () => {
     expect(nodes({}, {})).toEqual([undefined, undefined]);
     expect(nodes({ caseSensitive: true }, {})).toEqual([1, 2]);
   });
+
+  it("refuses positions saved for other states of the same number", () => {
+    const useData = { positions: [1, 2, 3, 4], positionsKey: statesKey(["x", "y"]) };
+    const work = restore({ input, caseSensitive: false, useData });
+    expect(xy(work.useData.tool.graph?.nodes)).toEqual([[undefined, undefined], [undefined, undefined]]);
+  });
+
+  it("refuses positions saved for the same states in another order", () => {
+    const useData = { positions: [1, 2, 3, 4], positionsKey: statesKey(["b", "a"]) };
+    const work = restore({ input, caseSensitive: false, useData });
+    expect(xy(work.useData.tool.graph?.nodes)).toEqual([[undefined, undefined], [undefined, undefined]]);
+  });
+
+  it("places positions saved for these states", () => {
+    const useData = { positions: [1, 2, 3, 4], positionsKey: statesKey(["a", "b"]) };
+    const work = restore({ input, caseSensitive: false, useData });
+    expect(xy(work.useData.tool.graph?.nodes)).toEqual([[1, 2], [3, 4]]);
+  });
 });
 
 describe("restoreWork's view", () => {
@@ -249,6 +267,31 @@ describe("restoreWork's outputs and selection", () => {
     const { selection, sequenceGroups } = restore({ input, useData }).useData.tool;
     expect(selection?.kind === "output" && selection.group).toBe(sequenceGroups?.[0]);
     expect(selection?.kind === "output" && selection.sequence).toBe(sequenceGroups?.[0].sequences[1]);
+  });
+
+  it("follows a chosen output past a damaged group or sequence before it", () => {
+    const saved = outputs(["a"], ["b"], ["a", "b"]);
+    const [good] = saved.groups;
+    const damaged = { ...good, start: 99 };
+    const useData: SavedMode = {
+      outputs: { ...saved, groups: [damaged, { ...good, sequences: [[99], ...good.sequences] }] },
+      selection: { kind: "output", group: 1, sequence: 2 },
+    };
+    const { selection, sequenceGroups } = restore({ useData }).useData.tool;
+    expect(selection?.kind === "output" && selection.group).toBe(sequenceGroups?.[0]);
+    expect(selection?.kind === "output" && selection.sequence).toBe(sequenceGroups?.[0].sequences[1]);
+    expect(selection?.kind === "output" && selection.sequence.map(({ label }) => label)).toEqual(["b"]);
+  });
+
+  it("drops a chosen output that was left out, rather than choosing the next one", () => {
+    const saved = outputs(["a"], ["b"]);
+    const [good] = saved.groups;
+    const damagedGroup = { ...saved, groups: [{ ...good, start: 99 }, good] };
+    expect(restore({ useData: { outputs: damagedGroup, selection: { kind: "output", group: 0, sequence: 0 } } })
+      .useData.tool.selection).toBeUndefined();
+    const damagedSequence = { ...saved, groups: [{ ...good, sequences: [[99], ...good.sequences] }] };
+    expect(restore({ useData: { outputs: damagedSequence, selection: { kind: "output", group: 0, sequence: 0 } } })
+      .useData.tool.selection).toBeUndefined();
   });
 
   it("drops a chosen output that doesn't exist", () => {

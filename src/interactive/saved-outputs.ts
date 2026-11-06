@@ -58,24 +58,37 @@ const isSavedGroup = (value: unknown): value is SavedOutputs["groups"][number] =
   typeof value.startingState === "string" && Array.isArray(value.sequences) &&
   (value.orderMatters === undefined || typeof value.orderMatters === "boolean");
 
+export interface DecodedOutputs {
+  sequenceGroups: SequenceGroup[];
+  // by each group's and sequence's saved place, which leaving one out doesn't move
+  places: ({ group: SequenceGroup, sequences: (Node[] | undefined)[] } | undefined)[];
+}
+
 // nodes carry no value, which nothing reads from a sequence once it is generated; a group or sequence that names a
 // place outside the table is left out
-export const decodeOutputs = ({ states, groups }: SavedOutputs): SequenceGroup[] => {
+export const decodeOutputs = ({ states, groups }: SavedOutputs): DecodedOutputs => {
   const nodes = states.map<Node>(state => typeof state === "string"
     ? { id: state, label: state, value: 0 }
     : { id: state[0], label: state[1], value: 0 });
   const nodeAt = (place: unknown) => Number.isInteger(place) ? nodes[place as number] : undefined;
-  const decoded: SequenceGroup[] = [];
-  groups.filter(isSavedGroup).forEach(({ delimiter, lengthLimit, startingState, start, orderMatters, sequences }) => {
-    const startingNode = nodeAt(start);
-    if (start === undefined || startingNode) {
-      decoded.push({
-        delimiter, lengthLimit, startingState, startingNode, orderMatters,
-        sequences: sequences
-          .filter(sequence => Array.isArray(sequence) && sequence.every(nodeAt))
-          .map(sequence => sequence.map(place => nodes[place])),
-      });
+  const places = groups.map(saved => {
+    if (!isSavedGroup(saved)) {
+      return undefined;
     }
+    const { delimiter, lengthLimit, startingState, start, orderMatters } = saved;
+    const startingNode = nodeAt(start);
+    if (start !== undefined && !startingNode) {
+      return undefined;
+    }
+    const sequences = saved.sequences.map(sequence => Array.isArray(sequence) && sequence.every(nodeAt)
+      ? sequence.map(place => nodes[place])
+      : undefined);
+    const group: SequenceGroup = {
+      delimiter, lengthLimit, startingState, startingNode, orderMatters,
+      sequences: sequences.filter((sequence): sequence is Node[] => sequence !== undefined),
+    };
+    return { group, sequences };
   });
-  return decoded;
+  const sequenceGroups = places.map(place => place?.group).filter((group): group is SequenceGroup => !!group);
+  return { sequenceGroups, places };
 };

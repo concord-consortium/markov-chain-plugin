@@ -3,8 +3,8 @@ import { GraphData } from "../../type";
 import { graphFromValues } from "../../utils/chain-graph";
 import { Capitalization, capitalizationFor, MarkovAuthoredState, ModeId } from "../authored-state";
 import { tokenize, tokensToValues } from "../input/tokenizer";
-import { MarkovInteractiveState, SavedMode, SavedSelection, SavedView } from "../interactive-state";
-import { decodeOutputs } from "../saved-outputs";
+import { MarkovInteractiveState, SavedMode, SavedSelection, SavedView, statesKey } from "../interactive-state";
+import { decodeOutputs, DecodedOutputs } from "../saved-outputs";
 import { clamp, defaultInputSplit, defaultPaneSizes, maxRowHeight, minPaneSizes, PaneSizes } from "./pane-sizes";
 import { DataWorkspaceConfig, DrawWorkspaceConfig, WorkspaceConfig } from "./workspace-config";
 
@@ -36,7 +36,7 @@ const restoredSizes = (sizes: SavedMode["sizes"]): PaneSizes => ({
 });
 
 const restoredSelection = (saved: SavedSelection | undefined, graph: GraphData, orderMatters: boolean,
-  groups: NonNullable<MarkovToolStart["sequenceGroups"]>): MarkovToolStart["selection"] => {
+  places: DecodedOutputs["places"]): MarkovToolStart["selection"] => {
   switch (saved?.kind) {
     case "state":
       return graph.nodes.some(node => node.id === saved.id) ? saved : undefined;
@@ -44,16 +44,18 @@ const restoredSelection = (saved: SavedSelection | undefined, graph: GraphData, 
       return orderMatters && graph.edges.some(edge => edge.from === saved.from && edge.to === saved.to)
         ? saved : undefined;
     case "output": {
-      const group = groups[saved.group];
-      const sequence = group?.sequences[saved.sequence];
-      return sequence && { kind: "output", group, sequence };
+      const place = places[saved.group];
+      const sequence = place?.sequences[saved.sequence];
+      return place && sequence && { kind: "output", group: place.group, sequence };
     }
   }
 };
 
+const noOutputs: DecodedOutputs = { sequenceGroups: [], places: [] };
+
 const restoredMode = (saved: SavedMode | undefined, config: WorkspaceConfig, graph: GraphData, orderMatters: boolean,
   view: SavedView | undefined): RestoredMode => {
-  const sequenceGroups = saved?.outputs ? decodeOutputs(saved.outputs) : [];
+  const { sequenceGroups, places } = saved?.outputs ? decodeOutputs(saved.outputs) : noOutputs;
   const startingState = saved?.generator?.startingState;
   return {
     tool: {
@@ -63,7 +65,7 @@ const restoredMode = (saved: SavedMode | undefined, config: WorkspaceConfig, gra
         ...saved?.generator,
         startingState: graph.nodes.some(node => node.id === startingState) ? startingState : undefined,
       },
-      selection: restoredSelection(saved?.selection, graph, orderMatters, sequenceGroups),
+      selection: restoredSelection(saved?.selection, graph, orderMatters, places),
     },
     panes: Object.fromEntries(config.panes.map(({ id, startsOpen }) =>
       [id, (config.mode === "draw" && id === "graph") || (saved?.panes?.[id] ?? startsOpen)])),
@@ -93,8 +95,9 @@ export const restoreWork = (saved: MarkovInteractiveState, authoredState: Markov
   const text = hasInputPane ? saved.input?.text ?? authoredState.startingText : authoredState.startingText;
   const values = tokensToValues(tokenize(text, capitalization));
   const graph = graphFromValues(values);
-  const positions = saved.useData?.positions;
-  if (positions?.length === 2 * graph.nodes.length && savedCapitalization === capitalization) {
+  const { positions, positionsKey } = saved.useData ?? {};
+  const sameStates = positionsKey === undefined || positionsKey === statesKey(graph.nodes.map(({ id }) => id));
+  if (positions?.length === 2 * graph.nodes.length && savedCapitalization === capitalization && sameStates) {
     graph.nodes.forEach((node, index) => {
       node.x = positions[2 * index];
       node.y = positions[2 * index + 1];

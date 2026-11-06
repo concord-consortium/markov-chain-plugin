@@ -492,6 +492,14 @@ describe("useMarkovTool's start", () => {
       .toMatchObject(expected);
   });
 
+  it("starts a Max Length that's out of range at its nearest allowed value, and logs nothing for committing it", () => {
+    const host = recordingHost("drawing");
+    const tool = startedTool({ generator: { lengthLimit: -3 } }, host);
+    expect(tool.current.generatorProps.lengthLimit).toBe(1);
+    act(() => tool.current.generatorProps.onLengthLimitCommit());
+    expect(host.log).not.toHaveBeenCalled();
+  });
+
   // the mode body's rule, which would clear a choice whose graph arrived after the first render
   const clearingTool = (start: MarkovToolStart) => renderHook(() => {
     const tool = useMarkovTool(recordingHost("drawing"), start);

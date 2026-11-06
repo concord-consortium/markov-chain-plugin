@@ -1,8 +1,11 @@
+import { clampLengthLimit } from "../../components/app-utils";
 import { Selection } from "../../components/host";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { GraphData, SequenceGroup } from "../../type";
 import { Capitalization, ModeId } from "../authored-state";
-import { MarkovInteractiveState, SavedGenerator, SavedMode, SavedSelection, SavedView } from "../interactive-state";
+import {
+  MarkovInteractiveState, SavedGenerator, SavedMode, SavedSelection, SavedView, statesKey
+} from "../interactive-state";
 import { encodeOutputs } from "../saved-outputs";
 import { PaneSizes } from "./pane-sizes";
 
@@ -20,7 +23,7 @@ export interface ModeReport {
   capitalization?: Capitalization;
   inputSplit?: number;
   // the states as last drawn, which dragging moves
-  arranged?: { x?: number, y?: number, fx?: number | null, fy?: number | null }[];
+  arranged?: { id: string, x?: number, y?: number, fx?: number | null, fy?: number | null }[];
 }
 
 export interface ToolParts {
@@ -33,7 +36,7 @@ export interface ToolParts {
 export const toolParts = ({ graph, generatorProps, outputProps, selection }: MarkovToolApi): ToolParts => ({
   graph,
   generator: {
-    startingState: generatorProps.startingState, lengthLimit: generatorProps.lengthLimit,
+    startingState: generatorProps.startingState, lengthLimit: clampLengthLimit(generatorProps.lengthLimit),
     delimiter: generatorProps.delimiter, delimiterType: generatorProps.delimiterType,
     fast: generatorProps.fastSimulation,
   },
@@ -83,9 +86,12 @@ const modeFields = (tool: ToolParts, report: ModeReport, showing: boolean): Save
 };
 
 const savedPositions = (arranged: ModeReport["arranged"]) => !arranged || arranged.length > maxSavedPositions
-  ? undefined
-  // a dragged state's x trails its pin until the next tick
-  : arranged.flatMap(({ x, y, fx, fy }) => [Math.round(fx ?? x ?? 0), Math.round(fy ?? y ?? 0)]);
+  ? { positions: undefined, positionsKey: undefined }
+  : {
+    // a dragged state's x trails its pin until the next tick
+    positions: arranged.flatMap(({ x, y, fx, fy }) => [Math.round(fx ?? x ?? 0), Math.round(fy ?? y ?? 0)]),
+    positionsKey: statesKey(arranged.map(({ id }) => id)),
+  };
 
 export const savedDrawing = ({ nodes, edges }: GraphData): GraphData => ({
   nodes: nodes.map(node => ({ ...node, x: whole(node.x), y: whole(node.y) })), edges,
@@ -107,7 +113,7 @@ export const buildInteractiveState = (previous: MarkovInteractiveState, parts: S
     ...(offered.useData ? {
       useData: {
         ...previous.useData, ...modeFields(tools.useData, reports.useData, mode === "useData"),
-        inputSplit, positions: savedPositions(arranged),
+        inputSplit, ...savedPositions(arranged),
       }
     } : {}),
     ...(offered.draw ? {

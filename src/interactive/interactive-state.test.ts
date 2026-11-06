@@ -1,4 +1,4 @@
-import { copyState, MarkovInteractiveState, readInteractiveState } from "./interactive-state";
+import { copyState, MarkovInteractiveState, readInteractiveState, statesKey } from "./interactive-state";
 import { maxDelimiterLength } from "./saved-outputs";
 import { inspectColumns } from "./workspace/inspect-rows";
 
@@ -31,7 +31,7 @@ const fullState = {
   probabilities: true,
   orderMatters: false,
   caseSensitive: true,
-  useData: { ...savedMode, inputSplit: 0.3, positions: [1, 2, 3, 4] },
+  useData: { ...savedMode, inputSplit: 0.3, positions: [1, 2, 3, 4], positionsKey: "abc" },
   draw: {
     ...savedMode,
     selection: { kind: "output", group: 0, sequence: 0 },
@@ -59,6 +59,16 @@ const withoutField = (path: string[]) => {
   delete parent[key];
   return state;
 };
+
+describe("statesKey", () => {
+  it("is the same for the same states in the same order, and differs otherwise", () => {
+    expect(statesKey(["a", "b"])).toBe(statesKey(["a", "b"]));
+    expect(statesKey(["a", "b"])).not.toBe(statesKey(["b", "a"]));
+    expect(statesKey(["a", "b"])).not.toBe(statesKey(["a", "c"]));
+    expect(statesKey(["a b"])).not.toBe(statesKey(["a", "b"]));
+    expect(statesKey(["Aa"])).not.toBe(statesKey(["BB"]));
+  });
+});
 
 describe("readInteractiveState", () => {
   it("reads nothing, and a string that doesn't parse, as the version alone", () => {
@@ -105,6 +115,7 @@ describe("readInteractiveState", () => {
     [["useData", "positions"], [1, 2, 3]],
     [["useData", "positions"], [1, "2"]],
     [["useData", "positions"], [1, null]],
+    [["useData", "positionsKey"], 3],
     [["useData", "panes"], true],
     [["useData", "panes", "input"], "open"],
     [["useData", "panes", "graph"], "open"],

@@ -46,9 +46,20 @@ export interface MarkovInteractiveState {
   probabilities?: boolean;
   orderMatters?: boolean;
   caseSensitive?: boolean;
-  useData?: SavedMode & { inputSplit?: number, positions?: number[] };
+  // positionsKey is statesKey of the states the positions were saved for
+  useData?: SavedMode & { inputSplit?: number, positions?: number[], positionsKey?: string };
   draw?: SavedMode & { drawing?: GraphData };
 }
+
+// a short hash of the ids in order, which tells a list of states from another of the same length
+export const statesKey = (ids: string[]) => {
+  const text = JSON.stringify(ids);
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = (hash * 1000003 + text.charCodeAt(i)) % 4294967291;
+  }
+  return hash.toString(36);
+};
 
 type Fields = Record<string, unknown>;
 type Check = (value: unknown) => boolean;
@@ -144,7 +155,7 @@ export const readInteractiveState = (raw: unknown): MarkovInteractiveState => {
   });
   readRecord(state, "useData", useData => {
     readMode(useData);
-    keepValid(useData, { inputSplit: isNumber, positions: isPositions });
+    keepValid(useData, { inputSplit: isNumber, positions: isPositions, positionsKey: isString });
   });
   readRecord(state, "draw", draw => {
     readMode(draw);

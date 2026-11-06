@@ -572,6 +572,43 @@ describe("saving work", () => {
     });
   });
 
+  it("reopens positions on their states, and lays out afresh a page with other states of the same number", () => {
+    start({ startingText: "the cat sat" });
+    graphReady();
+    dragState("cat", 30, 20);
+    leavePage();
+    lastPost().then(saved => {
+      expect(saved).not.to.have.property("input");
+      const [x, y] = saved.useData.positions.slice(2, 4);
+      start({ startingText: "the cat sat" }, saved);
+      graphReady();
+      stateEllipse("cat").then(cat => {
+        expect(Math.round(Number(cat.attr("cx")))).to.equal(x);
+        expect(Math.round(Number(cat.attr("cy")))).to.equal(y);
+      });
+      start({ startingText: "a dog ran" }, saved);
+      graphReady();
+      stateEllipse("dog").then(dog => {
+        expect([Math.round(Number(dog.attr("cx"))), Math.round(Number(dog.attr("cy")))]).not.to.deep.equal([x, y]);
+      });
+    });
+  });
+
+  it("saves a Max Length left out of range at a page leave as its nearest allowed value", () => {
+    const maxLength = () => shown().find(".generate input[type='number']");
+    start();
+    graphReady();
+    paneToggle("Inspect").click();
+    maxLength().clear().type("-3");
+    leavePage();
+    lastPost().then(saved => {
+      expect(saved.useData.generator.lengthLimit).to.equal(1);
+      start({}, saved);
+      graphReady();
+      maxLength().should("have.value", "1");
+    });
+  });
+
   it("reopens a saved drawing to the same state", () => {
     startDrawing({ version: 1, mode: "draw", draw: { drawing } });
     graphReady();
@@ -611,7 +648,7 @@ describe("saving work", () => {
       expect(words).to.have.length.within(2, 4);
       leavePage();
       firstPost().its("useData.outputs").should(saved => {
-        expect(decodeOutputs(saved)[0].sequences[0].map(state => state.label)).to.deep.equal(words);
+        expect(decodeOutputs(saved).sequenceGroups[0].sequences[0].map(state => state.label)).to.deep.equal(words);
       });
     });
   });
