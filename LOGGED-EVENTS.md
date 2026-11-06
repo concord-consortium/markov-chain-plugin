@@ -68,3 +68,13 @@ A state is named by its label. The generator's settings, which several events ca
 | `ModeSwitched` | `{ mode }` | The student switches between Data and Draw; `mode` is the mode switched to |
 | `ProbabilitiesToggled` | `{ on }` | The student presses "Show probabilities" |
 | `OrderMattersToggled` | `{ on }` | The student changes the "Order matters" switch |
+
+## Tables
+
+`action` is `send` or `download`, the button pressed. `tables` is the table words chosen: `Input`, `States`, `Transitions` and `Outputs`.
+
+| Event | Parameters | When |
+|-------|-----------|------|
+| `TablesDialogOpened` | `{ action }` | The student presses Download tables, and the popup opens |
+| `TablesDialogCanceled` | `{ action }` | The student closes the popup with Cancel or Escape |
+| `TablesDownloaded` | `{ name, tables }` | The popup's files have all started downloading; `name` is the name the student chose |

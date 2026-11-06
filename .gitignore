@@ -11,3 +11,4 @@ top-test
 .idea
 
 cypress/screenshots
+cypress/downloads

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { useLatest } from "../../hooks/use-latest";
-import { MarkovToolApi, useMarkovTool } from "../../hooks/use-markov-tool";
+import { useMarkovTool } from "../../hooks/use-markov-tool";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import {
   animatedNodeColor, incomingArrowColor, outgoingArrowColor, selectedNodeColor
@@ -22,8 +22,8 @@ import {
   stackBelow, toolbarButton, toolbarGap
 } from "./pane-sizes";
 import { restoreWork } from "./restore-work";
-import { TableButtons, TablesAction } from "./table-buttons";
 import { Saver, useSavedWork, useSaveRequest } from "./use-saved-work";
+import { useTableActions } from "./use-table-actions";
 import { workspaceConfig } from "./workspace-config";
 
 import "./workspace.scss";
@@ -49,16 +49,6 @@ const cssValues = {
   "--highlight-in": incomingArrowColor, "--highlight-out": outgoingArrowColor,
 } as React.CSSProperties;
 
-const tablesOffReason = (tool: MarkovToolApi, mode: ModeId) => {
-  if (tool.animating) {
-    return "Wait for the sequence to finish.";
-  }
-  if (tool.graph.nodes.length > 0) {
-    return undefined;
-  }
-  return mode === "draw" ? "Draw something first." : "Add some words first.";
-};
-
 // The student's workspace: one tool per mode, each mode's body staying mounted, hidden while the other shows, so each
 // keeps its work
 export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }: WorkspaceProps) => {
@@ -69,7 +59,7 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
   const [mode, setMode] = useState<ModeId>(restored.mode);
   const [probabilities, setProbabilities] = useState(restored.probabilities);
   const [orderMatters, setOrderMatters] = useState(restored.orderMatters);
-  const [tablesSaved] = useState<Record<ModeId, number>>(
+  const [tablesSaved, setTablesSaved] = useState<Record<ModeId, number>>(
     { useData: restored.useData.tablesSaved, draw: restored.draw.tablesSaved });
   // arrows keep their probability widths whether or not probabilities are shown
   const arrowWidths: ArrowWidths = "byState";
@@ -156,9 +146,10 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
     </>
   );
 
-  const tablesActions: TablesAction[] = configs[mode].downloadTables && !readOnly ? ["download"] : [];
-  const actions = tablesActions.length > 0 &&
-    <TableButtons actions={tablesActions} offReason={tablesOffReason(tools[mode], mode)} onPress={() => undefined} />;
+  const { actions, dialog } = useTableActions({
+    mode, configs, tools, hosts, orderMatters, reports: reportsRef, tablesSaved, readOnly,
+    onTablesSaved: savedMode => setTablesSaved(counts => ({ ...counts, [savedMode]: counts[savedMode] + 1 })),
+  });
 
   return (
     <div className={clsx("markov-workspace", { stacked })} style={cssValues} ref={rootRef}>
@@ -176,6 +167,7 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
           arrowWidths={arrowWidths} start={restored.draw} saving={saving.draw} limitReached={limitReached}
           readOnly={readOnly} />
       }
+      { dialog }
     </div>
   );
 };

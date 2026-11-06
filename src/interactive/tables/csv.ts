@@ -1,8 +1,8 @@
+import { fileGap } from "./file-gap";
 import { Cell, TableData } from "./table-data";
 
 const byteOrderMark = "\uFEFF";
 const lineEnd = "\r\n";
-const fileGap = 200;
 const urlLifetime = 60000;
 
 const csvCell = (cell: Cell) => {
