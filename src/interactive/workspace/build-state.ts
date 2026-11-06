@@ -53,6 +53,7 @@ export interface StateParts {
   orderMatters: boolean;
   tools: Record<ModeId, ToolParts>;
   reports: Record<ModeId, ModeReport>;
+  tablesSaved: Record<ModeId, number>;
 }
 
 export const toPlaces = (value: number, places: number) => Math.round(value * 10 ** places) / 10 ** places;
@@ -68,7 +69,7 @@ const savedSelection = (selection: Selection, groups: SequenceGroup[]): SavedSel
 };
 
 // every field the builder owns is named, as undefined when there is none, so it replaces what the state held before
-const modeFields = (tool: ToolParts, report: ModeReport, showing: boolean): SavedMode => {
+const modeFields = (tool: ToolParts, report: ModeReport, showing: boolean, tablesSaved: number): SavedMode => {
   const following = report.following?.() ?? true;
   const { sequenceGroups, generator, selection } = tool;
   return {
@@ -82,6 +83,8 @@ const modeFields = (tool: ToolParts, report: ModeReport, showing: boolean): Save
     view: showing && !following && report.view
       ? { x: toPlaces(report.view.x, 2), y: toPlaces(report.view.y, 2), k: toPlaces(report.view.k, 4) }
       : undefined,
+    // undefined at 0, so an untouched state stays as it opened
+    tablesSaved: tablesSaved || undefined,
   };
 };
 
@@ -101,7 +104,7 @@ export const savedDrawing = ({ nodes, edges }: GraphData): GraphData => ({
 // Activity Player sees as unchanged. previous is the state read at open, which keeps what this page can't show and
 // fields this version doesn't know.
 export const buildInteractiveState = (previous: MarkovInteractiveState, parts: StateParts): MarkovInteractiveState => {
-  const { offered, hasInputPane, authoredText, mode, probabilities, orderMatters, tools, reports } = parts;
+  const { offered, hasInputPane, authoredText, mode, probabilities, orderMatters, tools, reports, tablesSaved } = parts;
   const { text, capitalization, inputSplit, arranged } = reports.useData;
   return {
     ...previous,
@@ -112,13 +115,13 @@ export const buildInteractiveState = (previous: MarkovInteractiveState, parts: S
     ...(offered.useData ? { orderMatters, caseSensitive: capitalization === "asTyped" } : {}),
     ...(offered.useData ? {
       useData: {
-        ...previous.useData, ...modeFields(tools.useData, reports.useData, mode === "useData"),
+        ...previous.useData, ...modeFields(tools.useData, reports.useData, mode === "useData", tablesSaved.useData),
         inputSplit, ...savedPositions(arranged),
       }
     } : {}),
     ...(offered.draw ? {
       draw: {
-        ...previous.draw, ...modeFields(tools.draw, reports.draw, mode === "draw"),
+        ...previous.draw, ...modeFields(tools.draw, reports.draw, mode === "draw", tablesSaved.draw),
         drawing: savedDrawing(tools.draw.graph),
       }
     } : {}),

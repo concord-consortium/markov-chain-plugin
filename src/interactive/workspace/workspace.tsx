@@ -58,6 +58,8 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
   const [mode, setMode] = useState<ModeId>(restored.mode);
   const [probabilities, setProbabilities] = useState(restored.probabilities);
   const [orderMatters, setOrderMatters] = useState(restored.orderMatters);
+  const [tablesSaved] = useState<Record<ModeId, number>>(
+    { useData: restored.useData.tablesSaved, draw: restored.draw.tablesSaved });
   // arrows keep their probability widths whether or not probabilities are shown
   const arrowWidths: ArrowWidths = "byState";
   const { request, activeRef, requestSave, markActive } = useSaveRequest();
@@ -101,6 +103,7 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
       mode, probabilities, orderMatters,
       tools: { useData: toolParts(tools.useData), draw: toolParts(tools.draw) },
       reports: reportsRef.current,
+      tablesSaved,
     }),
   });
   const saving = useMemo(() => ({
