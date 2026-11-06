@@ -53,7 +53,7 @@ This story gives students that start. A student with a CSV file (from CODAP, a s
 
 - **R9.** An upload replaces the student's whole input (the text box and the table together). When the input has any words, choosing a file first asks, in place of the status line (R11), "Replace your words with the file's?" with Replace and Cancel buttons, focus moving to Replace; Cancel or Escape leaves everything as it was and returns focus to the button, and Escape there doesn't also clear the workspace's selection. With an empty input it replaces without asking.
 - **R10.** The upload commits as one edit through MARK-15's commit path: the core gets the new values, the graph is laid out whole when most states are new and fitted (R29a, R29c), Inspect follows keeping its tab and sort, a chosen state or transition that no longer exists is cleared, and the outputs already generated stay, with a chosen output kept and highlighted as before (MARK-17's R6). A generator starting state whose state is gone generates from any state, as after any commit. The text is saved as any commit's is (R14).
-- **R11.** **Feedback.** After an upload a line under the button, announced with `role="status"`, says what was read: "Read 1,234 values from the column "weather"." It goes when the input next commits.
+- **R11.** **Feedback.** After an upload a line under the button, announced with `role="status"`, says what was read: "Read 1,234 values from the column "weather"." It goes when a commit next changes the input.
 
 ### Refusals
 

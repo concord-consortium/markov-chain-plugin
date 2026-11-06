@@ -4,6 +4,15 @@
 $pane-border-color: #c7c7c7;
 $error-color: #b00020;
 
+@mixin button-off {
+  cursor: default;
+  opacity: 0.5;
+
+  &:hover {
+    background-color: #fff;
+  }
+}
+
 // the pane layout's sizes come from pane-sizes.ts, set as custom properties on the workspace
 .markov-workspace {
   position: relative;
@@ -84,12 +93,7 @@ $error-color: #b00020;
         @include markov-button;
 
         &[aria-disabled="true"] {
-          cursor: default;
-          opacity: 0.5;
-
-          &:hover {
-            background-color: #fff;
-          }
+          @include button-off;
         }
       }
     }
@@ -339,9 +343,35 @@ $error-color: #b00020;
     min-width: 0;
     padding: var(--pane-padding);
 
-    > .setting-switches {
+    > .input-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
       align-self: flex-start;
+      gap: 4px 12px;
       max-width: 100%;
+    }
+
+    .csv-upload-button, .csv-upload-question button {
+      @include markov-button;
+
+      &:disabled {
+        @include button-off;
+      }
+    }
+
+    .csv-upload-status {
+      flex-basis: 100%;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .csv-upload-question {
+      display: flex;
+      flex-basis: 100%;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px var(--pane-gap);
     }
 
     > .text-input, > .input-table {
@@ -843,12 +873,7 @@ $error-color: #b00020;
         @include markov-button;
 
         &:disabled {
-          cursor: default;
-          opacity: 0.5;
-
-          &:hover {
-            background-color: #fff;
-          }
+          @include button-off;
         }
       }
     }
