@@ -6,7 +6,7 @@ const frameText = (title: string) => cy.get(`iframe[title="${title}"]`).its("0.c
 
 // the width the running interactive lays out in, which a scrollbar in its frame would narrow
 const runtimeFrameWidth = () => {
-  frameBody("Interactive").find(".runtime-placeholder");
+  frameBody("Interactive").find(".markov-workspace");
   return cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument.documentElement.clientWidth");
 };
 
@@ -22,9 +22,15 @@ const messageOf = (data: unknown) => {
   }
 };
 
-// each setting the runtime's placeholder lists in a document, as [label, value] pairs
-const listedIn = (doc: Document) => [...doc.querySelectorAll(".runtime-placeholder dt")]
-  .map(term => [term.textContent, term.nextElementSibling?.textContent]);
+// the workspace's panes in a document, by their titles
+const panesIn = (doc: Document) => [...doc.querySelectorAll(".markov-workspace section.pane > .pane-header h2")]
+  .map(title => title.textContent);
+
+// the graph's states in the running interactive; its() re-queries, so this keeps reading the frame after the runtime
+// restarts and reloads it
+const runtimeStatesShould = (expected: string[]) => cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument")
+  .should(doc => expect([...doc.querySelectorAll("g.node text")].map(text => text.textContent).sort())
+    .to.deep.equal(expected));
 
 describe("the interactive's demo page", () => {
   it("shows the runtime at a full-width item's width in the Standard layout", () => {
@@ -71,14 +77,80 @@ describe("the interactive's demo page", () => {
         }
       })
     });
-    frameText("Interactive").should("contain", "are the same word");
-    // the first runtime saves a state, after the library's 2 second pause
-    cy.wrap(savedStates, { timeout: 5000 }).should("have.length", 1);
-    frameBody("Authoring").find("#capitalization").select("asTyped");
-    frameText("Interactive").should("contain", "are different words").and("not.contain", "are the same word");
-    // started with that state, the restarted runtime has nothing to save
+    // the demo's own text has no capital letter
+    frameBody("Authoring").find("#startingText").clear().type("The cat. the cat");
+    runtimeStatesShould([".", "cat", "the"]);
+    // a runtime with that text saves a state, after the library's 2 second pause
+    cy.wrap(savedStates, { timeout: 5000 }).should("have.length.at.least", 1);
+    // past the pause of any runtime the typing restarted
     cy.wait(2500);
-    cy.wrap(savedStates).should("deep.equal", [{ version: 1 }]);
+    cy.then(() => {
+      expect(savedStates[savedStates.length - 1]).to.deep.equal({ version: 1 });
+      const savedBefore = savedStates.length;
+      frameBody("Authoring").find("#capitalization").select("asTyped");
+      runtimeStatesShould([".", "The", "cat", "the"]);
+      // started with that state, the restarted runtime has nothing to save
+      cy.wait(2500);
+      cy.wrap(savedStates).should("have.length", savedBefore);
+    });
+  });
+
+  describe("with words typed in the running interactive", () => {
+    const textBoxIn = (doc: Document) => doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']");
+    const runtimeTextShould = (expected: string) => cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument")
+      .should((doc: Document) => expect(textBoxIn(doc)?.value).to.equal(expected));
+
+    beforeEach(() => {
+      const savedTexts: unknown[] = [];
+      cy.visit("/demo.html", {
+        onBeforeLoad: win => win.addEventListener("message", event => {
+          const message = messageOf(event.data);
+          if (message?.type === "interactiveState" && message.content?.input) {
+            savedTexts.push(message.content.input.text);
+          }
+        })
+      });
+      frameBody("Interactive").find("textarea[aria-label='Your text']").type(" dog ");
+      // the library posts a state 2 seconds after the last save
+      cy.wrap(savedTexts, { timeout: 5000 }).should(texts =>
+        expect(texts[texts.length - 1]).to.equal("the cat sat on the mat. the cat ran. dog "));
+    });
+
+    it("starts the runtime over from a changed starting text", () => {
+      frameBody("Authoring").find("#startingText").clear().type("a new start");
+      runtimeTextShould("a new start");
+      runtimeStatesShould(["a", "new", "start"]);
+    });
+
+    it("starts the runtime over when the old runtime saves as its restart begins", () => {
+      const restartDelay = 500;
+      cy.window().then(win => {
+        const frame = win.document.querySelector<HTMLIFrameElement>("iframe[title=\"Interactive\"]")!;
+        const lateSave = JSON.stringify({ type: "interactiveState", content: {
+          version: 1, input: { text: "the old input" } } });
+        const setTimeoutOf = win.setTimeout;
+        // the save lands as the restart's timer ends, ahead of the render that disconnects the old runtime
+        cy.stub(win, "setTimeout").callsFake((run: () => void, delay?: number) => setTimeoutOf(() => {
+          run();
+          if (delay === restartDelay) {
+            win.dispatchEvent(new MessageEvent("message", {
+              data: lateSave, origin: win.location.origin, source: frame.contentWindow
+            }));
+          }
+        }, delay));
+      });
+      frameBody("Authoring").find("#startingText").clear().type("a new start");
+      runtimeTextShould("a new start");
+      runtimeStatesShould(["a", "new", "start"]);
+    });
+
+    it("keeps what was typed when another setting changes", () => {
+      frameBody("Authoring").find("#capitalization").select("asTyped");
+      cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument")
+        .should(doc => expect(doc.querySelector(".setting-switch [role='switch']")?.getAttribute("aria-checked"))
+          .to.equal("true"));
+      runtimeTextShould("the cat sat on the mat. the cat ran. dog ");
+    });
   });
 
   it("links to the interactive standalone with the settings that differ from the defaults", () => {
@@ -176,22 +248,25 @@ describe("the interactive's demo page", () => {
   });
 
   // Electron's window.open gives Cypress no window; the CI job runs Chrome
-  it("opens its link standalone with the settings the runtime lists", { browser: "chrome" }, () => {
+  it("opens its link standalone with the panes the runtime shows", { browser: "chrome" }, () => {
     cy.visit("/demo.html");
     frameBody("Authoring").find("#usableModes").select("Data");
     frameBody("Authoring").find("#pane-inspect").uncheck();
-    frameBody("Authoring").find("#capitalization").select("asTyped");
-    frameText("Interactive").should("contain", "are different words");
+    frameBody("Authoring").find("#pane-graph").uncheck();
+    cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument")
+      .should(doc => expect(panesIn(doc)).to.deep.equal(["Input", "Sequence Generator"]));
     cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").then(runtime => {
-      const hosted = listedIn(runtime);
+      const hosted = panesIn(runtime);
       // a window of its own, not in a frame, as a link from a collection page opens it
       standaloneLink().invoke("attr", "href").then(link => {
         cy.window().then(win => win.open(String(link))).as("standalone");
       });
-      cy.get<Window>("@standalone").its("document.body.innerText").should("contain", "coming soon")
-        .and("contain", "the settings come from this page's link");
+      cy.get<Window>("@standalone").its("document.body.innerText")
+        .should("contain", "the settings come from this page's link");
+      cy.get<Window>("@standalone").its("document").should(doc => {
+        expect(panesIn(doc)).to.deep.equal(hosted);
+      });
       cy.get<Window>("@standalone").then(standalone => {
-        expect(listedIn(standalone.document)).to.deep.equal(hosted);
         standalone.close();
       });
     });

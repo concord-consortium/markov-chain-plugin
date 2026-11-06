@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { SequenceOutput, SequenceOutputProps } from "./sequence-output";
 import { Node, SequenceGroup } from "../type";
 
@@ -39,6 +39,31 @@ describe("SequenceOutput", () => {
     render(<SequenceOutput {...props([group([a, b]), group([b, a])])} />);
     expect(screen.getByText("b a")).toBeInTheDocument();
     expect(scrollTops).toEqual([]);
+  });
+
+  it("heads the output as the plugin does, or with the heading its layout gives", () => {
+    const { rerender } = render(<SequenceOutput {...props([])} />);
+    expect(screen.getByText("Output:")).toBeInTheDocument();
+    rerender(<SequenceOutput {...props([])} heading="Output" />);
+    expect(screen.getByText("Output")).toBeInTheDocument();
+  });
+
+  it("chooses an output with Enter or Space when its layout asks for keyboard choosing", () => {
+    const outputProps = props([group([a, b])]);
+    render(<SequenceOutput {...outputProps} keyboardSelect />);
+    const output = screen.getByRole("button", { name: "a b" });
+    expect(output).toHaveAttribute("tabindex", "0");
+    expect(output).toHaveAttribute("aria-pressed", "false");
+    fireEvent.keyDown(output, { key: "Enter" });
+    fireEvent.keyDown(output, { key: " " });
+    fireEvent.keyDown(output, { key: "a" });
+    expect(outputProps.onToggleHighlight).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves an output out of the Tab order without keyboard choosing, as the plugin draws it", () => {
+    render(<SequenceOutput {...props([group([a, b])])} />);
+    expect(screen.getByText("a b")).not.toHaveAttribute("tabindex");
+    expect(screen.queryByRole("button", { name: "a b" })).toBeNull();
   });
 
   it("scrolls to the bottom when a new group arrives", () => {

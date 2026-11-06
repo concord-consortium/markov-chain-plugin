@@ -1,10 +1,21 @@
 import React from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { App } from "./app";
 
-// the value the placeholder lists beside a setting's label
-const listed = (label: string) =>
-  screen.getAllByRole("definition")[screen.getAllByRole("term").findIndex(term => term.textContent === label)];
+// Jest can't load d3, so the graph is a placeholder
+jest.mock("../components/graph", () => ({
+  Graph: () => <div />
+}));
+
+// jsdom has no ResizeObserver, which the workspace measures itself with
+globalThis.ResizeObserver = class {
+  observe() { /* nothing to measure */ }
+  unobserve() { /* nothing to measure */ }
+  disconnect() { /* nothing to measure */ }
+};
+
+// the workspace's panes, by their accessible names
+const panes = () => screen.getAllByRole("region").map(pane => within(pane).getAllByRole("heading")[0].textContent);
 
 // jsdom's window is its own top window, as a page opened directly is, so these run outside any host. The library
 // warns when it makes its client outside a frame, and makes one client per page, so a test checks for the warning
@@ -23,17 +34,16 @@ describe("opened outside a host", () => {
 
   it("the interactive runs with the default settings, and leaves the library alone", () => {
     render(<App />);
-    expect(screen.getByText("Markov interactive: coming soon")).toBeInTheDocument();
     expect(screen.getByText(/the settings come from this page's link, and nothing is saved/)).toBeInTheDocument();
-    expect(listed("Usable mode(s)")).toHaveTextContent(/^Both/);
+    expect(panes()).toEqual(["Input", "Graph", "Inspect", "Sequence Generator"]);
     expect(warn).not.toHaveBeenCalled();
   });
 
   it("the interactive takes its settings from its link", () => {
-    window.history.replaceState(null, "", "/interactive.html?modes.draw=false&inputView=table");
+    window.history.replaceState(null, "", "/interactive.html?panes.inspect.available=false&inputView=table");
     render(<App />);
-    expect(listed("Usable mode(s)")).toHaveTextContent(/^Data$/);
-    expect(listed("How students enter their data")).toHaveTextContent(/^Table only$/);
+    expect(panes()).toEqual(["Input", "Graph", "Sequence Generator"]);
+    expect(screen.getByText("Type some words in the Input pane's table to build the chain.")).toBeInTheDocument();
   });
 
   it("the report item says what it is, and leaves the library alone", async () => {

@@ -1,5 +1,6 @@
 import {
-  arrowHeadReach, calculateNodeFontSize, graphSignature, nodeLoopPath, pullBackLineEnd, stateEdgeWeights
+  arrowHeadReach, calculateNodeFontSizes, graphSignature, isPlaced, layoutFor, nodeLoopPath, pullBackLineEnd,
+  linkDistance, settings, startPosition, startPositions, stateEdgeWeights
 } from "./graph-utils";
 
 describe("stateEdgeWeights", () => {
@@ -76,7 +77,7 @@ describe("nodeLoopPath", () => {
   });
 });
 
-describe("calculateNodeFontSize", () => {
+describe("calculateNodeFontSizes", () => {
   const spyOnMeasuring = () => {
     const appendChild = jest.spyOn(document.body, "appendChild");
     return () => appendChild.mock.calls[0][0] as HTMLElement;
@@ -86,14 +87,14 @@ describe("calculateNodeFontSize", () => {
 
   it("measures markup in a label as text", () => {
     const measured = spyOnMeasuring();
-    calculateNodeFontSize({ label: "<b>x</b>", radius: 50 });
+    calculateNodeFontSizes([{ label: "<b>x</b>", radius: 50 }]);
     expect(measured().textContent).toBe("<b>x</b>");
     expect(measured().children).toHaveLength(0);
   });
 
   it("measures an entity in a label as the characters typed", () => {
     const measured = spyOnMeasuring();
-    calculateNodeFontSize({ label: "x &amp; y", radius: 50 });
+    calculateNodeFontSizes([{ label: "x &amp; y", radius: 50 }]);
     expect(measured().textContent).toBe("x &amp; y");
   });
 
@@ -102,9 +103,145 @@ describe("calculateNodeFontSize", () => {
     jest.spyOn(HTMLElement.prototype, "clientWidth", "get")
       .mockImplementation(function(this: HTMLElement) { return (this.textContent?.length ?? 0) * 5; });
     const measured = spyOnMeasuring();
-    const { label } = calculateNodeFontSize({ label: "<i>abcdefgh</i>", radius: 30 });
+    const [{ label }] = calculateNodeFontSizes([{ label: "<i>abcdefgh</i>", radius: 30 }]);
     expect(label).toBe("<i>abc...");
     expect(measured().textContent).toBe("<i>abc...");
     expect(measured().children).toHaveLength(0);
+  });
+
+  // a large graph draws slowly when each label lays the page out once for each size it tries
+  it("sets every label's size before measuring any, and takes the labels out of the page after", () => {
+    const sizedWhenFirstMeasured: string[] = [];
+    jest.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function(this: HTMLElement) {
+      if (sizedWhenFirstMeasured.length === 0) {
+        sizedWhenFirstMeasured.push(...[...document.body.children].map(child => (child as HTMLElement).style.fontSize));
+      }
+      return (this.textContent?.length ?? 0) * 5;
+    });
+    const sizes = calculateNodeFontSizes([
+      { label: "a", radius: 30 }, { label: "abcdefghijk", radius: 30 }, { label: "abc", radius: 50 }
+    ]);
+    expect(sizes.map(size => size.label)).toEqual(["a", "abcdef...", "abc"]);
+    expect(sizedWhenFirstMeasured).toEqual(["24px", "24px", "40px"]);
+    expect(document.body.children).toHaveLength(0);
+  });
+});
+
+describe("isPlaced", () => {
+  it("places a state already drawn or given both coordinates, with keepPositions", () => {
+    expect(isPlaced(true, false, { x: 10, y: 20 })).toBe(true);
+    expect(isPlaced(true, false, { x: 10 })).toBe(false);
+    expect(isPlaced(true, false, {})).toBe(false);
+    expect(isPlaced(true, true, {})).toBe(true);
+  });
+
+  it("places nothing without keepPositions", () => {
+    expect(isPlaced(false, false, { x: 10, y: 20 })).toBe(false);
+    expect(isPlaced(false, true, {})).toBe(false);
+  });
+});
+
+describe("layoutFor", () => {
+  it("lays out the whole graph when more than half its states are new", () => {
+    expect(layoutFor(0, 10)).toBe("whole");
+    expect(layoutFor(4, 10)).toBe("whole");
+  });
+
+  it("lays out only the new states when at most half are new", () => {
+    expect(layoutFor(5, 10)).toBe("new");
+    expect(layoutFor(9, 10)).toBe("new");
+  });
+
+  it("lays out nothing when no state is new", () => {
+    expect(layoutFor(10, 10)).toBe("none");
+  });
+});
+
+// the layout's distance between the centers of two of the smallest states
+const distance = linkDistance(settings.minRadius, settings.minRadius);
+
+describe("linkDistance", () => {
+  it("aims for one and a half times the two radii", () => {
+    expect(linkDistance(20, 30)).toBe(75);
+  });
+});
+
+describe("startPosition", () => {
+  const placed = new Map([["a", { x: 100, y: 50 }]]);
+
+  const at = (angle: number, from: { x: number, y: number }) => ({
+    x: from.x + distance * Math.cos(angle * Math.PI / 180), y: from.y + distance * Math.sin(angle * Math.PI / 180)
+  });
+  // to the hundredth of a px, with -0 as 0
+  const rounded = ({ x, y }: { x: number, y: number }) =>
+    ({ x: Math.round(x * 100) / 100 + 0, y: Math.round(y * 100) / 100 + 0 });
+  const startOfB = (edges: { from: string, to: string }[], states: Map<string, { x: number, y: number }>) =>
+    rounded(startPosition("b", edges, states));
+
+  it("starts a new state an arrow's length from its placed source, on the side toward the center", () => {
+    const edges = [{ from: "c", to: "d" }, { from: "a", to: "b" }];
+    expect(startOfB(edges, placed)).toEqual(rounded(at(210, { x: 100, y: 50 })));
+  });
+
+  it("starts a state from the first of its placed sources, in arrow order", () => {
+    const sources = new Map([["a", { x: 100, y: 50 }], ["c", { x: -200, y: 0 }]]);
+    const edges = [{ from: "c", to: "b" }, { from: "a", to: "b" }];
+    expect(startOfB(edges, sources)).toEqual(rounded(at(0, { x: -200, y: 0 })));
+  });
+
+  it("starts a state clear of the other placed states, not on them", () => {
+    const states = new Map([["a", { x: 100, y: 10 }], ["c", { x: 30, y: 10 }]]);
+    expect(startOfB([{ from: "a", to: "b" }], states)).toEqual(rounded(at(270, { x: 100, y: 10 })));
+  });
+
+  it("starts a state where it is clearest when no spot is an arrow's length from every state", () => {
+    const states = new Map([
+      ["a", { x: 0, y: 0 }], ["c", { x: 50, y: 0 }], ["d", { x: -45, y: 5 }], ["e", { x: 0, y: 50 }],
+      ["f", { x: 0, y: -50 }]
+    ]);
+    expect(startOfB([{ from: "a", to: "b" }], states)).toEqual(rounded(at(210, { x: 0, y: 0 })));
+  });
+
+  it("winds a chain added a state at a time around the center rather than running it in a line", () => {
+    const chain = new Map([["s0", { x: 0, y: 0 }]]);
+    for (let i = 1; i < 12; i++) {
+      chain.set(`s${i}`, startPosition(`s${i}`, [{ from: `s${i - 1}`, to: `s${i}` }], chain));
+    }
+    const farthest = Math.max(...[...chain.values()].map(p => Math.hypot(p.x, p.y)));
+    expect(farthest).toBeLessThan(4 * distance);
+  });
+
+  it("starts a state with no placed source at the origin", () => {
+    expect(startPosition("b", [{ from: "b", to: "a" }], placed)).toEqual({ x: 0, y: 0 });
+  });
+
+  it("ignores an arrow from a state that isn't placed", () => {
+    expect(startPosition("b", [{ from: "c", to: "b" }], placed)).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("startPositions", () => {
+  const placed = new Map([["a", { x: 100, y: 0 }], ["z", { x: -300, y: 0 }]]);
+
+  it("starts the states a commit adds from one state an arrow's length apart", () => {
+    const starts = startPositions(["b", "c"], [{ from: "a", to: "b" }, { from: "a", to: "c" }], placed);
+    const [b, c] = [starts.get("b")!, starts.get("c")!];
+    expect(Math.hypot(b.x - c.x, b.y - c.y)).toBeGreaterThanOrEqual(distance - 0.001);
+  });
+
+  it("starts a chain added in one commit from its own new states", () => {
+    const starts = startPositions(["b", "c"], [{ from: "a", to: "b" }, { from: "b", to: "c" }], placed);
+    const [b, c] = [starts.get("b")!, starts.get("c")!];
+    expect(Math.hypot(b.x - c.x, b.y - c.y)).toBeCloseTo(distance);
+  });
+
+  it("starts only the states it is given, and leaves the placed ones out", () => {
+    expect([...startPositions(["b"], [{ from: "a", to: "b" }], placed).keys()]).toEqual(["b"]);
+  });
+
+  // a whole layout places every state, so searching for a start for each would be wasted, and slow for a large graph
+  it("starts none when more than half the states are new, since the whole graph is laid out", () => {
+    const edges = [{ from: "a", to: "b" }, { from: "b", to: "c" }, { from: "c", to: "d" }];
+    expect(startPositions(["b", "c", "d"], edges, placed).size).toBe(0);
   });
 });

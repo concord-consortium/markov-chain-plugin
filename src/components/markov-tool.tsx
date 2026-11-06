@@ -20,7 +20,7 @@ interface MarkovToolProps {
 }
 
 export const MarkovTool = forwardRef<MarkovToolHandle, MarkovToolProps>(({ host, loadState, dragging }, ref) => {
-  const { viewMode } = host;
+  const { viewMode, log } = host;
   const { handle, graph, graphEmpty, animating, graphHighlights, setSelectedNodeId, generatorProps, outputProps, view }
     = useMarkovTool(host);
   useImperativeHandle(ref, () => handle, [handle]);
@@ -89,6 +89,7 @@ export const MarkovTool = forwardRef<MarkovToolHandle, MarkovToolProps>(({ host,
                 resetViewAt={view.resetViewAt}
                 onDimensions={view.onDimensions}
                 onClearHighlightOutput={view.onClearHighlightOutput}
+                log={log}
               />
             :
               <Dataset
@@ -105,6 +106,7 @@ export const MarkovTool = forwardRef<MarkovToolHandle, MarkovToolProps>(({ host,
                 fitViewAt={view.fitViewAt}
                 recenterViewAt={view.recenterViewAt}
                 onDimensions={view.onDimensions}
+                log={log}
               />
           }
         </div>

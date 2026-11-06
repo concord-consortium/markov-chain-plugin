@@ -25,8 +25,9 @@ interface HostedFrameProps {
   title: string;
   mode: HostedMode;
   authoredState: unknown;
-  getInteractiveState?: () => unknown;
-  onMessage: (type: "authoredState" | "interactiveState", content: unknown) => void;
+  // the state to start with authoredState, and the authoredState a message's frame was started with
+  getInteractiveState?: (authoredState: unknown) => unknown;
+  onMessage: (type: "authoredState" | "interactiveState", content: unknown, authoredState: unknown) => void;
   // the width the page width choice gives, or, left out, the width the page's styles give
   width?: number | string;
 }
@@ -44,11 +45,13 @@ const HostedFrame = ({ title, mode, authoredState, getInteractiveState, onMessag
     }
     iframe.src = "interactive.html";
     const endpoint = new ParentEndpoint(iframe, window.location.origin, () => {
-      endpoint.post("initInteractive", initInteractiveMessage(mode, authoredState, getInteractiveState?.()));
+      const interactiveState = getInteractiveState?.(authoredState);
+      endpoint.post("initInteractive", initInteractiveMessage(mode, authoredState, interactiveState));
     });
     endpoint.addListener("height", (content: unknown) => setHeight(Number(content)));
-    endpoint.addListener("authoredState", (content: unknown) => onMessage("authoredState", content));
-    endpoint.addListener("interactiveState", (content: unknown) => onMessage("interactiveState", content));
+    endpoint.addListener("authoredState", (content: unknown) => onMessage("authoredState", content, authoredState));
+    endpoint.addListener("interactiveState",
+      (content: unknown) => onMessage("interactiveState", content, authoredState));
     return () => endpoint.disconnect();
   }, [mode, authoredState, getInteractiveState, onMessage]);
 
@@ -119,20 +122,25 @@ const Demo = () => {
   const [authoredState, setAuthoredState] = useState<unknown>(initialAuthoredState);
   const [runtimeAuthoredState, setRuntimeAuthoredState] = useState<unknown>(initialAuthoredState);
   const [widthId, setWidthId] = useState<DemoWidthId>(() => readDemoWidth(window.location.search));
-  // kept across the runtime's restarts, as the Activity Player keeps a student's state
-  const interactiveStateRef = useRef<unknown>(null);
+  // kept across the runtime's restarts, as the Activity Player keeps a student's state, for the starting text it was
+  // saved under: saved input comes before the starting text, so a new one would otherwise never show here
+  const savedRef = useRef<{ startingText: string, state: unknown }>(undefined);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setRuntimeAuthoredState(authoredState), restartDelay);
     return () => window.clearTimeout(timeout);
   }, [authoredState]);
 
-  const getInteractiveState = useCallback(() => interactiveStateRef.current, []);
-  const handleMessage = useCallback((type: "authoredState" | "interactiveState", content: unknown) => {
+  const getInteractiveState = useCallback((runtimeState: unknown) => {
+    const saved = savedRef.current;
+    return saved?.startingText === readAuthoredState(runtimeState).startingText ? saved.state : null;
+  }, []);
+  const handleMessage = useCallback((type: "authoredState" | "interactiveState", content: unknown,
+    frameState: unknown) => {
     if (type === "authoredState") {
       setAuthoredState(content);
     } else {
-      interactiveStateRef.current = content;
+      savedRef.current = { startingText: readAuthoredState(frameState).startingText, state: content };
     }
   }, []);
 

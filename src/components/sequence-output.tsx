@@ -49,10 +49,14 @@ export interface SequenceOutputProps {
   onToggleHighlight: (group: SequenceGroup, sequence: Node[]) => void;
   onClear: () => void;
   onCancel: () => void;
+  // each output also takes Tab and is chosen with Enter or Space, reporting whether it is chosen
+  keyboardSelect?: boolean;
+  heading?: string;
 }
 
 export const SequenceOutput = ({
-  sequenceGroups, graphEmpty, generationMode, lengthLimit, highlightOutput, onToggleHighlight, onClear, onCancel
+  sequenceGroups, graphEmpty, generationMode, lengthLimit, highlightOutput, onToggleHighlight, onClear, onCancel,
+  keyboardSelect, heading = "Output:"
 }: SequenceOutputProps) => {
   const animating = generationMode !== "ready";
   const disabled = sequenceGroups.length === 0;
@@ -72,7 +76,7 @@ export const SequenceOutput = ({
 
   return (
     <div className="sequence-output">
-      <label>Output:</label>
+      <label>{ heading }</label>
       <div className="output">
         <div className="inner-output" ref={innerOutputRef}>
           { sequenceGroups.map((group, i) => {
@@ -80,20 +84,32 @@ export const SequenceOutput = ({
               <div className="group" key={i}>
                 <SequenceOutputHeader group={group} />
                 <div className="sequences">
-                  { group.sequences.map((s, j) => (
-                    <div
-                      key={j}
-                      className={clsx("sequence", {
-                        disabled: animating,
-                        highlighted: (
-                          highlightOutput?.group === group && highlightOutput.sequence === s
-                        )
-                      })}
-                      onClick={animating ? undefined : () => onToggleHighlight(group, s)}
-                    >
-                      { s.map(n => n.label).join(group.delimiter) }
-                    </div>
-                  )) }
+                  { group.sequences.map((s, j) => {
+                    const highlighted = highlightOutput?.group === group && highlightOutput.sequence === s;
+                    const choose = animating ? undefined : () => onToggleHighlight(group, s);
+                    const keyboard = keyboardSelect && {
+                      role: "button",
+                      tabIndex: animating ? -1 : 0,
+                      "aria-pressed": highlighted,
+                      "aria-disabled": animating || undefined,
+                      onKeyDown: (e: React.KeyboardEvent) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          choose?.();
+                        }
+                      },
+                    };
+                    return (
+                      <div
+                        key={j}
+                        className={clsx("sequence", { disabled: animating, highlighted })}
+                        onClick={choose}
+                        {...keyboard}
+                      >
+                        { s.map(n => n.label).join(group.delimiter) }
+                      </div>
+                    );
+                  }) }
                 </div>
               </div>
             );

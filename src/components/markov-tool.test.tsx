@@ -21,6 +21,7 @@ const recordingHost = (viewMode?: ViewMode) => ({
   setViewMode: jest.fn(),
   markDirty: jest.fn(),
   outputSequence: jest.fn((labels: string[]) => Promise.resolve()),
+  log: jest.fn(),
 }) satisfies MarkovHost;
 
 const renderTool = (host: MarkovHost, { loadState = "loaded", dragging = false }: {

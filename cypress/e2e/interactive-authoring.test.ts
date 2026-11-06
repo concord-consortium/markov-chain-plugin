@@ -23,6 +23,7 @@ describe("the interactive's authoring form", () => {
     cy.interactive().find("#startingMode").should("have.value", "useData");
     cy.interactive().find("#inputView").should("have.value", "textAndTable");
     cy.interactive().find("#capitalization").should("have.value", "lowercase");
+    cy.interactive().find("#showCaseSwitch").should("be.checked");
     cy.interactive().find("#orderMattersStartsOn").should("be.checked");
     cy.interactive().find("#orderMattersShowSwitch").should("be.checked");
     cy.interactive().find("#startingText").should("have.value", "");
@@ -70,9 +71,11 @@ describe("the interactive's authoring form", () => {
       withChange({ startingMode: "draw" })],
     ["the input view", () => cy.interactive().find("#inputView").select("Table only"),
       withChange({ inputView: "table" })],
-    ["the capitalization",
-      () => cy.interactive().find("#capitalization").select("\"The\" and \"the\" are different words"),
+    ["the case sensitivity students start with",
+      () => cy.interactive().find("#capitalization").select("Yes: \"The\" and \"the\" are different words"),
       withChange({ capitalization: "asTyped" })],
+    ["the \"Case sensitive\" switch", () => cy.interactive().find("#showCaseSwitch").uncheck(),
+      withChange({ showCaseSwitch: false })],
     ["\"Order matters\" starts on", () => cy.interactive().find("#orderMattersStartsOn").uncheck(),
       withChange({ orderMatters: { startsOn: false, showSwitch: true } })],
     ["the \"Order matters\" switch", () => cy.interactive().find("#orderMattersShowSwitch").uncheck(),
@@ -122,7 +125,7 @@ describe("the interactive's authoring form", () => {
   it("opens showing a saved state", () => {
     const saved = withChange({
       modes: { useData: true, draw: true }, startingMode: "draw", inputView: "text", capitalization: "asTyped",
-      orderMatters: { startsOn: false, showSwitch: false }, startingText: "a big bag of words",
+      showCaseSwitch: false, orderMatters: { startsOn: false, showSwitch: false }, startingText: "a big bag of words",
       panes: {
         input: { available: true, startsOpen: false }, graph: { available: true, startsOpen: false },
         inspect: { available: false, startsOpen: true }, generator: { available: true, startsOpen: false },
@@ -136,6 +139,10 @@ describe("the interactive's authoring form", () => {
     cy.interactive().find("#startingMode").should("have.value", "draw");
     cy.interactive().find("#inputView").should("have.value", "text");
     cy.interactive().find("#capitalization").should("have.value", "asTyped");
+    cy.interactive().find("#capitalization").find("option:selected")
+      .should("have.text", "Yes: \"The\" and \"the\" are different words");
+    cy.interactive().find("label[for='capitalization']").should("have.text", "Case sensitive at the start");
+    cy.interactive().find("#showCaseSwitch").should("not.be.checked");
     cy.interactive().find("#orderMattersStartsOn").should("not.be.checked");
     cy.interactive().find("#orderMattersShowSwitch").should("not.be.checked");
     cy.interactive().find("#startingText").should("have.value", "a big bag of words");
@@ -170,8 +177,8 @@ describe("the interactive's authoring form", () => {
     // the form is on the page, so what isn't there was left off rather than not drawn yet
     cy.interactive().find("#pane-inspect-startsOpen").should("exist");
     cy.interactive().find("#usableModes").should("have.value", "draw");
-    ["#inputView", "#capitalization", "#orderMattersStartsOn", "#orderMattersShowSwitch", "#startingText",
-      "#pane-input", "#pane-input-startsOpen", "#pane-graph-startsOpen"].forEach(selector => {
+    ["#inputView", "#capitalization", "#showCaseSwitch", "#orderMattersStartsOn", "#orderMattersShowSwitch",
+      "#startingText", "#pane-input", "#pane-input-startsOpen", "#pane-graph-startsOpen"].forEach(selector => {
       cy.interactive().find(selector).should("not.exist");
     });
     cy.interactive().find("#usableModes").select("Both (with a toggle switch for students)");
@@ -243,5 +250,64 @@ describe("the interactive's authoring form", () => {
     cy.startInteractive({ mode: "authoring", authoredState: {}, width: 420 });
     cy.interactive().find("#startingText");
     cy.interactive().then(body => expect(body[0].scrollWidth).to.be.at.most(420));
+  });
+
+  describe("a setup that leaves students nothing to work with", () => {
+    const alert = () => cy.interactive().find("[role='alert']");
+    const dataOnly = withChange({ modes: { useData: true, draw: false } });
+    // messages arrive in order, so one that shouldn't have been sent is here once a later valid one is
+    const nothingSentWithoutInput = () => cy.interactiveMessages("authoredState").should(states => {
+      expect(states.length).to.be.greaterThan(0);
+      expect((states as MarkovAuthoredState[]).filter(state => !state.panes.input.available && !state.startingText))
+        .to.have.length(0);
+    });
+
+    it("isn't sent with the Input pane off and no starting data, until starting data is typed", () => {
+      cy.startInteractive({ mode: "authoring", authoredState: {} });
+      cy.interactive().find("#usableModes").select("Data");
+      savedOnce(dataOnly);
+      cy.interactive().find("#pane-input").uncheck();
+      alert().should("contain.text", "With the Input pane off, add starting data")
+        .and("contain.text", "Your changes aren't saved until this is fixed.");
+      savedOnce(dataOnly);
+      cy.interactive().find("#startingText").type("the cat");
+      alert().should("not.exist");
+      lastSaved().should("deep.equal", {
+        ...dataOnly, panes: { ...dataOnly.panes, input: { available: false, startsOpen: true } },
+        startingText: "the cat",
+      });
+      nothingSentWithoutInput();
+    });
+
+    it("isn't sent with every pane off", () => {
+      cy.startInteractive({ mode: "authoring", authoredState: {} });
+      cy.interactive().find("#usableModes").select("Data");
+      cy.interactive().find("#startingText").type("the cat");
+      ["input", "graph", "inspect", "generator"].forEach(pane => cy.interactive().find(`#pane-${pane}`).uncheck());
+      alert().should("contain.text", "Turn on at least one pane, or students will see nothing.");
+      cy.interactive().find("#pane-graph").check();
+      alert().should("not.exist");
+      lastSaved().its("panes.graph.available").should("equal", true);
+      cy.interactiveMessages("authoredState").should(states => {
+        expect(states.length).to.be.greaterThan(0);
+        (states as MarkovAuthoredState[]).forEach(state =>
+          expect(Object.values(state.panes).map(pane => pane.available)).to.include(true));
+      });
+    });
+
+    it("shows the error for a setup saved before the check, and sends nothing", () => {
+      const saved = { ...dataOnly, panes: { ...dataOnly.panes, input: { available: false, startsOpen: true } } };
+      cy.startInteractive({ mode: "authoring", authoredState: saved });
+      alert().should("contain.text", "With the Input pane off, add starting data");
+      cy.interactive().find("#pane-inspect").uncheck();
+      cy.interactive().find("#pane-inspect").should("not.be.checked");
+      alert().should("contain.text", "With the Input pane off, add starting data");
+      cy.interactive().find("#startingText").type("a");
+      alert().should("not.exist");
+      cy.interactiveMessages("authoredState").should(states => {
+        expect(states).to.have.length(1);
+        expect(states[0]).to.include({ startingText: "a" });
+      });
+    });
   });
 });

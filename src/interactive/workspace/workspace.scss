@@ -1,0 +1,666 @@
+@use "../../components/markov-panel" as *;
+@use "../visually-hidden";
+
+$pane-border-color: #c7c7c7;
+
+// the pane layout's sizes come from pane-sizes.ts, set as custom properties on the workspace
+.markov-workspace {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pane-gap);
+
+  // a pane's body is a flex container, whose display would otherwise beat the browser's rule for [hidden]
+  [hidden] {
+    display: none !important;
+  }
+
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--pane-gap);
+    min-height: var(--controls-row);
+
+    &:focus {
+      outline: none;
+    }
+
+    .clear-highlight {
+      @include markov-button;
+    }
+  }
+
+  .top-row {
+    position: relative;
+    display: flex;
+    column-gap: var(--pane-gap);
+  }
+
+  // a divider lies on the edge of the element before it, centered on the gap, and takes no space; its band covers
+  // the gap and the panes' padding beside it, and never a control
+  .divider {
+    position: absolute;
+    z-index: 1;
+    touch-action: none;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      border-radius: 2px;
+      background-color: #949494;
+      transform: translate(-50%, -50%);
+    }
+
+    &:hover::after, &:focus-visible::after {
+      background-color: $markov-teal;
+    }
+
+    &.vertical {
+      top: 0;
+      bottom: 0;
+      // measured from inside the pane's border
+      right: calc((var(--pane-gap) + var(--divider-band)) / -2 - var(--pane-border));
+      width: var(--divider-band);
+      cursor: col-resize;
+
+      &::after {
+        width: 4px;
+        height: 40px;
+      }
+    }
+
+    &.horizontal {
+      left: 0;
+      right: 0;
+      bottom: calc((var(--pane-gap) + var(--divider-band)) / -2);
+      height: var(--divider-band);
+      cursor: row-resize;
+
+      &::after {
+        width: 40px;
+        height: 4px;
+      }
+    }
+  }
+
+  // the row's divider covers the gap and the padding along the bottom of the row's panes, and leaves the generator's
+  // header alone
+  .top-row > .divider.horizontal {
+    bottom: calc(-1 * var(--pane-gap));
+    height: calc(var(--pane-gap) + var(--pane-padding));
+
+    &::after {
+      top: auto;
+      bottom: calc(var(--pane-gap) / 2);
+      transform: translate(-50%, 50%);
+    }
+  }
+
+  .pane {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: var(--pane-border) solid $pane-border-color;
+    border-radius: 3px;
+    background-color: #fff;
+
+    .pane-header {
+      box-sizing: border-box;
+      display: flex;
+      flex: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      height: var(--pane-header);
+      padding: 0 var(--pane-padding) 0 8px;
+      background-color: #eef3f5;
+
+      h2 {
+        margin: 0;
+        overflow: hidden;
+        font-size: 14px;
+        font-weight: bold;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .pane-toggle {
+      display: flex;
+      flex: none;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border: solid 1px $markov-teal;
+      border-radius: 3px;
+      background-color: #fff;
+      color: $markov-teal;
+      cursor: pointer;
+    }
+
+    .pane-body {
+      position: relative;
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+  }
+
+  .top-row .pane {
+    &.graph-pane {
+      flex: 1 1 0;
+    }
+
+    // a collapsed pane is a strip with its title running down it
+    &.collapsed {
+      flex: 0 0 var(--collapsed-strip);
+
+      .pane-header {
+        flex-direction: column;
+        justify-content: flex-start;
+        height: 100%;
+        padding: var(--pane-padding) 0;
+
+        h2 {
+          writing-mode: vertical-rl;
+        }
+      }
+    }
+  }
+
+  &.stacked {
+    .top-row {
+      flex-wrap: wrap;
+      row-gap: var(--pane-gap);
+    }
+
+    .top-row .pane {
+      flex: 0 0 100%;
+      height: var(--pane-top);
+
+      // stacked, a collapsed pane is its header alone, with the title across it
+      &.collapsed {
+        flex: 0 0 100%;
+        height: auto;
+
+        .pane-header {
+          flex-direction: row;
+          justify-content: space-between;
+          height: var(--pane-header);
+          padding: 0 var(--pane-padding) 0 8px;
+
+          h2 {
+            writing-mode: horizontal-tb;
+          }
+        }
+      }
+    }
+  }
+
+  // a student's on or off setting; its name wraps and the switch and its Yes or No keep their size
+  .setting-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+
+    .setting-switch-name {
+      flex: 0 1 auto;
+      min-width: 0;
+      white-space: normal;
+    }
+
+    .setting-switch-name, .setting-switch-value {
+      cursor: pointer;
+    }
+
+    &.disabled .setting-switch-name, &.disabled .setting-switch-value {
+      cursor: default;
+    }
+
+    .setting-switch-track {
+      position: relative;
+      flex: none;
+      width: 32px;
+      height: 18px;
+      padding: 0;
+      border: solid 1px $markov-teal;
+      border-radius: 9px;
+      background-color: #fff;
+      cursor: pointer;
+
+      &[aria-checked="true"] {
+        background-color: $markov-teal;
+
+        .setting-switch-thumb {
+          left: 16px;
+          background-color: #fff;
+        }
+      }
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+    }
+
+    .setting-switch-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: $markov-teal;
+    }
+
+    .setting-switch-value {
+      flex: none;
+      min-width: 2em;
+    }
+  }
+
+  .input-pane-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    padding: var(--pane-padding);
+
+    > .setting-switch {
+      align-self: flex-start;
+    }
+
+    > .text-input, > .input-table {
+      flex: 1;
+    }
+
+    // the text box above the table, each keeping clear the padding the divider between them covers
+    .linked-input {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: var(--pane-gap);
+      min-height: 0;
+    }
+
+    .input-text-part {
+      position: relative;
+      box-sizing: border-box;
+      display: flex;
+      flex-grow: 0;
+      flex-shrink: 0;
+      min-height: 0;
+      padding-bottom: var(--pane-padding);
+
+      .text-input {
+        flex: 1;
+      }
+    }
+
+    .input-table-part {
+      box-sizing: border-box;
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      padding-top: var(--pane-padding);
+
+      .input-table {
+        flex: 1;
+      }
+    }
+  }
+
+  // the text box over a copy of its text that draws the highlights; both lay the text out alike, scrollbar included,
+  // or the copy wraps at another width and the marks drift from their words
+  .text-input {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    background-color: #fff;
+
+    .backdrop, textarea {
+      box-sizing: border-box;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 4px 6px;
+      border: 1px solid $markov-teal;
+      border-radius: 3px;
+      font: inherit;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      overflow-x: hidden;
+      overflow-y: scroll;
+    }
+
+    .backdrop {
+      border-color: transparent;
+      color: transparent;
+
+      mark {
+        border-radius: 2px;
+        color: transparent;
+      }
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      resize: none;
+      background-color: transparent;
+    }
+  }
+
+  .highlight-selected, .highlight-chosen {
+    background-color: var(--highlight-selected);
+  }
+  .highlight-output {
+    background-color: var(--highlight-output);
+  }
+
+  .visually-hidden {
+    @extend %visually-hidden;
+  }
+
+  .inspect-pane-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    padding: var(--pane-padding);
+
+    .inspect-tabs {
+      display: flex;
+      flex: none;
+      gap: 2px;
+      border-bottom: 1px solid $markov-teal;
+    }
+
+    .inspect-tab {
+      padding: 3px 10px;
+      border: 1px solid $markov-teal;
+      border-bottom: none;
+      border-radius: 3px 3px 0 0;
+      background-color: #eef3f5;
+      font: inherit;
+      cursor: pointer;
+
+      // the chosen tab opens into its panel, over the tab strip's line
+      &.selected {
+        margin-bottom: -1px;
+        border-bottom: 1px solid #fff;
+        background-color: #fff;
+        font-weight: bold;
+      }
+    }
+
+    .inspect-panel {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .inspect-empty {
+      margin: 10px 4px;
+      color: #737373;
+    }
+
+    .inspect-table {
+      width: 100%;
+      border-collapse: collapse;
+
+      th {
+        position: sticky;
+        top: 0;
+        padding: 0;
+        background-color: #fff;
+        text-align: left;
+
+        button {
+          width: 100%;
+          padding: 4px;
+          border: none;
+          background: none;
+          font: inherit;
+          font-weight: bold;
+          text-align: left;
+          cursor: pointer;
+        }
+      }
+
+      td {
+        padding: 2px 4px;
+        border-top: 1px solid #e0e0e0;
+      }
+
+      tbody tr {
+        cursor: pointer;
+        // an arrow's color marks a transition into or out of the chosen state
+        border-left: 4px solid transparent;
+
+        &.highlight-in {
+          border-left-color: var(--highlight-in);
+        }
+        &.highlight-out {
+          border-left-color: var(--highlight-out);
+        }
+      }
+
+      .inspect-row-button {
+        padding: 0;
+        border: none;
+        background: none;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+    }
+  }
+
+  // the rows scroll, and the note under them stays in view
+  .input-table {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+
+    .input-table-rows {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    td {
+      padding: 1px 0;
+
+      &:last-child {
+        width: 26px;
+        text-align: center;
+      }
+    }
+
+    input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 2px 4px;
+      border: 1px solid $markov-teal;
+      // a lit row's color shows through
+      background-color: transparent;
+      border-radius: 2px;
+      font: inherit;
+    }
+
+    tr.append input {
+      border-style: dashed;
+    }
+
+    .delete-row {
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: none;
+      background: none;
+      color: #737373;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.4;
+      }
+    }
+
+    .input-table-limit {
+      margin: 4px 0 0;
+      color: #b00020;
+      font-size: 13px;
+
+      // kept in the page while empty, so a screen reader is listening when the note arrives
+      &:empty {
+        margin: 0;
+      }
+    }
+  }
+
+  .graph-pane-content {
+    display: flex;
+    flex: 1;
+    gap: 5px;
+    min-width: 0;
+    padding: var(--pane-padding);
+
+    .graph {
+      position: relative;
+      min-width: 0;
+      flex-shrink: 1;
+
+      svg {
+        display: block;
+        height: 100%;
+      }
+    }
+
+    .graph-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #737373;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .toolbar {
+      flex: none;
+      align-self: flex-start;
+      gap: var(--toolbar-gap);
+
+      .top, .bottom {
+        gap: var(--toolbar-gap);
+      }
+
+      // the toolbar always renders its bottom group, which adds a gap even when empty
+      .bottom:empty {
+        display: none;
+      }
+    }
+
+    // a toolbar taller than the pane's body puts its buttons in two columns, in their order
+    &.two-columns .toolbar {
+      display: grid;
+      grid-template-columns: repeat(2, var(--toolbar-button));
+      width: auto;
+
+      .top, .bottom {
+        display: contents;
+      }
+    }
+  }
+
+  .generator-pane {
+    @include markov-generator-and-output;
+
+    .generator-pane-content {
+      display: flex;
+      flex: 1;
+      gap: 10px;
+      min-width: 0;
+      padding: var(--pane-padding);
+    }
+
+    .generator-controls {
+      flex: none;
+      min-width: 160px;
+      padding-right: 10px;
+      border-right: var(--pane-border) solid $pane-border-color;
+      overflow-x: hidden;
+      overflow-y: auto;
+
+      // tighter than the plugin's, so the default controls fit the generator's minimum height
+      line-height: 1.2;
+
+      .generate {
+        gap: 5px;
+
+        .flex-col {
+          gap: 4px;
+        }
+      }
+
+      &.collapsed {
+        min-width: 0;
+      }
+
+      // as tall as the toggle, and as far above the controls as the output's heading is above the output
+      .generator-controls-header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        margin-bottom: 5px;
+
+        h3 {
+          flex: 1;
+          margin: 0;
+          font-size: inherit;
+          font-weight: bold;
+        }
+      }
+    }
+
+    .sequence-output {
+      min-width: 0;
+    }
+  }
+
+  // outputs alternate, sequence by sequence; a highlighted output keeps its own color, set by a longer selector
+  .sequence-output .sequence:nth-child(even) {
+    background-color: #f4f8fb;
+  }
+  .sequence-output .sequence:nth-child(odd) {
+    background-color: #fbfaf4;
+  }
+
+  @include markov-node-modal;
+}
+
+.draw-mode-message {
+  margin: 10px;
+}

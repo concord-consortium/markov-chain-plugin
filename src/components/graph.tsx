@@ -1,34 +1,20 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
-import { Edge, GraphData, Node, ViewMode } from "../type";
+import { Edge, GraphData, Node } from "../type";
+import { graphSignature, isPlaced, settings, startPositions, stateEdgeWeights } from "./graph-utils";
+import { D3Graph, D3Node } from "./graph-geometry";
 import {
-  calculateNodeFontSize, graphSignature, nodeLoopPath, pullBackLineEnd, ry, settings, stateEdgeWeights
-} from "./graph-utils";
+  GraphSelection, highlightAnimation, highlightSelected as highlightSelectedNodes,
+  unhighlightNonOutput as unhighlightNonOutputNodes
+} from "./graph-highlight";
+import { drawGraph } from "./graph-draw";
 
 import PlusIcon from "../assets/plus.svg";
 import MinusIcon from "../assets/minus.svg";
 
 import "./graph.scss";
-
-const unselectedOpacity = 0.35;
-const lineAndLoopOpacity = 0.6;
-
-const selectedNodeColor = "#14f49e3f";  // 3f is 25% opacity
-const incomingArrowColor = "#0081ff";
-const outgoingArrowColor = "#ff9900";
-const animatedNodeColor = "#FF00877f"; // 7f is 50% opacity
-const animatedArrowColor = "#FF0087";
-const selectedLoopArrowColor = "#8d61bc";
-
-const arrowUrl = "url(#arrow)";
-const incomingArrowUrl = "url(#incomingArrow)";
-const outgoingArrowUrl = "url(#outgoingArrow)";
-const animatedArrowUrl = "url(#animatedArrow)";
-const selectedLoopArrowUrl = "url(#selectedLoopArrow)";
-const unselectedArrowUrl = "url(#unselectedArrow)";
-const unselectedLoopArrowUrl = "url(#unselectedLoopArrow)";
 
 export type DrawingMode = "select"|"addNode"|"addEdge"|"delete"|"addText";
 
@@ -38,9 +24,10 @@ export type Point = {x: number, y: number};
 
 export type RubberBand = {from: string, to: Point};
 
+export type { D3Node } from "./graph-geometry";
+
 type Props = {
   graph: GraphData,
-  mode: ViewMode;
   highlightNode?: Node,
   highlightLoopOnNode?: Node,
   highlightEdge?: Edge,
@@ -64,107 +51,36 @@ type Props = {
   onTransformed?: (transform: Transform) => void;
   setSelectedNodeId: (id?: string, skipToggle?: boolean) => void;
   onAutoArrangeEnd?: (nodes: D3Node[]) => void;
+  // states already drawn keep their places when the graph changes and only new ones are laid out, unless most are new
+  keepPositions?: boolean;
+  // a transition to highlight as chosen, and clicks on arrows in any tool but Delete
+  selectedEdge?: { from: string, to: string };
+  onEdgeSelect?: (edge: { from: string, to: string }) => void;
+  // a click on the SVG's background, which d3-zoom doesn't send after a pan
+  onBackgroundClick?: () => void;
+  // false leaves out the zoom buttons the graph draws in its corner, for a layout whose toolbar zooms
+  zoomButtons?: boolean;
+  // scales the graph by `by` each time `id` changes, as the corner buttons do
+  zoomRequest?: { id: number, by: number };
+  // a zoom or pan the student made (wheel, background drag), not a fit, a recenter or a zoomRequest
+  onUserZoom?: () => void;
+  // fits animate over this many ms; absent, they are instant
+  fitTransitionMs?: number;
 };
 
-export type D3Node = {
-  index: number,
-  id: string;
-  label: string;
-  x: number,
-  y: number,
-  radius: number,
-  loops: boolean
-  loopWeight: number,
-  weight: number;
-};
-
-type D3Edge = {
-  source: D3Node,
-  target: D3Node,
-  sourceX: number,
-  sourceY: number,
-  targetX: number,
-  targetY: number,
-  weight: number;
-  value: number;
-};
-
-type D3Graph = {
-  nodes: D3Node[],
-  edges: D3Edge[],
-};
-
-type FindLineBetweenEllipsesArgs = {
-  x1: number, y1: number, r1: number, x2: number, y2: number, r2: number, nodeEdgeCount: {source: D3Node, count: number}
-};
-type FindPointOnEllipseArgs = {
-  x1: number, y1: number, x2: number, y2: number, cx: number, cy: number, a: number, b: number, angleDelta: number
-};
-
-const bidirectionalEdgeAngle = 10 * (Math.PI / 180);
-const Pi2 = Math.PI * 2;
-
-const normalizeAngle = (radians: number): number => {
-  return radians - Pi2 * Math.floor(radians / Pi2);
-};
-
-const findPointOnEllipse = ({ x1, y1, x2, y2, cx, cy, a, b, angleDelta }: FindPointOnEllipseArgs) => {
-  const angle = normalizeAngle(Math.atan2(y2 - y1, x2 - x1) + angleDelta);
-  return { x: cx + a * Math.cos(angle), y: cy + b * Math.sin(angle) };
-};
-
-const findLineBetweenEllipses = ({ x1, y1, r1, x2, y2, r2, nodeEdgeCount }: FindLineBetweenEllipsesArgs) => {
-  const angleDelta = nodeEdgeCount.count > 1 ? bidirectionalEdgeAngle : 0;
-  return [
-    findPointOnEllipse({ x1, y1, x2, y2, cx: x1, cy: y1, a: r1, b: ry(r1), angleDelta }),
-    findPointOnEllipse({ x1: x2, y1: y2, x2: x1, y2: y1, cx: x2, cy: y2, a: r2, b: ry(r2), angleDelta: -angleDelta })
-  ];
-};
-
-const calculateEdges = (edges: D3Edge[]) => {
-  const getKey = (edge: D3Edge) => {
-    const ids = [edge.source.id, edge.target.id];
-    ids.sort();
-    return ids.join(":");
-  };
-  const nodeEdgeCounts = edges.reduce<Map<string,{source: D3Node, count: number}>>((acc, edge) => {
-    const key = getKey(edge);
-    const entry = acc.get(key) || { source: edge.source, count: 0 };
-    entry.count++;
-    acc.set(key, entry);
-    return acc;
-  }, new Map());
-
-  return edges.map(edge => {
-    const [sourceEdge, targetEdge] =
-      findLineBetweenEllipses({
-        x1: edge.source.x,
-        y1: edge.source.y,
-        r1: edge.source.radius,
-        x2: edge.target.x,
-        y2: edge.target.y,
-        r2: edge.target.radius,
-        nodeEdgeCount: nodeEdgeCounts.get(getKey(edge))!
-      });
-    edge.sourceX = sourceEdge.x;
-    edge.sourceY = sourceEdge.y;
-    edge.targetX = targetEdge.x;
-    edge.targetY = targetEdge.y;
-    return edge;
-  });
-};
-
-const lineDashArray = (edge: D3Edge) => edge.value ? "" : "4";
-
-const lineEnd = (edge: D3Edge) =>
-  pullBackLineEnd(edge.sourceX, edge.sourceY, edge.targetX, edge.targetY, edge.weight);
+// a press that moves this many px or less is still a click, and a gesture that moves the view no more isn't a zoom
+const clickDistance = 4;
+// the zoom buttons' steps, which a host's own zoom buttons take too
+export const zoomInStep = 1.1;
+export const zoomOutStep = 0.9;
 
 export const Graph = (props: Props) => {
   const { graph, highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          allowDragging, autoArrange, rubberBand, drawingMode,
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
          fitViewAt, recenterViewAt, onAutoArrangeEnd, opacity,
-         selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed } = props;
+         selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed, keepPositions, selectedEdge,
+         onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -178,6 +94,8 @@ export const Graph = (props: Props) => {
   const zoomRef = useRef<d3.ZoomBehavior<any, any> | undefined>(undefined);
   const lastFitViewAtRef = useRef<number | undefined>(undefined);
   const lastRecenterViewAtRef = useRef<number | undefined>(undefined);
+  const lastZoomRequestIdRef = useRef(zoomRequest?.id);
+  const gestureStartRef = useRef<Transform | undefined>(undefined);
 
   // generate an ordered edge list from the highlight output nodes
   const highlightOutputEdges = useMemo(() => {
@@ -192,111 +110,18 @@ export const Graph = (props: Props) => {
     return edges;
   }, [highlightOutputNodes]);
 
-  const highlightSelected = useCallback((svg: d3.Selection<any, unknown, null, undefined>) => {
-    if (animating || !selectedNodeId) {
-      return;
-    }
+  const highlightSelected = useCallback((svg: GraphSelection) => {
+    highlightSelectedNodes(svg, { selectedNodeId, selectedEdge, animating, graph });
+  }, [selectedNodeId, selectedEdge, animating, graph]);
 
-    const connectedNodeIds = graph.edges
-      .filter(e => e.from === selectedNodeId || e.to === selectedNodeId)
-      .map(e => e.from === selectedNodeId ? e.to: e.from)
-      .concat(selectedNodeId);
-
-    // highlight selected node
-    svg
-      .selectAll("g.node")
-      .selectAll("ellipse")
-      .style("opacity", unselectedOpacity)
-      .filter((d: any) => connectedNodeIds.includes(d.id))
-      .style("opacity", 1)
-      .filter((d: any) => selectedNodeId === d.id)
-      .attr("fill", selectedNodeColor);
-
-    svg
-      .selectAll("line.edge")
-      .style("opacity", unselectedOpacity)
-      .attr("marker-end", unselectedArrowUrl);
-
-    // highlight selected incoming edges
-    svg
-      .selectAll("line.edge")
-      .filter((d: any) => ((
-        (d.value > 0) && (selectedNodeId === d.target?.id))))
-      .attr("stroke", incomingArrowColor)
-      .attr("marker-end", incomingArrowUrl)
-      .style("opacity", 1);
-
-    // highlight selected outgoing edges
-    svg
-      .selectAll("line.edge")
-      .filter((d: any) => ((
-        (d.value > 0) && (selectedNodeId === d.source?.id))))
-      .attr("stroke", outgoingArrowColor)
-      .attr("marker-end", outgoingArrowUrl)
-      .style("opacity", 1);
-
-    // highlight loops
-    svg
-      .selectAll("path.loop")
-      .style("opacity", unselectedOpacity)
-      .attr("marker-end", unselectedLoopArrowUrl)
-      .filter((d: any) => selectedNodeId === d.id)
-      .attr("stroke", selectedLoopArrowColor)
-      .attr("stroke-dasharray", "")
-      .attr("marker-end", selectedLoopArrowUrl)
-      .style("opacity", 1);
-
-    // highlight text
-    svg
-      .selectAll("g.node")
-      .selectAll("text")
-      .style("opacity", unselectedOpacity)
-      .filter((d: any) => connectedNodeIds.includes(d.id))
-      .style("opacity", 1);
-
-
-  }, [selectedNodeId, animating, graph]);
-
-  const unhighlightNonOutput = useCallback((svg: d3.Selection<any, unknown, null, undefined>) => {
-    if (animating) {
-      return;
-    }
-
-    const nodeIds = highlightOutputNodes?.map(n => n.id) ?? [];
-    const haveNodes = nodeIds.length > 0;
-
-    // unhighlight non-highlighted nodes
-    svg
-      .selectAll("g.node")
-      .selectAll("ellipse")
-      .style("opacity", 1)
-      .filter((d: any) => haveNodes && !nodeIds.includes(d.id))
-      .style("opacity", unselectedOpacity);
-
-    // unhighlight non-highlighted edges
-    svg
-      .selectAll("line")
-      .style("opacity", 1)
-      .filter((d: any) => ((
-        (d.value > 0) && haveNodes && (!(nodeIds.includes(d.source?.id) && nodeIds.includes(d.target?.id))))))
-      .style("opacity", unselectedOpacity);
-
-    // unhighlight loops
-    svg
-      .selectAll("path.loop")
-      .style("opacity", 1)
-      .filter((d: any) => haveNodes && !nodeIds.includes(d.id))
-      .style("opacity", unselectedOpacity);
-
-    // unhighlight text
-    svg
-      .selectAll("g.node")
-      .selectAll("text")
-      .style("opacity", 1)
-      .filter((d: any) => haveNodes && !nodeIds.includes(d.id))
-      .style("opacity", unselectedOpacity);
-
+  const unhighlightNonOutput = useCallback((svg: GraphSelection) => {
+    unhighlightNonOutputNodes(svg, { highlightOutputNodes, animating });
   }, [highlightOutputNodes, animating]);
+
+  const selectionRef = useRef({ selectedNodeId, setSelectedNodeId, highlightSelected });
+  useLayoutEffect(() => {
+    selectionRef.current = { selectedNodeId, setSelectedNodeId, highlightSelected };
+  });
 
   // calculate the svg dimensions
   useEffect(() => {
@@ -316,16 +141,31 @@ export const Graph = (props: Props) => {
     const totalNodeValue = graph.nodes.reduce((acc, cur) => acc + cur.value, 0);
     const { minRadius, maxRadius } = settings;
 
+    const oldD3Nodes = graph.nodes.map(node => d3Graph.nodes.find(n => n.id === node.id));
+    const placed = graph.nodes.map((node, index) => isPlaced(!!keepPositions, !!oldD3Nodes[index], node));
+    const placedPositions = new Map<string, { x: number, y: number }>();
     graph.nodes.forEach((node, index) => {
-      const oldD3Node = d3Graph.nodes.find(n => n.id === node.id);
-      const x = oldD3Node?.x ?? node.x ?? 0;
-      const y = oldD3Node?.y ?? node.y ?? 0;
+      if (placed[index]) {
+        const oldD3Node = oldD3Nodes[index];
+        placedPositions.set(node.id, { x: oldD3Node?.x ?? node.x ?? 0, y: oldD3Node?.y ?? node.y ?? 0 });
+      }
+    });
+
+    const newIds = graph.nodes.filter((_, index) => !placed[index]).map(node => node.id);
+    const starts = keepPositions ? startPositions(newIds, graph.edges, placedPositions) : undefined;
+
+    graph.nodes.forEach((node, index) => {
+      const oldD3Node = oldD3Nodes[index];
+      const start = starts?.get(node.id);
+      const x = start?.x ?? oldD3Node?.x ?? node.x ?? 0;
+      const y = start?.y ?? oldD3Node?.y ?? node.y ?? 0;
 
       const d3Node: D3Node = {
         index,
         id: node.id,
         x,
         y,
+        placed: placed[index],
         label: node.label,
         radius: minRadius + ((maxRadius - minRadius) * (node.value / totalNodeValue)),
         loops: false,
@@ -357,7 +197,7 @@ export const Graph = (props: Props) => {
     if (graphSignature(d3Graph) !== graphSignature(newD3Graph)) {
       setD3Graph(newD3Graph);
     }
-  }, [d3Graph, graph]);
+  }, [d3Graph, graph, keepPositions]);
 
   // enable zooming
   useEffect(() => {
@@ -366,13 +206,26 @@ export const Graph = (props: Props) => {
     // add zoom
     zoomRef.current = d3.zoom()
       //.scaleExtent([0.5, 10]) // This defines the zoom levels (min, max)
+      .on("start", (e) => {
+        gestureStartRef.current = e.transform;
+      })
       .on("zoom", (e) => {
         const root = svg.select("g.root");
         const transform = e.transform as d3.ZoomTransform;
         root.attr("transform", transform.toString());
         transformRef.current = transform;
         onTransformed?.(transform);
+
+        // fits, recenters and zoom requests have no source event
+        const start = gestureStartRef.current;
+        if (onUserZoom && e.sourceEvent && start &&
+            (transform.k !== start.k || Math.hypot(transform.x - start.x, transform.y - start.y) > clickDistance)) {
+          onUserZoom();
+        }
       });
+    if (onBackgroundClick) {
+      zoomRef.current.clickDistance(clickDistance);
+    }
     svg
       .call(zoomRef.current)
       .on("dblclick.zoom", null); // disable double click to zoom
@@ -384,345 +237,17 @@ export const Graph = (props: Props) => {
       return;
     }
 
-    const svg = d3.select(svgRef.current);
-    let simulation: d3.Simulation<D3Node, undefined>|undefined;
-
-    // clear the existing items
-    svg.selectAll("*").remove();
-
-    // add the root element
-    const root = svg
-      .append("g")
-      .attr("class", "root")
-      .attr("transform", transformRef.current?.toString() ?? "")
-      ;
-
-    const addArrowMarker = (id: string, color: string, markerOpacity?: number) => {
-      root
-        .append("svg:defs")
-        .append("svg:marker")
-        .attr("id", id)
-        .attr("refX", 1)
-        .attr("refY", 2)
-        .attr("markerWidth", 4)
-        .attr("markerHeight", 4)
-        .attr("markerUnits", "strokeWidth")
-        .attr("orient", "auto")
-        .append("path")
-        .attr("d", "M 0 0 4 2 0 4 1 2 0 0")
-        .style("fill", color)
-        .style("fill-opacity", markerOpacity ?? 1);
-    };
-
-    // add arrows markers
-    addArrowMarker("arrow", "black");
-    addArrowMarker("loopArrow", "black");
-    addArrowMarker("animatedArrow", animatedArrowColor);
-    addArrowMarker("incomingArrow", incomingArrowColor);
-    addArrowMarker("outgoingArrow", outgoingArrowColor);
-    addArrowMarker("selectedLoopArrow", selectedLoopArrowColor);
-    addArrowMarker("unselectedArrow", "black", unselectedOpacity);
-    addArrowMarker("unselectedLoopArrow", "black", unselectedOpacity / lineAndLoopOpacity); // 0
-
-    // draw nodes
-    const nodes = root
-      .selectAll("g.node")
-      .data(d3Graph.nodes)
-      .enter()
-      .append("g")
-      .attr("class", "node");
-
-    const dragStart = () => {
-      simulation?.alphaTarget(0.5).restart();
-      draggedRef.current = false;
-    };
-
-    const dragging = (event: any, d: any) => {
-      if (event.dx || event.dy) {
-        draggedRef.current = true;
-      }
-      // simulation.alpha(0.5).restart()
-      if (autoArrange) {
-        d.fx = event.x;
-        d.fy = event.y;
-      } else {
-        d.x = event.x;
-        d.y = event.y;
-
-        // update graph
-        tick();
-      }
-    };
-
-    const dragEnd = (event: any) => {
-      simulation?.alphaTarget(0);
-      // a press without a drag must not redraw, or the click that follows lands on a removed state
-      if (draggedRef.current) {
-        onDragStop?.(event.subject.id, { x: event.x, y: event.y });
-      }
-    };
-
-    const drag = d3.drag()
-      .on("start", dragStart)
-      .on("drag", dragging)
-      .on("end", dragEnd);
-
-    const circleClass = [
-      drawingMode === "addEdge" ? "can-add-edge" : "",
-      drawingMode === "delete" ? "can-delete" : "",
-    ].join(" ");
-
-    const circles = nodes
-      .append("ellipse")
-      .attr("class", circleClass)
-      .attr("fill", "#fff")
-      .attr("stroke", "#999")
-      .attr("stroke-width", d => 2)
-      .attr("rx", d => d.radius)
-      .attr("ry", d => ry(d.radius))
-      .attr("cx", d => d.x)
-      .attr("cy", d => d.y)
-      .attr("style", drawingMode === "select" ? "cursor: pointer" : "")
-      .on("click", (e, d) => {
-        const now = Date.now();
-        const timeDiff = now - (lastClickTimeRef.current ?? 0);
-        const sameNode = lastClickIdRef.current === d.id;
-        const withinDoubleClickTime = timeDiff <= 250;
-        const skipToggle = withinDoubleClickTime && d.id === selectedNodeId;
-
-        lastClickTimeRef.current = now;
-        lastClickIdRef.current = d.id;
-
-        if (withinDoubleClickTime && sameNode) {
-          setSelectedNodeId(d.id, true);
-          onNodeDoubleClick?.(d.id);
-        } else {
-          setSelectedNodeId(d.id, skipToggle);
-          onNodeClick?.(d.id);
-        }
-      })
-      ;
-
-    if (allowDragging) {
-      circles.call(drag as any);
-    }
-
-    const finalLabelsAndFontSizes: Array<{label: string, fontSize: number}> = [];
-    nodes.each(d => {
-      finalLabelsAndFontSizes.push(calculateNodeFontSize(d));
+    const simulation = drawGraph(d3.select(svgRef.current), d3Graph, {
+      transform: transformRef.current, allowDragging, autoArrange, rubberBand, drawingMode, keepPositions,
+      selectionRef, onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd,
+      lastClickTimeRef, lastClickIdRef, draggedRef
     });
 
-    const labels = nodes
-      .append("text")
-      .text((d, i) => finalLabelsAndFontSizes[i].label)
-      .attr("fill", "#000")
-      .attr("text-anchor", "middle")
-      .attr("alignment-baseline", "middle")
-      .attr("font-size", (d, i) => finalLabelsAndFontSizes[i].fontSize)
-      .attr("x", d => d.x)
-      .attr("y", d => d.y);
-
-    const tick = () => {
-      circles.attr("cx", d => d.x).attr("cy", d => d.y);
-      labels.attr("x", d => d.x).attr("y", d => d.y);
-
-      d3Graph.edges = calculateEdges(d3Graph.edges);
-
-      lineBackgrounds
-        .attr("x1", d => d.sourceX)
-        .attr("x2", d => d.targetX)
-        .attr("y1", d => d.sourceY)
-        .attr("y2", d => d.targetY);
-
-      lines
-        .attr("x1", d => d.sourceX)
-        .attr("x2", d => lineEnd(d).x)
-        .attr("y1", d => d.sourceY)
-        .attr("y2", d => lineEnd(d).y);
-
-      loopBackgrounds.attr("d", d => nodeLoopPath(d));
-      loops.attr("d", d => nodeLoopPath(d, d.loopWeight));
+    return () => {
+      simulation?.stop();
     };
-
-    if (autoArrange) {
-      // Create a new force simulation and assign forces
-      simulation = d3
-        .forceSimulation(d3Graph.nodes)
-        .force("link", d3.forceLink(d3Graph.edges).distance(e => (e.source.radius + e.target.radius) * 1.5))
-        .force("charge", d3.forceManyBody().strength(-350))
-        .force("x", d3.forceX())
-        .force("y", d3.forceY())
-        .on("tick", tick);
-
-      // ensure node values before calculating edge positions
-      while (simulation.alpha() > simulation.alphaMin()) {
-        simulation.tick();
-      }
-
-      onAutoArrangeEnd?.(d3Graph.nodes);
-
-      // pin the nodes so that dragging does not cause a force layout change
-      d3Graph.nodes
-        .forEach((d: any) => {
-          d.fx = d.x;
-          d.fy = d.y;
-        });
-    }
-
-    // calculate the edge positions
-    d3Graph.edges = calculateEdges(d3Graph.edges);
-
-    const lineBackgroundClass = [
-      "edge-background",
-      drawingMode === "delete" ? "can-delete" : "",
-    ].join(" ");
-
-    // draw backgrounds for edges to increase click area
-    const lineBackgrounds = root
-      .selectAll("line.edge-background")
-      .data(d3Graph.edges)
-      .enter()
-      .append("line")
-      .lower() // add below nodes
-      .attr("class", lineBackgroundClass)
-      .attr("stroke", "#000")
-      .attr("stroke-opacity", 0)
-      .attr("stroke-width", 15)
-      .attr("x1", d => d.sourceX)
-      .attr("x2", d => d.targetX)
-      .attr("y1", d => d.sourceY)
-      .attr("y2", d => d.targetY)
-      .attr("style", drawingMode === "delete" ? "cursor: pointer" : "")
-      .on("click", (e, d) => {
-        onEdgeClick?.({ from: d.source.id, to: d.target.id });
-      })
-      ;
-
-    // draw edges
-    const lines = root
-      .selectAll("line.edge")
-      .data(d3Graph.edges)
-      .enter()
-      .append("line")
-      .lower() // add below nodes
-      .attr("class", "edge")
-      .attr("stroke", "#999")
-      .attr("stroke-opacity", lineAndLoopOpacity)
-      .attr("stroke-width", d => d.weight)
-      .attr("stroke-dasharray", d => lineDashArray(d))
-      .attr("x1", d => d.sourceX)
-      .attr("x2", d => lineEnd(d).x)
-      .attr("y1", d => d.sourceY)
-      .attr("y2", d => lineEnd(d).y)
-      .attr("marker-end", arrowUrl)
-      .attr("style", drawingMode === "delete" ? "pointer-events: none" : "")
-      .on("click", (e, d) => {
-        // this is not really needed as the pointer events are off
-        onEdgeClick?.({ from: d.source.id, to: d.target.id });
-      })
-      ;
-
-    const loopStyle = drawingMode === "delete" ? "cursor: pointer" : "pointer-events: none";
-
-    const loopBackgrounds = root
-      .selectAll("path.loop-background")
-      .data(d3Graph.nodes.filter(n => n.loops))
-      .enter()
-      .append("path")
-      .lower() // add below nodes
-      .attr("class", "loop-background")
-      .attr("d", d => nodeLoopPath(d))
-      .attr("stroke", "#000")
-      .attr("stroke-opacity", 0)
-      .attr("fill-opacity", 0)
-      .attr("stroke-width", 15)
-      .attr("style", loopStyle)
-      .on("click", (e, d) => {
-        onNodeClick?.(d.id, true);
-      })
-      ;
-
-    const loops = root
-      .selectAll("path.loop")
-      .data(d3Graph.nodes.filter(n => n.loops))
-      .enter()
-      .append("path")
-      .lower() // add below nodes
-      .attr("class", "loop")
-      .attr("d", d => nodeLoopPath(d, d.loopWeight))
-      .attr("stroke", "#999")
-      .attr("stroke-opacity", lineAndLoopOpacity)
-      .attr("fill-opacity", 0)
-      .attr("stroke-width", d => d.loopWeight)
-      .attr("marker-end", arrowUrl)
-      .attr("style", loopStyle)
-      .on("click", (e, d) => {
-        onNodeClick?.(d.id, true);
-      })
-      ;
-
-    const rubberBandNode = d3Graph.nodes.find(n => n.id === rubberBand?.from);
-    if (rubberBand && rubberBandNode) {
-      const data = [{ x1: rubberBandNode.x, x2: rubberBand.to.x, y1: rubberBandNode.y, y2: rubberBand.to.y }];
-      root
-        .selectAll("line.rubberband")
-        .data(data)
-        .enter()
-        .append("line")
-        .attr("class", "rubberband")
-        .attr("stroke", "#999")
-        .attr("stroke-opacity", lineAndLoopOpacity)
-        .attr("stroke-width", 2)
-        .attr("x1", d => d.x1)
-        .attr("x2", d => d.x2)
-        .attr("y1", d => d.y1)
-        .attr("y2", d => d.y2)
-        .attr("marker-end", arrowUrl);
-
-      // add loopback "ghost" with background
-      if (!rubberBandNode.loops) {
-        root
-          .selectAll("path.ghost-loop-background")
-          .data([rubberBandNode])
-          .enter()
-          .append("path")
-          .attr("class", "ghost-loop-background")
-          .attr("d", d => nodeLoopPath(d))
-          .attr("stroke", "#000")
-          .attr("stroke-opacity", 0)
-          .attr("fill-opacity", 0)
-          .attr("stroke-width", 15)
-          .attr("style", "cursor: pointer")
-          .on("click", () => {
-            onNodeClick?.(rubberBandNode.id);
-          })
-          ;
-        root
-          .selectAll("path.ghost-loop")
-          .data([rubberBandNode])
-          .enter()
-          .append("path")
-          .attr("class", "ghost-loop")
-          .attr("d", d => nodeLoopPath(d))
-          .attr("stroke", "#999")
-          .attr("stroke-opacity", lineAndLoopOpacity)
-          .attr("stroke-dasharray", 4)
-          .attr("fill-opacity", 0)
-          .attr("stroke-width", 1)
-          .attr("marker-end", arrowUrl)
-          .attr("style", "cursor: pointer")
-          .on("click", () => {
-            onNodeClick?.(rubberBandNode.id);
-          })
-          ;
-      }
-    }
-
-    highlightSelected(svg);
-
-  }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand, drawingMode,
-      onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop, setSelectedNodeId,
-      selectedNodeId, highlightSelected, onAutoArrangeEnd]);
+  }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand, drawingMode, keepPositions, animating,
+      onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd]);
 
   // animate the node if needed
   useEffect(() => {
@@ -730,53 +255,17 @@ export const Graph = (props: Props) => {
       return;
     }
 
-    const svg = d3.select(svgRef.current);
-    const root = svg.select("g.root");
+    const root = d3.select(svgRef.current).select("g.root");
 
-    // de-highlight all nodes
-    root
-      .selectAll("g.node")
-      .selectAll("ellipse")
-      .attr("fill", "#fff");
-
-    // highlight animated node and output nodes
-    root
-      .selectAll("g.node")
-      .selectAll("ellipse")
-      .filter((d: any) => (highlightNode?.id === d.id) || !!highlightOutputNodes?.find(n => n.id === d.id))
-      .attr("fill", animatedNodeColor);
-
-    // highlight animated edges
-    root
-      .selectAll("line.edge")
-      .attr("stroke", "#999")
-      .attr("stroke-dasharray", (d: any) => lineDashArray(d))
-      .attr("marker-end", arrowUrl)
-      .filter((d: any) => ((
-        (d.value > 0) && (
-            (highlightNode?.id === d.source?.id && highlightAllNextNodes) ||
-            (highlightEdge?.from === d.source?.id && highlightEdge?.to === d.target?.id) ||
-            (!!highlightOutputEdges.find(e => e.from === d.source?.id && e.to === d.target?.id))
-          )
-        )))
-      .attr("stroke", animatedArrowColor)
-      .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
-      .attr("marker-end", animatedArrowUrl);
-
-    root
-      .selectAll("path.loop")
-      .attr("stroke", "#999")
-      .attr("stroke-dasharray", "")
-      .attr("marker-end", arrowUrl)
-      .filter((d: any) => highlightLoopOnNode?.id === d.id)
-      .attr("stroke", animatedArrowColor)
-      .attr("stroke-dasharray", highlightAllNextNodes ? "4" : "")
-      .attr("marker-end", animatedArrowUrl);
+    highlightAnimation(root, {
+      highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
+      highlightOutputEdges
+    });
 
     unhighlightNonOutput(root);
     highlightSelected(root);
 
-  }, [svgRef, d3Graph.nodes, selectedNodeId, highlightNode, highlightLoopOnNode,
+  }, [svgRef, d3Graph.nodes, selectedNodeId, selectedEdge, highlightNode, highlightLoopOnNode,
       highlightEdge, highlightAllNextNodes, highlightSelected, highlightOutputNodes,
       unhighlightNonOutput, highlightOutputEdges]);
 
@@ -804,10 +293,14 @@ export const Graph = (props: Props) => {
     const y = scale * (-center.y / 2);
     const transform = new d3.ZoomTransform(scale, x, y);
 
-    svg.call(zoomRef.current.transform, transform);
+    if (fitTransitionMs && op === "fit") {
+      svg.transition().duration(fitTransitionMs).call(zoomRef.current.transform, transform);
+    } else {
+      svg.call(zoomRef.current.transform, transform);
+    }
 
     return true;
-  }, [width, height]);
+  }, [width, height, fitTransitionMs]);
 
   // listen for fit view requests
   useEffect(() => {
@@ -833,15 +326,28 @@ export const Graph = (props: Props) => {
     }
   }, [autoArrange, onClick]);
 
-  const scaleBy = (value: number) => {
+  const scaleBy = useCallback((value: number) => {
     if (zoomRef.current && svgRef.current) {
       const svg = d3.select(svgRef.current);
       svg.call(zoomRef.current.scaleBy, value);
     }
-  };
+  }, []);
 
-  const handleZoomIn = () => scaleBy(1.1);
-  const handleZoomOut = () => scaleBy(0.9);
+  const handleZoomIn = () => scaleBy(zoomInStep);
+  const handleZoomOut = () => scaleBy(zoomOutStep);
+
+  useEffect(() => {
+    if (zoomRequest && zoomRequest.id !== lastZoomRequestIdRef.current) {
+      lastZoomRequestIdRef.current = zoomRequest.id;
+      scaleBy(zoomRequest.by);
+    }
+  }, [zoomRequest, scaleBy]);
+
+  const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.target === e.currentTarget) {
+      onBackgroundClick?.();
+    }
+  };
 
   return (
     <div className="graph" ref={wrapperRef} onClick={handleClick}>
@@ -851,11 +357,14 @@ export const Graph = (props: Props) => {
         viewBox={`${-width / 2} ${-height / 2} ${width} ${height}`}
         ref={svgRef}
         style={{ opacity }}
+        onClick={handleSvgClick}
       />
-      <div className="zoomButtons">
-        <button className="plusButton" onClick={handleZoomIn}><PlusIcon /></button>
-        <button className="minusButton" onClick={handleZoomOut}><MinusIcon /></button>
-      </div>
+      { zoomButtons &&
+        <div className="zoomButtons">
+          <button className="plusButton" onClick={handleZoomIn}><PlusIcon /></button>
+          <button className="minusButton" onClick={handleZoomOut}><MinusIcon /></button>
+        </div>
+      }
     </div>
   );
 };

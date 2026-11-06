@@ -1,4 +1,5 @@
-import { defaultAuthoredState, isRecord, MarkovAuthoredState, readAuthoredState } from "./authored-state";
+import { defaultAuthoredState, MarkovAuthoredState, readAuthoredState } from "./authored-state";
+import { isRecord } from "./parse-state";
 
 // The settings in a standalone interactive's link: one parameter per setting, named by its path in the authored
 // state, such as ?panes.inspect.available=false&startingText=the+cat. The settings and their types come from

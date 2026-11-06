@@ -1,10 +1,15 @@
 import { defaultAuthoredState, MarkovAuthoredState } from "../../src/interactive/authored-state";
+import { clickState, stateLabels } from "../support/workspace";
 
 const listedSettings = () => cy.interactive().find(".runtime-placeholder dl").then(list =>
   [...list.find("dt")].map((term, i) => [term.textContent, list.find("dd")[i].textContent]));
 
-describe("the interactive's placeholder runtime", () => {
-  it("lists every authored setting with its value", () => {
+// the workspace's panes, by their titles
+const panes = () => cy.interactive().find(".markov-workspace section.pane > .pane-header h2")
+  .then(titles => [...titles].map(title => title.textContent));
+
+describe("the interactive's runtime", () => {
+  it("shows the panes and input view the authored state gives", () => {
     const authoredState: MarkovAuthoredState = {
       ...defaultAuthoredState,
       modes: { useData: true, draw: false },
@@ -18,43 +23,28 @@ describe("the interactive's placeholder runtime", () => {
       orderMatters: { startsOn: false, showSwitch: false },
       startingText: "the cat sat",
     };
-    cy.startInteractive({ mode: "runtime", authoredState, width: 600 });
-    cy.interactive().should("contain.text", "Markov interactive: coming soon");
-    listedSettings().should("deep.equal", [
-      ["Usable mode(s)", "Data"],
-      ["How students enter their data", "Text only"],
-      ["Capital letters", "\"The\" and \"the\" are different words"],
-      ["Start with \"Order matters\" on", "No"],
-      ["Show students the \"Order matters\" switch", "No"],
-      ["Starting data", "the cat sat (11 characters)"],
-      ["Input pane", "Available"],
-      ["Input pane: Open at the start", "Yes"],
-      ["Graph pane", "Available"],
-      ["Graph pane: Open at the start", "Yes"],
-      ["Inspect pane", "Not available"],
-      ["Sequence generator pane", "Available"],
-      ["Sequence generator pane: Open at the start", "Yes"],
-      ["Probabilities shown at the start", "Yes"],
-      ["Show probabilities toggle", "Available"],
-      ["Send to CODAP button", "Available"],
-      ["Download data files button", "Not available"],
-    ]);
+    cy.startInteractive({ mode: "runtime", authoredState, width: 1044 });
+    panes().should("deep.equal", ["Input", "Graph", "Sequence Generator"]);
+    cy.interactive().find("textarea[aria-label='Your text']").should("have.value", "the cat sat");
+    cy.interactive().find(".input-table").should("not.exist");
+    stateLabels().should("deep.equal", ["cat", "sat", "the"]);
   });
 
   it("ignores settings in its link, taking only the authored state", () => {
     cy.startInteractive({
-      mode: "runtime", width: 600,
+      mode: "runtime", width: 1044,
       authoredState: { modes: { useData: true, draw: false }, panes: { inspect: { available: false } } },
-      search: "?modes.draw=true&panes.inspect.available=true&inputView=table",
+      search: "?modes.draw=true&panes.inspect.available=true&panes.input.available=false",
     });
-    listedSettings().should("deep.include", ["Usable mode(s)", "Data"])
-      .and("deep.include", ["Inspect pane", "Not available"])
-      .and("deep.include", ["How students enter their data", "Linked table and text"]);
+    panes().should("deep.equal", ["Input", "Graph", "Sequence Generator"]);
   });
 
-  it("lists the defaults for an interactive never authored", () => {
-    cy.startInteractive({ mode: "runtime", authoredState: {} });
-    listedSettings().its(0).should("deep.equal", ["Usable mode(s)", "Both (with a toggle switch for students)"]);
+  it("shows the default workspace for an interactive never authored", () => {
+    cy.startInteractive({ mode: "runtime", authoredState: {}, width: 1044 });
+    panes().should("deep.equal", ["Input", "Graph", "Inspect", "Sequence Generator"]);
+    cy.interactive().find(".input-pane .linked-input textarea[aria-label='Your text']").should("exist");
+    cy.interactive().find(".input-pane .linked-input .input-table").should("exist");
+    cy.interactive().find(".markov-workspace").should("not.contain.text", "arrives in a later version");
   });
 
   [["no interactive state", undefined], ["{}", {}]].forEach(([name, interactiveState]) => {
@@ -69,12 +59,12 @@ describe("the interactive's placeholder runtime", () => {
 
   it("leaves an existing interactive state alone", () => {
     cy.startInteractive({ mode: "runtime", authoredState: {}, interactiveState: { version: 1 } });
-    cy.interactive().should("contain.text", "coming soon");
+    cy.interactive().find("section.input-pane");
     cy.wait(2500);
     cy.interactiveMessages("interactiveState").should("have.length", 0);
   });
 
-  it("shows a student's work read-only in a report, and saves nothing", () => {
+  it("lists the authored settings in a report, and saves nothing", () => {
     cy.startInteractive({ mode: "report", width: 600, authoredState: { modes: { useData: true, draw: false } } });
     cy.interactive().should("contain.text", "shown read-only in a report");
     listedSettings().should("deep.include", ["Usable mode(s)", "Data"]);
@@ -89,11 +79,50 @@ describe("the interactive's placeholder runtime", () => {
       .should("have.text", "The Markov interactive doesn't support unknown mode yet.");
   });
 
-  it("sizes its frame to the placeholder", () => {
-    cy.startInteractive({ mode: "runtime", authoredState: {}, width: 600 });
-    cy.interactive().find(".runtime-placeholder dl");
+  it("sizes its frame to the workspace, and stops asking for a new height", () => {
+    cy.startInteractive({ mode: "runtime", authoredState: { startingText: "the cat sat" }, width: 1044 });
+    cy.interactive().find(".markov-workspace");
     cy.frameFitsInteractive();
     // taller than a frame's default 150px, so a frame that never resized would fail
     cy.get("iframe#interactive").invoke("height").should("be.greaterThan", 150);
+    // past the fonts' and the graph's first layouts
+    cy.wait(1000);
+    cy.interactiveMessages("height").its("length").then(before => {
+      cy.wait(3000);
+      cy.interactiveMessages("height").should("have.length", before);
+    });
+  });
+
+  it("keeps its height while a state is chosen and cleared", () => {
+    cy.startInteractive({ mode: "runtime", authoredState: { startingText: "the cat sat" }, width: 1044 });
+    cy.interactive().find("g.node").should("have.length", 3);
+    cy.frameFitsInteractive();
+    cy.get("iframe#interactive").invoke("height").then(height => {
+      cy.interactiveMessages("height").its("length").then(before => {
+        clickState("cat");
+        cy.interactive().find(".clear-highlight").should("be.visible").click();
+        cy.interactive().find(".clear-highlight").should("not.exist");
+        // the workspace reports a new height a frame after it resizes
+        cy.wait(100);
+        cy.frameFitsInteractive();
+        cy.get("iframe#interactive").invoke("height").should("equal", height);
+        cy.interactiveMessages("height").invoke("slice", before)
+          .should(heights => heights.forEach(h => expect(h).to.equal(height)));
+      });
+    });
+  });
+
+  it("shows the workspace in Lato", () => {
+    cy.startInteractive({ mode: "runtime", authoredState: {}, width: 1044 });
+    cy.interactive().find(".markov-workspace");
+    cy.get<HTMLIFrameElement>("iframe#interactive").then(frame => frame[0].contentDocument!.fonts.ready);
+    // a font can start loading after ready resolves, so this retries
+    cy.get<HTMLIFrameElement>("iframe#interactive").should(frame => {
+      const doc = frame[0].contentDocument!;
+      const faces = [...doc.fonts].filter(face => face.family.replace(/"/g, "") === "Lato");
+      expect(faces.some(face => face.status === "loaded"), "a loaded Lato face").to.equal(true);
+      const workspace = doc.querySelector(".markov-workspace")!;
+      expect(doc.defaultView!.getComputedStyle(workspace).fontFamily).to.match(/^"?Lato/);
+    });
   });
 });

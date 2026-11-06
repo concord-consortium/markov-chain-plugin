@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Tool, Toolbar } from "./toolbar";
 import { Graph } from "./graph";
 import { Node, Edge, GraphData } from "../type";
 import { NodeModal } from "./drawing/node-modal";
+import { MarkovHost } from "./host";
 
 import "./dataset.scss";
 
@@ -25,13 +26,14 @@ interface Props {
   onFitView: () => void;
   onRecenterView: () => void;
   onDimensions?: (dimensions: {width: number, height: number}) => void;
+  log: MarkovHost["log"];
 }
 
 export const Dataset = (props: Props) => {
   const { highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
          graph, graphEmpty, setSelectedNodeId, selectedNodeId, animating,
          fitViewAt, recenterViewAt, graphOpacity,
-         onReset, onReturnToMainMenu, onFitView, onRecenterView } = props;
+         onReset, onReturnToMainMenu, onFitView, onRecenterView, log } = props;
   const [selectedNodeForModal, setSelectedNodeForModal] = useState<Node|undefined>(undefined);
 
   const handleToolSelected = (tool: Tool) => {
@@ -39,8 +41,14 @@ export const Dataset = (props: Props) => {
   };
 
   const handleNodeDoubleClicked = (id: string) => {
-    setSelectedNodeForModal(graph.nodes.find(n => n.id === id));
+    const node = graph.nodes.find(n => n.id === id);
+    setSelectedNodeForModal(node);
+    log("StateDialogOpened", { state: node?.label ?? id });
   };
+
+  const handleDragStop = useCallback((id: string) => {
+    log("StateMoved", { state: graph.nodes.find(n => n.id === id)?.label ?? id });
+  }, [graph, log]);
   const handleClearSelectedNode = () => setSelectedNodeForModal(undefined);
 
   if (graphEmpty) {
@@ -82,7 +90,6 @@ export const Dataset = (props: Props) => {
         onRecenterView={onRecenterView}
       />
       <Graph
-        mode="dataset"
         graph={graph}
         highlightNode={highlightNode}
         highlightLoopOnNode={highlightLoopOnNode}
@@ -91,6 +98,7 @@ export const Dataset = (props: Props) => {
         highlightOutputNodes={highlightOutputNodes}
         selectedNodeId={selectedNodeId}
         onNodeDoubleClick={handleNodeDoubleClicked}
+        onDragStop={handleDragStop}
         animating={animating}
         opacity={graphOpacity}
         allowDragging={!animating}
