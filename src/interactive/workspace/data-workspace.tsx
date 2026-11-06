@@ -37,6 +37,8 @@ interface DataWorkspaceProps {
   hidden: boolean;
   // the shell's controls, first in the row
   controls: React.ReactNode;
+  // the shell's actions, last in the row
+  actions: React.ReactNode;
   probabilities: boolean;
   arrowWidths: ArrowWidths;
   orderMatters: boolean;
@@ -60,7 +62,7 @@ const laidOutWhole = (before: string[], after: string[]) => {
 // Data mode's body: the authored panes around the student's input
 export const DataWorkspace = ({
   text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, saving, limitReached,
-  readOnly, host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, orderMatters,
+  readOnly, host, tool, config, stacked, hidden, controls, actions, probabilities, arrowWidths, orderMatters,
   onOrderMattersChange
 }: DataWorkspaceProps) => {
   const { inputView } = config;
@@ -275,7 +277,7 @@ export const DataWorkspace = ({
 
   return (
     <div className="workspace-body" hidden={hidden} ref={rootRef}>
-      <ControlsRow tool={tool}>
+      <ControlsRow tool={tool} actions={actions}>
         { controls }
         { hasPane("input") ? undefined : switches }
         { !config.orderMatters.showSwitch && <SettingLabel label={orderMattersLabel} value={orderMatters} /> }

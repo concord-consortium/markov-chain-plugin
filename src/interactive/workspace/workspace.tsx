@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { useLatest } from "../../hooks/use-latest";
-import { useMarkovTool } from "../../hooks/use-markov-tool";
+import { MarkovToolApi, useMarkovTool } from "../../hooks/use-markov-tool";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import {
   animatedNodeColor, incomingArrowColor, outgoingArrowColor, selectedNodeColor
@@ -22,6 +22,7 @@ import {
   stackBelow, toolbarButton, toolbarGap
 } from "./pane-sizes";
 import { restoreWork } from "./restore-work";
+import { TableButtons, TablesAction } from "./table-buttons";
 import { Saver, useSavedWork, useSaveRequest } from "./use-saved-work";
 import { workspaceConfig } from "./workspace-config";
 
@@ -47,6 +48,16 @@ const cssValues = {
   "--highlight-selected": selectedNodeColor, "--highlight-output": animatedNodeColor,
   "--highlight-in": incomingArrowColor, "--highlight-out": outgoingArrowColor,
 } as React.CSSProperties;
+
+const tablesOffReason = (tool: MarkovToolApi, mode: ModeId) => {
+  if (tool.animating) {
+    return "Wait for the sequence to finish.";
+  }
+  if (tool.graph.nodes.length > 0) {
+    return undefined;
+  }
+  return mode === "draw" ? "Draw something first." : "Add some words first.";
+};
 
 // The student's workspace: one tool per mode, each mode's body staying mounted, hidden while the other shows, so each
 // keeps its work
@@ -145,6 +156,10 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
     </>
   );
 
+  const tablesActions: TablesAction[] = configs[mode].downloadTables && !readOnly ? ["download"] : [];
+  const actions = tablesActions.length > 0 &&
+    <TableButtons actions={tablesActions} offReason={tablesOffReason(tools[mode], mode)} onPress={() => undefined} />;
+
   return (
     <div className={clsx("markov-workspace", { stacked })} style={cssValues} ref={rootRef}>
       <ArrowMarkers />
@@ -152,13 +167,14 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
         <DataWorkspace text={restored.text} capitalization={restored.capitalization} inputSplit={restored.inputSplit}
           start={restored.useData} saving={saving.useData} limitReached={limitReached} readOnly={readOnly}
           host={hosts.useData} tool={tools.useData} config={configs.useData} stacked={stacked}
-          hidden={mode !== "useData"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
-          orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
+          hidden={mode !== "useData"} controls={controls} actions={actions} probabilities={probabilities}
+          arrowWidths={arrowWidths} orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
       }
       { authoredState.modes.draw &&
         <DrawWorkspace host={hosts.draw} tool={tools.draw} config={configs.draw} stacked={stacked}
-          hidden={mode !== "draw"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
-          start={restored.draw} saving={saving.draw} limitReached={limitReached} readOnly={readOnly} />
+          hidden={mode !== "draw"} controls={controls} actions={actions} probabilities={probabilities}
+          arrowWidths={arrowWidths} start={restored.draw} saving={saving.draw} limitReached={limitReached}
+          readOnly={readOnly} />
       }
     </div>
   );

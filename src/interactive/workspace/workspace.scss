@@ -73,6 +73,25 @@ $pane-border-color: #c7c7c7;
     .clear-highlight {
       @include markov-button;
     }
+
+    .table-buttons {
+      display: flex;
+      gap: var(--pane-gap);
+      margin-left: auto;
+
+      button {
+        @include markov-button;
+
+        &[aria-disabled="true"] {
+          cursor: default;
+          opacity: 0.5;
+
+          &:hover {
+            background-color: #fff;
+          }
+        }
+      }
+    }
   }
 
   .top-row {
