@@ -152,6 +152,10 @@ The Activity Player's iframe has no `sandbox` attribute, so downloads aren't blo
 
 A word can reach a file starting with `=`, through brackets. R20 leaves it, since it is the student's own word in the student's own file, and a prefix would change what MARK-23 reads back.
 
+### Spaces around a value in CODAP
+
+CODAP 3.1.2 trims leading and trailing whitespace from a value and keeps inner spaces, so a delimiter of `" - "` arrives as `-` there, while files keep it as typed. A whitespace-only delimiter would arrive empty, which is why R13 sends "(space)".
+
 ### How it is built
 
 - `src/interactive/tables/` holds the code with no components of its own. `table-data.ts` states each table once, as its word, columns and column types, and `tableChoices` says what the popup offers. `csv.ts` writes the files and `file-gap.ts` holds the gap between them, on its own so Cypress can import it: `tsc -p cypress` drops Node's types and can't compile the workspace's code. `table-sender.ts` writes the snapshot and dynamically imports the library.
