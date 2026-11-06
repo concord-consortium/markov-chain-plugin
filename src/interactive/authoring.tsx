@@ -102,6 +102,8 @@ export const Authoring = ({ initialState }: Props) => {
         choices={inputViews} labels={inputViewLabels} helpId="input-view-help"
         onChange={inputView => update(current => ({ ...current, inputView }))} />
       <p id="input-view-help" className="help after-select">{ inputViewHelp[state.inputView] }</p>
+      <Checkbox id="allowCsvUpload" label={settingLabels.allowCsvUpload} checked={state.allowCsvUpload}
+        onChange={allowCsvUpload => update(current => ({ ...current, allowCsvUpload }))} />
       <Select<Capitalization> id="capitalization" label={settingLabels.capitalization} value={state.capitalization}
         choices={capitalizations} labels={capitalizationLabels}
         onChange={capitalization => update(current => ({ ...current, capitalization }))} />
