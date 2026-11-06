@@ -614,7 +614,7 @@ describe("the workspace's input table", () => {
     row(2).focus().type("{moveToStart}s");
     cy.interactive().find("button[aria-label='Delete row 2']").then(button => mousePress(button[0]));
     textBox().should("have.value", "the sat");
-loggedEvents().should("deep.include", ["TableRowDeleted", undefined]);
+    loggedEvents().should("deep.include", ["TableRowDeleted", { mode: "useData" }]);
   });
 
   it("deletes only the row pressed when the words after it repeat its word", () => {
