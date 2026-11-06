@@ -180,16 +180,17 @@ export const tableChoices = (source: TableSource, { orderMatters, hasGenerator }
 
 **Files affected**:
 - `src/interactive/tables/csv.ts`: new
+- `src/interactive/tables/file-gap.ts`: new, the gap alone, so the Cypress tests can import it: `tsc -p cypress` drops Node's types and can't compile the workspace's code
 - `src/interactive/tables/csv.test.ts`: new
 
 **Estimated diff size**: about 110 lines
 
 ```ts
+import { fileGap } from "./file-gap";
 import { Cell, TableData } from "./table-data";
 
 const byteOrderMark = "\uFEFF";
 const lineEnd = "\r\n";
-const fileGap = 200;
 const urlLifetime = 60000;
 
 const csvCell = (cell: Cell) => {
@@ -275,6 +276,7 @@ The setter joins in the popup's step, which is the first to use it.
 - `src/interactive/workspace/table-buttons.tsx`: new
 - `src/interactive/workspace/workspace.tsx`: `actions`
 - `src/interactive/workspace/workspace.scss`: the group, the off look
+- `src/interactive/standalone.test.tsx`: the button standalone
 - `cypress/e2e/interactive-tables.test.ts`: new
 
 **Estimated diff size**: about 150 lines
@@ -334,7 +336,7 @@ export const TableButtons = ({ actions, offReason, onPress }: TableButtonsProps)
 The reason's span uses the workspace's existing `.visually-hidden`, as `inspect-pane.tsx` does for its hint.
 
 ```ts
-// workspace.tsx
+// workspace.tsx, moving to use-table-actions.tsx with the button in the next step
 const tablesOffReason = (tool: MarkovToolApi, mode: ModeId) => {
   if (tool.animating) {
     return "Wait for the sequence to finish.";
@@ -349,9 +351,9 @@ const tablesOffReason = (tool: MarkovToolApi, mode: ModeId) => {
 Both bodies stay mounted, so each renders its own copy of `actions`, as with `controls`. Tests look inside `.workspace-body:not([hidden])`.
 
 **Tests** (Cypress):
-- Off by default; on with `buttons.downloadTables`, on the fake Activity Player page and standalone; not in report mode.
+- Off by default; on with `buttons.downloadTables` on the fake Activity Player page; not in report mode. Standalone is `standalone.test.tsx`'s, in Jest: Cypress runs a page in a frame, so the app reads as hosted and waits for an init message.
 - At the row's right edge, and still right of Clear highlight once a state is chosen. Catches adding it to `controls`.
-- At 700 px with no Input pane and both switches, on a second line, right-aligned, and inside the workspace.
+- With no Input pane and both switches, on a second line, right-aligned, and inside the workspace: at 560 px with Download alone, which fits at 700 px, and at 700 px once Send joins it in the last step.
 - Off with no words, with "Add some words first." as both the `title` and the text `aria-describedby` points at; on after typing, with neither left; off in an empty Draw mode with its own reason; off while playing, and while paused.
 - An off button in the Tab order, and pressing it opens nothing (added with the popup in the next step).
 
@@ -640,6 +642,7 @@ Jest resolves `nanoid` to its ES module under jsdom and can't load it, on Node 2
 **Summary**: The button, connecting it all, the message, the failure path and the Outputs table's limit (R1, R14 to R18, R22, R23, R25a).
 
 **Files affected**:
+- `src/interactive/standalone.test.tsx`: no Send button standalone
 - `src/interactive/app.tsx`, `runtime.tsx`, `workspace/workspace.tsx`: pass `objectStorageConfig` down, from the runtime message only; `Workspace` works out `canSend` and applies R17's limit
 - `src/interactive/workspace/use-table-actions.tsx`: the sender and the Send button
 - `src/interactive/workspace/tables-dialog.tsx`: the send branch shown above
@@ -673,7 +676,7 @@ chunkFilename: 'assets/[name].[contenthash].js',
 `sendToCodap` is one setting across both modes, so `canSend` doesn't change after the first render. R17's check sits in `Workspace`, beside the effect that already holds its answer while a sequence runs, and not in `saved-outputs.ts`, which `interactive-state.ts` imports, so that the tables' code stays out of anything else that reads saved state. The `report` case in `app.tsx` passes no config, so a report never loads the chunk. `fake-ap.ts`'s `objectStorageConfig` start option replaces the demo store: `null` gives a host with none, and `{ version: 2, type: "demo" }` is a store that refuses, for the failure path.
 
 **Tests** (Cypress):
-- Shown on with `buttons.sendToCodap` on the fake page; not standalone, not in a report, not with `objectStorageConfig: null`.
+- Shown on with `buttons.sendToCodap` on the fake page; not in a report, not with `objectStorageConfig: null`. Not standalone is Jest's, as with Download.
 - Both buttons, Send first.
 - A send: the exact message with an edited name, focus on Close, still open after several seconds, Close and `.trigger("cancel")` each ending it, focus back on the button, the next name "Data2".
 - The failed path with the refusing store: the message, the popup still open with its choices and with focus on the dialog, the count unchanged, and `TablesSendFailed`.
