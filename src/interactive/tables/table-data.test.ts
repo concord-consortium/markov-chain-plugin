@@ -87,10 +87,19 @@ describe("the Outputs table", () => {
     expect(outputs.colTypes).toEqual(
       ["numeric", "categorical", "categorical", "numeric", "categorical", "categorical"]);
     expect(outputs.rows).toEqual([
-      [1, "a b", "(any)", 5, " ", "Yes"],
-      [2, "c", "(any)", 5, " ", "Yes"],
+      [1, "a b", "(any)", 5, "(space)", "Yes"],
+      [2, "c", "(any)", 5, "(space)", "Yes"],
       [3, "ba", "b", 9, "(none)", "No"],
     ]);
+  });
+
+  it("names a delimiter of only spaces, and keeps any other as typed", () => {
+    const delimiters = ["  ", " - ", "-"];
+    const sequenceGroups = delimiters.map(delimiter =>
+      group({ delimiter, sequences: [[node("a", "a"), node("b", "b")]] }));
+    const outputs = buildTable("Outputs", { ...dataSource, sequenceGroups });
+    expect(outputs.rows.map(row => row[4])).toEqual(["(space)", " - ", "-"]);
+    expect(outputs.rows.map(row => row[1])).toEqual(["a  b", "a - b", "a-b"]);
   });
 
   it("has the same columns in Draw mode", () => {

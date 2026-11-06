@@ -2,6 +2,7 @@
 @use "../visually-hidden";
 
 $pane-border-color: #c7c7c7;
+$error-color: #b00020;
 
 // the pane layout's sizes come from pane-sizes.ts, set as custom properties on the workspace
 .markov-workspace {
@@ -595,7 +596,7 @@ $pane-border-color: #c7c7c7;
 
     .input-table-limit {
       margin: 4px 0 0;
-      color: #b00020;
+      color: $error-color;
       font-size: 13px;
 
       // kept in the page while empty, so a screen reader is listening when the note arrives
@@ -824,7 +825,7 @@ $pane-border-color: #c7c7c7;
 
     [role="alert"] {
       margin: 12px 0 0;
-      color: #b00020;
+      color: $error-color;
     }
 
     p {

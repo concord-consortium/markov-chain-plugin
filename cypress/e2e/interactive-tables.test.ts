@@ -1,5 +1,5 @@
 import { fileGap } from "../../src/interactive/tables/file-gap";
-import { clickState } from "../support/workspace";
+import { clickState, loggedEvents } from "../support/workspace";
 
 const width = 1044;
 const dataOnly = { useData: true, draw: false };
@@ -20,6 +20,11 @@ const box = (element: JQuery<HTMLElement>) => element[0].getBoundingClientRect()
 const dialog = () => cy.interactive().find("dialog.tables-dialog");
 const nameField = () => dialog().find(".tables-dialog-name input");
 const submit = () => dialog().find("button[type='submit']");
+const cancel = () => dialog().find("button").contains("Cancel");
+const choice = (label: string) => dialog().find("fieldset label").contains(label);
+const checkbox = (label: string) => choice(label).find("input");
+const eventsNamed = (matches: (action: string) => boolean) =>
+  loggedEvents().invoke("filter", ([action]: [string]) => matches(action));
 // a key's keydown, which comes back saying whether the page stopped the browser's own handling
 const pressKey = (element: HTMLElement, key: string, shiftKey = false) => {
   const win = element.ownerDocument.defaultView as Window & typeof globalThis;
@@ -140,11 +145,8 @@ describe("the Download tables button", () => {
 });
 
 describe("the tables popup", () => {
-  const choice = (label: string) => dialog().find("fieldset label").contains(label);
-  const checkbox = (label: string) => choice(label).find("input");
   const choiceLabels = () => dialog().find("fieldset label").invoke("toArray")
     .invoke("map", (label: Element) => label.textContent);
-  const cancel = () => dialog().find("button").contains("Cancel");
   const open = () => downloadButton().click();
   const expectFocusOnButton = () => focused().should(element => {
     expect(element?.textContent).to.equal("Download tables");
@@ -383,8 +385,8 @@ describe("the tables popup", () => {
     cy.readFile("cypress/downloads/Drawing1_States.csv").should("equal", "\uFEFFState\r\nRain\r\nSun\r\n");
     open();
     nameField().should("have.value", "Drawing2");
-    cy.interactiveMessages("log").invoke("filter", ({ action }: { action: string }) => action === "TablesDownloaded")
-      .invoke("map", ({ data }: { data: { mode: string } }) => data.mode).should("deep.equal", ["useData", "draw"]);
+    eventsNamed(action => action === "TablesDownloaded")
+      .invoke("map", ([, data]: [string, { mode: string }]) => data.mode).should("deep.equal", ["useData", "draw"]);
   });
 
   it("saves the count, so the next name carries on after a reopen", () => {
@@ -413,16 +415,14 @@ describe("the tables popup", () => {
     checkbox("Input data").check();
     submit().click();
     dialog().should("not.exist");
-    cy.interactiveMessages("log").invoke("filter", ({ action }: { action: string }) => action.startsWith("Tables"))
-      .invoke("map", ({ action, data }: { action: string, data: unknown }) => [action, data])
-      .should("deep.equal", [
-        ["TablesDialogOpened", { action: "download", mode: "useData" }],
-        ["TablesDialogCanceled", { action: "download", mode: "useData" }],
-        ["TablesDialogOpened", { action: "download", mode: "useData" }],
-        ["TablesDialogCanceled", { action: "download", mode: "useData" }],
-        ["TablesDialogOpened", { action: "download", mode: "useData" }],
-        ["TablesDownloaded", { name: "Data1", tables: ["Input", "States"], mode: "useData" }],
-      ]);
+    eventsNamed(action => action.startsWith("Tables")).should("deep.equal", [
+      ["TablesDialogOpened", { action: "download", mode: "useData" }],
+      ["TablesDialogCanceled", { action: "download", mode: "useData" }],
+      ["TablesDialogOpened", { action: "download", mode: "useData" }],
+      ["TablesDialogCanceled", { action: "download", mode: "useData" }],
+      ["TablesDialogOpened", { action: "download", mode: "useData" }],
+      ["TablesDownloaded", { name: "Data1", tables: ["Input", "States"], mode: "useData" }],
+    ]);
   });
 
   it("opens nothing from an off button, which stays in the Tab order", () => {
@@ -431,21 +431,17 @@ describe("the tables popup", () => {
     downloadButton().should("not.have.attr", "tabindex");
     downloadButton().click();
     dialog().should("not.exist");
-    cy.interactiveMessages("log").invoke("filter", ({ action }: { action: string }) => action.startsWith("Tables"))
-      .should("have.length", 0);
+    eventsNamed(action => action.startsWith("Tables")).should("have.length", 0);
   });
 });
 
 describe("Send to CODAP", () => {
   const sendButton = () => tableButton("Send to CODAP");
-  const checkbox = (label: string) => dialog().find("fieldset label").contains(label).find("input");
   const close = () => dialog().find("button").contains("Close");
   const startSend = (authoredState: Record<string, unknown> = {}, options: Record<string, unknown> = {}) =>
     start({ ...onlySend, startingText: "the cat sat", ...authoredState }, options);
   const refusingStore = { objectStorageConfig: { version: 2, type: "demo" } };
-  const tableEvents = () => cy.interactiveMessages("log")
-    .invoke("filter", ({ action }: { action: string }) => action.startsWith("TablesSen"))
-    .invoke("map", ({ action, data }: { action: string, data: unknown }) => [action, data]);
+  const tableEvents = () => eventsNamed(action => action.startsWith("TablesSen"));
   const saved = "Your tables have been saved as Mine. " +
     "Open the CODAP window on this page and choose this name in the Datalog plugin.";
   const failed = "Your tables couldn't be saved. Check your connection and try again.";
@@ -542,9 +538,7 @@ describe("Send to CODAP", () => {
     dialog().trigger("cancel");
     dialog().should("not.exist");
     focused().should(element => expect(element?.textContent).to.equal("Send to CODAP"));
-    cy.interactiveMessages("log")
-      .invoke("filter", ({ action }: { action: string }) => action === "TablesDialogCanceled")
-      .should("have.length", 0);
+    eventsNamed(action => action === "TablesDialogCanceled").should("have.length", 0);
     sendButton().click();
     nameField().should("have.value", "Data2");
   });
@@ -566,7 +560,7 @@ describe("Send to CODAP", () => {
     tableEvents().should("deep.equal", [
       ["TablesSendFailed", { name: "Mine", tables: ["Input", "Transitions"], mode: "useData" }],
     ]);
-    dialog().find("button").contains("Cancel").click();
+    cancel().click();
     sendButton().click();
     nameField().should("have.value", "Data1");
   });
@@ -574,9 +568,14 @@ describe("Send to CODAP", () => {
   it("logs a send and saves the count", () => {
     startSend();
     sendButton().click();
+    cancel().click();
+    sendButton().click();
     submit().click();
     close().should("exist");
-    tableEvents().should("deep.equal", [
+    eventsNamed(action => action.startsWith("Tables")).should("deep.equal", [
+      ["TablesDialogOpened", { action: "send", mode: "useData" }],
+      ["TablesDialogCanceled", { action: "send", mode: "useData" }],
+      ["TablesDialogOpened", { action: "send", mode: "useData" }],
       ["TablesSent", { name: "Data1", tables: ["Input", "States", "Transitions"], mode: "useData" }],
     ]);
     cy.interactiveMessages("interactiveState", { timeout: 5000 }).should("not.be.empty").invoke("at", -1)
@@ -619,9 +618,8 @@ describe("Send to CODAP", () => {
       shown().find(".output-limit", { timeout: 20000 })
         .should("have.text", "You have reached the maximum number of outputs.");
       expectStopped();
-      cy.interactiveMessages("log")
-        .invoke("filter", ({ action }: { action: string }) => action === "OutputLimitReached")
-        .should("have.length", 1).its(0).its("data.outputs").should("equal", 491);
+      eventsNamed(action => action === "OutputLimitReached")
+        .should("have.length", 1).its(0).its(1).its("outputs").should("equal", 491);
     });
 
     it("leaves other pages to the saved limit alone", () => {

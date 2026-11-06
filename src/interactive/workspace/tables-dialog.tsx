@@ -4,7 +4,7 @@ import { buildTable, tableLabels, TableChoice, TableSource, TableWord } from "..
 import { TableSender } from "../tables/table-sender";
 import { TablesAction, tablesActionLabels } from "./table-buttons";
 
-export const maxTablesNameLength = 50;
+const maxTablesNameLength = 50;
 
 interface TablesDialogProps {
   action: TablesAction;
@@ -18,7 +18,7 @@ interface TablesDialogProps {
   onClose: () => void;
 }
 
-export const savedMessage = (name: string) => `Your tables have been saved as ${name}. ` +
+const savedMessage = (name: string) => `Your tables have been saved as ${name}. ` +
   "Open the CODAP window on this page and choose this name in the Datalog plugin.";
 const submitLabels: Record<TablesAction, [string, string]> = {
   send: ["Send", "Saving..."], download: ["Download", "Downloading..."],
@@ -36,7 +36,6 @@ const wrapTab = (e: React.KeyboardEvent, dialog: Element) => {
   }
 };
 
-// The popup both buttons open
 export const TablesDialog = ({
   action, defaultName, choices, source, sender, onFinished, onFailed, onCancel, onClose
 }: TablesDialogProps) => {

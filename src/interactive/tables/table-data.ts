@@ -60,11 +60,19 @@ const transitionsTable = ({ mode, graph }: TableSource) => {
   }));
 };
 
+// CODAP shows a value of only spaces as empty
+const delimiterLabel = (delimiter: string) => {
+  if (delimiter === "") {
+    return "(none)";
+  }
+  return delimiter.trim() === "" ? "(space)" : delimiter;
+};
+
 const outputsTable = ({ sequenceGroups }: Pick<TableSource, "sequenceGroups">) => {
   let number = 0;
   const rows = sequenceGroups.flatMap(group => group.sequences.map(sequence => [
     ++number, sequence.map(node => node.label).join(group.delimiter), group.startingNode?.label ?? AnyStartingState,
-    group.lengthLimit, group.delimiter === "" ? "(none)" : group.delimiter, yesNo(group.orderMatters !== false),
+    group.lengthLimit, delimiterLabel(group.delimiter), yesNo(group.orderMatters !== false),
   ]));
   return table("Outputs", [
     ["Output number", "numeric"], ["Output", "categorical"], ["Starting state", "categorical"],

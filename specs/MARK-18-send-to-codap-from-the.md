@@ -55,7 +55,7 @@ Rebecca's decisions, latest first: "Where we landed", Send to CODAP (updated); f
 | Transitions | From (categorical), To (categorical), Count (numeric), Probability (numeric) | From, To, Probability | one per transition, in Inspect's alphabetical order |
 | Outputs | Output number (numeric), Output (categorical), Starting state (categorical), Max length (numeric), Delimiter (categorical), Order matters (categorical) | same | one per output, numbered from 1 oldest first |
 
-- **R13.** Probability is a number from 0 to 1 at 4 decimal places, the transition's value over the total out of its state, and 0 where that total is 0, as a drawing's arrows can be. `Word` comes first so that a downloaded Input file uploads back as words through MARK-23. In Outputs, Output is the sequence's labels joined with its group's delimiter; Starting state is the label or "(any)"; Delimiter is the text or "(none)"; Order matters is "Yes" or "No", "No" only for a group marked orderless. No column is named `__objectId` or `__id__`, which DP-12 reserves.
+- **R13.** Probability is a number from 0 to 1 at 4 decimal places, the transition's value over the total out of its state, and 0 where that total is 0, as a drawing's arrows can be. `Word` comes first so that a downloaded Input file uploads back as words through MARK-23. In Outputs, Output is the sequence's labels joined with its group's delimiter; Starting state is the label or "(any)"; Delimiter is the text, "(none)" for no delimiter, or "(space)" for one of only spaces, which CODAP shows as empty; Order matters is "Yes" or "No", "No" only for a group marked orderless. No column is named `__objectId` or `__id__`, which DP-12 reserves.
 
 ### Sending
 
@@ -154,7 +154,7 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 ### How it is built
 
-- `src/interactive/tables/` holds the code with no React. `table-data.ts` states each table once, as its word, columns and column types, and `tableChoices` says what the popup offers. `csv.ts` writes the files and `file-gap.ts` holds the gap between them, on its own so Cypress can import it: `tsc -p cypress` drops Node's types and can't compile the workspace's code. `table-sender.ts` writes the snapshot and dynamically imports the library.
+- `src/interactive/tables/` holds the code with no components of its own. `table-data.ts` states each table once, as its word, columns and column types, and `tableChoices` says what the popup offers. `csv.ts` writes the files and `file-gap.ts` holds the gap between them, on its own so Cypress can import it: `tsc -p cypress` drops Node's types and can't compile the workspace's code. `table-sender.ts` writes the snapshot and dynamically imports the library.
 - `src/interactive/workspace/` holds the components. `table-buttons.tsx` is the group; `tables-dialog.tsx` is the popup, a native `dialog`; `use-table-actions.tsx` keeps the popup's state, the sender and `tablesOffReason` out of `Workspace`, which renders `{ dialog }` beside the two bodies and passes `actions` to each.
 - `ControlsRow` has an `actions` slot after Clear highlight. Both bodies stay mounted, so each renders its own copy, and tests look inside `.workspace-body:not([hidden])`.
 - `objectStorageConfig` passes down from the runtime message only, so a report never loads the chunk. `sendToCodap` is one setting across both modes, so `canSend` doesn't change after the first render, and the client starts once, with the workspace.
@@ -322,6 +322,7 @@ Each was run or read in the code, not assumed.
 - **R6 marks any empty table.** Transitions with one word or a drawing with no arrows reads "(none yet)", since a checked box would make a header-only file and nothing in CODAP.
 - **R10 leaves the count out at 0,** so an untouched state stays as it opened.
 - **R13 gives 0 where a state's arrows total 0,** which was `NaN` and `null` in JSON.
+- **R13's "(space)".** In real CODAP 3.1.2 a value of `" "` came back empty, and a space is the default delimiter, so most Outputs rows would have shown none. Files carry the same label, since the table serves both.
 - **R17's edges.** Long labels in a drawing can pass the size in Transitions. That is contrived, like the two edges beside it, and falls to R16's message, so it stays unguarded.
 - **R25a gives the demo page and the fake page the demo store,** since neither sent `objectStorageConfig` and neither would show Send.
 - **A failed connection at the start stays failed.** `connecting` and the library's `initPromise` keep their rejection, so R16's "try again" can't work until a reload. Accepted, since the page has just loaded on a fresh token; a new client after a failed connect can't tell that from a failed write.
