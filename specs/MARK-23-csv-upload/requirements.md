@@ -34,7 +34,7 @@ This story gives students that start. A student with a CSV file (from CODAP, a s
 ### The setting
 
 - **R1.** MARK-13's authored state gains `allowCsvUpload`, a boolean, off by default. It is read like MARK-15's `showCaseSwitch`: its default for activities saved before it, `authoredStateVersion` unchanged. The authoring form shows it in Data settings (shown only when Data mode is usable), under "How students enter their data", as the checkbox "Let students start from a CSV file". The standalone page reads it from the URL like every other setting.
-- **R2.** Students get the Upload CSV button in Data mode when the setting is on and the Input pane is present, in every input view (text only, table only, and linked): the text box and the table are one input, so the file's values reach whichever the student sees. Draw mode and a Data mode with the Input pane turned off have no button. In the read-only report view the button shows disabled, as MARK-17 shows the switches there (its R25), so a file can't be chosen (open question below).
+- **R2.** Students get the Upload CSV button in Data mode when the setting is on and the Input pane is present, in every input view (text only, table only, and linked): the text box and the table are one input, so the file's values reach whichever the student sees. Draw mode and a Data mode with the Input pane turned off have no button. In the read-only report view the button shows disabled, as MARK-17 shows the switches there (its R25), grayed out so a file can't be chosen (Rebecca, 2026-11-06).
 
 ### The button
 
@@ -98,13 +98,8 @@ This story gives students that start. A student with a CSV file (from CODAP, a s
 
 ## Open Questions
 
-### What does the teacher's read-only view show for the button?
-**Context**: MARK-17's report view shows the student's workspace with the text, the table and both switches disabled. The button has to do nothing there.
-**Options considered**:
-- A) Show it disabled, as the switches are, so the teacher sees what the student saw.
-- B) Leave it out of the report view.
-
-**Recommendation**: A. It needs no code beyond the flag the switches already use. For Rebecca.
+### RESOLVED: What does the teacher's read-only view show for the button?
+**Decision**: Grayed out (Rebecca, 2026-11-06), disabled with the switches through the same flag, so the teacher sees what the student saw and a file can't be chosen. R2 and R3.
 
 ### RESOLVED: Is the tightest Input pane acceptable?
 **Decision**: Accept it (Doug, 2026-11-06). At 160 px wide and a 200 px row the controls take most of the body; the button stays in its own row after the switches, and Cypress checks 60 px each for the text box and table at the starting sizes and the button inside the pane at 160 px.

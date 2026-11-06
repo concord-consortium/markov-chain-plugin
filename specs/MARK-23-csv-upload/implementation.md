@@ -148,6 +148,7 @@ interface CsvUploadProps {
 }
 ```
 
+- The button's `:disabled` style is `cursor: default; opacity: 0.5`, as the switch's track has it, so it looks grayed out and doesn't rest on the browser's default.
 - `CsvUpload` renders a `button` ("Upload CSV", `aria-describedby` a visually hidden hint, "Starts your input from the first column of a CSV file.") and an `input type="file" accept=".csv,text/csv" hidden tabIndex={-1}`. The button calls the input's `click()`. *(Checked with a throwaway Cypress test on the fake Activity Player page: `selectFile` with `force: true` reaches a hidden file input inside the interactive's iframe, `file.arrayBuffer()` gives its bytes there, and the browser's Windows-1252 fallback reads `café`.)*
 - The input's `onChange` takes `files[0]`, then sets the input's `value` to `""` so the same file can be chosen again (R13; the same throwaway checked that a second `selectFile` of the same file fires `change` after the clear). With `file.size > maxCsvBytes` it calls `onRefused("tooLarge")` without reading. Otherwise `file.arrayBuffer()`, and a rejection calls `onRefused("unreadable")`; then `readCsv(bytes, layout)`. A refusal calls `onRefused`; an `ok` read calls `onRead` at once when `!hasWords`, and otherwise is held as `pending` and the confirmation shows.
 - The confirmation replaces the status line: a `div role="group" aria-labelledby` its question, "Replace your words with the file's?", with Replace and Cancel buttons. Replace takes focus when it appears (an effect on `pending`). Replace calls `onRead(pending)`; Cancel and Escape drop `pending` and focus the Upload CSV button. The group's `onKeyDown` handles Escape and calls `stopPropagation`: MARK-15's Escape listener is on the `ownerDocument`, above React's root, so the stopped event never reaches it and the selection stays. Replace is disabled while `disabled` is true, so a sequence started with the question open can't change the input mid-generation.
@@ -163,7 +164,7 @@ interface CsvUploadProps {
   - The same file chosen twice in a row is read twice (two `CsvUploaded`; fails without clearing the input's value).
   - While a sequence plays, Upload CSV is disabled.
   - The posted `interactiveState`'s `input.text` is the uploaded text, and restarting the interactive with that state shows the uploaded words in the table.
-  - In report mode, started with a state, Upload CSV is shown and disabled (fails if `disabled` leaves out `readOnly`).
+  - In report mode, started with a state, Upload CSV is shown, disabled and at `opacity` 0.5 (fails if `disabled` leaves out `readOnly`, or without the `:disabled` style).
   - Typing a word after an upload clears the status line.
   - With the Input/Graph divider dragged far left (Input at its 160 px minimum), Upload CSV's right edge stays inside the Input pane's body.
   - At the starting pane sizes in the linked view, after an upload with the status line showing, the text box and the table are each at least `minInputPart` (60 px) tall.
