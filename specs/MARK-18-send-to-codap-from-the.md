@@ -1,36 +1,20 @@
 # Send to CODAP and Download tables
 
 **Jira**: https://concord-consortium.atlassian.net/browse/MARK-18
-**Repo**: https://github.com/concord-consortium/markov-chain-plugin
-**Implementation Spec**: [implementation.md](implementation.md)
-**Status**: **In Development**
+
+**Status**: **Closed**
 
 ## Overview
 
 Students can send the AP interactive's tables to a linked CODAP interactive on the same page, through the Datalog plugin, and download the same tables as CSV files. Each send is a named snapshot with its own tables in CODAP, such as "Data1_States", so two texts can be compared side by side.
 
-## Project Owner Overview
-
 Until now a student's words, states, transitions and outputs stay inside the interactive. This story adds the two buttons Rebecca's design puts at the right of the top row, Send to CODAP and Download tables, each turned on by the author. Both open one small popup: a name that starts as "Data1" or "Drawing1", and a checkbox for each table that applies. Send saves the tables in the Activity Player's object storage, each send becoming its own set of tables in CODAP, and a message that stays until the student closes it says how to bring them into CODAP. Download saves one CSV file per table, inside the Activity Player or on a standalone page.
 
 The Datalog plugin's side is DP-12, released as 0.0.4, and this story needs that version before it can be finished. The two stories agree on a general format for a snapshot, `multi-value-snapshot`, documented in the Datalog plugin's `docs/multi-value-snapshot.md`, that any interactive could use; Markov is its first user. The CODAP plugin the ELA module loads doesn't change.
 
-## Background
-
 The buttons' author settings already exist: MARK-13 saves `buttons.sendToCodap` and `buttons.downloadTables`, both off by default, and `workspaceConfig` already carries them as `sendToCodap` and `downloadTables`. Nothing renders them yet. MARK-15 and MARK-16 built `.controls-row`, the tables in Inspect, and the modes; MARK-17 saves a student's work and left room for one new saved field, the name counter. MARK-23 (CSV upload) lands after this story and reads the first column of a CSV.
 
 Rebecca's decisions, latest first: "Where we landed", Send to CODAP (updated); follow-ups D (the message stays until closed) and "What we decided" 24 to 27; layout questions 10 and 24 to 27. Where she didn't speak, her question's default stands.
-
-### Corrections to the story and earlier specs
-
-Each was checked against the code.
-
-- **Jira, "a dataset per table shape".** Rebecca chose a new set of tables for every send, so a dataset is one table of one send, titled like `Data1_States`, as the files are (R14, R19).
-- **The first todo, "reuse `inspectColumns`".** Partly right. `inspectColumns` decides which columns exist, so Draw mode has no counts (R12), but its cells are display text ("the → cat", "2 of 3 = 67%") that CODAP can't use, so the tables take their values from `transitionRows`.
-- **The first todo, "disable the Transitions checkbox".** Rebecca's default for question 27, which her answer left standing, is no Transitions checkbox with order off. The todo predates that answer. R6 follows her default.
-- **MARK-15's "`outputSequence` ... MARK-18 adds the data saved for CODAP".** Not needed. `outputSequence` fires for each finished sequence, and a snapshot is taken on a press from the tool's `sequenceGroups`. `ap-host.ts` keeps its no-op.
-- **MARK-16's "two buttons take it past 904 px in its widest cases".** Measured, the widest row is 899 px, Clear highlight included, so it fits at 904 and wraps only below that (Technical Notes).
-- **MARK-17's "its name counter is a new optional field the builder will carry".** Correct, and it needs a place in the reader too (R10).
 
 ## Requirements
 
@@ -168,6 +152,28 @@ The Activity Player's iframe has no `sandbox` attribute, so downloads aren't blo
 
 A word can reach a file starting with `=`, through brackets. R20 leaves it, since it is the student's own word in the student's own file, and a prefix would change what MARK-23 reads back.
 
+### How it is built
+
+- `src/interactive/tables/` holds the code with no React. `table-data.ts` states each table once, as its word, columns and column types, and `tableChoices` says what the popup offers. `csv.ts` writes the files and `file-gap.ts` holds the gap between them, on its own so Cypress can import it: `tsc -p cypress` drops Node's types and can't compile the workspace's code. `table-sender.ts` writes the snapshot and dynamically imports the library.
+- `src/interactive/workspace/` holds the components. `table-buttons.tsx` is the group; `tables-dialog.tsx` is the popup, a native `dialog`; `use-table-actions.tsx` keeps the popup's state, the sender and `tablesOffReason` out of `Workspace`, which renders `{ dialog }` beside the two bodies and passes `actions` to each.
+- `ControlsRow` has an `actions` slot after Clear highlight. Both bodies stay mounted, so each renders its own copy, and tests look inside `.workspace-body:not([hidden])`.
+- `objectStorageConfig` passes down from the runtime message only, so a report never loads the chunk. `sendToCodap` is one setting across both modes, so `canSend` doesn't change after the first render, and the client starts once, with the workspace.
+- R17's check sits in `Workspace`, in `outputLimitReached`, and not in `saved-outputs.ts`, which `interactive-state.ts` imports, so the tables' code stays out of anything else that reads saved state.
+- The dialog's closing runs in `useLayoutEffect`, since closing hands focus back only while it is in the page. It takes focus before its controls turn off, stops Escape's default while busy because Chromium closes a dialog past two refused `cancel` events, and wraps Tab itself because a modal dialog makes only its own document inert, so in a frame Tab would reach the host's page.
+- An ESLint warning counts as a failure here: CI's Cypress runs on `npm start`, whose overlay shows warnings over the page, and every click then fails as covered.
+- Jest maps `nanoid` to the library's CommonJS copy, so `table-sender.test.ts` runs against the real library and its demo store.
+- Cypress's frame makes a page read as hosted, so the standalone rules are in `standalone.test.tsx`. `{esc}` sends only a keydown and `cy.press` doesn't reach a native dialog, so tests pair `{esc}` with `.trigger("cancel")`. `trigger("mouseover")` doesn't set `:hover`. The row's wrap test shows Clear highlight, since at 700 px the row without it fits exactly in some browsers.
+
+### Corrections to earlier specs and notes
+
+Each was checked against the code.
+
+- **An early note, "reuse `inspectColumns`".** Partly right. `inspectColumns` decides which columns exist, so Draw mode has no counts (R12), but its cells are display text ("the → cat", "2 of 3 = 67%") that CODAP can't use, so the tables take their values from `transitionRows`.
+- **An early note, "disable the Transitions checkbox".** Rebecca's default for question 27, which her answer left standing, is no Transitions checkbox with order off. The note predates that answer. R6 follows her default.
+- **MARK-15's "`outputSequence` ... MARK-18 adds the data saved for CODAP".** Not needed. `outputSequence` fires for each finished sequence, and a snapshot is taken on a press from the tool's `sequenceGroups`. `ap-host.ts` keeps its no-op.
+- **MARK-16's "two buttons take it past 904 px in its widest cases".** Measured, the widest row is 899 px, Clear highlight included, so it fits at 904 and wraps only below that (Technical Notes).
+- **MARK-17's "its name counter is a new optional field the builder will carry".** Correct, and it needs a place in the reader too (R10).
+
 ## Out of Scope
 
 - Any change to the CODAP plugin, or to the Datalog plugin (DP-12).
@@ -180,12 +186,13 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 - A Case sensitive column on Outputs, since it isn't recorded per output.
 - A warning when an author turns Send to CODAP on with no linked CODAP interactive on the page; the authoring form's note covers it, and the interactive can't see the link.
 
-## Open Questions
+## Not Yet Implemented
 
-<!-- Requirements-focused questions only (scope, acceptance criteria, business rules).
-     Implementation questions go in implementation.md. -->
+- R27's hand check on staging, which is Jira's Done when. It needs this story's build and DP-12's code on a branch deploy, and Doug and the implementing session set up its activity together. Real Tab and Escape were run locally in Chromium and Firefox with real key presses; the rest of the check wasn't.
 
-### RESOLVED: Judgment call: is the popup's table list per mode, or does "empty" mean both modes are empty?
+## Decisions
+
+### Is the popup's table list per mode, or does "empty" mean both modes are empty?
 **Context**: Rebecca said the buttons are off when the interactive has "no data and no drawings". With words in Data mode and an empty Draw mode, a student in Draw has nothing to send.
 **Options considered**:
 - A) Off when the showing mode is empty.
@@ -193,7 +200,9 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 **Decision**: A. A snapshot is one mode's tables, and B would open a popup with nothing to choose.
 
-### RESOLVED: Judgment call: where the count lives.
+---
+
+### Where the count lives.
 **Context**: "No two saves get the same name", with "Data1" and "Drawing1" as separate defaults.
 **Options considered**:
 - A) A count per mode.
@@ -201,7 +210,9 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 **Decision**: A. Rebecca's own examples start each mode at 1, and the names can't collide across modes. A student can still type a name already used; the plugin keeps the two apart (R15).
 
-### RESOLVED: Judgment call: what a blank line becomes in the Input table.
+---
+
+### What a blank line becomes in the Input table.
 **Context**: The input table shows a blank line as a row, which breaks the chain.
 **Options considered**:
 - A) No row, with Position counting words.
@@ -209,7 +220,9 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 **Decision**: A. An empty case in CODAP is noise for analysis. A downloaded Input file uploaded through MARK-23 loses its blank lines, which is acceptable for a list of words.
 
-### RESOLVED: One row per output, or one row per word, in the Outputs table?
+---
+
+### One row per output, or one row per word, in the Outputs table?
 **Context**: One row per word lets CODAP count words across outputs, but measured 1,108 to 2,726 KB near the output limit, against about 1,000.
 **Options considered**:
 - A) One row per output.
@@ -217,7 +230,9 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 **Decision**: A, Rebecca. Its columns stay as R12 lists them.
 
-### RESOLVED: With "Order matters" off, is the Transitions box absent or shown grayed out?
+---
+
+### With "Order matters" off, is the Transitions box absent or shown grayed out?
 **Context**: Her default for question 27 says absent; an earlier note said disabled.
 **Options considered**:
 - A) Absent.
@@ -225,7 +240,9 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 **Decision**: A, Rebecca.
 
-### RESOLVED: If the author hides the Inspect pane, can students still send States and Transitions?
+---
+
+### If the author hides the Inspect pane, can students still send States and Transitions?
 **Context**: An author may hide Inspect so students work the numbers out themselves.
 **Options considered**:
 - A) Still offered.
@@ -233,7 +250,9 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 **Decision**: A, Rebecca.
 
-### RESOLVED: How should Probability look in the tables?
+---
+
+### How should Probability look in the tables?
 **Context**: Inspect shows "2 of 3 = 67%", which CODAP treats as words.
 **Options considered**:
 - A) A number from 0 to 1, such as 0.6667.
@@ -242,7 +261,9 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 **Decision**: A, Rebecca.
 
-### RESOLVED: In CODAP, does every send get its own tables, or join the earlier sends' tables?
+---
+
+### In CODAP, does every send get its own tables, or join the earlier sends' tables?
 **Context**: Agent Sim recordings all join one dataset. A CODAP v3 graph draws from one dataset, so two sends can share one graph only if they share a table; separate tables can be graphed side by side.
 **Options considered**:
 - A) A new set of tables for every send, named like her files.
@@ -250,7 +271,9 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 **Decision**: A, Rebecca. No column says which send a row came from, since the title does. The Datalog plugin builds the title, agreed with DP-12 (R14), and Agent Sim keeps joining.
 
-### RESOLVED: Are the new messages' words right?
+---
+
+### Are the new messages' words right?
 **Context**: Her wording covers only the confirmation. The hover reasons of R4 and the failure of R16 are ours, as was a too-big message.
 **Options considered**:
 - A) As written.
@@ -258,38 +281,52 @@ A word can reach a file starting with `=`, through brackets. R20 leaves it, sinc
 
 **Decision**: A for R4 and R16. She pointed out that "clear some outputs" isn't possible, since Clear removes all of them, so that message went, and R17 stops generating before it would be needed. The check applies only where Send to CODAP shows (Doug), and lands on this story's branch; MARK-17 stays as it is.
 
-## Self-Review
+---
 
-Roles: Senior Engineer, Student, Teacher, Education Researcher, QA Engineer, Security Engineer, WCAG Accessibility Expert. Each item was checked against the code or by running it.
+### A native `dialog`, or a `div` like the shared `ConfirmModal`?
+**Context**: The repo's modals are `div`s with no focus handling.
+**Options considered**:
+- A) `<dialog>` with `showModal()`.
+- B) Reuse `ConfirmModal`.
 
-### WCAG Accessibility Expert
+**Decision**: A. R5 needs a focus trap, a blocked page and focus returned. `dialog` gives all three within its own document, as run in Chrome; a frame's Tab can still leave for the host's page, so the popup wraps Tab itself. `ConfirmModal` is shared with the CODAP plugin, so changing it risks R23. jsdom has no `showModal`, so the popup's tests are Cypress's.
 
-#### RESOLVED: R4's reason is a `title`, not a custom tooltip
-A custom tooltip on hover and focus covers the pane under it and needs Escape handling to meet WCAG 1.4.13, which doesn't apply to a browser's own `title` tooltip. Doug chose `title` plus ARIA: a screen reader hears the reason and a mouse user sees it, while a sighted keyboard user or a touch user sees only the faded button.
+---
 
-### Student
+### Create the client at the start, or at the first press?
+**Context**: Starting it loads 163 KB gzipped for a page with Send to CODAP, even if unused.
+**Options considered**:
+- A) When the workspace starts.
+- B) At the first Send.
 
-#### RESOLVED: A centered popup can open out of view
-The Activity Player's frame is as tall as the workspace, so in a stacked workspace the frame's center can be off screen while the button is at the top. R5 places the popup under the row.
+**Decision**: A. The client signs in with a token from the init message when it is created. Firebase custom tokens last an hour, and a student can press Send long after that, so B could fail on an old token. Pages without the setting load nothing. The hour is Firebase's documented lifetime, not something run here, so R27 sends from a page left open for more than an hour.
 
-#### RESOLVED: An empty Transitions table
-R6 said only Outputs reads "(none yet)", while `tableChoices` marks any table with no rows. A checked box would make a header-only file and nothing in CODAP (DP-12's R12), so R6 now follows the code.
+---
 
-### Senior Engineer
+### Test the sender against the real library or a mock.
+**Context**: The library won't load in Jest without a mapper for `nanoid`.
+**Options considered**:
+- A) The real library, with a mapper.
+- B) A `jest.mock` of the library.
 
-#### RESOLVED: A drawing's arrow can divide by zero
-A drawing's weights out of a state can total 0, which made Probability `NaN`, written as `null` in JSON. R13 gives 0, as Inspect's sort does.
+**Decision**: A. The test's job is to prove the object matches DP-12's reader, and a mock of `addDataTable` would only repeat what the code says.
 
-#### RESOLVED: A count of 0 would change an untouched state
-MARK-17's R15 needs an untouched state to stay as it was. R10 leaves the field out at 0.
+---
 
-#### RESOLVED: Rebecca's demo page would show no Send button
-Both test pages' init message has no `objectStorageConfig`. R25a gives them the library's demo store.
+### What the spec reviews changed
 
-#### RESOLVED: Transitions can pass R17's size in a drawing
-R17 said only Outputs can reach 1,000,000 bytes, but long state labels can in a drawing. It's as contrived as the two edges already accepted and falls to R16's message, so the code stays and Technical Notes names it as a third.
+Each was run or read in the code, not assumed.
 
-### QA Engineer
-
-#### RESOLVED: R23 can't be a Jest test
-It compares two builds, so R26 makes it a branch check.
+- **R4's reason is a `title`, not a custom tooltip.** A custom tooltip covers the pane under it and needs Escape handling to meet WCAG 1.4.13, which doesn't apply to a browser's own `title` (Doug). A screen reader hears the reason and a mouse user sees it; a sighted keyboard user or a touch user sees only the faded button.
+- **R5 places the popup under the row.** The Activity Player's frame is as tall as the workspace, so a centered popup could open below the fold.
+- **R6 marks any empty table.** Transitions with one word or a drawing with no arrows reads "(none yet)", since a checked box would make a header-only file and nothing in CODAP.
+- **R10 leaves the count out at 0,** so an untouched state stays as it opened.
+- **R13 gives 0 where a state's arrows total 0,** which was `NaN` and `null` in JSON.
+- **R17's edges.** Long labels in a drawing can pass the size in Transitions. That is contrived, like the two edges beside it, and falls to R16's message, so it stays unguarded.
+- **R25a gives the demo page and the fake page the demo store,** since neither sent `objectStorageConfig` and neither would show Send.
+- **A failed connection at the start stays failed.** `connecting` and the library's `initPromise` keep their rejection, so R16's "try again" can't work until a reload. Accepted, since the page has just loaded on a fresh token; a new client after a failed connect can't tell that from a failed write.
+- **`chunkFilename`.** Without it the chunk came out unhashed and outside `assets/`, which a deploy could serve stale.
+- **`saving` covers downloads,** since a second press during the gaps would save every file twice.
+- **The confirmation is read through `aria-describedby` on Close,** which takes focus, because a message inserted with its live region isn't reliably announced.
+- **Download comes before Send in the build order,** so no commit has a button with nothing behind it.
+- **An older plugin reads a snapshot's first table as numbers,** so authors shouldn't turn Send on before 0.0.4 is live.
