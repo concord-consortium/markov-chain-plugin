@@ -352,7 +352,7 @@ Both bodies stay mounted, so each renders its own copy of `actions`, as with `co
 **Tests** (Cypress):
 - Off by default; on with `buttons.downloadTables` on the fake Activity Player page; not in report mode. Standalone is `standalone.test.tsx`'s, in Jest: Cypress runs a page in a frame, so the app reads as hosted and waits for an init message.
 - At the row's right edge, and still right of Clear highlight once a state is chosen. Catches adding it to `controls`.
-- With no Input pane and both switches, on a second line, right-aligned, and inside the workspace: at 560 px with Download alone, which fits at 700 px, and at 700 px once Send joins it in the last step.
+- With no Input pane, both switches and Clear highlight showing, so the row can't fit whatever the fonts, on a second line, right-aligned, and inside the workspace: at 560 px with Download alone, which fits at 700 px, and at 700 px once Send joins it in the last step.
 - Off with no words, with "Add some words first." as both the `title` and the text `aria-describedby` points at; on after typing, with neither left; off in an empty Draw mode with its own reason; off while playing, and while paused.
 - An off button in the Tab order, and pressing it opens nothing (added with the popup in the next step).
 

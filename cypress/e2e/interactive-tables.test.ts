@@ -91,6 +91,8 @@ describe("the Download tables button", () => {
       ...buttons, startingText: "the cat sat", showCaseSwitch: true,
       orderMatters: { startsOn: true, showSwitch: true }, panes: { input: { available: false, startsOpen: true } },
     }, { width: frameWidth });
+    clickState("cat");
+    shown().find(".clear-highlight").should("exist");
     shown().find(".controls-row").then(row => {
       shown().find(".controls-row > :first-child").then(first => {
         shown().find(".table-buttons").then(group => {
