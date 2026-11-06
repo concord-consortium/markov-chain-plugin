@@ -144,7 +144,7 @@ interface CsvUploadProps {
   hasWords: boolean;               // the committed input has a word, so replacing it asks first
   layout: RowLayout;               // MARK-16's: "list" while "Order matters" is off
   status?: CsvUploadStatus;        // the workspace's, cleared at the next commit that changes the text
-  onRead: (read: Extract<CsvRead, { ok: true }>) => void;
+  onRead: (read: CsvValues) => void;
   onRefused: (reason: CsvRefusal) => void;
 }
 ```
