@@ -55,7 +55,7 @@ export interface StateParts {
   reports: Record<ModeId, ModeReport>;
 }
 
-const toPlaces = (value: number, places: number) => Math.round(value * 10 ** places) / 10 ** places;
+export const toPlaces = (value: number, places: number) => Math.round(value * 10 ** places) / 10 ** places;
 const whole = (value?: number) => value === undefined ? undefined : Math.round(value);
 
 const savedSelection = (selection: Selection, groups: SequenceGroup[]): SavedSelection | undefined => {
