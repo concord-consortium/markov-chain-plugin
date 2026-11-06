@@ -20,6 +20,13 @@ const box = (element: JQuery<HTMLElement>) => element[0].getBoundingClientRect()
 const dialog = () => cy.interactive().find("dialog.tables-dialog");
 const nameField = () => dialog().find(".tables-dialog-name input");
 const submit = () => dialog().find("button[type='submit']");
+// a key's keydown, which comes back saying whether the page stopped the browser's own handling
+const pressKey = (element: HTMLElement, key: string, shiftKey = false) => {
+  const win = element.ownerDocument.defaultView as Window & typeof globalThis;
+  const event = new win.KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true });
+  element.dispatchEvent(event);
+  return event;
+};
 const focused = () => cy.get<HTMLIFrameElement>("iframe#interactive").its("0.contentDocument")
   .invoke("querySelector", ":focus") as unknown as Cypress.Chainable<HTMLElement | null>;
 
@@ -75,11 +82,15 @@ describe("the Download tables button", () => {
     atRightEnd();
   });
 
-  it("wraps as a group onto its own line at the row's widest, still at the right", () => {
+  const wrapCases: [string, Record<string, unknown>, number][] = [
+    ["both buttons at the narrowest side-by-side width", bothButtons, 700],
+    ["Download alone in a stacked workspace", onlyDownload, 560],
+  ];
+  wrapCases.forEach(([name, buttons, frameWidth]) => it(`wraps as a group at the row's widest, with ${name}`, () => {
     start({
-      ...bothButtons, startingText: "the cat sat", showCaseSwitch: true,
+      ...buttons, startingText: "the cat sat", showCaseSwitch: true,
       orderMatters: { startsOn: true, showSwitch: true }, panes: { input: { available: false, startsOpen: true } },
-    }, { width: 700 });
+    }, { width: frameWidth });
     shown().find(".controls-row").then(row => {
       shown().find(".controls-row > :first-child").then(first => {
         shown().find(".table-buttons").then(group => {
@@ -94,7 +105,7 @@ describe("the Download tables button", () => {
         expect(box(group).right).to.be.at.most(box(workspace).right);
       });
     });
-  });
+  }));
 
   it("is off with its reason with no words, and on once there are some", () => {
     start();
@@ -202,14 +213,42 @@ describe("the tables popup", () => {
     focused().should(element => expect(element?.tagName).to.equal("DIALOG"));
     dialog().type("{esc}");
     expectStateStaysChosen();
-    dialog().then(element => {
-      const win = element[0].ownerDocument.defaultView as Window & typeof globalThis;
-      const escape = new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
-      element[0].dispatchEvent(escape);
-      expect(escape.defaultPrevented).to.equal(true);
-    });
+    dialog().then(element => expect(pressKey(element[0], "Escape").defaultPrevented).to.equal(true));
     dialog().trigger("cancel");
     dialog().should("have.attr", "open");
+  });
+
+  describe("Tab", () => {
+    it("wraps from the last control to the first and back, so it can't reach the host's page", () => {
+      start({ startingText: "the cat sat" });
+      open();
+      submit().focus().then(button => expect(pressKey(button[0], "Tab").defaultPrevented).to.equal(true));
+      focused().should(element => expect(element?.getAttribute("type")).to.equal("text"));
+      nameField().then(field => expect(pressKey(field[0], "Tab", true).defaultPrevented).to.equal(true));
+      focused().should(element => expect(element?.textContent).to.equal("Download"));
+    });
+
+    it("leaves Tab to the browser between the first and last controls", () => {
+      start({ startingText: "the cat sat" });
+      open();
+      nameField().focus().then(field => expect(pressKey(field[0], "Tab").defaultPrevented).to.equal(false));
+    });
+
+    it("skips a turned-off control when it wraps", () => {
+      start({ startingText: "the cat sat" });
+      open();
+      nameField().clear();
+      cancel().focus().then(button => expect(pressKey(button[0], "Tab").defaultPrevented).to.equal(true));
+      focused().should(element => expect(element?.getAttribute("type")).to.equal("text"));
+    });
+
+    it("stays on the dialog while every control is off", () => {
+      start({ startingText: "the cat sat" });
+      open();
+      pressDownloadThenSeeBusy();
+      dialog().then(element => expect(pressKey(element[0], "Tab").defaultPrevented).to.equal(true));
+      focused().should(element => expect(element?.tagName).to.equal("DIALOG"));
+    });
   });
 
   it("stays open when the backdrop is clicked", () => {
@@ -484,6 +523,8 @@ describe("Send to CODAP", () => {
     });
     cy.wait(3000);
     dialog().find("p").should("have.text", saved);
+    close().then(button => expect(pressKey(button[0], "Tab").defaultPrevented).to.equal(true));
+    focused().should(element => expect(element?.textContent).to.equal("Close"));
     close().click();
     dialog().should("not.exist");
     focused().should(element => expect(element?.textContent).to.equal("Send to CODAP"));
@@ -518,6 +559,8 @@ describe("Send to CODAP", () => {
     checkbox("Transitions").should("be.checked");
     submit().should("be.enabled").and("have.text", "Send");
     focused().should(element => expect(element?.tagName).to.equal("DIALOG"));
+    dialog().then(element => expect(pressKey(element[0], "Tab", true).defaultPrevented).to.equal(true));
+    focused().should(element => expect(element?.textContent).to.equal("Send"));
     tableEvents().should("deep.equal", [
       ["TablesSendFailed", { name: "Mine", tables: ["Input", "Transitions"], mode: "useData" }],
     ]);

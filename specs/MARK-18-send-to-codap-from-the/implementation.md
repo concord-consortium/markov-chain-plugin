@@ -293,7 +293,6 @@ export const tablesActionLabels: Record<TablesAction, string> = {
 
 interface TableButtonProps {
   action: TablesAction;
-  // why it is off, when it is
   offReason?: string;
   onPress: (action: TablesAction) => void;
 }
@@ -404,7 +403,18 @@ const submitLabels: Record<TablesAction, [string, string]> = {
 };
 const failedMessage = "Your tables couldn't be saved. Check your connection and try again.";
 
-// The popup both buttons open. A modal dialog keeps focus inside it and hands focus back to the button on closing.
+// A modal dialog holds focus only within its own document, so in a frame Tab would carry on into the host's page.
+const wrapTab = (e: React.KeyboardEvent, dialog: Element) => {
+  const controls = Array.from(dialog.querySelectorAll<HTMLElement>("input:enabled, button:enabled"));
+  const [first, last] = [controls[0], controls[controls.length - 1]];
+  const { activeElement } = dialog.ownerDocument;
+  if (!first || activeElement === (e.shiftKey ? first : last) || (e.shiftKey && activeElement === dialog)) {
+    e.preventDefault();
+    (e.shiftKey ? last : first)?.focus();
+  }
+};
+
+// The popup both buttons open
 export const TablesDialog = ({
   action, defaultName, choices, source, sender, onFinished, onFailed, onCancel, onClose
 }: TablesDialogProps) => {
@@ -484,6 +494,9 @@ export const TablesDialog = ({
         e.preventDefault();
       }
     }
+    if (e.key === "Tab") {
+      wrapTab(e, e.currentTarget);
+    }
   };
 
   return (
@@ -559,6 +572,7 @@ The popup's position: `margin: 40px auto auto`, not the dialog default, so it si
 - `{esc}` leaves a chosen state chosen. Catches removing `stopPropagation`.
 - While a download's gaps hold the popup busy: the dialog has focus, `{esc}` leaves a chosen state chosen, and a dispatched Escape keydown comes back `defaultPrevented`. Catches a busy popup that loses focus or lets the browser close it.
 - A click on the backdrop leaves it open.
+- A Tab keydown on the last control moves to the first, Shift+Tab on the first moves to the last, and a Tab with every control off stays. A real Tab into the host's page is R27's.
 - The checkboxes by case, through each R6 rule on real panes, "Outputs (none yet)" faded and off.
 - Download off with an empty name and with nothing checked; a spaces-only name counts as empty.
 - `requestSubmit()` on the form while the button reads "Downloading..." changes nothing: the popup closes once and the next opening shows "Data2". Catches `canPress` ignoring `saving`; the folder can't, since Cypress overwrites a repeated file name.
@@ -701,7 +715,7 @@ R27's hand check runs before `v0.0.4` is tagged, on a copy of staging activity 1
 - A) `<dialog>` with `showModal()`.
 - B) Reuse `ConfirmModal`.
 
-**Decision**: A. R5 needs a focus trap, a blocked page and focus returned. `dialog` gives all three, as run in Chrome. `ConfirmModal` is shared with the CODAP plugin, so changing it risks R23. jsdom has no `showModal`, so the popup's tests are Cypress's.
+**Decision**: A. R5 needs a focus trap, a blocked page and focus returned. `dialog` gives all three within its own document, as run in Chrome; a frame's Tab can still leave for the host's page, so the popup wraps Tab itself. `ConfirmModal` is shared with the CODAP plugin, so changing it risks R23. jsdom has no `showModal`, so the popup's tests are Cypress's.
 
 ### RESOLVED: Judgment call: create the client at the start, or at the first press?
 **Context**: Starting it loads 163 KB gzipped for a page with Send to CODAP, even if unused.
@@ -748,6 +762,9 @@ After two refused `cancel` events Chromium closes the dialog anyway, which hid t
 
 #### RESOLVED: The byte order mark was an invisible character
 The string held a literal U+FEFF, which nobody can see or review. It is written `"\uFEFF"`.
+
+#### RESOLVED: Tab left the popup for the host's page
+A modal dialog makes only its own document inert, so in the Activity Player's frame Tab passed the last control and reached the host's page, with the popup still open. Run in Chromium on the fake page with buttons around the frame. `wrapTab` keeps it inside, including while busy, when no control is on.
 
 #### RESOLVED: A failed connection at the start stays failed
 `connecting` and the library's `initPromise` keep their rejection: after a bad sign-in the second `add` rejected in 0 ms, so R16's "try again" can't work until a reload. Accepted and noted in requirements' Technical Notes, since the page has just loaded on a fresh token. A new client after a failed connect can't tell that from a failed write and wasn't run past one.

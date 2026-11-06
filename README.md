@@ -118,7 +118,8 @@ beside the plugin:
   each state's place on the graph, and the panes. Nothing is saved until the student does something, and saves happen
   at meaningful moments, not on every keystroke. Two buttons an author can turn on take the student's tables out:
   Send to CODAP saves them to the Activity Player's object storage for the Datalog plugin, and Download tables saves
-  them as CSV files. The class dashboard's read-only page shows the same workspace. The interactions the workspace logs to the Activity Player are listed in [LOGGED-EVENTS.md](LOGGED-EVENTS.md).
+  them as CSV files. The class dashboard's read-only page shows the same workspace. The interactions the workspace
+  logs to the Activity Player are listed in [LOGGED-EVENTS.md](LOGGED-EVENTS.md).
 - `report-item.html`: its report item, which answers the class dashboard with "View Work" and "Open in new tab" links
   to a student's read-only work. With "Save Answer History" on, the dashboard's scrubber steps through each saved
   moment.

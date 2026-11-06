@@ -8,7 +8,6 @@ export const tablesActionLabels: Record<TablesAction, string> = {
 
 interface TableButtonProps {
   action: TablesAction;
-  // why it is off, when it is
   offReason?: string;
   onPress: (action: TablesAction) => void;
 }

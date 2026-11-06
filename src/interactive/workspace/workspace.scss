@@ -844,6 +844,10 @@ $pane-border-color: #c7c7c7;
         &:disabled {
           cursor: default;
           opacity: 0.5;
+
+          &:hover {
+            background-color: #fff;
+          }
         }
       }
     }

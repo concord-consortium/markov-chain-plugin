@@ -25,7 +25,18 @@ const submitLabels: Record<TablesAction, [string, string]> = {
 };
 const failedMessage = "Your tables couldn't be saved. Check your connection and try again.";
 
-// The popup both buttons open. A modal dialog keeps focus inside it and hands focus back to the button on closing.
+// A modal dialog holds focus only within its own document, so in a frame Tab would carry on into the host's page.
+const wrapTab = (e: React.KeyboardEvent, dialog: Element) => {
+  const controls = Array.from(dialog.querySelectorAll<HTMLElement>("input:enabled, button:enabled"));
+  const [first, last] = [controls[0], controls[controls.length - 1]];
+  const { activeElement } = dialog.ownerDocument;
+  if (!first || activeElement === (e.shiftKey ? first : last) || (e.shiftKey && activeElement === dialog)) {
+    e.preventDefault();
+    (e.shiftKey ? last : first)?.focus();
+  }
+};
+
+// The popup both buttons open
 export const TablesDialog = ({
   action, defaultName, choices, source, sender, onFinished, onFailed, onCancel, onClose
 }: TablesDialogProps) => {
@@ -104,6 +115,9 @@ export const TablesDialog = ({
       if (saving) {
         e.preventDefault();
       }
+    }
+    if (e.key === "Tab") {
+      wrapTab(e, e.currentTarget);
     }
   };
 
