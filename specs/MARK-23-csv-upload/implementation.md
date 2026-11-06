@@ -6,7 +6,7 @@
 
 ## Implementation Plan
 
-The branch stacks on MARK-17 (`MARK-17-saved-work-in-the-ap`, #92), which is on MARK-16 (#91), with MARK-15 on master. MARK-18 stacks on MARK-17 beside this branch, not under it. MARK-18 also adds to `log-events.ts`, `LOGGED-EVENTS.md`, the authored state and the README, so whichever of the two lands second merges those lists.
+The branch stacks on MARK-18 (`MARK-18-send-to-codap-from-the`, #93), which is on MARK-17 (#92) and MARK-16 (#91), with MARK-15 on master.
 
 Three steps, each its own commit, each building, linting and passing Jest and Cypress on its own: the authoring setting, the pure CSV module, then the button. No dependency or lockfile changes.
 
@@ -113,6 +113,7 @@ export const readCsv = (bytes: Uint8Array, layout: RowLayout): CsvRead => ...;
   - `decodeCsv`: Latin-1 `café` (fails without the fallback); a UTF-8 file with a BOM reads without it; valid UTF-8 `ü` reads as itself (fails if the fallback always runs).
   - `firstColumn`: a CODAP 3 export (`# name: data`, two `# attribute -- ...` lines, `weather,day`, four rows) gives the name `weather` and its four cells (fails without the `#` skip); a `#1` value after the header stays (fails if every `#` line is skipped); a short row gives `""`; a cell `"multi\nline"` gives `multi line`; a cell `a\u0001b\u007fc` gives `a b c` (fails if only line breaks and tabs are replaced).
   - `textFromCells`: `["the", "cat"]` is `the cat` in prose and `the\ncat` in list; `["the", "."]` is `the.` in prose; `["No!"]` is `[No!]`; `["sunny", "", "", "rainy"]` is `sunny\n\nrainy` (one break for two empty cells); empty cells at either end write nothing. A round trip over a fixed list of 40 cell columns, built from the stage 4 prototype's pool (words, punctuation, `No!`, `ice cream`, `3.5`, `a+b`, `[x]`, `a]b`, `#1`, padded, multi-line and tab cells, accents, an emoji, empty cells), checks for each layout that `tokenize(textFromCells(cells))`'s rows equal the cells with runs of empty cells collapsed and the ends' dropped. The fixture's columns differ from one another, so it can't pass by returning one value.
+  - A table MARK-18 writes: `tableCsv` of an Input `TableData` read back through `readCsv` gives its words and the column `Word` (fails if the byte order mark or the CRLF line ends aren't handled).
   - `readCsv`: 25,000 one-letter values in the list layout (49,999 characters) are `ok`, and 25,001 (50,001) are `tooLong` (fails at an off-by-one either way); a header only is `noValues`; `maxCsvBytes + 1` bytes are `tooLarge`; a good file reports `values` and `rows` that differ when it has empty cells, so the two counts can't be swapped unnoticed.
 
 ---
@@ -148,7 +149,7 @@ interface CsvUploadProps {
 }
 ```
 
-- The button's `:disabled` style is `cursor: default; opacity: 0.5`, as the switch's track has it, so it looks grayed out and doesn't rest on the browser's default.
+- The button is `@include markov-button`, with the `:disabled` style MARK-18's dialog buttons have (`cursor: default; opacity: 0.5`, and `:hover` keeping the white background), one shared rule rather than a copy, so it looks grayed out.
 - `CsvUpload` renders a `button` ("Upload CSV", `aria-describedby` a visually hidden hint, "Starts your input from the first column of a CSV file.") and an `input type="file" accept=".csv,text/csv" hidden tabIndex={-1}`. The button calls the input's `click()`. *(Checked with a throwaway Cypress test on the fake Activity Player page: `selectFile` with `force: true` reaches a hidden file input inside the interactive's iframe, `file.arrayBuffer()` gives its bytes there, and the browser's Windows-1252 fallback reads `café`.)*
 - The input's `onChange` takes `files[0]`, then sets the input's `value` to `""` so the same file can be chosen again (R13; the same throwaway checked that a second `selectFile` of the same file fires `change` after the clear). With `file.size > maxCsvBytes` it calls `onRefused("tooLarge")` without reading. Otherwise `file.arrayBuffer()`, and a rejection calls `onRefused("unreadable")`; then `readCsv(bytes, layout)`. A refusal calls `onRefused`; an `ok` read calls `onRead` at once when `!hasWords`, and otherwise is held as `pending` and the confirmation shows.
 - The confirmation replaces the status line: a `div role="group" aria-labelledby` its question, "Replace your words with the file's?", with Replace and Cancel buttons. Replace takes focus when it appears (an effect on `pending`). Replace calls `onRead(pending)`; Cancel and Escape drop `pending` and focus the Upload CSV button. The group's `onKeyDown` handles Escape and calls `stopPropagation`: MARK-15's Escape listener is on the `ownerDocument`, above React's root, so the stopped event never reaches it and the selection stays. Replace is disabled while `disabled` is true, so a sequence started with the question open can't change the input mid-generation.
