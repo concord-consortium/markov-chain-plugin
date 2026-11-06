@@ -106,13 +106,8 @@ This story gives students that start. A student with a CSV file (from CODAP, a s
 
 **Recommendation**: A. It needs no code beyond the flag the switches already use. For Rebecca.
 
-### Is the tightest Input pane acceptable?
-**Context**: At the Input pane's 160 px minimum width with the row at its 200 px minimum height, the two switches (each name wrapping), the button and a two-line status line can take most of the pane's body, leaving the linked text box and table little room. At the starting sizes (280 by 315 px) both keep their 60 px minimum.
-**Options considered**:
-- A) Accept it: the corner needs both dividers dragged to their limits, and widening the pane brings the room back. Cypress checks the starting sizes and that the button stays inside the pane at 160 px.
-- B) Put the button inside the switches' group so it wraps with them, saving a line where it fits beside a switch.
-
-**Recommendation**: A. For Doug.
+### RESOLVED: Is the tightest Input pane acceptable?
+**Decision**: Accept it (Doug, 2026-11-06). At 160 px wide and a 200 px row the controls take most of the body; the button stays in its own row after the switches, and Cypress checks 60 px each for the text box and table at the starting sizes and the button inside the pane at 160 px.
 
 ### RESOLVED: What does a file with several columns do?
 **Options considered**: A) the first column, named in the status line; B) the student picks a column from a list; C) every cell, row by row, as one sequence.
