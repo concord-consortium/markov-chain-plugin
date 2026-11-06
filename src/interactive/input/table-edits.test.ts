@@ -44,8 +44,25 @@ describe("editRow", () => {
     expect(table(edit("a\n\n\"\n\nc", 1, "b"))).toEqual(["a", "b", "c"]);
   });
 
-  it("empties the first row out of the table", () => {
-    expect(table(edit("a b", 0, ""))).toEqual(["b"]);
+  it("takes an emptied first or last row out of the text, with the whitespace beside it", () => {
+    expect(edit("the cat sat", 0, "")).toBe("cat sat");
+    expect(edit("the cat sat", 2, "")).toBe("the cat");
+    expect(edit("the\n\ncat", 0, "")).toBe("cat");
+    expect(edit("the\n\ncat", 2, "")).toBe("the");
+    expect(edit("cat", 0, "")).toBe("");
+  });
+
+  it("keeps the characters the tokenizer drops beside an emptied first or last row", () => {
+    expect(edit("(the cat)", 0, "")).toBe("(cat)");
+    expect(edit("(the cat)", 1, "")).toBe("(the)");
+  });
+
+  it("keeps an unpaired bracket from pairing across an emptied first row", () => {
+    expect(table(edit("[a\nb c]", 0, ""))).toEqual(["b", "c"]);
+  });
+
+  it("makes an emptied row between two others a blank line", () => {
+    expect(edit("the cat sat", 1, "")).toBe("the\n\nsat");
   });
 });
 
