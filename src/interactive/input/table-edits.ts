@@ -71,6 +71,15 @@ export const editRow = (text: string, tokens: Token[], row: number, value: strin
 // a row added to prose, or on a line of its own, which reads as a list; a single line break doesn't break the chain
 export type RowLayout = "prose" | "list";
 
+// what goes before a row's written text added after a word: a line break in a list, else a space, or nothing before
+// one of . , ? ! : ;
+export const separatorBefore = (written: string, layout: RowLayout) => {
+  if (layout === "list") {
+    return "\n";
+  }
+  return written.length === 1 && punctuation.includes(written) ? "" : " ";
+};
+
 export const insertRow = (text: string, tokens: Token[], after: number, value: string,
   layout: RowLayout = "prose"): string => {
   const word = rowText(value);
@@ -94,12 +103,11 @@ export const insertRow = (text: string, tokens: Token[], after: number, value: s
     while (isSpace(text[next])) {
       next++;
     }
-    return next < text.length && text[next] !== "\n"
-      ? write(text, token.end, next, `\n${written}\n`)
-      : write(text, token.end, token.end, `\n${written}`);
+    if (next < text.length && text[next] !== "\n") {
+      return write(text, token.end, next, `\n${written}\n`);
+    }
   }
-  const isPunctuation = written.length === 1 && punctuation.includes(written);
-  return write(text, token.end, token.end, isPunctuation ? written : ` ${written}`);
+  return write(text, token.end, token.end, separatorBefore(written, layout) + written);
 };
 
 export const deleteRow = (text: string, tokens: Token[], row: number): string => {
