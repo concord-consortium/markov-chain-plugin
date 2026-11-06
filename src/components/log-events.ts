@@ -8,5 +8,6 @@ export const logEvents = [
   "InputCommitted", "CaseSensitivityChanged", "TableRowAdded", "TableRowDeleted", "PaneOpened", "PaneClosed",
   "PaneResized", "InspectTabChosen", "InspectSorted", "ModeSwitched",
   "ProbabilitiesToggled", "OrderMattersToggled", "TablesDialogOpened", "TablesDialogCanceled", "TablesDownloaded",
+  "TablesSent", "TablesSendFailed",
 ] as const;
 export type LogEvent = typeof logEvents[number];

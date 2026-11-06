@@ -54,6 +54,12 @@ describe("opened outside a host", () => {
     expect(screen.getByRole("button", { name: "Download tables" })).toBeInTheDocument();
   });
 
+  it("the workspace shows no Send to CODAP, even when its link turns it on", () => {
+    window.history.replaceState(null, "", "/interactive.html?buttons.sendToCodap.available=true");
+    render(<App />);
+    expect(screen.queryByRole("button", { name: "Send to CODAP" })).not.toBeInTheDocument();
+  });
+
   it("the workspace shows no Download tables by default", () => {
     render(<App />);
     expect(screen.queryByRole("button", { name: "Download tables" })).not.toBeInTheDocument();

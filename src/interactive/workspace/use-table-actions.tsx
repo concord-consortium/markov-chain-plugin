@@ -3,6 +3,7 @@ import { MarkovHost } from "../../components/host";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { ModeId } from "../authored-state";
 import { tokenize } from "../input/tokenizer";
+import { connectTableSender } from "../tables/table-sender";
 import { TableChoice, tableChoices, TableSource, TableWord } from "../tables/table-data";
 import { ModeReport } from "./build-state";
 import { TableButtons, TablesAction } from "./table-buttons";
@@ -19,6 +20,8 @@ interface TableActionsOptions {
   tablesSaved: Record<ModeId, number>;
   onTablesSaved: (mode: ModeId) => void;
   readOnly: boolean;
+  canSend: boolean;
+  objectStorageConfig: unknown;
 }
 
 interface OpenedDialog {
@@ -40,9 +43,10 @@ const tablesOffReason = (tool: MarkovToolApi, mode: ModeId) => {
 // The row's table buttons and the popup they open. The popup blocks the workspace, so the tables it was opened with
 // can't go stale.
 export const useTableActions = ({
-  mode, configs, tools, hosts, orderMatters, reports, tablesSaved, onTablesSaved, readOnly
+  mode, configs, tools, hosts, orderMatters, reports, tablesSaved, onTablesSaved, readOnly, canSend, objectStorageConfig
 }: TableActionsOptions) => {
   const [opened, setOpened] = useState<OpenedDialog>();
+  const [sender] = useState(() => canSend ? connectTableSender(objectStorageConfig) : undefined);
 
   const handlePress = (action: TablesAction) => {
     const { text, capitalization } = reports.current[mode];
@@ -57,23 +61,29 @@ export const useTableActions = ({
   };
 
   const handleFinished = (name: string, tables: TableWord[]) => {
-    hosts[mode].log("TablesDownloaded", { name, tables });
+    hosts[mode].log(opened?.action === "send" ? "TablesSent" : "TablesDownloaded", { name, tables });
     onTablesSaved(mode);
   };
+
+  const handleFailed = (name: string, tables: TableWord[]) => hosts[mode].log("TablesSendFailed", { name, tables });
 
   const handleCancel = () => {
     hosts[mode].log("TablesDialogCanceled", { action: opened?.action });
     setOpened(undefined);
   };
 
-  const shownActions: TablesAction[] = configs[mode].downloadTables && !readOnly ? ["download"] : [];
+  const shownActions: TablesAction[] = [
+    ...(canSend ? ["send" as const] : []),
+    ...(configs[mode].downloadTables && !readOnly ? ["download" as const] : []),
+  ];
   const actions = shownActions.length > 0 &&
     <TableButtons actions={shownActions} offReason={tablesOffReason(tools[mode], mode)} onPress={handlePress} />;
 
   const namePrefix = mode === "draw" ? "Drawing" : "Data";
   const dialog = opened &&
-    <TablesDialog {...opened} defaultName={`${namePrefix}${tablesSaved[mode] + 1}`} onFinished={handleFinished}
-      onCancel={handleCancel} onClose={() => setOpened(undefined)} />;
+    <TablesDialog {...opened} defaultName={`${namePrefix}${tablesSaved[mode] + 1}`} sender={sender}
+      onFinished={handleFinished} onFailed={handleFailed} onCancel={handleCancel}
+      onClose={() => setOpened(undefined)} />;
 
   return { actions, dialog };
 };

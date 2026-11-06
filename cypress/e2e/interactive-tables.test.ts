@@ -5,6 +5,8 @@ const width = 1044;
 const dataOnly = { useData: true, draw: false };
 const drawOnly = { useData: false, draw: true };
 const onlyDownload = { buttons: { downloadTables: { available: true } } };
+const onlySend = { buttons: { sendToCodap: { available: true } } };
+const bothButtons = { buttons: { sendToCodap: { available: true }, downloadTables: { available: true } } };
 const start = (authoredState: Record<string, unknown> = {}, options: Record<string, unknown> = {}) =>
   cy.startInteractive({
     mode: "runtime", width, authoredState: { modes: dataOnly, ...onlyDownload, ...authoredState }, ...options
@@ -15,6 +17,11 @@ const downloadButton = () => tableButton("Download tables");
 const textBox = () => shown().find("textarea[aria-label='Your text']");
 const generatorButton = (label: string) => shown().find(".generator-pane button").contains(label);
 const box = (element: JQuery<HTMLElement>) => element[0].getBoundingClientRect();
+const dialog = () => cy.interactive().find("dialog.tables-dialog");
+const nameField = () => dialog().find(".tables-dialog-name input");
+const submit = () => dialog().find("button[type='submit']");
+const focused = () => cy.get<HTMLIFrameElement>("iframe#interactive").its("0.contentDocument")
+  .invoke("querySelector", ":focus") as unknown as Cypress.Chainable<HTMLElement | null>;
 
 const offWith = (reason: string) => {
   downloadButton().should("have.attr", "aria-disabled", "true").and("have.attr", "title", reason)
@@ -70,9 +77,9 @@ describe("the Download tables button", () => {
 
   it("wraps as a group onto its own line at the row's widest, still at the right", () => {
     start({
-      startingText: "the cat sat", showCaseSwitch: true, orderMatters: { startsOn: true, showSwitch: true },
-      panes: { input: { available: false, startsOpen: true } },
-    }, { width: 560 });
+      ...bothButtons, startingText: "the cat sat", showCaseSwitch: true,
+      orderMatters: { startsOn: true, showSwitch: true }, panes: { input: { available: false, startsOpen: true } },
+    }, { width: 700 });
     shown().find(".controls-row").then(row => {
       shown().find(".controls-row > :first-child").then(first => {
         shown().find(".table-buttons").then(group => {
@@ -120,17 +127,12 @@ describe("the Download tables button", () => {
 });
 
 describe("the tables popup", () => {
-  const dialog = () => cy.interactive().find("dialog.tables-dialog");
-  const nameField = () => dialog().find(".tables-dialog-name input");
   const choice = (label: string) => dialog().find("fieldset label").contains(label);
   const checkbox = (label: string) => choice(label).find("input");
   const choiceLabels = () => dialog().find("fieldset label").invoke("toArray")
     .invoke("map", (label: Element) => label.textContent);
-  const submit = () => dialog().find("button[type='submit']");
   const cancel = () => dialog().find("button").contains("Cancel");
   const open = () => downloadButton().click();
-  const focused = () => cy.get<HTMLIFrameElement>("iframe#interactive").its("0.contentDocument")
-    .invoke("querySelector", ":focus") as unknown as Cypress.Chainable<HTMLElement | null>;
   const expectFocusOnButton = () => focused().should(element => {
     expect(element?.textContent).to.equal("Download tables");
   });
@@ -390,5 +392,198 @@ describe("the tables popup", () => {
     dialog().should("not.exist");
     cy.interactiveMessages("log").invoke("filter", ({ action }: { action: string }) => action.startsWith("Tables"))
       .should("have.length", 0);
+  });
+});
+
+describe("Send to CODAP", () => {
+  const sendButton = () => tableButton("Send to CODAP");
+  const checkbox = (label: string) => dialog().find("fieldset label").contains(label).find("input");
+  const close = () => dialog().find("button").contains("Close");
+  const startSend = (authoredState: Record<string, unknown> = {}, options: Record<string, unknown> = {}) =>
+    start({ ...onlySend, startingText: "the cat sat", ...authoredState }, options);
+  const refusingStore = { objectStorageConfig: { version: 2, type: "demo" } };
+  const tableEvents = () => cy.interactiveMessages("log")
+    .invoke("filter", ({ action }: { action: string }) => action.startsWith("TablesSen"))
+    .invoke("map", ({ action, data }: { action: string, data: unknown }) => [action, data]);
+  const saved = "Your tables have been saved as Mine. " +
+    "Open the CODAP window on this page and choose this name in the Datalog plugin.";
+  const failed = "Your tables couldn't be saved. Check your connection and try again.";
+
+  it("shows when the author turned it on and the host has object storage", () => {
+    startSend();
+    sendButton().should("be.visible");
+  });
+
+  it("is left out unless the author turned it on", () => {
+    start({ startingText: "the cat sat" });
+    downloadButton().should("exist");
+    shown().find(".table-buttons button").should("have.length", 1);
+  });
+
+  it("is left out with a host that has no object storage", () => {
+    startSend({}, { objectStorageConfig: null });
+    shown().find(".controls-row").should("exist");
+    shown().find(".table-buttons").should("not.exist");
+  });
+
+  it("is left out of a report", () => {
+    cy.startInteractive({
+      mode: "report", width, authoredState: { modes: dataOnly, ...onlySend },
+      interactiveState: { version: 1, input: { text: "the cat" } },
+    });
+    shown().find(".controls-row").should("exist");
+    shown().find(".table-buttons").should("not.exist");
+  });
+
+  it("comes before Download tables", () => {
+    start({ ...bothButtons, startingText: "the cat sat" });
+    shown().find(".table-buttons button").invoke("toArray").invoke("map", (button: Element) => button.textContent)
+      .should("deep.equal", ["Send to CODAP", "Download tables"]);
+  });
+
+  it("shares a count with Download tables", () => {
+    start({ ...bothButtons, startingText: "the cat sat" });
+    downloadButton().click();
+    submit().click();
+    dialog().should("not.exist");
+    sendButton().click();
+    nameField().should("have.value", "Data2");
+  });
+
+  it("opens the popup titled for its button, with Send", () => {
+    startSend();
+    sendButton().click();
+    dialog().find("h2").should("have.text", "Send to CODAP");
+    submit().should("have.text", "Send");
+  });
+
+  it("reads Saving... while it saves", () => {
+    startSend();
+    sendButton().click();
+    submit().then(button => {
+      const labels: (string | null)[] = [];
+      const win = button[0].ownerDocument.defaultView as Window & typeof globalThis;
+      new win.MutationObserver(() => labels.push(button[0].textContent))
+        .observe(button[0], { characterData: true, childList: true, subtree: true });
+      cy.wrap(labels).as("labels");
+    });
+    submit().click();
+    close().should("exist");
+    cy.get("@labels").should("include", "Saving...");
+  });
+
+  it("says where to find the tables until the student closes it, then gives focus back", () => {
+    startSend();
+    sendButton().click();
+    nameField().clear().type("Mine");
+    submit().click();
+    dialog().find("p").should("have.text", saved);
+    focused().should(element => expect(element?.textContent).to.equal("Close"));
+    close().invoke("attr", "aria-describedby").then(id => {
+      dialog().find(`[id='${id}']`).should("have.text", saved);
+    });
+    cy.wait(3000);
+    dialog().find("p").should("have.text", saved);
+    close().click();
+    dialog().should("not.exist");
+    focused().should(element => expect(element?.textContent).to.equal("Send to CODAP"));
+    sendButton().click();
+    nameField().should("have.value", "Data2");
+  });
+
+  it("closes the confirmation with the browser's cancel event, without logging a cancel", () => {
+    startSend();
+    sendButton().click();
+    submit().click();
+    close().should("exist");
+    dialog().trigger("cancel");
+    dialog().should("not.exist");
+    focused().should(element => expect(element?.textContent).to.equal("Send to CODAP"));
+    cy.interactiveMessages("log")
+      .invoke("filter", ({ action }: { action: string }) => action === "TablesDialogCanceled")
+      .should("have.length", 0);
+    sendButton().click();
+    nameField().should("have.value", "Data2");
+  });
+
+  it("keeps the popup and its choices after a failed save, and leaves the count", () => {
+    startSend({}, refusingStore);
+    sendButton().click();
+    nameField().clear().type("Mine");
+    checkbox("States").uncheck();
+    submit().click();
+    dialog().find("[role='alert']").should("have.text", failed);
+    nameField().should("have.value", "Mine");
+    checkbox("States").should("not.be.checked");
+    checkbox("Transitions").should("be.checked");
+    submit().should("be.enabled").and("have.text", "Send");
+    focused().should(element => expect(element?.tagName).to.equal("DIALOG"));
+    tableEvents().should("deep.equal", [
+      ["TablesSendFailed", { name: "Mine", tables: ["Input", "Transitions"], mode: "useData" }],
+    ]);
+    dialog().find("button").contains("Cancel").click();
+    sendButton().click();
+    nameField().should("have.value", "Data1");
+  });
+
+  it("logs a send and saves the count", () => {
+    startSend();
+    sendButton().click();
+    submit().click();
+    close().should("exist");
+    tableEvents().should("deep.equal", [
+      ["TablesSent", { name: "Data1", tables: ["Input", "States", "Transitions"], mode: "useData" }],
+    ]);
+    cy.interactiveMessages("interactiveState", { timeout: 5000 }).should("not.be.empty").invoke("at", -1)
+      .its("useData.tablesSaved").should("equal", 1);
+  });
+
+  describe("the limit on the Outputs table", () => {
+    // small as saved, since a state is stored once, and 1.2 MB as a table
+    const longState = "x".repeat(2000);
+    const outputsOf = (count: number) => ({
+      states: [longState], groups: [{
+        delimiter: " ", lengthLimit: 5, startingState: "", sequences: Array.from({ length: count }, () => [0]),
+      }],
+    });
+    const interactiveState = { version: 1, useData: { outputs: outputsOf(600) } };
+    const expectStopped = () => {
+      generatorButton("Play").should("be.disabled");
+      generatorButton("Step").should("be.disabled");
+      shown().find(".output-limit").should("have.text", "You have reached the maximum number of outputs.");
+    };
+
+    it("stops generating where Send to CODAP shows", () => {
+      startSend({ startingText: "a b a" }, { interactiveState });
+      expectStopped();
+    });
+
+    it("counts the other mode's Outputs table too", () => {
+      startSend({ startingText: "a b a", modes: { useData: true, draw: true }, startingMode: "useData" },
+        { interactiveState: { version: 1, draw: { outputs: outputsOf(600) } } });
+      expectStopped();
+    });
+
+    it("stops generating when a sequence ending reaches it, and logs that", () => {
+      startSend({ startingText: `${longState} ${longState}` }, {
+        interactiveState: {
+          version: 1, useData: { outputs: outputsOf(490), generator: { lengthLimit: 5, fast: true } },
+        },
+      });
+      generatorButton("Play").should("be.enabled").click();
+      shown().find(".output-limit", { timeout: 20000 })
+        .should("have.text", "You have reached the maximum number of outputs.");
+      expectStopped();
+      cy.interactiveMessages("log")
+        .invoke("filter", ({ action }: { action: string }) => action === "OutputLimitReached")
+        .should("have.length", 1).its(0).its("data.outputs").should("equal", 491);
+    });
+
+    it("leaves other pages to the saved limit alone", () => {
+      start({ startingText: "a b a" }, { interactiveState });
+      generatorButton("Play").should("be.enabled");
+      generatorButton("Step").should("be.enabled");
+      shown().find(".output-limit").should("be.empty");
+    });
   });
 });
