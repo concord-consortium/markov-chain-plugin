@@ -11,6 +11,7 @@ export type CsvRefusal = "tooLarge" | "tooLong" | "noValues" | "unreadable";
 export type CsvRead =
   | { ok: true, text: string, column: string, values: number, rows: number }
   | { ok: false, reason: CsvRefusal };
+export type CsvValues = Extract<CsvRead, { ok: true }>;
 
 // UTF-8 (a byte order mark dropped), or Windows-1252 when the bytes aren't valid UTF-8, as Excel saves a plain CSV
 export const decodeCsv = (bytes: Uint8Array) => {

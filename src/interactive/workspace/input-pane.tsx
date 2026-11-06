@@ -12,6 +12,7 @@ import { useMeasuredSize } from "./use-measured-size";
 
 interface InputPaneProps {
   switches: React.ReactNode;
+  csvUpload: React.ReactNode;
   rowLayout: RowLayout;
   view: InputView;
   // the text box's share of the height it shares with the table below it
@@ -50,7 +51,9 @@ export const InputPane = (props: InputPaneProps) => {
       afterPress={props.afterPress} onFocusToken={props.onFocusToken} rowLayout={props.rowLayout} />;
   return (
     <div className={`input-pane-content ${view}`}>
-      { props.switches }
+      { (props.switches || props.csvUpload) &&
+        <div className="input-controls">{ props.switches }{ props.csvUpload }</div>
+      }
       { view === "textAndTable"
         ? <LinkedInput split={props.split} onSplitChange={props.onSplitChange} onSplitResized={props.onSplitResized}
             textInput={textInput} table={table} />
