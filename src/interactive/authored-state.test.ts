@@ -20,6 +20,7 @@ const expectedDefaults: MarkovAuthoredState = {
     downloadTables: { available: false },
   },
   inputView: "textAndTable",
+  allowCsvUpload: false,
   capitalization: "lowercase",
   showCaseSwitch: true,
   orderMatters: { startsOn: true, showSwitch: true },
@@ -42,6 +43,7 @@ const customState: MarkovAuthoredState = {
     downloadTables: { available: true },
   },
   inputView: "table",
+  allowCsvUpload: true,
   capitalization: "asTyped",
   showCaseSwitch: false,
   orderMatters: { startsOn: false, showSwitch: false },
@@ -88,6 +90,15 @@ describe("readAuthoredState", () => {
     const partial = { modes: { draw: false }, panes: { inspect: { available: false } }, inputView: "nope" };
     const once = readAuthoredState(partial);
     expect(readAuthoredState(once)).toEqual(once);
+  });
+
+  it.each([
+    ["a saved true", { allowCsvUpload: true }, true],
+    ["a saved false", { allowCsvUpload: false }, false],
+    ["a state saved before the setting", {}, false],
+    ["a value that isn't a boolean", { allowCsvUpload: "yes" }, false],
+  ])("reads the CSV upload setting from %s", (_, saved, expected) => {
+    expect(readAuthoredState(saved).allowCsvUpload).toBe(expected);
   });
 
   it("fills in the settings a state doesn't have and keeps the ones it does", () => {

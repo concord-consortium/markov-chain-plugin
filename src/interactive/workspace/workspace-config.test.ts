@@ -18,6 +18,7 @@ const dataConfig: WorkspaceConfig = {
   inputView: "textAndTable",
   capitalization: "lowercase",
   caseSwitch: true,
+  csvUpload: false,
   modeSwitch: false,
   orderMatters: { startsOn: true, showSwitch: true },
   probabilities: { startsOn: false, showToggle: true },
@@ -52,6 +53,15 @@ describe("workspaceConfig", () => {
     expect(startingConfig(authored({ showCaseSwitch: true })).caseSwitch).toBe(true);
     expect(startingConfig(authored({ showCaseSwitch: false })).caseSwitch).toBe(false);
     expect(workspaceConfig(authored({ showCaseSwitch: true }), "draw").caseSwitch).toBe(false);
+  });
+
+  it("offers the CSV upload in Data mode with an Input pane, only while the author allows it", () => {
+    const allowed = authored({ allowCsvUpload: true });
+    const noInput = { ...allowed, panes: { ...allowed.panes, input: { available: false, startsOpen: true } } };
+    expect(workspaceConfig(allowed, "useData").csvUpload).toBe(true);
+    expect(workspaceConfig(authored(), "useData").csvUpload).toBe(false);
+    expect(workspaceConfig(noInput, "useData").csvUpload).toBe(false);
+    expect(workspaceConfig(allowed, "draw").csvUpload).toBe(false);
   });
 
   it("opens in the mode asked for, or else the starting mode", () => {

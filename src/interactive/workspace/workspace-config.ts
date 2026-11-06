@@ -15,6 +15,7 @@ interface WorkspaceSettings {
   capitalization: Capitalization;
   // the switch, else a read-only label; Data mode alone shows either
   caseSwitch: boolean;
+  csvUpload: boolean;
   modeSwitch: boolean;
   // Data mode alone shows the switch
   orderMatters: { startsOn: boolean, showSwitch: boolean };
@@ -38,6 +39,7 @@ export function workspaceConfig(state: MarkovAuthoredState, mode: ModeId): Works
     panes,
     capitalization: state.capitalization,
     caseSwitch: data && state.showCaseSwitch,
+    csvUpload: data && panes.some(p => p.id === "input") && state.allowCsvUpload,
     modeSwitch: state.modes.useData && state.modes.draw,
     orderMatters: { startsOn: state.orderMatters.startsOn, showSwitch: data && state.orderMatters.showSwitch },
     probabilities: {
