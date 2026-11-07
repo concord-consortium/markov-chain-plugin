@@ -55,13 +55,13 @@ describe("the interactive's Upload CSV button", () => {
     });
   });
 
-  it("names what it does to a screen reader, and keeps the file input out of the Tab order", () => {
+  it("names what it does to a screen reader, and hides the file input", () => {
     start();
     uploadButton().invoke("attr", "aria-describedby").then(id => {
       cy.interactive().find(`[id='${id}']`)
         .should("have.text", "Starts your input from the first column of a CSV file.");
     });
-    fileInput().should("have.attr", "tabindex", "-1").and("have.attr", "accept", ".csv,text/csv");
+    fileInput().should("not.be.visible").and("have.attr", "accept", ".csv,text/csv");
   });
 
   it("opens the file chooser", () => {
@@ -244,6 +244,24 @@ describe("the interactive's Upload CSV button", () => {
       ["CsvUploadRefused", { reason: "noValues", mode: "useData" }]
     ]);
     nothingSaved();
+  });
+
+  it("writes a refusal's line anew for a second file refused the same way", () => {
+    start();
+    choose("word\n");
+    status().find("span").should("have.text", "This file has no values to use.").then(first => {
+      choose("other\n");
+      status().find("span").should(second => {
+        expect(second.text()).to.equal("This file has no values to use.");
+        expect(second[0]).not.to.equal(first[0]);
+      });
+    });
+  });
+
+  it("shortens a long column name in its line", () => {
+    start();
+    choose(`${"x".repeat(500)}\ncat\n`);
+    status().should("have.text", `Read 1 value from the column "${"x".repeat(60)}\u2026".`);
   });
 
   it("refuses a file whose text would pass the input's limit", () => {
