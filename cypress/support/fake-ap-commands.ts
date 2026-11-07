@@ -26,6 +26,10 @@ Cypress.Commands.add("frameFitsInteractive", () => {
   });
 });
 
+Cypress.Commands.add("requestInteractiveState", (options?: { unloading?: boolean }) => {
+  cy.fakeAp().then(fake => fake.requestInteractiveState(options));
+});
+
 // then() waits for the page's promise, which resolves with the report item's answer
 Cypress.Commands.add("requestReportItemAnswer", (itemsType: ItemsType, platformUserId?: string) =>
   cy.fakeAp().then(fake => fake.requestReportItemAnswer(itemsType, platformUserId)));

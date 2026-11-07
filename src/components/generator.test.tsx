@@ -1,5 +1,6 @@
 import React, { createRef } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { Generator, GeneratorProps } from "./generator";
 import { MarkovTool } from "./markov-tool";
 import { MarkovHost, MarkovToolHandle } from "./host";
 import { GraphData } from "../type";
@@ -78,5 +79,51 @@ describe("Generator", () => {
 
     fireEvent.blur(maxLength);
     expect(maxLength).toHaveValue(1);
+  });
+});
+
+const generatorProps = (overrides: Partial<GeneratorProps> = {}): GeneratorProps => ({
+  nodes: [{ id: "a", label: "a", value: 1 }], graphEmpty: false, generationMode: "ready", startingState: "",
+  lengthLimit: 5, delimiter: " ", delimiterType: "space", fastSimulation: false, onStartingStateChange: jest.fn(),
+  onLengthLimitChange: jest.fn(), onLengthLimitCommit: jest.fn(), onDelimiterTypeChange: jest.fn(),
+  onDelimiterChange: jest.fn(), onDelimiterCommit: jest.fn(), onSpeedChange: jest.fn(), onPlay: jest.fn(),
+  onPause: jest.fn(), onResume: jest.fn(), onStep: jest.fn(), ...overrides,
+});
+
+describe("Generator's delimiter field", () => {
+  const props = generatorProps({ delimiter: "-", delimiterType: "other" });
+
+  it("takes focus as it shows", () => {
+    render(<Generator {...props} />);
+    expect(screen.getByPlaceholderText("delimiter")).toHaveFocus();
+  });
+
+  it("leaves focus where it was with delimiterAutoFocus false", () => {
+    render(<Generator {...props} delimiterAutoFocus={false} />);
+    expect(screen.getByPlaceholderText("delimiter")).not.toHaveFocus();
+    expect(document.body).toHaveFocus();
+  });
+
+  it("limits the delimiter's field only when given a length", () => {
+    const { rerender } = render(<Generator {...props} />);
+    expect(screen.getByPlaceholderText("delimiter")).not.toHaveAttribute("maxlength");
+    rerender(<Generator {...props} delimiterMaxLength={10} />);
+    expect(screen.getByPlaceholderText("delimiter")).toHaveAttribute("maxlength", "10");
+  });
+});
+
+describe("Generator at the limit", () => {
+  const props = generatorProps();
+
+  it("disables Play and Step", () => {
+    render(<Generator {...props} limitReached />);
+    expect(screen.getByRole("button", { name: "Play" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Step" })).toBeDisabled();
+  });
+
+  it("leaves them enabled below it", () => {
+    render(<Generator {...props} />);
+    expect(screen.getByRole("button", { name: "Play" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Step" })).toBeEnabled();
   });
 });

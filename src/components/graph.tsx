@@ -25,6 +25,8 @@ export type Point = {x: number, y: number};
 
 export type RubberBand = {from: string, to: Point};
 
+export type GraphView = {x: number, y: number, k: number};
+
 export type { D3Node } from "./graph-geometry";
 
 type Props = {
@@ -65,6 +67,8 @@ type Props = {
   zoomRequest?: { id: number, by: number };
   // a zoom or pan the student made (wheel, background drag), not a fit, a recenter or a zoomRequest
   onUserZoom?: () => void;
+  // where the view starts; a host passing it doesn't ask for a fit on mount
+  initialView?: GraphView;
   // fits animate over this many ms; absent, they are instant
   fitTransitionMs?: number;
   // labels the arrows the highlights point out with their probabilities
@@ -92,7 +96,7 @@ export const Graph = (props: Props) => {
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed, keepPositions, selectedEdge,
          onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs,
          probabilityLabels, arrowWidths = "byState", orderMatters, keepOutputOnRedraw,
-         centerOffOrigin } = props;
+         centerOffOrigin, initialView } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -108,6 +112,7 @@ export const Graph = (props: Props) => {
   const lastRecenterViewAtRef = useRef<number | undefined>(undefined);
   const lastZoomRequestIdRef = useRef(zoomRequest?.id);
   const gestureStartRef = useRef<Transform | undefined>(undefined);
+  const viewAppliedRef = useRef(false);
 
   // generate an ordered edge list from the highlight output nodes
   const highlightOutputEdges = useMemo(() => {
@@ -263,6 +268,12 @@ export const Graph = (props: Props) => {
     svg
       .call(zoomRef.current)
       .on("dblclick.zoom", null); // disable double click to zoom
+
+    // through the zoom behavior, so the next wheel zoom carries on from it
+    if (initialView && !viewAppliedRef.current) {
+      viewAppliedRef.current = true;
+      svg.call(zoomRef.current.transform, new d3.ZoomTransform(initialView.k, initialView.x, initialView.y));
+    }
   });
 
   // draw the graph

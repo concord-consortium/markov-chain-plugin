@@ -33,6 +33,7 @@ export type InputView = typeof inputViews[number];
 
 export const capitalizations = ["lowercase", "asTyped"] as const;
 export type Capitalization = typeof capitalizations[number];
+export const capitalizationFor = (caseSensitive: boolean): Capitalization => caseSensitive ? "asTyped" : "lowercase";
 
 export const maxStartingTextLength = 20000;
 
@@ -83,7 +84,7 @@ export const defaultAuthoredState: MarkovAuthoredState = {
   startingText: "",
 };
 
-// the labels the authoring form shows, and the runtime's list of settings repeats
+// the labels the authoring form shows
 export const modeLabels: Record<ModeId, string> = { useData: "Data", draw: "Draw" };
 export const usableModesLabels: Record<UsableModes, string> = {
   draw: modeLabels.draw, useData: modeLabels.useData, both: "Both (with a toggle switch for students)"
@@ -114,7 +115,7 @@ export const capitalizationLabels: Record<Capitalization, string> = {
 };
 export const yesNo = (value: boolean) => value ? "Yes" : "No";
 
-// the switch's name, shared by the form, the summary and the workspace
+// the switch's name, shared by the form and the workspace
 export const caseSensitiveLabel = "Case sensitive";
 
 export const orderMattersLabel = "Order matters";
@@ -143,7 +144,7 @@ export const settingLabels = {
 export const startsOpenLabel = (id: PaneId, modes: Record<ModeId, boolean>) =>
   id === "graph" && modes.useData && modes.draw ? settingLabels.graphStartsOpenWithBothModes : settingLabels.startsOpen;
 
-// what the authoring form shows and the runtime's list repeats: a setting is left out while what it depends on is off
+// what the authoring form shows: a setting is left out while what it depends on is off
 export const showsStartingMode = (modes: Record<ModeId, boolean>) => modes.useData && modes.draw;
 
 // the Input pane is Data mode's

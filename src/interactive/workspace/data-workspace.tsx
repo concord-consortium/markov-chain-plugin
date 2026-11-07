@@ -5,7 +5,7 @@ import { ArrowWidths, layoutFor } from "../../components/graph-utils";
 import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { Node } from "../../type";
-import { Capitalization, caseSensitiveLabel, MarkovAuthoredState, orderMattersLabel } from "../authored-state";
+import { Capitalization, capitalizationFor, caseSensitiveLabel, orderMattersLabel } from "../authored-state";
 import { Token, tokenize, tokensToValues } from "../input/tokenizer";
 import { CommitHow, CommitView } from "./commit";
 import { ControlsRow } from "./controls-row";
@@ -14,18 +14,22 @@ import { GraphPane } from "./graph-pane";
 import { highlightsFor } from "./highlights";
 import { InputPane } from "./input-pane";
 import { InspectPane } from "./inspect-pane";
-import { defaultInputSplit } from "./pane-sizes";
+import { RestoredMode } from "./restore-work";
 import { SettingLabel, SettingSwitch } from "./setting-switch";
 import { useClearGoneSelection, useEscape, useInspectChoices, useScrollToChoice } from "./use-mode-body";
-import { usePaneLayout } from "./use-pane-layout";
+import { ModeSaving, usePaneLayout } from "./use-pane-layout";
 import { DataWorkspaceConfig, WorkspacePaneId } from "./workspace-config";
 import { WorkspacePanes } from "./workspace-panes";
 
 interface DataWorkspaceProps {
-  authoredState: MarkovAuthoredState;
-  savedInput?: string;
-  // saves the input; absent standalone
-  onSaveInput?: (text: string) => void;
+  // the input and its case rule to open with
+  text: string;
+  capitalization: Capitalization;
+  inputSplit: number;
+  start: RestoredMode;
+  saving: ModeSaving;
+  limitReached: boolean;
+  readOnly: boolean;
   host: MarkovHost;
   tool: MarkovToolApi;
   config: DataWorkspaceConfig;
@@ -55,32 +59,27 @@ const laidOutWhole = (before: string[], after: string[]) => {
 
 // Data mode's body: the authored panes around the student's input
 export const DataWorkspace = ({
-  authoredState, savedInput, onSaveInput, host, tool, config, stacked, hidden, controls, probabilities, arrowWidths,
-  orderMatters, onOrderMattersChange
+  text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, saving, limitReached,
+  readOnly, host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, orderMatters,
+  onOrderMattersChange
 }: DataWorkspaceProps) => {
   const { inputView } = config;
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const layout = usePaneLayout(config, host, tool, stacked, hidden);
+  const layout = usePaneLayout(config, host, tool, stacked, hidden, start, saving);
   const {
-    hasPane, controlsOpen, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized, top
+    hasPane, controlsOpen, toggleControls, followRef, handleFitPressed, handleRecenterPressed, handleUserZoom,
+    handleGraphResized, top,
   } = layout;
 
-  // with no Input pane the student cannot edit the input, so a saved one is ignored
-  const [startingText] = useState(() => hasPane("input") ? savedInput ?? authoredState.startingText
-                                                         : authoredState.startingText);
-  const [text, setText] = useState(startingText);
+  const [text, setText] = useState(startText);
   const [committed, setCommitted] = useState<{ text: string, tokens: Token[] }>(
-    () => ({ text: startingText, tokens: tokenize(startingText, config.capitalization) }));
-  const [firstValues] = useState(() => tokensToValues(committed.tokens));
-  useEffect(() => {
-    tool.handle.dataChanged(firstValues);
-  }, [tool.handle, firstValues]);
+    () => ({ text: startText, tokens: tokenize(startText, startCapitalization) }));
 
-  const lastValuesRef = useRef(firstValues);
-  const lastSavedRef = useRef(startingText);
+  const lastValuesRef = useRef(start.tool.values ?? []);
+  const lastSavedRef = useRef(startText);
 
-  const [capitalization, setCapitalization] = useState(config.capitalization);
+  const [capitalization, setCapitalization] = useState(startCapitalization);
   // reads the text under a rule and hands the core its values when they changed, returning its tokens if they did
   const commitText = useCallback((nextText: string, rule: Capitalization) => {
     const tokens = tokenize(nextText, rule);
@@ -89,7 +88,7 @@ export const DataWorkspace = ({
     setCommitted({ text: nextText, tokens });
     if (nextText !== lastSavedRef.current) {
       lastSavedRef.current = nextText;
-      onSaveInput?.(nextText);
+      saving.requestSave();
     }
     if (sameValues(values, lastValuesRef.current)) {
       return undefined;
@@ -100,7 +99,7 @@ export const DataWorkspace = ({
     lastValuesRef.current = values;
     tool.handle.dataChanged(values, { fit: followRef.current });
     return tokens;
-  }, [tool.handle, onSaveInput, followRef]);
+  }, [tool.handle, saving, followRef]);
 
   const commit = useCallback((nextText: string, how: CommitHow, view: CommitView) => {
     const tokens = commitText(nextText, capitalization);
@@ -118,7 +117,7 @@ export const DataWorkspace = ({
   const textRef = useLatest(text);
 
   const handleCaseChange = (caseSensitive: boolean) => {
-    const rule = caseSensitive ? "asTyped" : "lowercase";
+    const rule = capitalizationFor(caseSensitive);
     setCapitalization(rule);
     commitText(textRef.current, rule);
     host.log("CaseSensitivityChanged", { caseSensitive, states: stateCount(lastValuesRef.current) });
@@ -126,7 +125,7 @@ export const DataWorkspace = ({
   const isCaseSensitive = capitalization === "asTyped";
   const caseSwitch = config.caseSwitch &&
     <SettingSwitch label={caseSensitiveLabel} value={isCaseSensitive} onChange={handleCaseChange}
-      disabled={tool.animating} />;
+      disabled={tool.animating || readOnly} />;
 
   const handleOrderChange = (on: boolean) => {
     // a transition can't be chosen in a bag of words; the logged change says why it went
@@ -138,7 +137,7 @@ export const DataWorkspace = ({
   };
   const orderSwitch = config.orderMatters.showSwitch &&
     <SettingSwitch label={orderMattersLabel} value={orderMatters} onChange={handleOrderChange}
-      disabled={tool.animating} />;
+      disabled={tool.animating || readOnly} />;
   const switches = (orderSwitch || caseSwitch) &&
     <div className="setting-switches">{ orderSwitch }{ caseSwitch }</div>;
 
@@ -215,7 +214,12 @@ export const DataWorkspace = ({
     }
   });
 
-  const [inputSplit, setInputSplit] = useState(defaultInputSplit);
+  const [inputSplit, setInputSplit] = useState(startSplit);
+  useEffect(() => {
+    saving.report.text = committed.text;
+    saving.report.capitalization = capitalization;
+    saving.report.inputSplit = inputSplit;
+  }, [saving, committed.text, capitalization, inputSplit]);
   const handleSplitResized = useCallback((split: number) =>
     host.log("PaneResized", { divider: "inputSplit", sizes: { inputSplit: split } }), [host]);
 
@@ -240,7 +244,7 @@ export const DataWorkspace = ({
             onSplitResized={handleSplitResized} text={text} liveTokens={liveTokens}
             liveHighlights={liveHighlights} committed={committed}
             highlights={highlights}
-            readOnly={tool.animating} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
+            readOnly={tool.animating || readOnly} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
             onTableCommit={handleTableCommit} onRowBlur={handleBlurCommit} afterPress={afterPress}
             onRowAdded={handleRowAdded}
             onRowDeleted={handleRowDeleted} onFocusToken={handleFocusToken} />
@@ -249,18 +253,23 @@ export const DataWorkspace = ({
         return (
           <GraphPane tool={tool} log={host.log} top={top} probabilities={probabilities} arrowWidths={arrowWidths}
             orderMatters={orderMatters}
-            emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFit}
-            onResized={handleGraphResized}
+            emptyMessage={emptyMessage} onUserZoom={handleUserZoom} onFit={handleFitPressed}
+            onRecenter={handleRecenterPressed} onResized={handleGraphResized}
+            initialView={start.view} saving={saving} readOnly={readOnly}
             onDoubleClickState={handleDoubleClickState} />
         );
       case "inspect":
         return (
           <InspectPane mode="useData" orderMatters={orderMatters} graph={tool.graph} selection={tool.selection}
             highlights={highlights} log={host.log}
-            onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} />
+            onSelectState={handleSelectState} onSelectTransition={handleSelectTransition} start={start.inspect}
+            report={saving.report} />
         );
       case "generator":
-        return <GeneratorPane tool={tool} controlsOpen={controlsOpen} onToggleControls={toggleControls} />;
+        return (
+          <GeneratorPane tool={tool} controlsOpen={controlsOpen} onToggleControls={toggleControls}
+            limitReached={limitReached} readOnly={readOnly} />
+        );
     }
   };
 

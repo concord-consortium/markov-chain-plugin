@@ -4,11 +4,21 @@ import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { Divider } from "./divider";
 import {
-  collapsedStrip, defaultPaneSizes, dividerLimits, drawnRowHeight, fitPaneSizes, movesDivider, OpenPanes, PaneDivider,
+  collapsedStrip, dividerLimits, drawnRowHeight, fitPaneSizes, movesDivider, OpenPanes, PaneDivider,
   paneGap, PaneSizes, resizedPanes
 } from "./pane-sizes";
+import { ModeReport } from "./build-state";
+import { RestoredMode } from "./restore-work";
 import { useMeasuredSize } from "./use-measured-size";
 import { WorkspaceConfig, WorkspacePaneId } from "./workspace-config";
+
+// what a mode's body shares with the shell's saving
+export interface ModeSaving {
+  report: ModeReport;
+  requestSave: () => void;
+  markActive: () => void;
+  afterDraw: () => void;
+}
 
 const dividerLabels: Record<PaneDivider, string> = {
   input: "Resize Input and Graph", inspect: "Resize Graph and Inspect", rows: "Resize the panes and the generator",
@@ -17,16 +27,21 @@ const dividerLabels: Record<PaneDivider, string> = {
 // One mode's panes: which are open, their sizes and dividers, and the view following the graph until the student zooms
 // or pans. Each mode calls it, so each keeps its own.
 export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: MarkovToolApi, stacked: boolean,
-  hidden: boolean) => {
+  hidden: boolean, start: RestoredMode, saving: ModeSaving) => {
+  const { report, markActive } = saving;
   const toolRef = useLatest(tool);
   const hasPane = (id: WorkspacePaneId) => config.panes.some(pane => pane.id === id);
 
   // the view follows the graph, fitting it after each commit, until the student zooms or pans
-  const followRef = useRef(true);
+  const followRef = useRef(!start.view);
+  useEffect(() => {
+    if (!start.view) {
+      toolRef.current.view.onFitView();
+    }
+  }, [toolRef, start.view]);
 
-  const [open, setOpen] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(config.panes.map(pane => [pane.id, pane.startsOpen])));
-  const [controlsOpen, setControlsOpen] = useState(true);
+  const [open, setOpen] = useState(start.panes);
+  const [controlsOpen, setControlsOpen] = useState(start.controlsOpen);
   const togglePane = (id: WorkspacePaneId) => {
     const opening = !open[id];
     setOpen(prev => ({ ...prev, [id]: opening }));
@@ -48,7 +63,16 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   }, [toolRef]);
   const handleUserZoom = useCallback(() => {
     followRef.current = false;
-  }, []);
+    markActive();
+  }, [markActive]);
+  const handleFitPressed = useCallback(() => {
+    markActive();
+    handleFit();
+  }, [markActive, handleFit]);
+  const handleRecenterPressed = useCallback(() => {
+    markActive();
+    toolRef.current.view.onRecenterView();
+  }, [markActive, toolRef]);
 
   // a hidden mode's graph has no size, so it is fitted when its mode shows again, as a reopened Graph pane is, and
   // again once the row is measured, since until then the panes beside it are drawn at their minimums
@@ -67,7 +91,11 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   const rowsDivider = !stacked && hasPane("generator") && open.generator && rowPanes.some(pane => open[pane.id]);
 
   // the sizes the student chose, kept while a narrow row draws them smaller and while a pane is collapsed
-  const [paneSizes, setPaneSizes] = useState<PaneSizes>(defaultPaneSizes);
+  const [paneSizes, setPaneSizes] = useState<PaneSizes>(start.sizes);
+  useEffect(() => {
+    report.layout = { open, controlsOpen, sizes: paneSizes };
+    report.following = () => followRef.current;
+  }, [report, open, controlsOpen, paneSizes]);
   const rowRef = useRef<HTMLDivElement | null>(null);
   const rowWidth = useMeasuredSize(rowRef)?.width;
   const openPanes: OpenPanes = {
@@ -91,6 +119,11 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   // a resize changes the graph's size, which it can measure after the resize ends, so it is fitted again then, unless
   // the student has taken the view since
   const fitWhenResizedRef = useRef(false);
+  // stacking gives the graph a new width, including when a narrow workspace first measures itself; an effect, so a size
+  // the Graph measured before stacking doesn't use this up
+  useEffect(() => {
+    fitWhenResizedRef.current = true;
+  }, [stacked]);
   // how many times the graph's size has been laid out, and how many of those it had measured at its last measurement
   const graphLayoutsRef = useRef(0);
   const graphMeasuredRef = useRef(0);
@@ -125,16 +158,16 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
     setPaneSizes(next);
   };
   const endResize = (divider: PaneDivider) => {
-    const start = resizeStartRef.current;
+    const startSizes = resizeStartRef.current;
     const moved = movedToRef.current;
     resizeStartRef.current = undefined;
     movedToRef.current = undefined;
-    if (!start || !moved) {
+    if (!startSizes || !moved) {
       return;
     }
     // a move that changed nothing on screen keeps the sizes the student chose
     if (!movedOnScreenRef.current) {
-      setPaneSizes(start);
+      setPaneSizes(startSizes);
     } else {
       host.log("PaneResized", { divider, sizes: moved });
       if (followRef.current) {
@@ -171,7 +204,7 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
       : undefined;
 
   return {
-    hasPane, open, controlsOpen, togglePane, toggleControls, followRef, handleFit, handleUserZoom, handleGraphResized,
-    rowPanes, rowsDivider, rowRef, top, paneStyle, dividerFor, paneDivider,
+    hasPane, open, controlsOpen, togglePane, toggleControls, followRef, handleFitPressed, handleRecenterPressed,
+    handleUserZoom, handleGraphResized, rowPanes, rowsDivider, rowRef, top, paneStyle, dividerFor, paneDivider,
   };
 };

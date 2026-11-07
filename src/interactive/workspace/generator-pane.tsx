@@ -3,17 +3,25 @@ import { clsx } from "clsx";
 import { Generator } from "../../components/generator";
 import { SequenceOutput } from "../../components/sequence-output";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
+import { maxDelimiterLength } from "../saved-outputs";
 import { ToggleIcon } from "./pane";
 
 interface GeneratorPaneProps {
   tool: MarkovToolApi;
   controlsOpen: boolean;
   onToggleControls: () => void;
+  limitReached: boolean;
+  readOnly: boolean;
 }
 
 // The generator's controls in a column that collapses on its own, beside the output
-export const GeneratorPane = ({ tool, controlsOpen, onToggleControls }: GeneratorPaneProps) => {
+export const GeneratorPane = ({
+  tool, controlsOpen, onToggleControls, limitReached, readOnly
+}: GeneratorPaneProps) => {
   const controlsId = useId();
+  const generator = (
+    <Generator {...tool.generatorProps} limitReached={limitReached} delimiterMaxLength={maxDelimiterLength} />
+  );
   const action = controlsOpen ? "Collapse" : "Expand";
   return (
     <div className="generator-pane-content">
@@ -27,10 +35,15 @@ export const GeneratorPane = ({ tool, controlsOpen, onToggleControls }: Generato
           </button>
         </div>
         <div id={controlsId} className="generator-controls-body" hidden={!controlsOpen}>
-          <Generator {...tool.generatorProps} />
+          { readOnly ? <fieldset disabled aria-label="Generator settings">{ generator }</fieldset> : generator }
         </div>
       </div>
-      <SequenceOutput {...tool.outputProps} keyboardSelect heading="Output" />
+      <div className="generator-output">
+        <SequenceOutput {...tool.outputProps} keyboardSelect heading="Output" openAtNewest readOnly={readOnly} />
+        <p role="status" className="output-limit">
+          { limitReached && "You have reached the maximum number of outputs." }
+        </p>
+      </div>
     </div>
   );
 };

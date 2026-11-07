@@ -1,15 +1,15 @@
-import React, { memo, useId, useMemo, useRef, useState } from "react";
+import React, { memo, useEffect, useId, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { MarkovHost, Selection } from "../../components/host";
 import { GraphData } from "../../type";
 import { ModeId } from "../authored-state";
+import { SavedMode } from "../interactive-state";
+import { ModeReport } from "./build-state";
 import { Highlights, transitionKey } from "./highlights";
 import {
-  bagOfWordsExplanation, inspectColumns, SortColumn, sortRows, StateRow, stateRows, TransitionRow, transitionRows
+  bagOfWordsExplanation, InspectTab, inspectColumns, Sort, SortColumn, sortRows, StateRow, stateRows, TransitionRow,
+  transitionRows
 } from "./inspect-rows";
-
-type InspectTab = "states" | "transitions";
-interface Sort { column: SortColumn, ascending: boolean }
 
 const tabs: { id: InspectTab, label: string }[] = [
   { id: "states", label: "States" }, { id: "transitions", label: "Transitions" }
@@ -31,16 +31,24 @@ interface InspectPaneProps {
   log: MarkovHost["log"];
   onSelectState: (id: string) => void;
   onSelectTransition: (edge: { from: string, to: string }) => void;
+  // the tab and sorts to open with, in place of the first tab and alphabetical order
+  start?: SavedMode["inspect"];
+  report?: ModeReport;
 }
 
 // The graph's states and transitions in tabs. Each table's rows are one Tab stop: Up and Down move between them, and
 // Enter or Space chooses one. Its column headers' sort buttons take Tab too.
 const InspectPaneContent = ({
-  mode, orderMatters, graph, selection, highlights, log, onSelectState, onSelectTransition
+  mode, orderMatters, graph, selection, highlights, log, onSelectState, onSelectTransition, start, report
 }: InspectPaneProps) => {
   const idPrefix = useId();
-  const [tab, setTab] = useState<InspectTab>("states");
-  const [sorts, setSorts] = useState(startingSort);
+  const [tab, setTab] = useState<InspectTab>(start?.tab ?? "states");
+  const [sorts, setSorts] = useState({ ...startingSort, ...start?.sorts });
+  useEffect(() => {
+    if (report) {
+      report.inspect = { tab, sorts };
+    }
+  }, [report, tab, sorts]);
   // the row that takes Tab in each table, by its place
   const [current, setCurrent] = useState<Record<InspectTab, number>>({ states: 0, transitions: 0 });
   const tabButtons = useRef(new Map<InspectTab, HTMLButtonElement>());

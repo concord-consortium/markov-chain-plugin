@@ -67,7 +67,7 @@ describe("the interactive's demo page", () => {
     });
   });
 
-  it("restarts the runtime with each authoring change, keeping its interactive state", () => {
+  it("restarts the runtime with each authoring change, saving nothing with nothing done", () => {
     const savedStates: unknown[] = [];
     cy.visit("/demo.html", {
       onBeforeLoad: win => win.addEventListener("message", event => {
@@ -80,18 +80,26 @@ describe("the interactive's demo page", () => {
     // the demo's own text has no capital letter
     frameBody("Authoring").find("#startingText").clear().type("The cat. the cat");
     runtimeStatesShould([".", "cat", "the"]);
-    // a runtime with that text saves a state, after the library's 2 second pause
-    cy.wrap(savedStates, { timeout: 5000 }).should("have.length.at.least", 1);
-    // past the pause of any runtime the typing restarted
+    frameBody("Authoring").find("#capitalization").select("asTyped");
+    runtimeStatesShould([".", "The", "cat", "the"]);
+    // past the library's 2 second pause
     cy.wait(2500);
-    cy.then(() => {
-      expect(savedStates[savedStates.length - 1]).to.deep.equal({ version: 1 });
-      const savedBefore = savedStates.length;
-      frameBody("Authoring").find("#capitalization").select("asTyped");
-      runtimeStatesShould([".", "The", "cat", "the"]);
-      // started with that state, the restarted runtime has nothing to save
-      cy.wait(2500);
-      cy.wrap(savedStates).should("have.length", savedBefore);
+    cy.wrap(savedStates).should("have.length", 0);
+  });
+
+  it("shows an authoring change after a student's save", () => {
+    let saved = false;
+    cy.visit("/demo.html", {
+      onBeforeLoad: win => win.addEventListener("message", event => {
+        saved ||= messageOf(event.data)?.type === "interactiveState";
+      })
+    });
+    frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
+    cy.wrap(null, { timeout: 5000 }).should(() => expect(saved).to.equal(true));
+    frameBody("Authoring").find("#startingMode").select("draw");
+    cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").should((doc: Document) => {
+      const shown = doc.querySelector(".workspace-body:not([hidden]) .mode-switch input:checked");
+      expect(shown?.closest("label")?.textContent).to.contain("Draw");
     });
   });
 
@@ -274,6 +282,33 @@ describe("the interactive's demo page", () => {
 
   it("shows the report item's full answer", () => {
     cy.visit("/demo.html");
-    frameText("Report item").should("contain", "This student opened the Markov interactive.");
+    frameText("Report item").should("contain", "This student has saved work in the Markov interactive.");
+  });
+
+  it("shows the teacher's view of the runtime's last save, starting it again with each", () => {
+    cy.visit("/demo.html");
+    cy.get("iframe[title=\"Teacher's view\"]").should("not.exist");
+    const typeInRuntime = (text: string) =>
+      frameBody("Interactive").find("textarea[aria-label='Your text']").type(text).blur({ force: true });
+    const teachersText = (expected: string) =>
+      cy.get("iframe[title=\"Teacher's view\"]").its("0.contentDocument").should((doc: Document) => {
+        expect(doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']")?.value).to.equal(expected);
+      });
+    typeInRuntime(" dog");
+    teachersText("the cat sat on the mat. the cat ran. dog");
+    frameText("Teacher's view").should("contain", "This is a student's saved work. It can't be changed here.");
+    typeInRuntime(" fox");
+    teachersText("the cat sat on the mat. the cat ran. dog fox");
+  });
+
+  it("starts the teacher's view under the authored state of the save, at the page width chosen", () => {
+    cy.visit("/demo.html?width=960");
+    frameBody("Authoring").find("#startingText").clear().type("a new start");
+    runtimeStatesShould(["a", "new", "start"]);
+    frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
+    cy.get("iframe[title=\"Teacher's view\"]").its("0.contentDocument").should((doc: Document) => {
+      expect(doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']")?.value).to.equal("a new start");
+      expect(doc.documentElement.clientWidth).to.equal(904);
+    });
   });
 });

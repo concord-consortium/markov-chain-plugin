@@ -7,11 +7,12 @@ import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { ControlsRow } from "./controls-row";
 import { GeneratorPane } from "./generator-pane";
-import { GraphPane } from "./graph-pane";
+import { dataTools, GraphPane } from "./graph-pane";
 import { highlightsFor } from "./highlights";
 import { InspectPane } from "./inspect-pane";
+import { RestoredMode } from "./restore-work";
 import { useClearGoneSelection, useEscape, useInspectChoices, useScrollToChoice } from "./use-mode-body";
-import { usePaneLayout } from "./use-pane-layout";
+import { ModeSaving, usePaneLayout } from "./use-pane-layout";
 import { DrawWorkspaceConfig, WorkspacePaneId } from "./workspace-config";
 import { WorkspacePanes } from "./workspace-panes";
 
@@ -29,16 +30,20 @@ interface DrawWorkspaceProps {
   controls: React.ReactNode;
   probabilities: boolean;
   arrowWidths: ArrowWidths;
+  start: RestoredMode;
+  saving: ModeSaving;
+  limitReached: boolean;
+  readOnly: boolean;
 }
 
 // Draw mode's body: a drawing in the Graph pane, with Inspect and the generator as the author set them
 export const DrawWorkspace = ({
-  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths
+  host, tool, config, stacked, hidden, controls, probabilities, arrowWidths, start, saving, limitReached, readOnly
 }: DrawWorkspaceProps) => {
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sourcePaneRef = useRef<WorkspacePaneId>(undefined);
-  const layout = usePaneLayout(config, host, tool, stacked, hidden);
+  const layout = usePaneLayout(config, host, tool, stacked, hidden, start, saving);
   const highlights = useMemo(() => highlightsFor(tool.selection, [], tool.graph.edges),
     [tool.selection, tool.graph.edges]);
 
@@ -63,19 +68,22 @@ export const DrawWorkspace = ({
     switch (id) {
       case "graph":
         return (
-          <GraphPane variant="draw" tools={drawModeTools} tool={tool} log={host.log} top={layout.top}
-            probabilities={probabilities} arrowWidths={arrowWidths}
-            onUserZoom={layout.handleUserZoom} onFit={layout.handleFit} onResized={layout.handleGraphResized} />
+          <GraphPane variant="draw" tools={readOnly ? dataTools : drawModeTools} tool={tool} log={host.log}
+            top={layout.top} probabilities={probabilities} arrowWidths={arrowWidths}
+            onUserZoom={layout.handleUserZoom} onFit={layout.handleFitPressed}
+            onRecenter={layout.handleRecenterPressed} onResized={layout.handleGraphResized}
+            initialView={start.view} saving={saving} readOnly={readOnly} />
         );
       case "inspect":
         return (
           <InspectPane mode="draw" orderMatters={true} graph={tool.graph} selection={tool.selection}
             highlights={highlights} log={host.log} onSelectState={handleSelectState}
-            onSelectTransition={handleSelectTransition} />
+            onSelectTransition={handleSelectTransition} start={start.inspect} report={saving.report} />
         );
       case "generator":
         return (
-          <GeneratorPane tool={tool} controlsOpen={layout.controlsOpen} onToggleControls={layout.toggleControls} />
+          <GeneratorPane tool={tool} controlsOpen={layout.controlsOpen} onToggleControls={layout.toggleControls}
+            limitReached={limitReached} readOnly={readOnly} />
         );
     }
   };

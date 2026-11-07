@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { clsx } from "clsx";
 import { Drawing } from "../../components/drawing";
 import { ArrowWidths } from "../../components/graph-utils";
-import { Graph } from "../../components/graph";
+import { D3Node, Graph, GraphView, Transform } from "../../components/graph";
 import { graphLabels } from "../../components/graph-labels";
 import { Tool, Toolbar } from "../../components/toolbar";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
@@ -11,8 +11,9 @@ import { useZoomRequest } from "../../hooks/use-zoom-request";
 import { graphBodyHeight, paneGap, toolbarColumns, toolbarWidth } from "./pane-sizes";
 import { useLatest } from "../../hooks/use-latest";
 import { graphNotes } from "./graph-notes";
+import { ModeSaving } from "./use-pane-layout";
 
-const dataTools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
+export const dataTools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
 const noop = () => undefined;
 const fitMs = 250;
 
@@ -27,7 +28,11 @@ interface GraphPaneProps {
   emptyMessage?: string;
   onUserZoom: () => void;
   onFit: () => void;
+  onRecenter: () => void;
   onResized: () => void;
+  initialView?: GraphView;
+  saving: ModeSaving;
+  readOnly: boolean;
   onDoubleClickState?: (id: string) => void;
   probabilities: boolean;
   arrowWidths: ArrowWidths;
@@ -38,8 +43,8 @@ interface GraphPaneProps {
 // The graph and its toolbar. Every callback handed to Graph keeps its identity, reading the tool through a ref,
 // since a new callback redraws the whole graph.
 export const GraphPane = ({
-  variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onResized, onDoubleClickState,
-  probabilities, arrowWidths, orderMatters = true
+  variant = "data", tools = dataTools, tool, log, top, emptyMessage, onUserZoom, onFit, onRecenter, onResized,
+  initialView, saving, readOnly, onDoubleClickState, probabilities, arrowWidths, orderMatters = true
 }: GraphPaneProps) => {
   const toolRef = useLatest(tool);
   const onUserZoomRef = useLatest(onUserZoom);
@@ -62,6 +67,14 @@ export const GraphPane = ({
     onResizedRef.current();
   }, [toolRef, onResizedRef]);
   const handleUserZoom = useCallback(() => onUserZoomRef.current(), [onUserZoomRef]);
+  const savingRef = useLatest(saving);
+  const handleTransformed = useCallback(({ x, y, k }: Transform) => {
+    savingRef.current.report.view = { x, y, k };
+  }, [savingRef]);
+  const handleArranged = useCallback((nodes: D3Node[]) => {
+    savingRef.current.report.arranged = nodes;
+    savingRef.current.afterDraw();
+  }, [savingRef]);
   const { zoomRequest, zoomIn, zoomOut } = useZoomRequest(handleUserZoom);
 
   const columns = toolbarColumns(tools.length, graphBodyHeight(top));
@@ -92,11 +105,14 @@ export const GraphPane = ({
             onReset={view.onReset}
             onReturnToMainMenu={noop}
             onFitView={onFit}
-            onRecenterView={view.onRecenterView}
+            onRecenterView={onRecenter}
             onDimensions={handleDimensions}
             onEdgeSelect={handleEdgeSelect}
             onBackgroundClick={handleBackgroundClick}
             onUserZoom={handleUserZoom}
+            onTransformed={handleTransformed}
+            initialView={initialView}
+            readOnly={readOnly}
             fitTransitionMs={fitMs}
             probabilityLabels={probabilities}
             arrowWidths={arrowWidths}
@@ -113,7 +129,7 @@ export const GraphPane = ({
             onReset={noop}
             onReturnToMainMenu={noop}
             onFitView={onFit}
-            onRecenterView={view.onRecenterView}
+            onRecenterView={onRecenter}
             onZoomIn={zoomIn}
             onZoomOut={zoomOut}
           />
@@ -122,12 +138,15 @@ export const GraphPane = ({
             {...graphHighlights}
             animating={tool.animating}
             opacity={view.graphOpacity}
-            allowDragging={!tool.animating}
+            allowDragging={!tool.animating && !readOnly}
             autoArrange={true}
             keepPositions={true}
             zoomButtons={false}
             zoomRequest={zoomRequest}
             onUserZoom={handleUserZoom}
+            onTransformed={handleTransformed}
+            onAutoArrangeEnd={handleArranged}
+            initialView={initialView}
             fitTransitionMs={fitMs}
             fitViewAt={view.fitViewAt}
             recenterViewAt={view.recenterViewAt}

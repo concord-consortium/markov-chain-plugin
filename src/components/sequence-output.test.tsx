@@ -41,6 +41,70 @@ describe("SequenceOutput", () => {
     expect(scrollTops).toEqual([]);
   });
 
+  describe("with openAtNewest", () => {
+    let observers: { callback: () => void, target?: Element, disconnected: boolean }[];
+    let clientHeight: number;
+    const notify = () => observers.filter(observer => observer.target && !observer.disconnected)
+      .forEach(observer => observer.callback());
+
+    beforeEach(() => {
+      observers = [];
+      clientHeight = 0;
+      Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => clientHeight });
+      globalThis.ResizeObserver = class {
+        private readonly record: { callback: () => void, target?: Element, disconnected: boolean };
+        constructor(callback: ResizeObserverCallback) {
+          this.record = { callback: () => callback([], this), disconnected: false };
+          observers.push(this.record);
+        }
+        observe(target: Element) { this.record.target = target; }
+        unobserve() { /* notified by hand */ }
+        disconnect() { this.record.disconnected = true; }
+      };
+    });
+    afterEach(() => {
+      delete (HTMLElement.prototype as any).clientHeight;
+      delete (globalThis as any).ResizeObserver;
+    });
+
+    it("scrolls to the end the first time it has a height, and not while it has none", () => {
+      render(<SequenceOutput {...props([group([a, b])])} openAtNewest />);
+      expect(observers[0].target).toHaveClass("inner-output");
+      notify();
+      expect(scrollTops).toEqual([]);
+      clientHeight = 100;
+      notify();
+      expect(scrollTops).toEqual([500]);
+      notify();
+      expect(scrollTops).toEqual([500]);
+    });
+
+    it("scrolls to the chosen output in place of the end", () => {
+      const sequence = [a, b];
+      const chosen = group(sequence);
+      const rect = jest.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function(this: Element) {
+        return { top: this.classList.contains("highlighted") ? 120 : 20 } as DOMRect;
+      });
+      render(<SequenceOutput {...props([chosen, group([b, a])])} highlightOutput={{ group: chosen, sequence }}
+        openAtNewest />);
+      clientHeight = 40;
+      notify();
+      rect.mockRestore();
+      expect(scrollTops).toEqual([100]);
+    });
+
+    it("stops observing when it unmounts", () => {
+      const { unmount } = render(<SequenceOutput {...props([group([a, b])])} openAtNewest />);
+      unmount();
+      expect(observers.map(observer => observer.disconnected)).toEqual([true]);
+    });
+
+    it("makes no observer without the prop", () => {
+      render(<SequenceOutput {...props([group([a, b])])} />);
+      expect(observers).toEqual([]);
+    });
+  });
+
   it("heads the output as the plugin does, or with the heading its layout gives", () => {
     const { rerender } = render(<SequenceOutput {...props([])} />);
     expect(screen.getByText("Output:")).toBeInTheDocument();

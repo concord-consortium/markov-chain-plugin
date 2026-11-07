@@ -32,7 +32,10 @@ const HostedApp = () => {
             interactiveState={initMessage.interactiveState} />
         );
       case "report":
-        return <Runtime authoredState={readAuthoredState(initMessage.authoredState)} view="report" />;
+        return (
+          <Runtime authoredState={readAuthoredState(initMessage.authoredState)}
+            interactiveState={initMessage.interactiveState} view="report" />
+        );
       default:
         return (
           <div className="unsupported-mode">

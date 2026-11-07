@@ -677,6 +677,27 @@ $pane-border-color: #c7c7c7;
       padding: var(--pane-padding);
     }
 
+    // the read-only generator's: it disables what is in it, and adds nothing to its layout
+    fieldset {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .generator-output {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .output-limit {
+      margin: 0;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
     .generator-controls {
       flex: none;
       min-width: 160px;
@@ -714,10 +735,6 @@ $pane-border-color: #c7c7c7;
           font-weight: bold;
         }
       }
-    }
-
-    .sequence-output {
-      min-width: 0;
     }
   }
 

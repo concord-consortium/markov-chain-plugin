@@ -18,6 +18,7 @@ A state is named by its label. The generator's settings, which several events ca
 | `SequenceGenerated` | `{ sequence, startingState, maxLength, delimiter, fast, orderMatters }` | A sequence finishes, played or stepped to its end; `sequence` is its states |
 | `GeneratorSettingChanged` | `{ setting: "startingState" \| "maxLength" \| "delimiterType" \| "delimiter" \| "fast", value }` | The student changes a generator setting: the starting state, the delimiter's type and the speed when chosen, Max Length and the "other" delimiter's text when their field loses focus with a changed value |
 | `OutputCleared` | `{ mode }` | The student clicks Clear Output |
+| `OutputLimitReached` | `{ outputs }` | A sequence ending or a drawing growing reaches the limit on what is saved, which stops new sequences; `outputs` is how many are saved, in both modes |
 | `OutputSelected` | `{ sequence }` | The student clicks an output to highlight it; `sequence` is its states |
 
 ## Selection and highlighting

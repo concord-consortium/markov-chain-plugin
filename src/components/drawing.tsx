@@ -2,7 +2,7 @@ import React, { createRef, useCallback, useEffect, useRef, useState } from "reac
 import { flushSync } from "react-dom";
 import { nanoid } from "nanoid";
 
-import { D3Node, DrawingMode, Graph, Point, RubberBand, Transform } from "./graph";
+import { D3Node, DrawingMode, Graph, GraphView, Point, RubberBand, Transform } from "./graph";
 import { Edge, GraphData, Node } from "../type";
 import { ArrowWidths } from "./graph-utils";
 
@@ -53,6 +53,10 @@ interface Props {
   onBackgroundClick?: () => void;
   // the student's own zoom or pan, from the graph or the toolbar; absent in the plugin, which has no following
   onUserZoom?: () => void;
+  onTransformed?: (transform: Transform) => void;
+  initialView?: GraphView;
+  // states can't be dragged, and the state editor doesn't open
+  readOnly?: boolean;
   fitTransitionMs?: number;
   // Escape closes an open state editor and does nothing else; absent in the plugin
   closeEditorOnEscape?: boolean;
@@ -68,7 +72,8 @@ export const Drawing = (props: Props) => {
          fitViewAt, recenterViewAt, onClearHighlightOutput, graphOpacity, resetViewAt,
          selectedNodeId, animating, onReset, onReturnToMainMenu, onFitView, onRecenterView, log,
          tools: shownTools = tools, probabilityLabels, arrowWidths, selectedEdge, onEdgeSelect, onBackgroundClick,
-         onUserZoom, fitTransitionMs, closeEditorOnEscape, uniqueLabels, accessibleEditor } = props;
+         onUserZoom, onTransformed, initialView, readOnly, fitTransitionMs, closeEditorOnEscape,
+         uniqueLabels, accessibleEditor } = props;
   const [drawingMode, setDrawingMode] = useState<DrawingMode>("select");
   const [firstEdgeNode, setFirstEdgeNode] = useState<Node|undefined>(undefined);
   const [rubberBand, setRubberBand] = useState<RubberBand|undefined>(undefined);
@@ -104,6 +109,7 @@ export const Drawing = (props: Props) => {
 
   const handleTransformed = (transform: Transform) => {
     transformRef.current = transform;
+    onTransformed?.(transform);
   };
 
   const translateToGraphPoint = (e: MouseEvent|React.MouseEvent<HTMLDivElement>): Point => {
@@ -268,7 +274,7 @@ export const Drawing = (props: Props) => {
   }, [addEdge, drawingMode, getNode, firstEdgeNode, setFirstEdgeNode, setGraph, log]);
 
   const handleNodeDoubleClicked = useCallback((id: string) => {
-    if (drawingMode === "select") {
+    if (drawingMode === "select" && !readOnly) {
       setSelectedNodeForModal(getNode(id));
       log("StateDialogOpened", { state: label(id) });
     }
@@ -277,7 +283,7 @@ export const Drawing = (props: Props) => {
       setFirstEdgeNode(undefined);
       setRubberBand(undefined);
     }
-  }, [drawingMode, addEdge, getNode, label, log]);
+  }, [drawingMode, readOnly, addEdge, getNode, label, log]);
 
   const handleEdgeClicked = useCallback(({ from, to }: {from: string, to: string}) => {
     if (drawingMode === "delete") {
@@ -387,7 +393,7 @@ export const Drawing = (props: Props) => {
         highlightAllNextNodes={highlightAllNextNodes}
         highlightOutputNodes={highlightOutputNodes}
         highlightLoopOnNode={highlightLoopOnNode}
-        allowDragging={drawingMode === "select"}
+        allowDragging={drawingMode === "select" && !readOnly}
         opacity={graphOpacity}
         autoArrange={autoArrange}
         rubberBand={rubberBand}
@@ -412,6 +418,7 @@ export const Drawing = (props: Props) => {
         zoomButtons={!shownTools.includes("zoomIn")}
         zoomRequest={zoomRequest}
         onUserZoom={onUserZoom}
+        initialView={initialView}
         fitTransitionMs={fitTransitionMs}
         keepOutputOnRedraw={!!props.tools}
         centerOffOrigin={!!props.tools}

@@ -5,6 +5,7 @@ export const defaultPaneSizes: PaneSizes = { input: 280, inspect: 260, top: 315 
 export const minPaneSizes = { input: 160, graph: 200, inspect: 220, top: 200, generator: 235 };
 // the generator starts at its minimum
 export const workspaceHeight = defaultPaneSizes.top + minPaneSizes.generator;
+export const maxRowHeight = workspaceHeight - minPaneSizes.generator;
 
 export const paneGap = 8;
 // the padding inside every pane's border; a divider's band spans the gap, the borders and most of this padding
@@ -43,7 +44,7 @@ export const toolbarColumns = (tools: number, bodyHeight: number) => {
 export type PaneDivider = "input" | "inspect" | "rows";
 export interface OpenPanes { input: boolean, graph: boolean, inspect: boolean }
 
-const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(value, high));
+export const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(value, high));
 
 // the size a divider sets, as the pane before it has it (Graph's width for the Graph/Inspect divider), with the
 // limits where either pane beside it reaches its minimum; room is the width the open row panes share
@@ -56,7 +57,7 @@ export const dividerLimits = (sizes: PaneSizes, divider: PaneDivider, room: numb
     case "inspect":
       return { value: room - input - inspect, min: minPaneSizes.graph, max: room - input - minPaneSizes.inspect };
     case "rows":
-      return { value: sizes.top, min: minPaneSizes.top, max: workspaceHeight - minPaneSizes.generator };
+      return { value: sizes.top, min: minPaneSizes.top, max: maxRowHeight };
   }
 };
 

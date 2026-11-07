@@ -5,6 +5,7 @@ export const initInteractiveMessage = (mode: HostedMode, authoredState: unknown,
   version: 1,
   mode,
   authoredState: authoredState ?? null,
-  interactiveState: interactiveState ?? null,
+  // left out for a student with none, as the Activity Player does: a null would be saved back as a change
+  interactiveState: interactiveState ?? undefined,
   hostFeatures: {},
 });
