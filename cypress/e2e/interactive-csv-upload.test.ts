@@ -1,5 +1,6 @@
+import { maxCsvBytes } from "../../src/interactive/input/csv-limits";
 import { minInputPart, minPaneSizes } from "../../src/interactive/workspace/pane-sizes";
-import { clickState, dragDivider, loggedEvents, stateLabels } from "../support/workspace";
+import { clickState, dragDivider, loggedEvents, stateEllipse, stateLabels } from "../support/workspace";
 
 const width = 1044;
 const dataOnly = { useData: true, draw: false };
@@ -8,7 +9,7 @@ const orderOff = { orderMatters: { startsOn: false, showSwitch: true } };
 const start = (authoredState: Record<string, unknown> = {}, options: Record<string, unknown> = {}) =>
   cy.startInteractive({ mode: "runtime", width, authoredState: { ...allowed, ...authoredState }, ...options });
 
-const uploadButton = () => cy.interactive().find(".csv-upload-button");
+const uploadButton = (options?: Partial<Cypress.Timeoutable>) => cy.interactive().find(".csv-upload-button", options);
 const fileInput = () => cy.interactive().find("input[type='file']");
 const choose = (contents: string) => fileInput()
   .selectFile({ contents: Cypress.Buffer.from(contents), fileName: "data.csv" }, { force: true });
@@ -247,7 +248,7 @@ describe("the interactive's Upload CSV button", () => {
       cy.spy(win.Blob.prototype, "arrayBuffer").as("read");
     });
     fileInput().selectFile({
-      contents: Cypress.Buffer.alloc(2 * 1024 * 1024 + 1, "a"), fileName: "data.csv"
+      contents: Cypress.Buffer.alloc(maxCsvBytes + 1, "a"), fileName: "data.csv"
     }, { force: true });
     status().should("have.text", "This file is too big to read.");
     cy.get("@read").should("not.have.been.called");
@@ -272,6 +273,12 @@ describe("the interactive's Upload CSV button", () => {
     eventsNamed("CsvUploaded").should("have.length", 2);
   });
 
+  it("reads a file of exactly 2 MB", () => {
+    start();
+    fileInput().selectFile({ contents: Cypress.Buffer.alloc(maxCsvBytes, "a"), fileName: "data.csv" }, { force: true });
+    status().should("have.text", "This file has no values to use.");
+  });
+
   it("is disabled while a sequence plays", () => {
     start({ startingText: "a b a b a b" });
     cy.interactive().find(".generator-pane button").contains("Play").click();
@@ -288,14 +295,40 @@ describe("the interactive's Upload CSV button", () => {
     replace().should("be.disabled");
   });
 
-  it("saves the uploaded text, and a restart from it shows the words", () => {
+  it("returns focus to the button when a sequence ends, after Cancel during it", () => {
+    start({ startingText: "a b a b a b" });
+    choose(words);
+    cy.interactive().find(".generator-pane button").contains("Play").click();
+    uploadButton().should("be.disabled");
+    cancel().click();
+    uploadButton({ timeout: 15000 }).should("be.enabled").and("be.focused");
+  });
+
+  it("leaves focus where the student moved it, after Cancel during a sequence", () => {
+    start({ startingText: "a b a b a b" });
+    choose(words);
+    cy.interactive().find(".generator-pane button").contains("Play").click();
+    uploadButton().should("be.disabled");
+    cancel().click();
+    textBox().focus();
+    uploadButton({ timeout: 15000 }).should("be.enabled");
+    textBox().should("be.focused");
+  });
+
+  it("saves the uploaded text and positions, and a restart from them shows the words where they were", () => {
     start();
     choose(words);
-    cy.interactiveMessages("interactiveState").invoke("slice", -1).its(0).its("input.text").should("equal", "cat dog");
-    cy.interactiveMessages("interactiveState").invoke("slice", -1).its(0).then(interactiveState => {
+    const lastState = () => cy.interactiveMessages("interactiveState").invoke("at", -1) as Cypress.Chainable<any>;
+    lastState().should(state => {
+      expect(state.input.text).to.equal("cat dog");
+      expect(state.useData.positions).to.have.length(4);
+    }).then(interactiveState => {
+      const [catX, catY, dogX, dogY] = interactiveState.useData.positions;
       start({}, { interactiveState });
       tableValues().should("deep.equal", ["cat", "dog"]);
       stateLabels().should("deep.equal", ["cat", "dog"]);
+      stateEllipse("cat").should("have.attr", "cx", String(catX)).and("have.attr", "cy", String(catY));
+      stateEllipse("dog").should("have.attr", "cx", String(dogX)).and("have.attr", "cy", String(dogY));
     });
   });
 
