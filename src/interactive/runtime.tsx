@@ -12,6 +12,8 @@ interface Props {
   // where it runs: hosted in the Activity Player, opened outside a host, or showing a student's work in a report,
   // and only the first saves
   view?: "hosted" | "standalone" | "report";
+  // where Send to CODAP saves, from the host's runtime message; opaque to everything but the object storage library
+  objectStorageConfig?: unknown;
 }
 
 // The library deep-freezes what it is handed, and a built state shares objects with the workspace's live state, so it
@@ -25,7 +27,7 @@ const librarySaver: Saver = {
 };
 
 // The student's workspace, which a report shows read-only
-export const Runtime = ({ authoredState, interactiveState, view = "hosted" }: Props) => {
+export const Runtime = ({ authoredState, interactiveState, view = "hosted", objectStorageConfig }: Props) => {
   const hosted = view === "hosted";
   const savedState = useMemo(() => readInteractiveState(interactiveState), [interactiveState]);
 
@@ -40,7 +42,7 @@ export const Runtime = ({ authoredState, interactiveState, view = "hosted" }: Pr
         <p className="report-note">This is a student&apos;s saved work. It can&apos;t be changed here.</p>
       ) }
       <Workspace authoredState={authoredState} savedState={savedState} saver={hosted ? librarySaver : undefined}
-        hosted={hosted} readOnly={view === "report"} />
+        hosted={hosted} readOnly={view === "report"} objectStorageConfig={objectStorageConfig} />
     </>
   );
 };

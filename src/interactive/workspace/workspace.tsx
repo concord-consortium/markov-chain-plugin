@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { useLatest } from "../../hooks/use-latest";
 import { useMarkovTool } from "../../hooks/use-markov-tool";
@@ -9,6 +9,7 @@ import {
 import { MarkovAuthoredState, ModeId } from "../authored-state";
 import { MarkovInteractiveState } from "../interactive-state";
 import { outputsFull } from "../saved-outputs";
+import { outputsTableFull } from "../tables/table-data";
 import { ArrowWidths } from "../../components/graph-utils";
 import { useApHost } from "./ap-host";
 import { ArrowMarkers } from "./arrow-markers";
@@ -23,6 +24,7 @@ import {
 } from "./pane-sizes";
 import { restoreWork } from "./restore-work";
 import { Saver, useSavedWork, useSaveRequest } from "./use-saved-work";
+import { useTableActions } from "./use-table-actions";
 import { workspaceConfig } from "./workspace-config";
 
 import "./workspace.scss";
@@ -35,6 +37,8 @@ interface WorkspaceProps {
   hosted: boolean;
   // a student's work shown in a report
   readOnly: boolean;
+  // absent where there is nowhere to send tables
+  objectStorageConfig?: unknown;
 }
 
 // the sizes and colors the stylesheet reads, so none is written in both languages
@@ -50,7 +54,9 @@ const cssValues = {
 
 // The student's workspace: one tool per mode, each mode's body staying mounted, hidden while the other shows, so each
 // keeps its work
-export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }: WorkspaceProps) => {
+export const Workspace = ({
+  authoredState, savedState, saver, hosted, readOnly, objectStorageConfig
+}: WorkspaceProps) => {
   const [configs] = useState(() => ({
     useData: workspaceConfig(authoredState, "useData"), draw: workspaceConfig(authoredState, "draw"),
   }));
@@ -58,6 +64,8 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
   const [mode, setMode] = useState<ModeId>(restored.mode);
   const [probabilities, setProbabilities] = useState(restored.probabilities);
   const [orderMatters, setOrderMatters] = useState(restored.orderMatters);
+  const [tablesSaved, setTablesSaved] = useState<Record<ModeId, number>>(
+    { useData: restored.useData.tablesSaved, draw: restored.draw.tablesSaved });
   // arrows keep their probability widths whether or not probabilities are shown
   const arrowWidths: ArrowWidths = "byState";
   const { request, activeRef, requestSave, markActive } = useSaveRequest();
@@ -76,20 +84,23 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
   const dataGroups = tools.useData.outputProps.sequenceGroups;
   const drawGroups = tools.draw.outputProps.sequenceGroups;
   const drawing = tools.draw.graph;
-  const [limitReached, setLimitReached] = useState(() => outputsFull([dataGroups, drawGroups], savedDrawing(drawing)));
+  const canSend = configs[mode].sendToCodap && !readOnly && !!objectStorageConfig;
+  const outputLimitReached = useCallback(() => outputsFull([dataGroups, drawGroups], savedDrawing(drawing)) ||
+    (canSend && [dataGroups, drawGroups].some(outputsTableFull)), [dataGroups, drawGroups, drawing, canSend]);
+  const [limitReached, setLimitReached] = useState(outputLimitReached);
   const limitReachedRef = useLatest(limitReached);
   const logRef = useLatest(hosts[mode].log);
   useEffect(() => {
     if (animating) {
       return;
     }
-    const full = outputsFull([dataGroups, drawGroups], savedDrawing(drawing));
+    const full = outputLimitReached();
     if (full && !limitReachedRef.current) {
       const outputs = [...dataGroups, ...drawGroups].reduce((count, group) => count + group.sequences.length, 0);
       logRef.current("OutputLimitReached", { outputs });
     }
     setLimitReached(full);
-  }, [animating, dataGroups, drawGroups, drawing, limitReachedRef, logRef]);
+  }, [animating, dataGroups, drawGroups, outputLimitReached, limitReachedRef, logRef]);
 
   const reportsRef = useRef<Record<ModeId, ModeReport>>({ useData: {}, draw: {} });
   const { afterDraw } = useSavedWork({
@@ -101,6 +112,7 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
       mode, probabilities, orderMatters,
       tools: { useData: toolParts(tools.useData), draw: toolParts(tools.draw) },
       reports: reportsRef.current,
+      tablesSaved,
     }),
   });
   const saving = useMemo(() => ({
@@ -142,6 +154,11 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
     </>
   );
 
+  const { actions, dialog } = useTableActions({
+    mode, configs, tools, hosts, orderMatters, reports: reportsRef, tablesSaved, readOnly, canSend, objectStorageConfig,
+    onTablesSaved: savedMode => setTablesSaved(counts => ({ ...counts, [savedMode]: counts[savedMode] + 1 })),
+  });
+
   return (
     <div className={clsx("markov-workspace", { stacked })} style={cssValues} ref={rootRef}>
       <ArrowMarkers />
@@ -149,14 +166,16 @@ export const Workspace = ({ authoredState, savedState, saver, hosted, readOnly }
         <DataWorkspace text={restored.text} capitalization={restored.capitalization} inputSplit={restored.inputSplit}
           start={restored.useData} saving={saving.useData} limitReached={limitReached} readOnly={readOnly}
           host={hosts.useData} tool={tools.useData} config={configs.useData} stacked={stacked}
-          hidden={mode !== "useData"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
-          orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
+          hidden={mode !== "useData"} controls={controls} actions={actions} probabilities={probabilities}
+          arrowWidths={arrowWidths} orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
       }
       { authoredState.modes.draw &&
         <DrawWorkspace host={hosts.draw} tool={tools.draw} config={configs.draw} stacked={stacked}
-          hidden={mode !== "draw"} controls={controls} probabilities={probabilities} arrowWidths={arrowWidths}
-          start={restored.draw} saving={saving.draw} limitReached={limitReached} readOnly={readOnly} />
+          hidden={mode !== "draw"} controls={controls} actions={actions} probabilities={probabilities}
+          arrowWidths={arrowWidths} start={restored.draw} saving={saving.draw} limitReached={limitReached}
+          readOnly={readOnly} />
       }
+      { dialog }
     </div>
   );
 };
