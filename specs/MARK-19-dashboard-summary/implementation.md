@@ -47,7 +47,6 @@ import { readInteractiveState } from "./interactive-state";
 import { restoreWork } from "./workspace/restore-work";
 import { workspaceConfig } from "./workspace/workspace-config";
 
-// the most characters of a student's text a line shows
 export const maxSummaryText = 60;
 
 // what the generator shows for no starting state, and the Max Length it opens at when none is saved
@@ -217,7 +216,7 @@ describe("reportSummaryLines", () => {
   });
 
   it("counts only the mode showing", () => {
-    const state = { ...dataState([group("", 20, [["a"]])]), mode: "draw", draw: { drawing } };
+    const state = { ...dataState([group("", 5, [["a"]])]), mode: "draw", draw: { drawing } };
     expect(reportSummaryLines(state, null)[1]).toBe("Outputs: 0");
   });
 
@@ -371,7 +370,7 @@ import type { IReportItemAnswerItem } from "@concord-consortium/lara-interactive
 import { reportSummaryHtml } from "./report-summary";
 
 // The grid draws its own answered icon and reads only a score from a compact answer, so a compact answer has no items.
-// A full answer's links item keeps "Open in new tab"; the summary is what changes as the scrubber moves.
+// hideViewInline leaves "Open in new tab" as the only link; the summary is what changes as the scrubber moves.
 export const reportItemAnswerItems = (itemsType: "fullAnswer" | "compactAnswer", interactiveState: unknown,
   authoredState: unknown): IReportItemAnswerItem[] =>
   itemsType === "compactAnswer"

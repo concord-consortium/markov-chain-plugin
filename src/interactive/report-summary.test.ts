@@ -108,7 +108,7 @@ describe("reportSummaryLines", () => {
   });
 
   it("counts only the mode showing", () => {
-    const state = { ...dataState([group("", 20, [["a"]])]), mode: "draw", draw: { drawing } };
+    const state = { ...dataState([group("", 5, [["a"]])]), mode: "draw", draw: { drawing } };
     expect(reportSummaryLines(state, null)[1]).toBe("Outputs: 0");
   });
 

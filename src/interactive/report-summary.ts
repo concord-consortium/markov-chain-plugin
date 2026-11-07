@@ -5,7 +5,6 @@ import { readInteractiveState } from "./interactive-state";
 import { restoreWork } from "./workspace/restore-work";
 import { workspaceConfig } from "./workspace/workspace-config";
 
-// the most characters of a student's text a line shows
 export const maxSummaryText = 60;
 
 // what the generator shows for no starting state, and the Max Length it opens at when none is saved
