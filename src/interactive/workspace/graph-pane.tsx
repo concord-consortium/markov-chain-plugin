@@ -148,6 +148,7 @@ export const GraphPane = ({
             onAutoArrangeEnd={handleArranged}
             initialView={initialView}
             fitTransitionMs={fitMs}
+            centerOffOrigin
             fitViewAt={view.fitViewAt}
             recenterViewAt={view.recenterViewAt}
             setSelectedNodeId={setSelectedNodeId}
