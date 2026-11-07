@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from "react";
-import { CsvRefusal, CsvValues, maxCsvBytes, readCsv } from "../input/csv";
+import { CsvRefusal, CsvValues, readCsv } from "../input/csv";
+import { maxCsvBytes } from "../input/csv-limits";
 import { RowLayout } from "../input/table-edits";
 import { maxInputLength } from "../interactive-state";
 
@@ -41,12 +42,24 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
   const questionId = useId();
   // a file waiting on the question, read again at Replace since "Order matters" can change while it waits
   const [pending, setPending] = useState<Uint8Array>();
+  // a disabled button can't take focus, so a question closed during a sequence hands it over when the sequence ends
+  const focusOwed = useRef(false);
 
   useEffect(() => {
     if (pending) {
       replaceRef.current?.focus();
     }
   }, [pending]);
+
+  useEffect(() => {
+    const button = buttonRef.current;
+    if (!disabled && focusOwed.current) {
+      focusOwed.current = false;
+      if (button?.ownerDocument.activeElement === button?.ownerDocument.body) {
+        button?.focus();
+      }
+    }
+  }, [disabled]);
 
   const takeFile = (bytes: Uint8Array, replacing: boolean) => {
     const read = readCsv(bytes, layout);
@@ -82,6 +95,7 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
 
   const closeQuestion = () => {
     setPending(undefined);
+    focusOwed.current = disabled;
     buttonRef.current?.focus();
   };
 

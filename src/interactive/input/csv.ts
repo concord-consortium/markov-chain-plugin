@@ -5,7 +5,6 @@ import { rowText, textForRow } from "./tokenizer";
 // A CSV file's first column as the input's text: each cell one table row, an empty cell a break, written as the
 // table writes rows. RFC 4180, commas only.
 
-export const maxCsvBytes = 2 * 1024 * 1024;
 
 export type CsvRefusal = "tooLarge" | "tooLong" | "noValues" | "unreadable";
 export type CsvRead =
@@ -98,9 +97,6 @@ export const textFromCells = (cells: string[], layout: RowLayout) => {
 };
 
 export const readCsv = (bytes: Uint8Array, layout: RowLayout): CsvRead => {
-  if (bytes.length > maxCsvBytes) {
-    return { ok: false, reason: "tooLarge" };
-  }
   const { name, cells } = firstColumn(parseCsv(decodeCsv(bytes)));
   const values = cells.filter(cell => cell).length;
   if (values === 0) {

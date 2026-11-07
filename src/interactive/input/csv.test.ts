@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { tableCsv } from "../tables/csv";
-import { cellText, decodeCsv, firstColumn, maxCsvBytes, parseCsv, readCsv, textFromCells } from "./csv";
+import { cellText, decodeCsv, firstColumn, parseCsv, readCsv, textFromCells } from "./csv";
 import { RowLayout } from "./table-edits";
 import { tokenize } from "./tokenizer";
 
@@ -189,11 +189,5 @@ describe("readCsv", () => {
     ["only # lines", "# name: data\n"],
   ])("refuses %s", (_, csv) => {
     expect(readCsv(bytesOf(csv), "list")).toEqual({ ok: false, reason: "noValues" });
-  });
-
-  it("takes a file of exactly the byte limit, and refuses one past it", () => {
-    const file = (bytes: number) => bytesOf(`w\na,${"x".repeat(bytes - 4)}`);
-    expect(readCsv(file(maxCsvBytes), "list")).toMatchObject({ ok: true, text: "a" });
-    expect(readCsv(file(maxCsvBytes + 1), "list")).toEqual({ ok: false, reason: "tooLarge" });
   });
 });
