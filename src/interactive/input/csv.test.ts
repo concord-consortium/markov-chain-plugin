@@ -85,6 +85,7 @@ describe("leading # lines", () => {
 
   it("gives a file holding only them no column", () => {
     expect(firstColumn(parseCsv("# name: data\n"))).toEqual({ name: "", cells: [] });
+    expect(firstColumn(parseCsv("# name: data"))).toEqual({ name: "", cells: [] });
   });
 
   it("reads the file after a # line holding an open quote", () => {

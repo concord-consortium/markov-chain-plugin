@@ -15,12 +15,16 @@ const refusals: Record<CsvRefusal, string> = {
   unreadable: "This file couldn't be read.",
 };
 
+const maxColumnNameShown = 60;
+const shortened = (name: string) =>
+  name.length > maxColumnNameShown ? `${name.slice(0, maxColumnNameShown)}\u2026` : name;
+
 const statusText = (status: CsvUploadStatus) => {
   if (status.kind === "refused") {
     return refusals[status.reason];
   }
   const values = `${status.values.toLocaleString("en-US")} ${status.values === 1 ? "value" : "values"}`;
-  return `Read ${values} from ${status.column ? `the column "${status.column}"` : "the first column"}.`;
+  return `Read ${values} from ${status.column ? `the column "${shortened(status.column)}"` : "the first column"}.`;
 };
 
 interface CsvUploadProps {
@@ -44,6 +48,8 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
   const [pending, setPending] = useState<Uint8Array>();
   // a disabled button can't take focus, so a question closed during a sequence hands it over when the sequence ends
   const focusOwed = useRef(false);
+  // a new key each file, so that a screen reader announces a line that reads as the last one did
+  const [filesTaken, setFilesTaken] = useState(0);
 
   useEffect(() => {
     if (pending) {
@@ -61,13 +67,19 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
     }
   }, [disabled]);
 
+  const refuse = (reason: CsvRefusal) => {
+    setFilesTaken(n => n + 1);
+    onRefused(reason);
+  };
+
   const takeFile = (bytes: Uint8Array, replacing: boolean) => {
     const read = readCsv(bytes, layout);
     if (!read.ok) {
-      onRefused(read.reason);
+      refuse(read.reason);
     } else if (hasWords && !replacing) {
       setPending(bytes);
     } else {
+      setFilesTaken(n => n + 1);
       onRead(read);
     }
   };
@@ -80,14 +92,14 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
       return;
     }
     if (file.size > maxCsvBytes) {
-      onRefused("tooLarge");
+      refuse("tooLarge");
       return;
     }
     let bytes: Uint8Array;
     try {
       bytes = new Uint8Array(await file.arrayBuffer());
     } catch {
-      onRefused("unreadable");
+      refuse("unreadable");
       return;
     }
     takeFile(bytes, false);
@@ -121,9 +133,10 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
         Upload CSV
       </button>
       <span id={hintId} className="visually-hidden">Starts your input from the first column of a CSV file.</span>
-      <input type="file" accept=".csv,text/csv" hidden tabIndex={-1} ref={fileRef} disabled={disabled}
-        onChange={handleFile} />
-      <p role="status" className="csv-upload-status">{ !pending && status && statusText(status) }</p>
+      <input type="file" accept=".csv,text/csv" hidden ref={fileRef} disabled={disabled} onChange={handleFile} />
+      <p role="status" className="csv-upload-status">
+        { !pending && status && <span key={filesTaken}>{ statusText(status) }</span> }
+      </p>
       { pending &&
         <div role="group" className="csv-upload-question" aria-labelledby={questionId}
           onKeyDown={handleQuestionKeyDown}>
