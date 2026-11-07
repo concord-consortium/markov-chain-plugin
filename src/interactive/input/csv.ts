@@ -16,7 +16,7 @@ export const decodeCsv = (bytes: Uint8Array) => {
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
-    return new TextDecoder("windows-1252").decode(bytes);
+    return new TextDecoder("windows-1252").decode(bytes).replace(/^\u00ef\u00bb\u00bf/, "");
   }
 };
 
@@ -31,9 +31,11 @@ export const parseCsv = (file: string) => {
   let row: string[] = [];
   let field = "";
   let quoted = false;
+  let fieldQuoted = false;
   const endField = () => {
     row.push(field);
     field = "";
+    fieldQuoted = false;
   };
   const endRow = () => {
     endField();
@@ -53,6 +55,7 @@ export const parseCsv = (file: string) => {
       }
     } else if (char === "\"" && !field) {
       quoted = true;
+      fieldQuoted = true;
     } else if (char === ",") {
       endField();
     } else if (char === "\n" || char === "\r") {
@@ -64,7 +67,7 @@ export const parseCsv = (file: string) => {
       field += char;
     }
   }
-  if (field || row.length > 0) {
+  if (field || fieldQuoted || row.length > 0) {
     endRow();
   }
   return rows;
@@ -73,7 +76,6 @@ export const parseCsv = (file: string) => {
 // a cell as a table row: control characters (line breaks and tabs among them) as spaces, then the row's text
 export const cellText = (cell: string) => rowText(cell.replace(/\p{Cc}/gu, " "));
 
-// the first column: its name from the header row, then its cells
 export const firstColumn = ([header, ...rows]: string[][]) => ({
   name: header?.[0].trim() ?? "", cells: rows.map(row => cellText(row[0])),
 });

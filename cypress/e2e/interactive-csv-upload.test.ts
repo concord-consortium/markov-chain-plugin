@@ -24,6 +24,11 @@ const tableValues = () => cy.interactive().find(".input-table input").invoke("to
 const eventsNamed = (...names: string[]) =>
   loggedEvents().invoke("filter", ([action]: [string]) => names.includes(action));
 const box = (element: JQuery<HTMLElement>) => element[0].getBoundingClientRect();
+const nothingSaved = () => {
+  // the library sends interactive state after a 2 second pause
+  cy.wait(2500);
+  cy.interactiveMessages("interactiveState").should("have.length", 0);
+};
 
 const codapFile = "# name: data\n# attribute -- name: weather\n# attribute -- name: day\n" +
   "weather,day\nsunny,1\nrainy,2\n,3\nSunny,4\n";
@@ -238,9 +243,7 @@ describe("the interactive's Upload CSV button", () => {
     eventsNamed("CsvUploadRefused").should("deep.equal", [
       ["CsvUploadRefused", { reason: "noValues", mode: "useData" }]
     ]);
-    // the library sends interactive state after a 2 second pause
-    cy.wait(2500);
-    cy.interactiveMessages("interactiveState").should("have.length", 0);
+    nothingSaved();
   });
 
   it("refuses a file whose text would pass the input's limit", () => {
@@ -251,6 +254,7 @@ describe("the interactive's Upload CSV button", () => {
     eventsNamed("CsvUploadRefused").should("deep.equal", [
       ["CsvUploadRefused", { reason: "tooLong", mode: "useData" }]
     ]);
+    nothingSaved();
   });
 
   it("refuses a file past 2 MB", () => {
@@ -271,6 +275,7 @@ describe("the interactive's Upload CSV button", () => {
     eventsNamed("CsvUploadRefused").should("deep.equal", [
       ["CsvUploadRefused", { reason: "tooLarge", mode: "useData" }]
     ]);
+    nothingSaved();
   });
 
   it("reads the same file chosen twice in a row", () => {
@@ -361,11 +366,15 @@ describe("the interactive's Upload CSV button", () => {
   });
 
   it("keeps the status line through a commit that changes nothing", () => {
-    start();
+    start({ showCaseSwitch: true });
     choose(words);
     status().should("contain.text", "Read 2 values");
     textBox().focus();
     uploadButton().focus();
+    status().should("contain.text", "Read 2 values");
+    cy.interactive().find(".setting-switch:contains('Case sensitive') [role='switch']").click();
+    cy.interactive().find(".setting-switch:contains('Case sensitive') [role='switch']")
+      .should("have.attr", "aria-checked", "true");
     status().should("contain.text", "Read 2 values");
   });
 
