@@ -72,13 +72,14 @@ Rebecca Ellis's preferred layout, with "View Work" opening the stats below the s
 
 ### Checked by running it
 
-A throwaway prototype built on `restoreWork`, run in Jest and through a production build:
+The change was built as throwaway code, and run in Jest, Cypress and headless Chrome, before it was implemented.
 
-- `restoreWork` gives everything the summary needs, and agrees with the read-only view by construction. With `caseSensitive: true` saved on a page with no case switch, `The the` is 1 state under `restoreWork`; reading `caseSensitive` straight off the state, as the first sketch of this story did, gives 2.
-- `null`, `{}`, `{ version: 1 }`, an unparseable string, a JSON string and a state from MARK-15 all read without throwing.
-- 50,000 characters of input took about 10 ms.
-- The report item's bundle grows by about 10 KB (to about 311 KB), since it now pulls in the readers and the tokenizer. The demo page's grows by about 7 KB.
-- Rendered in headless Chrome with the dashboard's injected styles at 320px: an unbroken 60-character output scrolled the frame sideways without `overflow-wrap: anywhere`, and wrapped with it. In `.wide`, two sibling paragraphs sat side by side with no gap, so each block wraps its paragraphs in one child, which stacks them in both orientations.
+- `restoreWork` gives everything the summary needs, and agrees with the read-only view by construction. With `caseSensitive: true` saved on a page with no case switch, `The the` is 1 state under `restoreWork`; reading `caseSensitive` straight off the state gives 2.
+- `null`, `{}`, `{ version: 1 }`, an unparseable string, a JSON string and a state from MARK-15 all read without throwing, and 50,000 characters of input took about 10 ms.
+- With the dashboard's injected styles at 320px, an unbroken 60-character output scrolled the frame sideways without `overflow-wrap: anywhere`, and wrapped with it. In `.wide`, two sibling paragraphs sat side by side with no gap, so each block wraps its paragraphs in one child, which stacks them in both orientations.
+- The report item's bundle grows by about 10 KB, since it now pulls in the readers and the tokenizer.
+- For 3,000 states, half of them damaged, the mode, states, start, Max Length and output count all matched what `useMarkovTool` opens with, counting outputs by their headings.
+- The demo's starting text, `the cat sat on the mat. the cat ran.`, reads `Data: 11 words, 7 states`, since both full stops are words and `.` is a state.
 
 ### The two values the summary repeats
 
@@ -97,19 +98,6 @@ The summary needs the generator's `(any)` label and its default Max Length, and 
 - A sequence in a save is at least one state long, even one saved part way through (MARK-17's R4). An empty one in a damaged state counts and shows no "latest".
 - Outputs aren't cleared when the input changes, and a group doesn't record the text it came from, so outputs from earlier text still count while the settings match.
 
-### Checked by building it
-
-The whole change was built as throwaway code before implementation and run:
-
-- Jest, all suites, passed, including the new tests. Each of 24 mutations of the summary and the answer (dropping one compared setting, comparing `group.startingState`, taking the oldest output, skipping escaping, splitting by code unit, not clamping Max Length, matching the start by label, reading Data mode's order in Draw mode, showing "View Work", answering a compact answer with items, dropping the state or the authored state, changing either repeated value) failed at least one test. A 25th, `readOnly: false`, changes nothing the summary reads, so no test can see it.
-- Cypress `interactive-report-item.test.ts` and `interactive-demo.test.ts` passed in Chrome, including two requests with different states in one frame. Dropping the authored state in the handler, or the escaping, failed `interactive-report-item.test.ts`.
-- Both `tsc` projects and all three lint configs were clean.
-- The plugin's `index.*.js` and `main.*.css` were byte-identical to master's.
-- Rendered with the dashboard's injected styles, a 200-character output was cut at 60 with `…` and wrapped at 320px in `.tall`; in `.wide` the sentence sat above the three lines. An unbroken output and start together didn't scroll sideways at 320px in either block.
-- 60,000 randomly damaged states and authored states, deep-frozen as the library hands them over or sent as JSON strings, gave no exception, no unescaped `<` or `>`, and no `NaN`, `undefined` or `null` in the HTML.
-- For 3,000 states, half of them damaged, under varied authored states, the mode, states, start, Max Length and output count all matched what `useMarkovTool` opens with, counting outputs by their headings. Saves from the real workspace agreed with the read-only view too: Max Length changed and changed back, Max Length emptied, order off, and a drawing whose ids aren't its labels.
-- The demo's starting text, `the cat sat on the mat. the cat ran.`, reads `Data: 11 words, 7 states`, since both full stops are words and `.` is a state.
-
 ## Out of Scope
 
 - Rebecca's layout with "View Work" opening the stats below the scrubber, or any other change to the class dashboard.
@@ -127,7 +115,7 @@ The whole change was built as throwaway code before implementation and run:
 - B) Keep the match but show the total too: `Outputs: 3 of 12, latest: ...`.
 - C) Count every output in the mode, and "latest" is the newest overall.
 
-**Decision**: A (Doug). This, the zeros (R7), punctuation counting as a word (R2) and the 60-character cut (R10) are defaults for Rebecca to confirm.
+**Decision**: A (Doug). It is what Jira and the note to Rebecca say, and the drop to 0 shows the settings changed.
 
 ---
 

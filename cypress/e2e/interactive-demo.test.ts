@@ -22,6 +22,18 @@ const messageOf = (data: unknown) => {
   }
 };
 
+// opens the page and waits for a save that holds no input, so the runtime's text still follows the authoring form
+const visitAndSave = () => {
+  let saved = false;
+  cy.visit("/demo.html", {
+    onBeforeLoad: win => win.addEventListener("message", event => {
+      saved ||= messageOf(event.data)?.type === "interactiveState";
+    })
+  });
+  frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
+  cy.wrap(null, { timeout: 5000 }).should(() => expect(saved).to.equal(true));
+};
+
 // the workspace's panes in a document, by their titles
 const panesIn = (doc: Document) => [...doc.querySelectorAll(".markov-workspace section.pane > .pane-header h2")]
   .map(title => title.textContent);
@@ -88,14 +100,7 @@ describe("the interactive's demo page", () => {
   });
 
   it("shows an authoring change after a student's save", () => {
-    let saved = false;
-    cy.visit("/demo.html", {
-      onBeforeLoad: win => win.addEventListener("message", event => {
-        saved ||= messageOf(event.data)?.type === "interactiveState";
-      })
-    });
-    frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
-    cy.wrap(null, { timeout: 5000 }).should(() => expect(saved).to.equal(true));
+    visitAndSave();
     frameBody("Authoring").find("#startingMode").select("draw");
     cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").should((doc: Document) => {
       const shown = doc.querySelector(".workspace-body:not([hidden]) .mode-switch input:checked");
@@ -299,14 +304,7 @@ describe("the interactive's demo page", () => {
   });
 
   it("summarizes a save with the authored state it was made under", () => {
-    let saved = false;
-    cy.visit("/demo.html", {
-      onBeforeLoad: win => win.addEventListener("message", event => {
-        saved ||= messageOf(event.data)?.type === "interactiveState";
-      })
-    });
-    frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
-    cy.wrap(null, { timeout: 5000 }).should(() => expect(saved).to.equal(true));
+    visitAndSave();
     frameBody("Authoring").find("#startingText").clear().type("a b");
     cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").should((doc: Document) => {
       expect(doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']")?.value).to.equal("a b");
