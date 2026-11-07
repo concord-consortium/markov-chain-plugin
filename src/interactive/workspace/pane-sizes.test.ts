@@ -1,7 +1,7 @@
 import {
   defaultPaneSizes, dividerLimits, dragDivider, dragInputSplit, drawnInputSplit, drawnRowHeight,
-  fitPaneSizes, graphBodyHeight, inputPartMin, movesDivider, movesInputSplit, resizedPanes, toolbarColumns,
-  toolbarHeight, toolbarWidth
+  fitPaneSizes, graphBodyHeight, inputPartMin, movesDivider, movesInputSplit, paneBorder, paneHeader, resizedPanes,
+  toolbarColumns, toolbarHeight, toolbarWidth, workspaceHeight
 } from "./pane-sizes";
 
 const allOpen = { input: true, graph: true, inspect: true };
@@ -23,14 +23,24 @@ describe("pane sizes", () => {
   });
 
   it("fits the toolbar to the starting row's height while the panes are stacked", () => {
-    expect(drawnRowHeight(200, false)).toBe(200);
-    expect(drawnRowHeight(200, true)).toBe(315);
-    expect(toolbarColumns(5, graphBodyHeight(drawnRowHeight(200, true)))).toBe(1);
+    expect(drawnRowHeight(200, false, false)).toBe(200);
+    expect(drawnRowHeight(200, true, false)).toBe(315);
+    expect(toolbarColumns(5, graphBodyHeight(drawnRowHeight(200, true, false)))).toBe(1);
     expect(toolbarColumns(9, graphBodyHeight(315))).toBe(2);
     expect(toolbarColumns(9, graphBodyHeight(222))).toBe(2);
     expect(toolbarColumns(9, graphBodyHeight(221))).toBe(3);
     expect(toolbarColumns(9, graphBodyHeight(200))).toBe(3);
-    expect(toolbarColumns(9, graphBodyHeight(drawnRowHeight(200, true)))).toBe(2);
+    expect(toolbarColumns(9, graphBodyHeight(drawnRowHeight(200, true, false)))).toBe(2);
+  });
+
+  it("gives a row above a collapsed generator the generator's height, less its header, at any stored height", () => {
+    const header = paneHeader + 2 * paneBorder;
+    expect(drawnRowHeight(200, false, true)).toBe(workspaceHeight - header);
+    expect(drawnRowHeight(315, false, true)).toBe(workspaceHeight - header);
+  });
+
+  it("leaves stacked panes their height when the generator collapses", () => {
+    expect(drawnRowHeight(200, true, true)).toBe(defaultPaneSizes.top);
   });
 });
 

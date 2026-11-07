@@ -1466,6 +1466,64 @@ describe("the workspace's dividers", () => {
     });
   });
 
+  describe("with the Sequence Generator collapsed", () => {
+    const shown = () => cy.interactive().find(".workspace-body:not([hidden])");
+    const drawnHeight = (selector: string) => shown().find(selector).invoke("outerHeight");
+    const workspaceBottom = () => cy.interactive().find(".markov-workspace").then(workspace =>
+      workspace[0].getBoundingClientRect().height);
+    const toggleGenerator = (action: string) =>
+      shown().find(`button[aria-label='${action} Sequence Generator']`).click();
+
+    (["Data", "Draw"] as const).forEach(mode => {
+      it(`keeps the workspace's height in ${mode} mode, the row taking what the generator gave up`, () => {
+        start({ startingText: "the cat sat", modes: { useData: true, draw: true } });
+        if (mode === "Draw") {
+          shown().find(".mode-switch label").contains("Draw").click();
+        }
+        workspaceBottom().then(opened => {
+          toggleGenerator("Collapse");
+          drawnHeight(".top-row").should("equal", workspaceHeight - paneHeader - 2 * paneBorder);
+          workspaceBottom().should("equal", opened);
+          cy.frameFitsInteractive();
+          toggleGenerator("Expand");
+          drawnHeight(".top-row").should("equal", defaultPaneSizes.top);
+          workspaceBottom().should("equal", opened);
+        });
+      });
+    });
+
+    it("goes back to the row height the student chose when the generator reopens", () => {
+      start({ startingText: "the cat sat" });
+      dragDivider("Resize the panes and the generator", 0, -40);
+      drawnHeight(".top-row").should("equal", defaultPaneSizes.top - 40);
+      toggleGenerator("Collapse");
+      drawnHeight(".top-row").should("be.greaterThan", defaultPaneSizes.top);
+      toggleGenerator("Expand");
+      drawnHeight(".top-row").should("equal", defaultPaneSizes.top - 40);
+    });
+
+    it("fits a followed graph to the taller row", () => {
+      start({ startingText: "a b c d e f g h i j k l m n o p q r s t u v w x y z" });
+      const scale = () => shown().find(".graph-pane g.root").invoke("attr", "transform")
+        .then(transform => parseTransform(transform as unknown as string).k);
+      shown().find(".graph-pane g.node").should("have.length", 26);
+      cy.wait(500);
+      scale().then(before => {
+        toggleGenerator("Collapse");
+        cy.wait(500);
+        scale().should("be.greaterThan", before);
+      });
+    });
+
+    it("opens a page saved with the generator collapsed at the full height", () => {
+      cy.startInteractive({
+        mode: "runtime", width: 1044, authoredState: { startingText: "the cat sat" },
+        interactiveState: { version: 1, useData: { panes: { generator: false } } },
+      });
+      drawnHeight(".top-row").should("equal", workspaceHeight - paneHeader - 2 * paneBorder);
+    });
+  });
+
   it("puts the generator first with Input, Graph and Inspect turned off", () => {
     start({ panes: { input: { available: false }, graph: { available: false }, inspect: { available: false } },
       modes: { useData: true, draw: false }, startingText: "a b" });

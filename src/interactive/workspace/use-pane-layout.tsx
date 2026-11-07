@@ -51,6 +51,10 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
       followRef.current = true;
       tool.view.onFitView();
     }
+    // the row above the generator changes height, which the graph measures after this render
+    if (id === "generator") {
+      fitWhenResizedRef.current = true;
+    }
   };
   const toggleControls = () => {
     host.log(controlsOpen ? "PaneClosed" : "PaneOpened", { pane: "generatorControls" });
@@ -105,7 +109,7 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   const room = (rowWidth ?? 0) - paneGap * (rowPanes.length - 1) -
     collapsedStrip * rowPanes.filter(pane => !open[pane.id]).length;
   const sizes = !stacked && rowWidth !== undefined ? fitPaneSizes(paneSizes, room, openPanes) : paneSizes;
-  const top = drawnRowHeight(sizes.top, stacked);
+  const top = drawnRowHeight(sizes.top, stacked, hasPane("generator") && !open.generator);
   const graphWidth = room - (openPanes.input ? sizes.input : 0) - (openPanes.inspect ? sizes.inspect : 0);
 
   // the stored sizes this move is measured from
