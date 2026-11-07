@@ -51,7 +51,7 @@ describe("opened outside a host", () => {
     window.history.replaceState(null, "", "/interactive.html?panes.inspect.available=false&inputView=table");
     render(<App />);
     expect(panes()).toEqual(["Input", "Graph", "Sequence Generator"]);
-    expect(screen.getByText("Type some words in the Input pane's table to build the chain.")).toBeInTheDocument();
+    expect(screen.getByText("Type some words in the Input pane's table to build the graph.")).toBeInTheDocument();
   });
 
   it("the workspace shows Download tables when its link turns it on", () => {

@@ -251,8 +251,8 @@ export const DataWorkspace = ({
   const emptyMessage = !hasPane("input")
     ? "No data was provided for this activity."
     : inputView === "table"
-      ? "Type some words in the Input pane's table to build the chain."
-      : "Type some words in the Input pane to build the chain.";
+      ? "Type some words in the Input pane's table to build the graph."
+      : "Type some words in the Input pane to build the graph.";
 
   // the pane the student last pressed, focused or typed in, where a choice is made, and which doesn't scroll to it
   const sourcePaneRef = useRef<WorkspacePaneId>(undefined);

@@ -134,7 +134,7 @@ describe("the interactive's workspace", () => {
 
   it("asks for words while the graph is empty", () => {
     start();
-    cy.interactive().find(".graph-empty").should("have.text", "Type some words in the Input pane to build the chain.");
+    cy.interactive().find(".graph-empty").should("have.text", "Type some words in the Input pane to build the graph.");
     textBox().type("the cat").blur({ force: true });
     cy.interactive().find(".graph-empty").should("not.exist");
   });
@@ -142,7 +142,7 @@ describe("the interactive's workspace", () => {
   it("asks for words in the table in the table-only view", () => {
     start({ inputView: "table" });
     cy.interactive().find(".graph-empty")
-      .should("have.text", "Type some words in the Input pane's table to build the chain.");
+      .should("have.text", "Type some words in the Input pane's table to build the graph.");
   });
 
   it("builds the graph from the starting text alone with no Input pane", () => {
