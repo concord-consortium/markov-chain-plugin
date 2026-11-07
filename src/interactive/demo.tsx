@@ -5,7 +5,7 @@ import { readAuthoredState } from "./authored-state";
 import { interactiveStateVersion, readInteractiveState } from "./interactive-state";
 import { demoWidths, DemoWidthId, readDemoWidth } from "./demo-widths";
 import { HostedMode, initInteractiveMessage } from "./host-messages";
-import { placeholderReportHtml } from "./report-item-answer";
+import { reportSummaryHtml } from "./report-summary";
 import { isLinkTooLong, longLinkLength, maxLinkPathLength, searchFromAuthoredState } from "./url-settings";
 
 import "./interactive.scss";
@@ -127,7 +127,8 @@ const Demo = () => {
   // saved under: saved input comes before the starting text, so a new one would otherwise never show here. A restart
   // keeps only that input, since the whole state's panes, switches and mode would win over the authoring form.
   const savedRef = useRef<{ startingText: string, state: unknown }>(undefined);
-  // the state and authored state the teacher's view shows; each save starts it again, as a scrubber step does
+  // the state and authored state the teacher's view and the report item show; each save starts the view again, as a
+  // scrubber step does
   const [report, setReport] = useState<{ saves: number, state: unknown, authoredState: unknown }>();
 
   useEffect(() => {
@@ -202,7 +203,9 @@ const Demo = () => {
             </>
           ) }
           <h2>Report item, full answer</h2>
-          <iframe title="Report item" className="demo-report-item" srcDoc={reportItemDocument(placeholderReportHtml)} />
+          <iframe title="Report item" className="demo-report-item"
+            srcDoc={reportItemDocument(reportSummaryHtml(report?.state, report?.authoredState ?? runtimeAuthoredState))}
+          />
         </section>
       </div>
     </div>

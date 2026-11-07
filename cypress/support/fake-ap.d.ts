@@ -15,8 +15,12 @@ declare global {
       frameFitsInteractive(): Chainable<void>;
       /** Asks for the interactive's state, as the Activity Player does, with { unloading: true } on leaving a page. */
       requestInteractiveState(options?: { unloading?: boolean }): Chainable<void>;
-      /** Asks the report item for a student's answer (student1's by default), as the class dashboard does. */
-      requestReportItemAnswer(itemsType: ItemsType, platformUserId?: string): Chainable<any>;
+      /**
+       * Asks the report item for a student's answer (student1's by default), as the class dashboard does, with the
+       * state the page started with unless one is given, as a scrubber step gives another.
+       */
+      requestReportItemAnswer(itemsType: ItemsType, platformUserId?: string,
+        interactiveState?: unknown): Chainable<any>;
     }
   }
 }

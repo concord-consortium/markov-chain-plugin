@@ -507,7 +507,7 @@ import { reportSummaryHtml } from "./report-summary";
 
 ```ts
 // cypress/e2e/interactive-demo.test.ts
-  it("shows the report item's full answer, of the authored page and then of each save", () => {
+  it("shows the report item's full answer, of the authored page and then of a save", () => {
     cy.visit("/demo.html");
     frameText("Report item").should("contain", "The student has saved work in the interactive.")
       .and("contain", "Data: 11 words, 7 states");
@@ -516,6 +516,29 @@ import { reportSummaryHtml } from "./report-summary";
     });
     frameBody("Interactive").find("textarea[aria-label='Your text']").type(" the dog").blur({ force: true });
     frameText("Report item").should("contain", "Data: 13 words, 8 states");
+  });
+
+  it("summarizes the authored page as it changes, before any save", () => {
+    cy.visit("/demo.html");
+    frameText("Report item").should("contain", "Data: 11 words, 7 states");
+    frameBody("Authoring").find("#startingText").clear().type("a b");
+    frameText("Report item").should("contain", "Data: 2 words, 2 states");
+  });
+
+  it("summarizes a save with the authored state it was made under", () => {
+    let saved = false;
+    cy.visit("/demo.html", {
+      onBeforeLoad: win => win.addEventListener("message", event => {
+        saved ||= messageOf(event.data)?.type === "interactiveState";
+      })
+    });
+    frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
+    cy.wrap(null, { timeout: 5000 }).should(() => expect(saved).to.equal(true));
+    frameBody("Authoring").find("#startingText").clear().type("a b");
+    cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").should((doc: Document) => {
+      expect(doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']")?.value).to.equal("a b");
+    });
+    frameText("Report item").should("contain", "Data: 11 words, 7 states");
   });
 ```
 

@@ -1,14 +1,13 @@
 import type { IReportItemAnswerItem } from "@concord-consortium/lara-interactive-api";
-
-export const placeholderReportHtml =
-  "<div class=\"tall\"><p>This student has saved work in the Markov interactive.</p>" +
-  "<p>A summary of their work comes in a later version.</p></div>" +
-  "<div class=\"wide\"><p>This student has saved work in the Markov interactive. " +
-  "A summary of their work comes in a later version.</p></div>";
+import { reportSummaryHtml } from "./report-summary";
 
 // The grid draws its own answered icon and reads only a score from a compact answer, so a compact answer has no items.
-// A full answer's links item is what makes the dashboard offer "View Work" inline and "Open in new tab".
-export const reportItemAnswerItems = (itemsType: "fullAnswer" | "compactAnswer"): IReportItemAnswerItem[] =>
+// A full answer's links item keeps "Open in new tab"; the summary is what changes as the scrubber moves.
+export const reportItemAnswerItems = (itemsType: "fullAnswer" | "compactAnswer", interactiveState: unknown,
+  authoredState: unknown): IReportItemAnswerItem[] =>
   itemsType === "compactAnswer"
     ? []
-    : [{ type: "links" }, { type: "html", html: placeholderReportHtml }];
+    : [
+      { type: "links", hideViewInline: true },
+      { type: "html", html: reportSummaryHtml(interactiveState, authoredState) },
+    ];

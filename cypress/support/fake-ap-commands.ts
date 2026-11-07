@@ -31,5 +31,6 @@ Cypress.Commands.add("requestInteractiveState", (options?: { unloading?: boolean
 });
 
 // then() waits for the page's promise, which resolves with the report item's answer
-Cypress.Commands.add("requestReportItemAnswer", (itemsType: ItemsType, platformUserId?: string) =>
-  cy.fakeAp().then(fake => fake.requestReportItemAnswer(itemsType, platformUserId)));
+Cypress.Commands.add("requestReportItemAnswer", (itemsType: ItemsType, platformUserId?: string,
+  interactiveState?: unknown) =>
+  cy.fakeAp().then(fake => fake.requestReportItemAnswer(itemsType, platformUserId, interactiveState)));
