@@ -32,7 +32,7 @@ const statusText = (status: CsvUploadStatus) => {
 
 interface CsvUploadProps {
   disabled: boolean;
-  // the committed input has a word, so replacing it asks first
+  // from the committed tokens
   hasWords: boolean;
   layout: RowLayout;
   status?: CsvUploadStatus;
