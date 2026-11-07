@@ -38,8 +38,9 @@ export const reportSummaryLines = (interactiveState: unknown, authoredState: unk
   const outputs = sequenceGroups
     .filter(group => (group.startingNode?.id ?? "") === startingState && group.lengthLimit === lengthLimit &&
       (group.orderMatters !== false) === orderMatters)
-    .flatMap(group => group.sequences.map(sequence => sequence.map(node => node.label).join(group.delimiter)));
-  const latest = outputs[outputs.length - 1];
+    .flatMap(group => group.sequences.map(sequence => ({ sequence, delimiter: group.delimiter })));
+  const newest = outputs[outputs.length - 1];
+  const latest = newest?.sequence.map(node => node.label).join(newest.delimiter);
   const start = graph.nodes.find(node => node.id === startingState)?.label ?? anyStartLabel;
   const words = graph.nodes.reduce((count, node) => count + node.value, 0);
 

@@ -83,6 +83,11 @@ describe("reportSummaryLines", () => {
       .toBe("Outputs: 2, latest: new");
   });
 
+  it("writes the latest with its own group's delimiter", () => {
+    const groups = [group("", 20, [["a", "b"]], { delimiter: "-" }), group("", 20, [["c", "d"]], { delimiter: "+" })];
+    expect(reportSummaryLines(dataState(groups), null)[1]).toBe("Outputs: 2, latest: c+d");
+  });
+
   it("counts an empty output, and shows no latest for it", () => {
     expect(reportSummaryLines(dataState([group("", 20, [["a"], []])]), null)[1]).toBe("Outputs: 2");
   });
