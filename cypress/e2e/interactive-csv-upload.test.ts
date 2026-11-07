@@ -314,6 +314,26 @@ describe("the interactive's Upload CSV button", () => {
     nothingSaved();
   });
 
+  it("asks before replacing words committed while the file was being read", () => {
+    let finishRead: () => void;
+    start();
+    cy.get<HTMLIFrameElement>("iframe#interactive").then(frame => {
+      const win = frame[0].contentWindow as Window & typeof globalThis;
+      const read = win.Blob.prototype.arrayBuffer;
+      cy.stub(win.Blob.prototype, "arrayBuffer").callsFake(function (this: Blob) {
+        return new win.Promise(resolve => {
+          finishRead = () => resolve(read.call(this));
+        });
+      });
+    });
+    choose(words);
+    textBox().type("typed words");
+    uploadButton().focus();
+    cy.then(() => finishRead());
+    question().should("exist");
+    textBox().should("have.value", "typed words");
+  });
+
   it("refuses a file that isn't text", () => {
     start({ startingText: "the old words" });
     choose("\u0089PNG\n\0\0\nIHDR\n");

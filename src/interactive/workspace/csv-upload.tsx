@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from "react";
+import { useLatest } from "../../hooks/use-latest";
 import { CsvRefusal, CsvValues, readCsv } from "../input/csv";
 import { maxCsvBytes } from "../input/csv-limits";
 import { RowLayout } from "../input/table-edits";
@@ -86,6 +87,9 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
     }
   };
 
+  // a file's read can outlast a commit, so the file is taken with the input as it stands when the read ends
+  const takeFileRef = useLatest(takeFile);
+
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -104,7 +108,7 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
       refuse("unreadable");
       return;
     }
-    takeFile(bytes, false);
+    takeFileRef.current(bytes, false);
   };
 
   const closeQuestion = () => {
