@@ -1,7 +1,9 @@
 import { GraphData, Node, SequenceGroup } from "../../type";
 import { graphFromValues } from "../../utils/chain-graph";
 import { tokenize, tokensToValues } from "../input/tokenizer";
-import { buildTable, maxTableBytes, outputsTableFull, storedBytes, TableSource, tableChoices } from "./table-data";
+import {
+  buildTable, maxTableBytes, outputsTableFull, storedBytes, TableSource, tableChoices, tableWords,
+} from "./table-data";
 
 const node = (id: string, label: string, value = 1): Node => ({ id, label, value });
 
@@ -109,6 +111,16 @@ describe("the Outputs table", () => {
     expect(outputs.colTypes).toEqual(
       ["numeric", "categorical", "categorical", "numeric", "categorical", "categorical"]);
     expect(outputs.rows).toHaveLength(3);
+  });
+});
+
+describe("column names", () => {
+  const cols = [dataSource, drawSource].flatMap(source => tableWords.flatMap(word => buildTable(word, source).cols));
+
+  // the Datalog plugin refuses a snapshot with one of these
+  it.each(["__objectId", "__id__", "__proto__"])("never uses %s", reserved => {
+    expect(cols.length).toBeGreaterThan(0);
+    expect(cols).not.toContain(reserved);
   });
 });
 
