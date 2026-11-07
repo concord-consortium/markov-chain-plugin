@@ -65,7 +65,7 @@ const cutShort = (text: string) => {
 const counted = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
 // The three lines for a saved moment, read as the teacher's read-only view reads it, so the two agree. An output counts
-// when it was made under the settings the third line shows; a delimiter changes only how it is written.
+// when its heading's settings match the third line; a delimiter changes only how it is written.
 export const reportSummaryLines = (interactiveState: unknown, authoredState: unknown): string[] => {
   const authored = readAuthoredState(authoredState);
   const restored = restoreWork(readInteractiveState(interactiveState), authored, {
@@ -151,6 +151,11 @@ describe("reportSummaryLines", () => {
       .toBe("Data: 5 words, 4 states");
   });
 
+  it("counts no word for a blank line", () => {
+    expect(reportSummaryLines({ version: 1, input: { text: "a b\n\n\nc a" } }, null)[0])
+      .toBe("Data: 4 words, 3 states");
+  });
+
   it("says one word and one state in the singular", () => {
     expect(reportSummaryLines({ version: 1, input: { text: "cat" } }, null)[0]).toBe("Data: 1 word, 1 state");
   });
@@ -182,6 +187,15 @@ describe("reportSummaryLines", () => {
     expect(reportSummaryLines(dataState(groups), null)[1]).toBe("Outputs: 3, latest: b a");
   });
 
+  it("takes the newest output in a group as latest", () => {
+    expect(reportSummaryLines(dataState([group("", 20, [["old"], ["new"]])]), null)[1])
+      .toBe("Outputs: 2, latest: new");
+  });
+
+  it("counts an empty output, and shows no latest for it", () => {
+    expect(reportSummaryLines(dataState([group("", 20, [["a"], []])]), null)[1]).toBe("Outputs: 2");
+  });
+
   it("compares the starting state, Max Length and order, and not the delimiter", () => {
     const groups = [
       group("a", 20, [["a"]]), group("", 7, [["b"]]), group("", 20, [["a"]], { orderMatters: false }),
@@ -211,6 +225,13 @@ describe("reportSummaryLines", () => {
     const outputs = encodeOutputs([group("", 5, [["a"]], { orderMatters: undefined })]);
     const state = { version: 1, mode: "draw", orderMatters: false, draw: { drawing, outputs } };
     expect(reportSummaryLines(state, null)[1]).toBe("Outputs: 1, latest: a");
+  });
+
+  it("keeps all three lines on a page with no Sequence generator pane", () => {
+    const authored = { panes: { generator: { available: false } } };
+    expect(reportSummaryLines(dataState([group("", 20, [["a"]])]), authored)).toEqual([
+      "Data: 3 words, 2 states", "Outputs: 1, latest: a", "Settings: start (any), max length 20, order matters on"
+    ]);
   });
 
   it("uses the starting text when the student never changed the input", () => {
