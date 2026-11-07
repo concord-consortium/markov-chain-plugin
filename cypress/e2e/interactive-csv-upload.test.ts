@@ -87,6 +87,15 @@ describe("the interactive's Upload CSV button", () => {
     ]);
   });
 
+  it("logs the file's rows and the table's rows apart", () => {
+    start();
+    choose("word\na\n\n\nb\n");
+    tableValues().should("deep.equal", ["a", "", "b"]);
+    eventsNamed("CsvUploaded").should("deep.equal", [
+      ["CsvUploaded", { rows: 4, tokens: 3, states: 2, mode: "useData" }]
+    ]);
+  });
+
   it("writes the file's values one to a line with order off", () => {
     start(orderOff);
     choose(codapFile);
@@ -229,6 +238,9 @@ describe("the interactive's Upload CSV button", () => {
     eventsNamed("CsvUploadRefused").should("deep.equal", [
       ["CsvUploadRefused", { reason: "noValues", mode: "useData" }]
     ]);
+    // the library sends interactive state after a 2 second pause
+    cy.wait(2500);
+    cy.interactiveMessages("interactiveState").should("have.length", 0);
   });
 
   it("refuses a file whose text would pass the input's limit", () => {
