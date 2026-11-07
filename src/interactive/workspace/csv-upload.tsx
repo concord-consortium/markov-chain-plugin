@@ -51,8 +51,8 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
   const [pending, setPending] = useState<Uint8Array>();
   // a disabled button can't take focus, so a question closed during a sequence hands it over when the sequence ends
   const focusOwed = useRef(false);
-  // a new key each file, so that a screen reader announces a line that reads as the last one did
-  const [filesTaken, setFilesTaken] = useState(0);
+  // a new key each refusal, so that a screen reader announces a line that reads as the last one did
+  const [refusalCount, setRefusalCount] = useState(0);
 
   useEffect(() => {
     if (pending) {
@@ -71,7 +71,7 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
   }, [disabled]);
 
   const refuse = (reason: CsvRefusal) => {
-    setFilesTaken(n => n + 1);
+    setRefusalCount(n => n + 1);
     onRefused(reason);
   };
 
@@ -82,7 +82,6 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
     } else if (hasWords && !replacing) {
       setPending(bytes);
     } else {
-      setFilesTaken(n => n + 1);
       onRead(read);
     }
   };
@@ -138,7 +137,7 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
       <span id={hintId} className="visually-hidden">Starts your input from the first column of a CSV file.</span>
       <input type="file" accept=".csv,text/csv" hidden ref={fileRef} disabled={disabled} onChange={handleFile} />
       <p role="status" className="csv-upload-status">
-        { !pending && status && <span key={filesTaken}>{ statusText(status) }</span> }
+        { !pending && status && <span key={refusalCount}>{ statusText(status) }</span> }
       </p>
       { pending &&
         <div role="group" className="csv-upload-question" aria-labelledby={questionId}
