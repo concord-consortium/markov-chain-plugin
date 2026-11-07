@@ -5,7 +5,6 @@ import { rowText, textForRow } from "./tokenizer";
 // A CSV file's first column as the input's text: each cell one table row, an empty cell a break, written as the
 // table writes rows. RFC 4180, commas only.
 
-
 export type CsvRefusal = "tooLarge" | "tooLong" | "noValues" | "unreadable";
 export type CsvRead =
   | { ok: true, text: string, column: string, values: number, rows: number }
@@ -21,8 +20,13 @@ export const decodeCsv = (bytes: Uint8Array) => {
   }
 };
 
-// rows of fields; a quoted field may hold commas, line breaks and doubled quotes; an unclosed quote runs to the end
-export const parseCsv = (text: string) => {
+// CODAP's export metadata, skipped as whole lines so that a quote in one opens nothing
+const leadingCommentLines = /^(?:#[^\r\n]*(?:\r\n|\r|\n|$))+/;
+
+// rows of fields after any leading "#" lines; a quoted field may hold commas, line breaks and doubled quotes; an
+// unclosed quote runs to the end
+export const parseCsv = (file: string) => {
+  const text = file.replace(leadingCommentLines, "");
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
@@ -69,14 +73,10 @@ export const parseCsv = (text: string) => {
 // a cell as a table row: control characters (line breaks and tabs among them) as spaces, then the row's text
 export const cellText = (cell: string) => rowText(cell.replace(/\p{Cc}/gu, " "));
 
-// the first column after any leading "#" lines (CODAP's export metadata) and the header row
-export const firstColumn = (rows: string[][]) => {
-  const header = rows.findIndex(row => !row[0].startsWith("#"));
-  if (header === -1) {
-    return { name: "", cells: [] };
-  }
-  return { name: rows[header][0].trim(), cells: rows.slice(header + 1).map(row => cellText(row[0])) };
-};
+// the first column: its name from the header row, then its cells
+export const firstColumn = ([header, ...rows]: string[][]) => ({
+  name: header?.[0].trim() ?? "", cells: rows.map(row => cellText(row[0])),
+});
 
 // the cells written as the table writes rows: a blank line for a run of empty cells between words, and nothing for
 // empty cells at either end

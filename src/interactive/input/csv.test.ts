@@ -60,6 +60,18 @@ describe("decodeCsv", () => {
   });
 });
 
+describe("leading # lines", () => {
+  it("skips them whole, so a quote in one opens nothing", () => {
+    expect(parseCsv("# note: a,\"b\r\n# two\nword\ncat")).toEqual([["word"], ["cat"]]);
+  });
+
+  it("reads the file after a # line holding an open quote", () => {
+    expect(readCsv(bytesOf("# note: a,\"b\nword\ncat\ndog\n"), "list")).toMatchObject({
+      ok: true, column: "word", text: "cat\ndog"
+    });
+  });
+});
+
 describe("firstColumn", () => {
   it("skips a CODAP export's leading # lines", () => {
     const csv = "# name: data\n# attribute -- name: weather\n# attribute -- name: day\n" +
