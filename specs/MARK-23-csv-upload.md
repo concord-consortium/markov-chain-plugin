@@ -56,8 +56,8 @@ This story gives students that start. A student with a CSV file (from CODAP, a s
 
 ### Verification
 
-- **R16.** Jest: the CSV parser (quotes, doubled quotes, commas and line breaks inside quotes, CRLF, CR, a BOM, short rows, trailing blank lines, an unterminated quote read to the end of the file), the decoding fallback, the cells' cleaning (a control character other than a line break or tab becomes a space), the text built from cells round-tripping through the tokenizer in both layouts (brackets, punctuation cells, breaks, consecutive breaks), the 50,000-character limit at its boundary (exactly 50,000 characters accepted, 50,001 refused), a file MARK-18's download writes reading back as its words, the authored-state default and reading, and the log list. The "couldn't be read" refusal (a failed file read) has no automated test; neither suite can make a browser's file read fail.
-- **R17.** Cypress, on MARK-13's fake Activity Player page with Cypress's `selectFile`: the button absent by default and present with the setting; a file's values in the table, the text box and the graph's states; the confirmation, both answers; each refusal's message with the input unchanged and nothing saved; the 2 MB limit at its boundary, a file past it never read; the button disabled while playing and in the report view; the posted `interactiveState` holding the uploaded text, and a restart from it showing the uploaded words, with each state where it was saved; the logged `CsvUploaded`; the authoring checkbox saving and reading back.
+- **R16.** Jest: the CSV parser (quotes, doubled quotes, commas and line breaks inside quotes, CRLF, CR, a BOM, short rows, trailing blank lines, an unterminated quote read to the end of the file), the decoding fallback, the cells' cleaning (a control character other than a line break or tab becomes a space), the text built from cells round-tripping through the tokenizer in both layouts (brackets, punctuation cells, breaks, consecutive breaks), the 50,000-character limit at its boundary (exactly 50,000 characters accepted, 50,001 refused), a file MARK-18's download writes reading back as its words, the authored-state default and reading, and the log list.
+- **R17.** Cypress, on MARK-13's fake Activity Player page with Cypress's `selectFile`: the button absent by default and present with the setting; a file's values in the table, the text box and the graph's states; the confirmation, both answers; each refusal's message with the input unchanged and nothing saved; the 2 MB limit at its boundary, a file past it never read; a failed read, stubbed in the browser; the button disabled while playing and in the report view; the posted `interactiveState` holding the uploaded text, and a restart from it showing the uploaded words, with each state where it was saved; the logged `CsvUploaded`; the authoring checkbox saving and reading back.
 - **R18.** The CODAP plugin is unchanged: no file outside `src/interactive/`, `src/components/log-events.ts`, `LOGGED-EVENTS.md`, the README and the tests changes, and every existing plugin test passes unchanged. No new dependency. `workspace.scss` shares one `button-off` mixin with MARK-18's buttons, with the same result.
 - **R19.** README: the Markov Interactive section says students can start from a CSV file when the author allows it.
 
@@ -85,10 +85,6 @@ This story gives students that start. A student with a CSV file (from CODAP, a s
 - Uploading in Draw mode (a drawing from a file).
 - Keeping the file, its name or its other columns.
 - Any change to the CODAP plugin.
-
-## Not Yet Implemented
-
-- The `unreadable` refusal has no automated test: neither Jest nor Cypress's `selectFile` can make a browser's file read fail. It shares the status line and `CsvUploadRefused` with the tested refusals.
 
 ## Decisions
 

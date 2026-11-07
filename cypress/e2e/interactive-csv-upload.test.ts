@@ -24,6 +24,10 @@ const tableValues = () => cy.interactive().find(".input-table input").invoke("to
 const eventsNamed = (...names: string[]) =>
   loggedEvents().invoke("filter", ([action]: [string]) => names.includes(action));
 const box = (element: JQuery<HTMLElement>) => element[0].getBoundingClientRect();
+const replaceWith = (contents: string) => {
+  choose(contents);
+  replace().click();
+};
 const nothingSaved = () => {
   // the library sends interactive state after a 2 second pause
   cy.wait(2500);
@@ -264,6 +268,14 @@ describe("the interactive's Upload CSV button", () => {
     status().should("have.text", `Read 1 value from the column "${"x".repeat(60)}\u2026".`);
   });
 
+  it("shows a column name of exactly 60 characters whole, and keeps an emoji whole when it cuts", () => {
+    start();
+    choose(`${"x".repeat(60)}\ncat\n`);
+    status().should("have.text", `Read 1 value from the column "${"x".repeat(60)}".`);
+    replaceWith(`${"x".repeat(59)}\u{1F600}y\ncat\n`);
+    status().should("have.text", `Read 1 value from the column "${"x".repeat(59)}\u{1F600}\u2026".`);
+  });
+
   it("refuses a file whose text would pass the input's limit", () => {
     start({ startingText: "the old words", ...orderOff });
     choose(`word\n${"a\n".repeat(25001)}`);
@@ -292,6 +304,21 @@ describe("the interactive's Upload CSV button", () => {
     textBox().should("have.value", "the old words");
     eventsNamed("CsvUploadRefused").should("deep.equal", [
       ["CsvUploadRefused", { reason: "tooLarge", mode: "useData" }]
+    ]);
+    nothingSaved();
+  });
+
+  it("refuses a file the browser can't read", () => {
+    start({ startingText: "the old words" });
+    cy.get<HTMLIFrameElement>("iframe#interactive").then(frame => {
+      const win = frame[0].contentWindow as Window & typeof globalThis;
+      cy.stub(win.Blob.prototype, "arrayBuffer").rejects(new Error("no read"));
+    });
+    choose(words);
+    status().should("have.text", "This file couldn't be read.");
+    textBox().should("have.value", "the old words");
+    eventsNamed("CsvUploadRefused").should("deep.equal", [
+      ["CsvUploadRefused", { reason: "unreadable", mode: "useData" }]
     ]);
     nothingSaved();
   });
