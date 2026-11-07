@@ -4,8 +4,9 @@ export const logEvents = [
   "SequencePlayed", "SequenceStepped", "SequencePaused", "SequenceResumed", "SequenceCanceled", "SequenceGenerated",
   "GeneratorSettingChanged", "OutputCleared", "OutputSelected",
   "StateSelected", "TransitionSelected", "SelectionCleared", "StateDialogOpened", "StateMoved",
-  "StateAdded", "TransitionAdded", "StateDeleted", "TransitionDeleted", "StateEdited", "TextToGraph", "GraphReset",
+  "StateAdded", "TransitionAdded", "StateDeleted", "TransitionDeleted", "StateEdited", "GraphReset",
   "InputCommitted", "CaseSensitivityChanged", "TableRowAdded", "TableRowDeleted", "PaneOpened", "PaneClosed",
-  "PaneResized", "InspectTabChosen", "InspectSorted",
+  "PaneResized", "InspectTabChosen", "InspectSorted", "ModeSwitched",
+  "ProbabilitiesToggled", "OrderMattersToggled",
 ] as const;
 export type LogEvent = typeof logEvents[number];

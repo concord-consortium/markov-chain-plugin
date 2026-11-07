@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { InputView } from "../authored-state";
+import { RowLayout } from "../input/table-edits";
 import { Token } from "../input/tokenizer";
 import { CommitHow, CommitView } from "./commit";
 import { Highlights } from "./highlights";
@@ -10,7 +11,8 @@ import { TextInput } from "./text-input";
 import { useMeasuredSize } from "./use-measured-size";
 
 interface InputPaneProps {
-  caseSwitch: React.ReactNode;
+  switches: React.ReactNode;
+  rowLayout: RowLayout;
   view: InputView;
   // the text box's share of the height it shares with the table below it
   split: number;
@@ -45,10 +47,10 @@ export const InputPane = (props: InputPaneProps) => {
     <InputTable text={committed.text} tokens={committed.tokens} highlights={props.highlights} readOnly={readOnly}
       onCommit={props.onTableCommit} onRowAdded={props.onRowAdded}
       onRowDeleted={props.onRowDeleted} onRowBlur={props.onRowBlur}
-      afterPress={props.afterPress} onFocusToken={props.onFocusToken} />;
+      afterPress={props.afterPress} onFocusToken={props.onFocusToken} rowLayout={props.rowLayout} />;
   return (
     <div className={`input-pane-content ${view}`}>
-      { props.caseSwitch }
+      { props.switches }
       { view === "textAndTable"
         ? <LinkedInput split={props.split} onSplitChange={props.onSplitChange} onSplitResized={props.onSplitResized}
             textInput={textInput} table={table} />

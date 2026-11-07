@@ -40,6 +40,42 @@ describe("generateSequence", () => {
     expect(await generateSequence(graph, { startingNode: a, lengthLimit: 0 })).toEqual([]);
   });
 
+  describe("with orderMatters false", () => {
+    // a goes only to b, so only a pick by count reaches c
+    const chain = { nodes: [a, b, c], edges: [{ from: "a", to: "b", value: 1 }] };
+
+    it("picks every next state by count, whatever the transitions, and runs to the length limit", async () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.9);
+      const options = { startingNode: a, lengthLimit: 4, orderMatters: false };
+      expect(ids(await generateSequence(chain, options))).toEqual(["a", "c", "c", "c"]);
+    });
+
+    it("weighs each next pick by count, not evenly", async () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.7);
+      const options = { startingNode: c, lengthLimit: 2, orderMatters: false };
+      expect(ids(await generateSequence(chain, options))).toEqual(["c", "b"]);
+    });
+
+    it("can pick the current state", async () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.1);
+      const options = { startingNode: b, lengthLimit: 3, orderMatters: false };
+      expect(ids(await generateSequence(chain, options))).toEqual(["b", "a", "a"]);
+    });
+  });
+
+  describe("from a state whose arrows all have no value", () => {
+    const noValue = { nodes: [a, b, c], edges: [{ from: "a", to: "b", value: 0 }] };
+
+    it("ends the sequence with stopAtNoValue", async () => {
+      const options = { startingNode: a, lengthLimit: 3, stopAtNoValue: true };
+      expect(ids(await generateSequence(noValue, options))).toEqual(["a"]);
+    });
+
+    it("takes the first arrow without it", async () => {
+      expect(ids(await generateSequence(noValue, { startingNode: a, lengthLimit: 2 }))).toEqual(["a", "b"]);
+    });
+  });
+
   it("gives an empty sequence for an empty graph", async () => {
     expect(await generateSequence({ nodes: [], edges: [] }, { lengthLimit: 5 })).toEqual([]);
   });

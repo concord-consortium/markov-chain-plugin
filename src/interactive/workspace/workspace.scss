@@ -15,6 +15,50 @@ $pane-border-color: #c7c7c7;
     display: none !important;
   }
 
+  .arrow-markers {
+    position: absolute;
+  }
+
+  .workspace-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pane-gap);
+  }
+
+  .probabilities-toggle {
+    @include markov-button;
+
+    &[aria-pressed="true"] {
+      background-color: $markov-teal;
+      color: #fff;
+    }
+  }
+
+  .setting-switches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    min-width: 0;
+  }
+
+  .mode-switch {
+    display: flex;
+    gap: var(--pane-gap);
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    input {
+      margin: 0;
+    }
+  }
+
   .controls-row {
     display: flex;
     flex-wrap: wrap;
@@ -275,8 +319,9 @@ $pane-border-color: #c7c7c7;
     min-width: 0;
     padding: var(--pane-padding);
 
-    > .setting-switch {
+    > .setting-switches {
       align-self: flex-start;
+      max-width: 100%;
     }
 
     > .text-input, > .input-table {
@@ -410,8 +455,11 @@ $pane-border-color: #c7c7c7;
       overflow-y: auto;
     }
 
-    .inspect-empty {
+    .inspect-empty, .inspect-explanation {
       margin: 10px 4px;
+    }
+
+    .inspect-empty {
       color: #737373;
     }
 
@@ -539,11 +587,18 @@ $pane-border-color: #c7c7c7;
   }
 
   .graph-pane-content {
+    $toolbar-to-graph: 5px;
+
     display: flex;
     flex: 1;
-    gap: 5px;
+    gap: $toolbar-to-graph;
     min-width: 0;
     padding: var(--pane-padding);
+
+    .drawing {
+      gap: $toolbar-to-graph;
+      min-width: 0;
+    }
 
     .graph {
       position: relative;
@@ -553,6 +608,22 @@ $pane-border-color: #c7c7c7;
       svg {
         display: block;
         height: 100%;
+      }
+    }
+
+    .graph-notes {
+      position: absolute;
+      right: var(--pane-padding);
+      bottom: var(--pane-padding);
+      pointer-events: none;
+
+      p {
+        width: fit-content;
+        max-width: 100%;
+        margin: 2px 0 0;
+        padding: 1px 4px;
+        background-color: rgba(255, 255, 255, 0.85);
+        font-size: 12px;
       }
     }
 
@@ -583,10 +654,10 @@ $pane-border-color: #c7c7c7;
       }
     }
 
-    // a toolbar taller than the pane's body puts its buttons in two columns, in their order
-    &.two-columns .toolbar {
+    // a toolbar taller than the pane's body puts its buttons in columns, in their order
+    &.columns .toolbar {
       display: grid;
-      grid-template-columns: repeat(2, var(--toolbar-button));
+      grid-template-columns: repeat(var(--toolbar-columns), var(--toolbar-button));
       width: auto;
 
       .top, .bottom {
@@ -659,8 +730,9 @@ $pane-border-color: #c7c7c7;
   }
 
   @include markov-node-modal;
-}
 
-.draw-mode-message {
-  margin: 10px;
+  // inside a pane, so fixed to cover the whole interactive as Data mode's dialog does
+  .drawing .nodeModalBackground, .drawing .nodeModal {
+    position: fixed;
+  }
 }

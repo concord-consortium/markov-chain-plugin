@@ -186,6 +186,11 @@ $markov-teal: #177991;
     .nodeModalContent {
       min-width: 200px;
 
+      .nodeModalProblem {
+        color: #c00000;
+        margin-top: 5px;
+      }
+
       .nodeModalTitle {
         background-color: $markov-teal;
         color: white;

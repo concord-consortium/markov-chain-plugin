@@ -2,25 +2,40 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ProbabilitySelector } from "./probability-selector";
 import { Node, Edge, GraphData, ViewMode } from "../../type";
 import { applyStatePercentages, percentage, reduceToSum } from "./state-editor";
+import { labelProblem } from "./state-labels";
 
 export interface NodeModalProps {
   viewMode: ViewMode;
   node?: Node,
   graph: GraphData;
   onChange: (id: string, newNode: Node, newEdge: Edge[]) => void,
-  onCancel: () => void
+  onCancel: () => void;
+  // refuses an empty label, or one another state has
+  uniqueLabels?: boolean;
+  // names the label field, and gives the slider keys, touch and pen
+  accessibleEditor?: boolean;
 }
 
-export const NodeModal = ({ viewMode, node, graph, onChange, onCancel }: NodeModalProps) => {
+export const NodeModal = ({
+  viewMode, node, graph, onChange, onCancel, uniqueLabels, accessibleEditor
+}: NodeModalProps) => {
   const [label, setLabel] = useState(node?.label || "");
+  // set while rendering, so a node never renders with the last one's label, which could read as a problem with it
+  const [labelNode, setLabelNode] = useState(node);
+  if (node !== labelNode) {
+    setLabelNode(node);
+    setLabel(node?.label || "");
+  }
   const [exactPercentages, _setExactPercentages] = useState<number[]>([]);
 
   const setExactPercentages = useCallback((percentages: number[]) => {
     // make sure percentages add up to exactly 100%
     const allButLastSum = reduceToSum(percentages.slice(0, -1));
-    percentages[percentages.length - 1] = 100 - allButLastSum;
+    const last = 100 - allButLastSum;
+    // a key can take the last share to nothing, which rounding could leave just below 0
+    percentages[percentages.length - 1] = accessibleEditor ? Math.max(0, last) : last;
     _setExactPercentages(percentages);
-  }, [_setExactPercentages]);
+  }, [_setExactPercentages, accessibleEditor]);
 
   const fromEdges = useMemo(() => {
     return node ? graph.edges.filter(e => e.from === node.id) : [];
@@ -37,22 +52,24 @@ export const NodeModal = ({ viewMode, node, graph, onChange, onCancel }: NodeMod
   const edgeValues = useMemo(() => fromEdges.map(e => e.value), [fromEdges]);
   const sum = useMemo(() => reduceToSum(edgeValues), [edgeValues]);
 
-  useEffect(() => {
-    const percentages = edgeValues.map(edgeValue => percentage(edgeValue / sum));
-    setExactPercentages(percentages);
-  }, [edgeValues, sum, setExactPercentages]);
+  // arrows of no value share the state evenly in the editor, whose slider has nothing else to work from
+  const evenShares = !!accessibleEditor && sum === 0;
 
   useEffect(() => {
-    setLabel(node?.label || "");
-  }, [node, setLabel]);
+    const percentages = edgeValues.map(edgeValue => evenShares ? 100 / edgeValues.length : percentage(edgeValue / sum));
+    setExactPercentages(percentages);
+  }, [edgeValues, sum, evenShares, setExactPercentages]);
+
+  const problem = uniqueLabels && node ? labelProblem(label, node.id, graph.nodes) : undefined;
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (node) {
-      const newEdges = applyStatePercentages(graph.edges, node.id, sum, exactPercentages);
+    if (node && !problem) {
+      const newEdges = applyStatePercentages(graph.edges, node.id, evenShares ? edgeValues.length : sum,
+        exactPercentages);
       onChange(node.id, { ...node, label: label.trim() }, newEdges);
     }
-  }, [label, node, exactPercentages, graph.edges, sum, onChange]);
+  }, [label, node, problem, exactPercentages, graph.edges, sum, evenShares, edgeValues, onChange]);
 
   const handleChangeLabel = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLabel(e.target.value);
@@ -92,15 +109,23 @@ export const NodeModal = ({ viewMode, node, graph, onChange, onCancel }: NodeMod
         <div className="nodeModalContent">
           <div className="nodeModalTitle">Update State</div>
           <form onSubmit={handleSubmit}>
-            <input type="text" value={label} onChange={handleChangeLabel} autoFocus={true} />
+            <input
+              type="text"
+              value={label}
+              onChange={handleChangeLabel}
+              autoFocus={true}
+              aria-label={accessibleEditor ? "State name" : undefined}
+            />
+            { problem && <div className="nodeModalProblem" role="alert">{ problem }</div> }
             <ProbabilitySelector
               viewMode="drawing"
               exactPercentages={exactPercentages}
               edgeLabels={edgeLabels}
-              onChange={setExactPercentages} />
+              onChange={setExactPercentages}
+              accessible={accessibleEditor} />
             <div className="nodeModalButtons">
-              <button type="submit">Save</button>
-              <button onClick={onCancel}>Cancel</button>
+              <button type="submit" disabled={!!problem}>Save</button>
+              <button type="button" onClick={onCancel}>Cancel</button>
             </div>
           </form>
         </div>

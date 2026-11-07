@@ -2,6 +2,8 @@ import React from "react";
 import { act, render, screen, within } from "@testing-library/react";
 import { App } from "./app";
 
+jest.mock("nanoid", () => ({ nanoid: () => "id" }));
+
 // Jest can't load d3, so the graph is a placeholder
 jest.mock("../components/graph", () => ({
   Graph: () => <div />

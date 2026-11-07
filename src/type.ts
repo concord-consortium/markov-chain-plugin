@@ -14,6 +14,8 @@ export type SequenceGroup = {
   delimiter: string;
   lengthLimit: number;
   sequences: Node[][];
+  // false for a group generated as a bag of words
+  orderMatters?: boolean;
 };
 
 export type DelimiterType = "none"|"space"|"other";

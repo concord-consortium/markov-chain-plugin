@@ -12,6 +12,22 @@
     pointer-events: none;
   }
 
+  .probability-labels {
+    pointer-events: none;
+  }
+
+  .probability-label {
+    dominant-baseline: central;
+    fill: #000;
+    paint-order: stroke;
+    stroke: #fff;
+    stroke-width: 3px;
+
+    &.faded {
+      fill: #767676;
+    }
+  }
+
   svg ellipse.can-add-edge:hover {
     fill: lightgreen;
   }

@@ -1,7 +1,7 @@
 import {
   defaultPaneSizes, dividerLimits, dragDivider, dragInputSplit, drawnInputSplit, drawnRowHeight,
   fitPaneSizes, graphBodyHeight, inputPartMin, movesDivider, movesInputSplit, resizedPanes, toolbarColumns,
-  toolbarHeight
+  toolbarHeight, toolbarWidth
 } from "./pane-sizes";
 
 const allOpen = { input: true, graph: true, inspect: true };
@@ -9,9 +9,12 @@ const allOpen = { input: true, graph: true, inspect: true };
 const room = 1000;
 
 describe("pane sizes", () => {
-  it("measures the toolbar in one or two columns", () => {
+  it("measures the toolbar in any number of columns", () => {
     expect(toolbarHeight(5)).toBe(184);
     expect(toolbarHeight(5, 2)).toBe(112);
+    expect(toolbarHeight(9)).toBe(328);
+    expect(toolbarHeight(9, 2)).toBe(184);
+    expect(toolbarHeight(9, 3)).toBe(112);
   });
 
   it("puts Data mode's five tools in two columns below a 222 px row", () => {
@@ -23,6 +26,11 @@ describe("pane sizes", () => {
     expect(drawnRowHeight(200, false)).toBe(200);
     expect(drawnRowHeight(200, true)).toBe(315);
     expect(toolbarColumns(5, graphBodyHeight(drawnRowHeight(200, true)))).toBe(1);
+    expect(toolbarColumns(9, graphBodyHeight(315))).toBe(2);
+    expect(toolbarColumns(9, graphBodyHeight(222))).toBe(2);
+    expect(toolbarColumns(9, graphBodyHeight(221))).toBe(3);
+    expect(toolbarColumns(9, graphBodyHeight(200))).toBe(3);
+    expect(toolbarColumns(9, graphBodyHeight(drawnRowHeight(200, true)))).toBe(2);
   });
 });
 
@@ -155,5 +163,12 @@ describe("movesDivider", () => {
   it("sees a move of half a pixel or more", () => {
     expect(movesDivider(defaultPaneSizes, { ...defaultPaneSizes, input: 280.5 }, "input", room, allOpen)).toBe(true);
     expect(movesDivider(defaultPaneSizes, { ...defaultPaneSizes, input: 280.4 }, "input", room, allOpen)).toBe(false);
+  });
+});
+
+describe("toolbarWidth", () => {
+  it("is each column's button with the gaps between them, inside the toolbar's padding", () => {
+    expect(toolbarWidth(1)).toBe(40);
+    expect(toolbarWidth(3)).toBe(112);
   });
 });

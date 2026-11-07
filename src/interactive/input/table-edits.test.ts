@@ -1,11 +1,11 @@
-import { deleteRow, editRow, insertRow, placeAfterEdit } from "./table-edits";
+import { deleteRow, editRow, insertRow, placeAfterEdit, RowLayout } from "./table-edits";
 import { tokenize } from "./tokenizer";
 
 // the table a text gives: each word's text, "" for a break
 const table = (text: string) => tokenize(text, "asTyped").map(t => t.kind === "word" ? t.text : "");
 const edit = (text: string, row: number, value: string) => editRow(text, tokenize(text, "asTyped"), row, value);
-const insert = (text: string, after: number, value: string) =>
-  insertRow(text, tokenize(text, "asTyped"), after, value);
+const insert = (text: string, after: number, value: string, layout?: RowLayout) =>
+  insertRow(text, tokenize(text, "asTyped"), after, value, layout);
 const remove = (text: string, row: number) => deleteRow(text, tokenize(text, "asTyped"), row);
 
 describe("editRow", () => {
@@ -63,6 +63,40 @@ describe("editRow", () => {
 
   it("makes an emptied row between two others a blank line", () => {
     expect(edit("the cat sat", 1, "")).toBe("the\n\nsat");
+  });
+});
+
+describe("insertRow as a list", () => {
+  it("writes each word on its own line, which leaves the rows unbroken", () => {
+    const withDog = insert("the", 0, "dog", "list");
+    expect(withDog).toBe("the\ndog");
+    const withCat = insert(withDog, 1, "cat", "list");
+    expect(withCat).toBe("the\ndog\ncat");
+    expect(table(withCat)).toEqual(["the", "dog", "cat"]);
+  });
+
+  it("puts a word after a row in the middle on its own line", () => {
+    expect(insert("the cat", 0, "dog", "list")).toBe("the\ndog\ncat");
+    expect(insert("the  cat", 0, "dog", "list")).toBe("the\ndog\ncat");
+  });
+
+  it("adds no blank line where a line break already follows the row", () => {
+    expect(insert("the\ncat", 0, "dog", "list")).toBe("the\ndog\ncat");
+    expect(insert("the  \ncat", 0, "dog", "list")).toBe("the\ndog  \ncat");
+    expect(insert("a\n\nc", 0, "b", "list")).toBe("a\nb\n\nc");
+  });
+
+  it("puts punctuation on its own line too", () => {
+    expect(insert("the cat", 1, ".", "list")).toBe("the cat\n.");
+  });
+
+  it("writes a word at the top, or after a blank line, with a line break after it", () => {
+    expect(insert("the", -1, "dog", "list")).toBe("dog\nthe");
+    expect(insert("a\n\nc", 1, "b", "list")).toBe("a\n\nb\nc");
+  });
+
+  it("writes the first word as it is", () => {
+    expect(insert("", -1, "cat", "list")).toBe("cat");
   });
 });
 

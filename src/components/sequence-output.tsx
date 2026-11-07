@@ -12,6 +12,7 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
   const startingState = group.startingNode?.label ?? AnyStartingState;
   const lengthLimit = group.lengthLimit;
   const delimiter = group.delimiter === "" ? "(none)" : `"${group.delimiter}"`;
+  const orderless = group.orderMatters === false;
 
   const handleToggleExpanded = () => setExpanded(prev => !prev);
 
@@ -24,6 +25,7 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
         </div>
         <div>Max Length: { lengthLimit }</div>
         <div>Delimiter: { delimiter }</div>
+        { orderless && <div>Order matters: No</div> }
       </div>
     );
   }
@@ -35,6 +37,7 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
       <span>{ lengthLimit }</span>
       <span>/</span>
       <span>{ delimiter }</span>
+      { orderless && <><span>/</span><span>Orderless</span></> }
       <span className="expand"><DropdownDownArrowIcon /></span>
     </div>
   );

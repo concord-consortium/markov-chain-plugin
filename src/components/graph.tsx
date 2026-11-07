@@ -3,13 +3,14 @@ import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
-import { graphSignature, isPlaced, settings, startPositions, stateEdgeWeights } from "./graph-utils";
+import { ArrowWidths, edgeWeights, graphSignature, isPlaced, settings, startPositions } from "./graph-utils";
 import { D3Graph, D3Node } from "./graph-geometry";
 import {
   GraphSelection, highlightAnimation, highlightSelected as highlightSelectedNodes,
   unhighlightNonOutput as unhighlightNonOutputNodes
 } from "./graph-highlight";
 import { drawGraph } from "./graph-draw";
+import { drawOverlay, moveOverlay } from "./graph-overlay";
 
 import PlusIcon from "../assets/plus.svg";
 import MinusIcon from "../assets/minus.svg";
@@ -66,6 +67,15 @@ type Props = {
   onUserZoom?: () => void;
   // fits animate over this many ms; absent, they are instant
   fitTransitionMs?: number;
+  // labels the arrows the highlights point out with their probabilities
+  probabilityLabels?: boolean;
+  arrowWidths?: ArrowWidths;
+  // false draws a bag of words: the states, and only the arrows the highlights point out
+  orderMatters?: boolean;
+  // a redraw keeps a chosen output's highlights, which it otherwise drops until the next highlight change
+  keepOutputOnRedraw?: boolean;
+  // fits and recenters bring a graph off the origin to the view's center; absent, they move it half the way
+  centerOffOrigin?: boolean;
 };
 
 // a press that moves this many px or less is still a click, and a gesture that moves the view no more isn't a zoom
@@ -80,7 +90,9 @@ export const Graph = (props: Props) => {
          onClick, onNodeClick, onNodeDoubleClick, onEdgeClick, onDragStop,
          fitViewAt, recenterViewAt, onAutoArrangeEnd, opacity,
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed, keepPositions, selectedEdge,
-         onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs } = props;
+         onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs,
+         probabilityLabels, arrowWidths = "byState", orderMatters, keepOutputOnRedraw,
+         centerOffOrigin } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
@@ -111,8 +123,8 @@ export const Graph = (props: Props) => {
   }, [highlightOutputNodes]);
 
   const highlightSelected = useCallback((svg: GraphSelection) => {
-    highlightSelectedNodes(svg, { selectedNodeId, selectedEdge, animating, graph });
-  }, [selectedNodeId, selectedEdge, animating, graph]);
+    highlightSelectedNodes(svg, { selectedNodeId, selectedEdge, animating, graph, orderMatters });
+  }, [selectedNodeId, selectedEdge, animating, graph, orderMatters]);
 
   const unhighlightNonOutput = useCallback((svg: GraphSelection) => {
     unhighlightNonOutputNodes(svg, { highlightOutputNodes, animating });
@@ -121,6 +133,28 @@ export const Graph = (props: Props) => {
   const selectionRef = useRef({ selectedNodeId, setSelectedNodeId, highlightSelected });
   useLayoutEffect(() => {
     selectionRef.current = { selectedNodeId, setSelectedNodeId, highlightSelected };
+  });
+
+  const overlayRef = useRef<() => void>(() => undefined);
+  useLayoutEffect(() => {
+    overlayRef.current = () => drawOverlay(d3.select(svgRef.current).select("g.root"), d3Graph, {
+      graph, probabilityLabels, arrowWidths, orderMatters, animating, selectedNodeId, highlightNode, highlightEdge,
+      highlightAllNextNodes, highlightOutputNodes,
+    });
+  });
+
+  const highlightsRef = useRef<() => void>(() => undefined);
+  useLayoutEffect(() => {
+    highlightsRef.current = () => {
+      const root = d3.select(svgRef.current).select("g.root");
+      highlightAnimation(root, {
+        highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
+        highlightOutputEdges
+      });
+      unhighlightNonOutput(root);
+      highlightSelected(root);
+      overlayRef.current();
+    };
   });
 
   // calculate the svg dimensions
@@ -176,9 +210,9 @@ export const Graph = (props: Props) => {
       d3NodeMap[node.id] = d3Node;
     });
 
-    const edgeWeight = stateEdgeWeights(graph.edges);
+    const edgeWeight = edgeWeights(graph.edges, arrowWidths);
 
-    graph.edges.forEach((edge) => {
+    (orderMatters === false ? [] : graph.edges).forEach((edge) => {
       if (edge.from === edge.to) {
         d3NodeMap[edge.from].loops = true;
         d3NodeMap[edge.from].loopWeight = edgeWeight(edge);
@@ -197,7 +231,7 @@ export const Graph = (props: Props) => {
     if (graphSignature(d3Graph) !== graphSignature(newD3Graph)) {
       setD3Graph(newD3Graph);
     }
-  }, [d3Graph, graph, keepPositions]);
+  }, [d3Graph, graph, keepPositions, arrowWidths, orderMatters]);
 
   // enable zooming
   useEffect(() => {
@@ -223,7 +257,7 @@ export const Graph = (props: Props) => {
           onUserZoom();
         }
       });
-    if (onBackgroundClick) {
+    if (onBackgroundClick || onUserZoom) {
       zoomRef.current.clickDistance(clickDistance);
     }
     svg
@@ -240,14 +274,20 @@ export const Graph = (props: Props) => {
     const simulation = drawGraph(d3.select(svgRef.current), d3Graph, {
       transform: transformRef.current, allowDragging, autoArrange, rubberBand, drawingMode, keepPositions,
       selectionRef, onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd,
-      lastClickTimeRef, lastClickIdRef, draggedRef
+      lastClickTimeRef, lastClickIdRef, draggedRef,
+      onTick: () => moveOverlay(d3.select(svgRef.current).select("g.root")),
     });
+    if (keepOutputOnRedraw) {
+      highlightsRef.current();
+    } else {
+      overlayRef.current();
+    }
 
     return () => {
       simulation?.stop();
     };
   }, [svgRef, d3Graph, allowDragging, autoArrange, rubberBand, drawingMode, keepPositions, animating,
-      onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd]);
+      keepOutputOnRedraw, onNodeClick, onNodeDoubleClick, onEdgeClick, onEdgeSelect, onDragStop, onAutoArrangeEnd]);
 
   // animate the node if needed
   useEffect(() => {
@@ -255,19 +295,11 @@ export const Graph = (props: Props) => {
       return;
     }
 
-    const root = d3.select(svgRef.current).select("g.root");
-
-    highlightAnimation(root, {
-      highlightNode, highlightLoopOnNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes,
-      highlightOutputEdges
-    });
-
-    unhighlightNonOutput(root);
-    highlightSelected(root);
+    highlightsRef.current();
 
   }, [svgRef, d3Graph.nodes, selectedNodeId, selectedEdge, highlightNode, highlightLoopOnNode,
       highlightEdge, highlightAllNextNodes, highlightSelected, highlightOutputNodes,
-      unhighlightNonOutput, highlightOutputEdges]);
+      unhighlightNonOutput, highlightOutputEdges, probabilityLabels, arrowWidths]);
 
   const fitOrCenter = useCallback((op: "fit" | "center") => {
     if (!width || !height || !zoomRef.current) {
@@ -289,8 +321,9 @@ export const Graph = (props: Props) => {
     const currentScale = transformRef.current?.k ?? 1;
     const fitScale = Math.min(width / bounds.width, height / bounds.height) * 0.8;
     const scale = op === "center" ? currentScale : fitScale;
-    const x = scale * (-center.x / 2);
-    const y = scale * (-center.y / 2);
+    const reach = centerOffOrigin ? 1 : 0.5;
+    const x = scale * -center.x * reach;
+    const y = scale * -center.y * reach;
     const transform = new d3.ZoomTransform(scale, x, y);
 
     if (fitTransitionMs && op === "fit") {
@@ -300,25 +333,26 @@ export const Graph = (props: Props) => {
     }
 
     return true;
-  }, [width, height, fitTransitionMs]);
+  }, [width, height, fitTransitionMs, centerOffOrigin]);
 
   // listen for fit view requests
   useEffect(() => {
     if ((fitViewAt ?? 0) > (lastFitViewAtRef.current ?? 0)) {
-      if (fitOrCenter("fit")) {
+      // a host that follows the graph drops a fit with nothing to fit, or it would land later over the student's view
+      if (fitOrCenter("fit") || (onUserZoom && width && height)) {
         lastFitViewAtRef.current = fitViewAt;
       }
     }
-  }, [fitViewAt, fitOrCenter]);
+  }, [fitViewAt, fitOrCenter, onUserZoom, width, height]);
 
   // listen for recenter view requests
   useEffect(() => {
     if ((recenterViewAt ?? 0) > (lastRecenterViewAtRef.current ?? 0)) {
-      if (fitOrCenter("center")) {
+      if (fitOrCenter("center") || (onUserZoom && width && height)) {
         lastRecenterViewAtRef.current = recenterViewAt;
       }
     }
-  }, [recenterViewAt, fitOrCenter]);
+  }, [recenterViewAt, fitOrCenter, onUserZoom, width, height]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!autoArrange && onClick) {

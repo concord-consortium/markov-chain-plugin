@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 
 import "./speed-toggle.scss";
 
@@ -8,6 +8,7 @@ interface Props {
 }
 
 export const SpeedToggle = ({ fastSimulation, onChange }: Props) => {
+  const id = useId();
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.checked);
   };
@@ -16,11 +17,11 @@ export const SpeedToggle = ({ fastSimulation, onChange }: Props) => {
 
   return (
     <div className="speedToggle">
-      <label htmlFor="simulationSpeed">Simulation Speed:</label>
+      <label htmlFor={id}>Simulation Speed:</label>
       <div>
         <div style={getStyle(!fastSimulation)}>Normal</div>
         <input
-          id="simulationSpeed"
+          id={id}
           className="slider"
           type="checkbox"
           role="switch"

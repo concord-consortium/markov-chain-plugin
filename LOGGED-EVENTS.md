@@ -2,20 +2,22 @@
 
 All events are logged with `@concord-consortium/lara-interactive-api`'s `log()` function, and only when the Markov Interactive runs inside the Activity Player. The CODAP plugin and the interactive opened on its own log nothing.
 
-A state is named by its label. The generator's settings, which several events carry, are `{ startingState, maxLength, delimiter, fast }`: the starting state (`""` for any), the maximum length, the delimiter, and whether the fast speed is on.
+Every event's data also carries `mode`, `useData` or `draw`, the mode it came from.
+
+A state is named by its label. The generator's settings, which several events carry, are `{ startingState, maxLength, delimiter, fast, orderMatters }`: the starting state (`""` for any), the maximum length, the delimiter, whether the fast speed is on, and whether order mattered (false for a bag of words).
 
 ## Generator
 
 | Event | Parameters | When |
 |-------|-----------|------|
-| `SequencePlayed` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Play |
-| `SequenceStepped` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Step, once per click |
-| `SequencePaused` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Pause |
-| `SequenceResumed` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Resume |
-| `SequenceCanceled` | `{ startingState, maxLength, delimiter, fast }` | The student clicks Cancel while a sequence plays or steps |
-| `SequenceGenerated` | `{ sequence, startingState, maxLength, delimiter, fast }` | A sequence finishes, played or stepped to its end; `sequence` is its states |
+| `SequencePlayed` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Play |
+| `SequenceStepped` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Step, once per click |
+| `SequencePaused` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Pause |
+| `SequenceResumed` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Resume |
+| `SequenceCanceled` | `{ startingState, maxLength, delimiter, fast, orderMatters }` | The student clicks Cancel while a sequence plays or steps |
+| `SequenceGenerated` | `{ sequence, startingState, maxLength, delimiter, fast, orderMatters }` | A sequence finishes, played or stepped to its end; `sequence` is its states |
 | `GeneratorSettingChanged` | `{ setting: "startingState" \| "maxLength" \| "delimiterType" \| "delimiter" \| "fast", value }` | The student changes a generator setting: the starting state, the delimiter's type and the speed when chosen, Max Length and the "other" delimiter's text when their field loses focus with a changed value |
-| `OutputCleared` | None | The student clicks Clear Output |
+| `OutputCleared` | `{ mode }` | The student clicks Clear Output |
 | `OutputSelected` | `{ sequence }` | The student clicks an output to highlight it; `sequence` is its states |
 
 ## Selection and highlighting
@@ -25,7 +27,7 @@ A state is named by its label. The generator's settings, which several events ca
 | `StateSelected` | `{ state, source: "graph" \| "inspect" \| "table" }` | The student chooses a state in the graph, an Inspect States row, or the input table |
 | `TransitionSelected` | `{ from, to, source: "graph" \| "inspect" }` | The student chooses a transition by its arrow in the graph or its Inspect Transitions row |
 | `SelectionCleared` | `{ via: "toggle" \| "background" \| "escape" \| "button" \| "table" }` | A chosen state, transition or output is cleared: by choosing it again, clicking the graph's background, pressing Escape, the Clear highlight button, or focusing an empty input table row |
-| `StateDialogOpened` | `{ state }` | The student double-clicks a state to see its probabilities |
+| `StateDialogOpened` | `{ state }` | The student double-clicks a state to see its probabilities, or in Draw mode to edit it. With "Order matters" off, a double-click in Data mode opens no dialog and logs nothing |
 | `StateMoved` | `{ state }` | The student drags a state to a new place |
 
 ## Drawing
@@ -37,8 +39,7 @@ A state is named by its label. The generator's settings, which several events ca
 | `StateDeleted` | `{ state }` | The student deletes a state |
 | `TransitionDeleted` | `{ from, to }` | The student deletes a transition |
 | `StateEdited` | `{ state, transitions: [{ to, value }] }` | The student saves a state's label and probabilities in its dialog |
-| `TextToGraph` | `{ words }` | Create From Text builds a graph from changed text; `words` is the number of words |
-| `GraphReset` | None | The student confirms Reset |
+| `GraphReset` | `{ mode }` | The student confirms Reset |
 
 ## Input
 
@@ -46,8 +47,8 @@ A state is named by its label. The generator's settings, which several events ca
 |-------|-----------|------|
 | `InputCommitted` | `{ view: "text" \| "table", how: "separator" \| "insert" \| "remove" \| "pause" \| "blur" \| "row", tokens, states }` | The input commits and the graph changes: `tokens` (the words, plus one for each run of blank lines between words) and `states` are the counts after it |
 | `CaseSensitivityChanged` | `{ caseSensitive, states }` | The student changes the "Case sensitive" switch, which reads the input again; `states` is the count after it |
-| `TableRowAdded` | None | The student adds a row to the input table |
-| `TableRowDeleted` | None | The student deletes a row from the input table |
+| `TableRowAdded` | `{ mode }` | The student adds a row to the input table |
+| `TableRowDeleted` | `{ mode }` | The student deletes a row from the input table |
 
 ## Panes and Inspect
 
@@ -58,3 +59,11 @@ A state is named by its label. The generator's settings, which several events ca
 | `PaneResized` | `{ divider: "input" \| "inspect" \| "rows" \| "inputSplit", sizes }` | A divider drag ends, or a divider moved with the arrow keys loses focus: `sizes` is `{ input, inspect, top }` in px for the pane dividers (fitted to a narrow row, so a column divider's can be fractional), and `{ inputSplit }`, the text box's share of the linked view's height, for the split |
 | `InspectTabChosen` | `{ tab: "states" \| "transitions" }` | The student chooses an Inspect tab |
 | `InspectSorted` | `{ tab, column, direction: "ascending" \| "descending" }` | The student sorts an Inspect table by a column |
+
+## Modes and views
+
+| Event | Parameters | When |
+|-------|-----------|------|
+| `ModeSwitched` | `{ mode }` | The student switches between Data and Draw; `mode` is the mode switched to |
+| `ProbabilitiesToggled` | `{ on }` | The student presses "Show probabilities" |
+| `OrderMattersToggled` | `{ on }` | The student changes the "Order matters" switch |
