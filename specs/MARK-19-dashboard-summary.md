@@ -1,25 +1,14 @@
 # The AP Interactive's Summary of Each Student's Work in the Dashboard
 
 **Jira**: https://concord-consortium.atlassian.net/browse/MARK-19
-**Repo**: https://github.com/concord-consortium/markov-chain-plugin
-**Implementation Spec**: [implementation.md](implementation.md)
-**Status**: **In Development**
+
+**Status**: **Closed**
 
 ## Overview
 
 The class dashboard's side panel shows a short plain text summary of a student's work at the moment the history scrubber is on, in place of the placeholder and the inline "View Work" view. A teacher can see what changed from step to step without opening the full view.
 
-## Project Owner Overview
-
-Teachers scrubbing through a student's history in the side panel see nothing change today unless they open "View Work", and that view is cramped. This story replaces it with three lines under "The student has saved work in the interactive.": what the student built, their outputs, and their settings. The lines change as the scrubber moves. "Open in new tab" stays for the full read-only view, and still opens the moment the scrubber is on.
-
-Rebecca Ellis's preferred layout, with "View Work" opening the stats below the scrubber, needs a change to the class dashboard and isn't part of this story. The summary was sent to Rebecca on 2026-11-07 and her reply is open; the design stands unless she changes it.
-
-## Background
-
-MARK-17 saves a student's whole state, makes the dashboard's scrubber step through saved moments, and left a placeholder in the report item ("A summary of their work comes in a later version."). Its R27 dropped `hideViewInline` so moving the scrubber changed something a teacher could see. With a summary that changes per step, the inline view is no longer needed, and Rebecca's "Friday Nov 6 Updates" asks for stats rather than the view. The "Steps recorded" part of that section belongs to MARK-28.
-
-The dashboard already does what the summary needs (Technical Notes): each step sends `getReportItemAnswer` with that step's state, and the report item's HTML is drawn above the scrubber.
+Rebecca Ellis's preferred layout, with "View Work" opening the stats below the scrubber, needs a change to the class dashboard and isn't part of this story.
 
 ## Requirements
 
@@ -60,7 +49,7 @@ The dashboard already does what the summary needs (Technical Notes): each step s
 
 ### What else changes
 
-- **R15.** The demo page's "Report item, full answer" shows the summary of the state the runtime last saved, or of the authored page before any save, in a frame tall enough for all four lines (it is 60px today). The placeholder's constant goes.
+- **R15.** The demo page's "Report item, full answer" shows the summary of the state the runtime last saved, or of the authored page before any save, in a frame tall enough for all four lines. The placeholder's constant goes.
 - **R16.** `README.md`'s description of `report-item.html` and the comments in `report-item-answer.ts` change to match. The demo page's Cypress test checks the summary of its starting text (`Data: 11 words, 7 states`) in place of the placeholder, that the frame follows a save, and that it holds all four lines without scrolling.
 - **R17.** The CODAP plugin does not change. No file under `src/components` or `src/hooks` changes, and the built `index.*.js` and `main.*.css` are byte-identical to master's.
 
@@ -81,9 +70,9 @@ The dashboard already does what the summary needs (Technical Notes): each step s
 - **Injected styles.** `updateReportItemAnswerItems` prepends only the font and `.tall`/`.wide` display rules. `.wide` is `display: flex; flex-direction: row`.
 - **Orientation.** `overlay-student-response.tsx` passes `tall`. The popup lists pass `wide`.
 
-### Checked by running it (throwaway code, since deleted)
+### Checked by running it
 
-A prototype built on `restoreWork`, run in Jest and through a production build:
+A throwaway prototype built on `restoreWork`, run in Jest and through a production build:
 
 - `restoreWork` gives everything the summary needs, and agrees with the read-only view by construction. With `caseSensitive: true` saved on a page with no case switch, `The the` is 1 state under `restoreWork`; reading `caseSensitive` straight off the state, as the first sketch of this story did, gives 2.
 - `null`, `{}`, `{ version: 1 }`, an unparseable string, a JSON string and a state from MARK-15 all read without throwing.
@@ -108,9 +97,9 @@ The summary needs the generator's `(any)` label and its default Max Length, and 
 - A sequence in a save is at least one state long, even one saved part way through (MARK-17's R4). An empty one in a damaged state counts and shows no "latest".
 - Outputs aren't cleared when the input changes, and a group doesn't record the text it came from, so outputs from earlier text still count while the settings match.
 
-### Checked by building the proposed code (throwaway, since deleted)
+### Checked by building it
 
-The whole change was written out as the implementation spec describes and run, then removed:
+The whole change was built as throwaway code before implementation and run:
 
 - Jest, all suites, passed, including the new tests. Each of 24 mutations of the summary and the answer (dropping one compared setting, comparing `group.startingState`, taking the oldest output, skipping escaping, splitting by code unit, not clamping Max Length, matching the start by label, reading Data mode's order in Draw mode, showing "View Work", answering a compact answer with items, dropping the state or the authored state, changing either repeated value) failed at least one test. A 25th, `readOnly: false`, changes nothing the summary reads, so no test can see it.
 - Cypress `interactive-report-item.test.ts` and `interactive-demo.test.ts` passed in Chrome, including two requests with different states in one frame. Dropping the authored state in the handler, or the escaping, failed `interactive-report-item.test.ts`.
@@ -129,18 +118,20 @@ The whole change was written out as the implementation spec describes and run, t
 - The note on `report-item.html` opened on its own, which still names the Markov interactive for a developer.
 - Anything in the CODAP plugin, and any change to what is saved.
 
-## Open Questions
+## Decisions
 
-### RESOLVED: What does "outputs that match the current settings" mean once settings change after outputs exist?
+### What does "outputs that match the current settings" mean once settings change after outputs exist?
 **Context**: "Current" has to mean the settings of the moment the scrubber is on, since each step is its own saved state. A student with 12 outputs at Max Length 20 who changes it to 10 reads `Outputs: 0` at that step, the same as a student with no outputs, and "latest" goes away until they generate again. The full list stays in "Open in new tab".
 **Options considered**:
 - A) As Jira and the note to Rebecca say: count only matching outputs, and "latest" is the newest of those (R3, R5). The drop to 0 shows the settings changed.
 - B) Keep the match but show the total too: `Outputs: 3 of 12, latest: ...`.
 - C) Count every output in the mode, and "latest" is the newest overall.
 
-**Decision**: A (Doug). This, the zeros (R7), punctuation counting as a word (R2) and the 60-character cut (R10) are going to Rebecca as defaults; the spec changes if she answers differently.
+**Decision**: A (Doug). This, the zeros (R7), punctuation counting as a word (R2) and the 60-character cut (R10) are defaults for Rebecca to confirm.
 
-### RESOLVED: Low confidence: should punctuation count as a word on the "Data" line?
+---
+
+### Should punctuation count as a word on the "Data" line?
 **Context**: The tokenizer keeps `.,?!:;` as words, and they are states on the graph, so `the cat sat.` reads `Data: 4 words, 4 states`. A teacher may count 3.
 **Options considered**:
 - A) Count them, matching the input table's rows and the graph's states (R2).
@@ -148,55 +139,89 @@ The whole change was written out as the implementation spec describes and run, t
 
 **Decision**: A. A teacher who opens the work in a new tab sees `.` as a row and a state, and B would make "words" disagree with both. The count is a rough measure of how much the student has, not a word count for grading.
 
-### RESOLVED: Judgment call: read saved work through `restoreWork`, or straight off the state?
+---
+
+### Read saved work through `restoreWork`, or straight off the state?
 **Options considered**:
 - A) `input.text` through the tokenizer with `caseSensitive`, falling back to `startingText`, as the first sketch said.
 - B) `restoreWork`, as the read-only view does.
 
 **Decision**: B. A disagrees with "Open in new tab" on a page with no Input pane or no case switch, and repeats rules that already exist.
 
-### RESOLVED: Judgment call: what is compared when matching outputs?
+---
+
+### What is compared when matching outputs?
 **Options considered**:
 - A) Every field that splits a group: starting state, Max Length, "Order matters", delimiter.
 - B) Only the three the summary shows.
 
 **Decision**: B. A teacher can check the count against line three. Under A, changing a space delimiter to a comma would zero the count with nothing on the line to explain it.
 
-### RESOLVED: Judgment call: what does a student with no state show?
+---
+
+### What does a student with no state show?
 **Options considered**:
 - A) The sentence alone.
 - B) The summary of the authored page.
 
 **Decision**: B. It is what the read-only view shows (MARK-17's R22), and it needs no second path. The dashboard's `hasResponse` shows "No response" for a null or empty state, so only a state with keys gets here.
 
-## Self-Review
+---
 
-Reviewed as senior engineer, security engineer, QA engineer, teacher, and accessibility reviewer. Each finding was checked against the code, and the fixes are in the requirements above.
-
-- The demo's report item frame is fixed at 60px, which would clip the four lines (R15).
-- R7 described a missing state reaching the summary. `hasResponse` stops a null or empty state first, so R7 now names the case that does reach it.
-- `requestReportItemAnswer` on the fake Activity Player page always sends the state it was started with, so R19's second request needs an optional state argument.
-
-A second review, as senior engineer, QA engineer, security engineer, teacher and accessibility reviewer, ran the proposed code and the real workspace. The fixes to R2, R5 and R10 and to the tests came from it (implementation.md, Self-Review).
-
-A third review, as senior engineer, QA engineer and teacher, reran the fuzz and the real workspace on the current code. R5 said a heading shows where an output really started, which a shared group can break (Other notes), and R16's demo test now follows a save.
-
-A fourth review, as senior engineer, QA engineer, new developer and accessibility reviewer, followed the steps literally and read the summary's accessibility tree in Chrome. R5 now says a renamed state keeps its outputs, and R16's demo test checks the frame's height, which nothing failed on at 60px. In that tree the three lines are separate text nodes in reading order.
-
-### Teacher
-
-#### RESOLVED: What do lines two and three say on a page with no Sequence generator pane?
-An author can turn the pane off, which leaves the read-only view with no outputs or settings to show, while the summary still reads `Outputs: 0` and its settings, or `Outputs: 1, latest: a` if outputs were saved before the author turned it off (run on the proposed code). This isn't the "zeros show" decision, which is about a student with no work.
+### What do lines two and three say on a page with no Sequence generator pane?
+**Context**: An author can turn the pane off, which leaves the read-only view with no outputs or settings to show, while the summary still reads `Outputs: 0` and its settings, or `Outputs: 1, latest: a` if outputs were saved before the author turned it off (run on the proposed code). This isn't the "zeros show" decision, which is about a student with no work.
+**Options considered**:
 - A) Keep all three lines.
 - B) Leave out lines two and three on such a page, a small check on `config.panes` in `reportSummaryLines`.
 
 **Decision**: A (Doug). One path on every page, and an author removing the generator after students start is rare. R7 says so.
 
-### Accessibility
+---
 
-#### RESOLVED: Should the summary name its own frame?
-The dashboard draws the frame with no `title`, and the document in it has no `<title>` or `lang`, so in Chrome's accessibility tree both the frame and its document have an empty name. The report item can't reach the frame's attribute. Starting the html with a `<title>` names the document (run: `Summary of saved work`), and the frame stays unnamed.
+### Should the summary name its own frame?
+**Context**: The dashboard draws the frame with no `title`, and the document in it has no `<title>` or `lang`, so in Chrome's accessibility tree both the frame and its document have an empty name. The report item can't reach the frame's attribute. Starting the html with a `<title>` names the document (run: `Summary of saved work`), and the frame stays unnamed.
+**Options considered**:
 - A) Leave it: the frame belongs to the dashboard, and the placeholder had the same gap.
 - B) Add a `<title>` to `reportSummaryHtml`, which is a new string for Doug or Rebecca Ellis to word.
 
 **Decision**: A. The frame belongs to the dashboard, a `<title>` wouldn't name it, and B adds wording nobody has agreed. A named frame is a change to the class dashboard.
+
+---
+
+### Several commits, or one?
+**Options considered**:
+- A) One commit, about 390 lines.
+- B) Two: the pure function, then the wiring with the demo and README.
+
+**Decision**: B. A newer reviewer reads the rules on their own before seeing how they reach the dashboard, and each commit is green on its own.
+
+---
+
+### Where do the generator's `(any)` label and default Max Length come from?
+**Options considered**:
+- A) Move both to `app-utils.ts` and import them. The plugin's bundle came out byte-identical, but plugin source files change.
+- B) Keep copies in `report-summary.ts`, each asserted against the real value by a test.
+
+**Decision**: B (Doug). MARK-19 stays in the report item's files, and the tests stop the copies drifting.
+
+---
+
+### Should `RestoredMode.tool` be narrowed in `restore-work.ts`?
+**Options considered**:
+- A) Narrow the type, so the summary needs no cast.
+- B) Leave `restore-work.ts` alone and cast in the summary.
+
+**Decision**: B. The report item doesn't need the change: it is one cast in one place, and it keeps the workspace's code out of this story.
+
+---
+
+### What the spec reviews changed
+
+Each finding was checked against the code or by throwaway code, and the requirements and notes above carry the result.
+
+- Outputs compared `group.startingState`, which missed outputs generated after the chosen state left the graph, so the filter compares `startingNode` (R5). A shared group can still leave a heading wrong for a later output, and the count follows the heading (Other notes).
+- R10 claimed an emoji is never split; it is counted by code point, so a surrogate pair isn't.
+- R2's words are the filled rows of the input table, since a blank line is an empty row.
+- The demo's report item frame was 60px, which would clip the four lines (R15).
+- Several planned tests could not fail until they were tightened: dropping the authored state, comparing a drawn state by label, Draw mode reading Data mode's order, an authored state sent as a string, the demo frame ignoring a save or staying at 60px, and an escaped label that never reached an answer.
+- The code reviews added tests for the newest output within a group, blank lines, a page with no generator pane, an empty output, both sides of the demo frame's authored state, and counting only the mode showing.
