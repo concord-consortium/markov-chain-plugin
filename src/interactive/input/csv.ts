@@ -99,7 +99,12 @@ export const textFromCells = (cells: string[], layout: RowLayout) => {
 };
 
 export const readCsv = (bytes: Uint8Array, layout: RowLayout): CsvRead => {
-  const { name, cells } = firstColumn(parseCsv(decodeCsv(bytes)));
+  const file = decodeCsv(bytes);
+  // no text file holds a NUL: this is an image, a workbook or UTF-16
+  if (file.includes("\0")) {
+    return { ok: false, reason: "unreadable" };
+  }
+  const { name, cells } = firstColumn(parseCsv(file));
   const values = cells.filter(cell => cell).length;
   if (values === 0) {
     return { ok: false, reason: "noValues" };

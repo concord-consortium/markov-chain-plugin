@@ -43,7 +43,7 @@ This story gives students that start. A student with a CSV file (from CODAP, a s
   - the text built from the values (R8) would pass MARK-15's 50,000-character limit (checked here, since the text box's `maxLength` doesn't limit text set by code) (about 8,500 English words one per cell; more for short codes such as "H" and "T"): "This file is too big: its values come to more than 50,000 characters." Nothing is loaded: the file is refused whole, not cut to what fits.
   - the file is larger than 2 MB, checked before it is read, so a large file never stalls the page (a 2 MB file with ten columns parses in about 0.2 s): "This file is too big to read."
   - the column has no values (an empty file, or only a header): "This file has no values to use."
-  - the file can't be read: "This file couldn't be read."
+  - the file can't be read, or holds a NUL byte, so it isn't text (an image, an Excel workbook, UTF-16): "This file couldn't be read."
 - **R13.** Choosing the same file again after a refusal or an upload reads it again (the file chooser's value is cleared after each choice).
 
 ### Saving
@@ -126,6 +126,9 @@ This story gives students that start. A student with a CSV file (from CODAP, a s
 
 ### Why do `CsvUploaded`'s counts differ from cells?
 **Decision**: Consecutive empty cells are one break in the tokenizer, so `rows` is the file's, `tokens` the table's after the upload, and `states` the graph's.
+
+### What happens to a file that isn't a CSV?
+**Decision**: A file holding a NUL byte is refused as unreadable, since it would otherwise load as junk states, replacing an empty input with no question. Any other text file is read as one column whatever its name, as the format allows: the file chooser offers `.csv` files, but a student can pick another with "All files", and a file with no commas or quotes is a valid CSV.
 
 ### Who owns the status line and the question?
 **Decision**: `DataWorkspace` keeps the status and clears it in `commitText`, the one place that knows a commit changed the text; `CsvUpload` keeps only the held file. An effect in `CsvUpload` would also fire for the upload's own commit.

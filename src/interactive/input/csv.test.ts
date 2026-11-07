@@ -68,6 +68,14 @@ describe("decodeCsv", () => {
   });
 });
 
+describe("a file that isn't text", () => {
+  it("refuses bytes holding a NUL, as an image's do", () => {
+    expect(readCsv(new Uint8Array([0x89, 0x50, 0x0a, 0x00, 0x0a, 0x61]), "list")).toEqual({
+      ok: false, reason: "unreadable"
+    });
+  });
+});
+
 describe("leading # lines", () => {
   it("skips them whole, so a quote in one opens nothing", () => {
     expect(parseCsv("# note: a,\"b\r\n# two\nword\ncat")).toEqual([["word"], ["cat"]]);
