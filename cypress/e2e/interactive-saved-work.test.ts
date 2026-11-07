@@ -441,14 +441,14 @@ describe("saving work", () => {
     posts().should(states => expect(states).to.deep.equal([undefined]));
   });
 
-  it("saves a collapsed pane at a page leave, and not before", () => {
+  it("saves a sort at a page leave, and not before", () => {
     start();
     graphReady();
-    paneToggle("Inspect").click();
+    inspectHeader("Count").find("button").click();
     pastDebounce();
     posts().should("have.length", 0);
     leavePage();
-    firstPost().its("useData.panes.inspect").should("equal", false);
+    firstPost().its("useData.inspect.sorts.states.column").should("equal", "count");
   });
 
   it("saves a wheel zoom at a page leave, and not before", () => {
@@ -484,38 +484,38 @@ describe("saving work", () => {
     firstPost().its("draw.view.k").should("be.a", "number");
   });
 
-  it("saves Inspect's tab and sort and the input's split at a page leave", () => {
+  it("saves Inspect's sort and the input's split at a page leave", () => {
     start();
     graphReady();
     shown().find(".inspect-tab").contains("Transitions").click();
     inspectHeader("Probability").find("button").click();
     divider("Resize the text box and the table").focus().type("{downArrow}");
     leavePage();
-    firstPost().then(state => {
+    lastPost().then(state => {
       expect(state.useData.inspect.tab).to.equal("transitions");
       expect(state.useData.inspect.sorts.transitions).to.deep.equal({ column: "probability", ascending: true });
       expect(state.useData.inputSplit).to.be.greaterThan(0.4);
     });
   });
 
-  it("carries a pane collapsed before a word was typed", () => {
+  it("carries a sort made before a word was typed", () => {
     start();
     graphReady();
-    paneToggle("Inspect").click();
+    inspectHeader("Count").find("button").click();
     typeWord("ran");
     firstPost().then(state => {
-      expect(state.useData.panes.inspect).to.equal(false);
+      expect(state.useData.inspect.sorts.states.column).to.equal("count");
       expect(state.input.text).to.equal(`${startingText} ran`);
     });
   });
 
-  it("saves a pane collapsed by a student with work at a page leave", () => {
+  it("saves a sort made by a student with work at a page leave", () => {
     start({}, { version: 1, input: { text: "my words" } });
     graphReady();
-    paneToggle("Inspect").click();
+    inspectHeader("Count").find("button").click();
     leavePage();
     firstPost().then(state => {
-      expect(state.useData.panes.inspect).to.equal(false);
+      expect(state.useData.inspect.sorts.states.column).to.equal("count");
       expect(state.input.text).to.equal("my words");
     });
   });
@@ -669,6 +669,17 @@ describe("saving work", () => {
     });
   });
 
+  it("makes no step for highlighting or reordering Inspect's rows", () => {
+    start();
+    graphReady();
+    shown().find(".inspect-row-button").first().click();
+    shown().find(".inspect-table tbody tr").eq(1).click();
+    inspectHeader("Count").find("button").click();
+    inspectHeader("State").find("button").click();
+    pastDebounce();
+    posts().should("have.length", 0);
+  });
+
   describe("posts once for", () => {
     const withOutput = { version: 1, useData: { outputs: outputs([["the", "cat"]]) } };
     const drawn = { version: 1, mode: "draw", draw: { drawing } };
@@ -715,6 +726,26 @@ describe("saving work", () => {
         state => expect(state.caseSensitive).to.equal(true)],
       ["Show probabilities", () => start(), () => shown().find(".probabilities-toggle").click(),
         state => expect(state.probabilities).to.equal(true)],
+      ["a pane closed", () => start(), () => paneToggle("Inspect").click(),
+        state => expect(state.useData.panes.inspect).to.equal(false)],
+      ["a pane opened", () => start({}, { version: 1, useData: { panes: { inspect: false } } }),
+        () => paneToggle("Inspect").click(), state => expect(state.useData.panes.inspect).to.equal(true)],
+      ["the generator closed", () => start(), () => paneToggle("Sequence Generator").click(),
+        state => expect(state.useData.panes.generator).to.equal(false)],
+      ["the generator's controls closed", () => start(), () => shown().find(".controls-toggle").click(),
+        state => expect(state.useData.controlsOpen).to.equal(false)],
+      ["a drawing's pane closed", () => startDrawing(drawn), () => paneToggle("Inspect").click(),
+        state => expect(state.draw.panes.inspect).to.equal(false)],
+      ["Inspect's tab", () => start(), () => shown().find(".inspect-tab").contains("Transitions").click(),
+        state => expect(state.useData.inspect.tab).to.equal("transitions")],
+      ["a drawing's Inspect tab", () => startDrawing(drawn),
+        () => shown().find(".inspect-tab").contains("Transitions").click(),
+        state => expect(state.draw.inspect.tab).to.equal("transitions")],
+      ["a switch to Draw", () => start({ modes: { useData: true, draw: true } }), draw,
+        state => expect(state.mode).to.equal("draw")],
+      ["a switch to Data", () => start({ modes: { useData: true, draw: true }, startingMode: "draw" }, drawn),
+        () => shown().find(".mode-switch label").contains("Data").click(),
+        state => expect(state.mode).to.equal("useData")],
       ["a Data-mode state dragged", () => start(), () => dragState("cat", 30, 20), state => {
         stateEllipse("cat").then(ellipse => {
           expect(state.useData.positions[2]).to.be.closeTo(Number(ellipse.attr("cx")), 1);
