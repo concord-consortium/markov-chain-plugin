@@ -308,6 +308,14 @@ describe("the interactive's Upload CSV button", () => {
     nothingSaved();
   });
 
+  it("refuses a file that isn't text", () => {
+    start({ startingText: "the old words" });
+    choose("\u0089PNG\n\0\0\nIHDR\n");
+    status().should("have.text", "This file couldn't be read.");
+    question().should("not.exist");
+    textBox().should("have.value", "the old words");
+  });
+
   it("refuses a file the browser can't read", () => {
     start({ startingText: "the old words" });
     cy.get<HTMLIFrameElement>("iframe#interactive").then(frame => {
