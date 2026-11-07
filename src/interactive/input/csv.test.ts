@@ -29,6 +29,10 @@ describe("parseCsv", () => {
     expect(parseCsv(`a${lineEnd}b`)).toEqual([["a"], ["b"]]);
   });
 
+  it("keeps a last row of an empty quoted field with no final line break", () => {
+    expect(parseCsv("w\na\n\"\"")).toEqual([["w"], ["a"], [""]]);
+  });
+
   it("adds no row for a final line break", () => {
     expect(parseCsv("w\n")).toEqual([["w"]]);
   });
@@ -55,6 +59,10 @@ describe("decodeCsv", () => {
     expect(decodeCsv(new Uint8Array([0xef, 0xbb, 0xbf, 0x61]))).toBe("a");
   });
 
+  it("drops a byte order mark from bytes that aren't valid UTF-8", () => {
+    expect(decodeCsv(new Uint8Array([0xef, 0xbb, 0xbf, 0x63, 0x61, 0x66, 0xe9]))).toBe("café");
+  });
+
   it("reads valid UTF-8 as itself", () => {
     expect(decodeCsv(bytesOf("ü"))).toBe("ü");
   });
@@ -65,6 +73,20 @@ describe("leading # lines", () => {
     expect(parseCsv("# note: a,\"b\r\n# two\nword\ncat")).toEqual([["word"], ["cat"]]);
   });
 
+  it("ends one at a lone carriage return", () => {
+    expect(parseCsv("# a\rword\rcat")).toEqual([["word"], ["cat"]]);
+  });
+
+  it("skips those of a CODAP export", () => {
+    const csv = "# name: data\n# attribute -- name: weather\n# attribute -- name: day\n" +
+      "weather,day\nsunny,1\nrainy,2\n,3\nSunny,4\n";
+    expect(firstColumn(parseCsv(csv))).toEqual({ name: "weather", cells: ["sunny", "rainy", "", "Sunny"] });
+  });
+
+  it("gives a file holding only them no column", () => {
+    expect(firstColumn(parseCsv("# name: data\n"))).toEqual({ name: "", cells: [] });
+  });
+
   it("reads the file after a # line holding an open quote", () => {
     expect(readCsv(bytesOf("# note: a,\"b\nword\ncat\ndog\n"), "list")).toMatchObject({
       ok: true, column: "word", text: "cat\ndog"
@@ -73,12 +95,6 @@ describe("leading # lines", () => {
 });
 
 describe("firstColumn", () => {
-  it("skips a CODAP export's leading # lines", () => {
-    const csv = "# name: data\n# attribute -- name: weather\n# attribute -- name: day\n" +
-      "weather,day\nsunny,1\nrainy,2\n,3\nSunny,4\n";
-    expect(firstColumn(parseCsv(csv))).toEqual({ name: "weather", cells: ["sunny", "rainy", "", "Sunny"] });
-  });
-
   it("keeps a # value after the header", () => {
     expect(firstColumn(parseCsv("word\n#1\n#2")).cells).toEqual(["#1", "#2"]);
   });
@@ -89,10 +105,6 @@ describe("firstColumn", () => {
 
   it("reads a row with no first value as an empty cell", () => {
     expect(firstColumn(parseCsv("word,n\n,1\nb,2")).cells).toEqual(["", "b"]);
-  });
-
-  it("gives a file of # lines no column", () => {
-    expect(firstColumn(parseCsv("# name: data\n"))).toEqual({ name: "", cells: [] });
   });
 
   it("writes line breaks inside a cell as spaces", () => {
