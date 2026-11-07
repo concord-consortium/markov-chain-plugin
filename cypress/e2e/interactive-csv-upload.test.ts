@@ -59,6 +59,12 @@ describe("the interactive's Upload CSV button", () => {
     });
   });
 
+  it("shows with both switches hidden", () => {
+    start({ showCaseSwitch: false, orderMatters: { startsOn: true, showSwitch: false } });
+    cy.interactive().find(".setting-switch").should("not.exist");
+    cy.interactive().find(".input-controls .csv-upload-button").should("be.enabled");
+  });
+
   it("names what it does to a screen reader, and hides the file input", () => {
     start();
     uploadButton().invoke("attr", "aria-describedby").then(id => {

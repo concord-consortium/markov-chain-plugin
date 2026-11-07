@@ -2,8 +2,7 @@ import { maxInputLength } from "../interactive-state";
 import { RowLayout, separatorBefore } from "./table-edits";
 import { rowText, textForRow } from "./tokenizer";
 
-// A CSV file's first column as the input's text: each cell one table row, an empty cell a break, written as the
-// table writes rows. RFC 4180, commas only.
+// A CSV file's first column as the input's text, written as the table writes rows. RFC 4180, commas only.
 
 export type CsvRefusal = "tooLarge" | "tooLong" | "noValues" | "unreadable";
 export type CsvRead =
