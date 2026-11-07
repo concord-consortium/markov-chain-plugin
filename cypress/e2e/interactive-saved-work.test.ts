@@ -2,6 +2,7 @@ import { defaultAuthoredState } from "../../src/interactive/authored-state";
 import {
   decodeOutputs, encodeOutputs, maxDelimiterLength, maxOutputBytes, savedBytes
 } from "../../src/interactive/saved-outputs";
+import { textSavePause } from "../../src/interactive/workspace/use-text-save";
 import { Node } from "../../src/type";
 import { animatedNodeColor, pastDoubleClick, selectedNodeColor } from "../support/graph";
 import { divider, loggedEvents, parseTransform, stateEllipse } from "../support/workspace";
@@ -667,6 +668,147 @@ describe("saving work", () => {
       expect(positions.slice(0, 6)).to.deep.equal([-90, 0, 0, 60, 90, 0]);
       expect(positions).to.have.length(8);
     });
+  });
+
+  describe("the input's steps in the teacher's history", () => {
+    const pastPause = () => cy.wait(textSavePause + 2500);
+    // a post already here, sooner than the pause and the library's 2 seconds could bring it; then() doesn't retry
+    const postBeforePause = () => {
+      pastDebounce();
+      return posts().then(states => {
+        expect(states).to.have.length(1);
+        return states[0];
+      });
+    };
+    const typeWords = (words: string) => textBox().type(words);
+    const tableRow = (label: string) => shown().find(`.input-table input[aria-label='${label}']`);
+
+    beforeEach(() => {
+      start({ inputView: "textAndTable" });
+      graphReady();
+      cy.wait(300);
+    });
+
+    it("makes one step for words typed in a row, once the typing has paused", () => {
+      typeWords(" and ");
+      cy.wait(1000);
+      typeWords("a dog ");
+      shown().find("g.node").should("have.length", 6);
+      pastDebounce();
+      posts().should("have.length", 0);
+      pastPause();
+      posts().should("have.length", 1);
+      firstPost().then(state => {
+        expect(state.input.text).to.equal(`${startingText} and a dog `);
+        expect(state.useData.positions).to.have.length(12);
+      });
+    });
+
+    it("waits out each new keystroke, even one that commits nothing", () => {
+      typeWords(" ran ");
+      cy.wait(textSavePause - 1500);
+      typeWords("f");
+      cy.wait(textSavePause - 1500);
+      typeWords("a");
+      pastDebounce();
+      posts().should("have.length", 0);
+    });
+
+    it("saves the committed text at the pause, leaving out a word still being typed", () => {
+      typeWords(" ran fa");
+      pastPause();
+      posts().should("have.length", 1);
+      firstPost().its("input.text").should("equal", `${startingText} ran `);
+    });
+
+    it("saves at once when the text box loses focus after a change", () => {
+      typeWords(" ran");
+      textBox().blur({ force: true });
+      postBeforePause().its("input.text").should("equal", `${startingText} ran`);
+      pastPause();
+      posts().should("have.length", 1);
+    });
+
+    it("makes no step for a focus lost with no change", () => {
+      textBox().focus().blur({ force: true });
+      pastDebounce();
+      posts().should("have.length", 0);
+    });
+
+    it("makes no step for text typed and taken back", () => {
+      typeWords(" ");
+      typeWords("{backspace}");
+      pastPause();
+      posts().should("have.length", 0);
+    });
+
+    it("lets another save take the text, and adds no step of its own after it", () => {
+      typeWords(" ran ");
+      // a drag moves no focus, so the pause is still running when the drag saves
+      dragState("cat", 30, 20);
+      textBox().should("have.focus");
+      firstPost().its("input.text").should("equal", `${startingText} ran `);
+      pastPause();
+      posts().should("have.length", 1);
+    });
+
+    it("doesn't step for the graph drawn for a word typed after a save", () => {
+      shown().find(".probabilities-toggle").click();
+      firstPost();
+      pastDebounce();
+      posts().should("have.length", 1);
+      typeWords(" ran ");
+      shown().find("g.node").should("have.length", 5);
+      pastDebounce();
+      posts().should("have.length", 1);
+    });
+
+    it("answers a page leave before the pause with the text, even one with the same words", () => {
+      typeWords(" ");
+      leavePage();
+      firstPost().its("input.text").should("equal", `${startingText} `);
+    });
+
+    it("holds rows committed in the table for one step when focus leaves it", () => {
+      tableRow("New row").type("ran{enter}");
+      tableRow("New row").type("far{uparrow}");
+      shown().find("g.node").should("have.length", 6);
+      pastDebounce();
+      posts().should("have.length", 0);
+      tableRow("Row 1").blur({ force: true });
+      postBeforePause().its("input.text").should("contain", "ran").and("contain", "far");
+      pastDebounce();
+      posts().should("have.length", 1);
+    });
+
+    it("makes one step for rows committed in the table at the pause, each row's typing putting it off", () => {
+      tableRow("New row").type("ran{enter}");
+      cy.wait(textSavePause - 1500);
+      tableRow("New row").type("f");
+      cy.wait(textSavePause - 500);
+      posts().should("have.length", 0);
+      pastPause();
+      posts().should("have.length", 1);
+      firstPost().its("input.text").should("contain", "ran");
+    });
+
+    it("saves a deleted row at the pause", () => {
+      shown().find(".delete-row").first().click();
+      pastDebounce();
+      posts().should("have.length", 0);
+      pastPause();
+      posts().should("have.length", 1);
+    });
+  });
+
+  it("saves an upload at once, without the typing's pause", () => {
+    start({ allowCsvUpload: true, startingText: "" });
+    shown().find(".input-pane input[type='file']")
+      .selectFile({ contents: Cypress.Buffer.from("words\none\ntwo\n"), fileName: "w.csv" }, { force: true });
+    shown().find("g.node").should("have.length", 2);
+    pastDebounce();
+    posts().should("have.length.at.least", 1);
+    lastPost().its("input.text").should("contain", "two");
   });
 
   it("makes no step for highlighting or reordering Inspect's rows", () => {

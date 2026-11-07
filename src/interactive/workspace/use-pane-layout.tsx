@@ -18,6 +18,8 @@ export interface ModeSaving {
   requestSave: () => void;
   markActive: () => void;
   afterDraw: () => void;
+  // the text the last save held
+  savedTextRef: React.RefObject<string>;
 }
 
 const dividerLabels: Record<PaneDivider, string> = {

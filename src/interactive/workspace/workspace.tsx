@@ -103,8 +103,13 @@ export const Workspace = ({
   }, [animating, dataGroups, drawGroups, outputLimitReached, limitReachedRef, logRef]);
 
   const reportsRef = useRef<Record<ModeId, ModeReport>>({ useData: {}, draw: {} });
+  const savedTextRef = useRef(restored.text);
   const { afterDraw } = useSavedWork({
     saver, request, activeRef, animating,
+    onSaved: () => {
+      savedTextRef.current = reportsRef.current.useData.text ?? savedTextRef.current;
+    },
+    saveDue: () => (reportsRef.current.useData.text ?? savedTextRef.current) !== savedTextRef.current,
     build: () => buildInteractiveState(savedState, {
       offered: authoredState.modes,
       hasInputPane: restored.hasInputPane,
@@ -116,8 +121,8 @@ export const Workspace = ({
     }),
   });
   const saving = useMemo(() => ({
-    useData: { report: reportsRef.current.useData, requestSave, markActive, afterDraw },
-    draw: { report: reportsRef.current.draw, requestSave, markActive, afterDraw },
+    useData: { report: reportsRef.current.useData, requestSave, markActive, afterDraw, savedTextRef },
+    draw: { report: reportsRef.current.draw, requestSave, markActive, afterDraw, savedTextRef },
   }), [requestSave, markActive, afterDraw]);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
