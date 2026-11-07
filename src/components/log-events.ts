@@ -5,8 +5,8 @@ export const logEvents = [
   "GeneratorSettingChanged", "OutputCleared", "OutputSelected", "OutputLimitReached",
   "StateSelected", "TransitionSelected", "SelectionCleared", "StateDialogOpened", "StateMoved",
   "StateAdded", "TransitionAdded", "StateDeleted", "TransitionDeleted", "StateEdited", "GraphReset",
-  "InputCommitted", "CaseSensitivityChanged", "TableRowAdded", "TableRowDeleted", "PaneOpened", "PaneClosed",
-  "PaneResized", "InspectTabChosen", "InspectSorted", "ModeSwitched",
+  "InputCommitted", "CaseSensitivityChanged", "TableRowAdded", "TableRowDeleted", "CsvUploaded",
+  "CsvUploadRefused", "PaneOpened", "PaneClosed", "PaneResized", "InspectTabChosen", "InspectSorted", "ModeSwitched",
   "ProbabilitiesToggled", "OrderMattersToggled", "TablesDialogOpened", "TablesDialogCanceled", "TablesDownloaded",
   "TablesSent", "TablesSendFailed",
 ] as const;

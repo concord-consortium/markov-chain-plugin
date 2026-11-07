@@ -22,6 +22,7 @@ describe("the interactive's authoring form", () => {
     cy.interactive().find("#usableModes").should("have.value", "both");
     cy.interactive().find("#startingMode").should("have.value", "useData");
     cy.interactive().find("#inputView").should("have.value", "textAndTable");
+    cy.interactive().find("#allowCsvUpload").should("not.be.checked");
     cy.interactive().find("#capitalization").should("have.value", "lowercase");
     cy.interactive().find("#showCaseSwitch").should("be.checked");
     cy.interactive().find("#orderMattersStartsOn").should("be.checked");
@@ -71,6 +72,7 @@ describe("the interactive's authoring form", () => {
       withChange({ startingMode: "draw" })],
     ["the input view", () => cy.interactive().find("#inputView").select("Table only"),
       withChange({ inputView: "table" })],
+    ["the CSV upload", () => cy.interactive().find("#allowCsvUpload").check(), withChange({ allowCsvUpload: true })],
     ["the case sensitivity students start with",
       () => cy.interactive().find("#capitalization").select("Yes: \"The\" and \"the\" are different words"),
       withChange({ capitalization: "asTyped" })],
@@ -124,8 +126,9 @@ describe("the interactive's authoring form", () => {
 
   it("opens showing a saved state", () => {
     const saved = withChange({
-      modes: { useData: true, draw: true }, startingMode: "draw", inputView: "text", capitalization: "asTyped",
-      showCaseSwitch: false, orderMatters: { startsOn: false, showSwitch: false }, startingText: "a big bag of words",
+      modes: { useData: true, draw: true }, startingMode: "draw", inputView: "text", allowCsvUpload: true,
+      capitalization: "asTyped", showCaseSwitch: false, orderMatters: { startsOn: false, showSwitch: false },
+      startingText: "a big bag of words",
       panes: {
         input: { available: true, startsOpen: false }, graph: { available: true, startsOpen: false },
         inspect: { available: false, startsOpen: true }, generator: { available: true, startsOpen: false },
@@ -142,6 +145,8 @@ describe("the interactive's authoring form", () => {
     cy.interactive().find("#capitalization").find("option:selected")
       .should("have.text", "Yes: \"The\" and \"the\" are different words");
     cy.interactive().find("label[for='capitalization']").should("have.text", "Case sensitive at the start");
+    cy.interactive().find("#allowCsvUpload").should("be.checked");
+    cy.interactive().find("#allowCsvUpload").closest("label").should("have.text", "Let students start from a CSV file");
     cy.interactive().find("#showCaseSwitch").should("not.be.checked");
     cy.interactive().find("#orderMattersStartsOn").should("not.be.checked");
     cy.interactive().find("#orderMattersShowSwitch").should("not.be.checked");
@@ -177,8 +182,9 @@ describe("the interactive's authoring form", () => {
     // the form is on the page, so what isn't there was left off rather than not drawn yet
     cy.interactive().find("#pane-inspect-startsOpen").should("exist");
     cy.interactive().find("#usableModes").should("have.value", "draw");
-    ["#inputView", "#capitalization", "#showCaseSwitch", "#orderMattersStartsOn", "#orderMattersShowSwitch",
-      "#startingText", "#pane-input", "#pane-input-startsOpen", "#pane-graph-startsOpen"].forEach(selector => {
+    ["#inputView", "#allowCsvUpload", "#capitalization", "#showCaseSwitch", "#orderMattersStartsOn",
+      "#orderMattersShowSwitch", "#startingText", "#pane-input", "#pane-input-startsOpen",
+      "#pane-graph-startsOpen"].forEach(selector => {
       cy.interactive().find(selector).should("not.exist");
     });
     cy.interactive().find("#usableModes").select("Both (with a toggle switch for students)");
