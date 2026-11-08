@@ -24,6 +24,7 @@ const submitLabels: Record<TablesAction, [string, string]> = {
   send: ["Send", "Saving..."], download: ["Download", "Downloading..."],
 };
 const failedMessage = "Your tables couldn't be saved. Check your connection and try again.";
+const downloadFailedMessage = "Your tables couldn't be downloaded. Try again.";
 
 // A modal dialog holds focus only within its own document, so in a frame Tab would carry on into the host's page.
 const wrapTab = (e: React.KeyboardEvent, dialog: Element) => {
@@ -84,7 +85,13 @@ export const TablesDialog = ({
     dialogRef.current?.focus();
     setSaving(true);
     if (action === "download") {
-      await downloadTables(dialogRef.current?.ownerDocument ?? document, trimmed, tables);
+      try {
+        await downloadTables(dialogRef.current?.ownerDocument ?? document, trimmed, tables);
+      } catch {
+        setProblem(downloadFailedMessage);
+        setSaving(false);
+        return;
+      }
       onFinished(trimmed, words);
       onClose();
       return;

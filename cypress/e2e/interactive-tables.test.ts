@@ -365,6 +365,22 @@ describe("the tables popup", () => {
       "\uFEFFState,Count\r\n\"a, b\",1\r\ncat,1\r\nthe,1\r\n");
   });
 
+  it("keeps the popup usable after a failed download, and leaves the count", () => {
+    start({ startingText: "the cat sat" });
+    open();
+    cy.get<HTMLIFrameElement>("iframe#interactive").its("0.contentWindow").then(win => {
+      (win as Window & typeof globalThis).URL.createObjectURL = () => { throw new Error("refused"); };
+    });
+    submit().click();
+    dialog().find("[role='alert']").should("have.text", "Your tables couldn't be downloaded. Try again.");
+    submit().should("be.enabled").and("have.text", "Download");
+    eventsNamed(action => action === "TablesDownloaded").should("have.length", 0);
+    cancel().click();
+    dialog().should("not.exist");
+    open();
+    nameField().should("have.value", "Data1");
+  });
+
   it("numbers names per mode, and Cancel leaves the count", () => {
     start({ startingText: "the cat sat", modes: { useData: true, draw: true } },
       { interactiveState: { version: 1, draw: { drawing } } });
