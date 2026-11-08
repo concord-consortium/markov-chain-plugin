@@ -1,5 +1,5 @@
 import {
-  defaultPaneSizes, minInputPart, minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, toolbarHeight,
+  defaultPaneSizes, minInputPart, minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, stackBelow, toolbarHeight,
   workspaceHeight
 } from "../../src/interactive/workspace/pane-sizes";
 import {
@@ -1765,6 +1765,22 @@ describe("the workspace's Case sensitive switch", () => {
     divider("Resize the text box and the table").should(band =>
       expect(Number(band.attr("aria-valuemin"))).to.be.at.most(Number(band.attr("aria-valuemax"))));
   });
+
+  [width, stackBelow, 560].forEach(frameWidth =>
+    it(`leaves the panes' gap around its edges at ${frameWidth} px`, () => {
+      start({ startingText: "the cat sat" }, { width: frameWidth });
+      cy.interactive().find(".markov-workspace").should(workspace => {
+        const outer = workspace[0].getBoundingClientRect();
+        const controls = workspace[0].querySelector(".controls-row")!.getBoundingClientRect();
+        const generator = workspace[0].querySelector(".generator-pane")!.getBoundingClientRect();
+        expect(workspace.hasClass("stacked")).to.equal(frameWidth < stackBelow);
+        expect(controls.left - outer.left).to.be.closeTo(paneGap, 0.5);
+        expect(controls.top - outer.top).to.be.closeTo(paneGap, 0.5);
+        expect(outer.right - generator.right).to.be.closeTo(paneGap, 0.5);
+        expect(outer.bottom - generator.bottom).to.be.closeTo(paneGap, 0.5);
+      });
+      cy.frameFitsInteractive();
+    }));
 
   it("lets the workspace's own row wrap at 700 px", () => {
     start({ startingText: "the cat sat", panes: { input: { available: false } } }, { width: 700 });

@@ -20,6 +20,7 @@ $setting-gap: 4px 12px;
   display: flex;
   flex-direction: column;
   gap: var(--pane-gap);
+  padding: var(--pane-gap);
 
   // a pane's body is a flex container, whose display would otherwise beat the browser's rule for [hidden]
   [hidden] {

@@ -127,7 +127,8 @@ export const Workspace = ({
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(rootRef);
-  const stacked = !!dimensions && dimensions.width < stackBelow;
+  // the observed width is inside the workspace's padding, and the panes stack by the interactive's whole width
+  const stacked = !!dimensions && dimensions.width + 2 * paneGap < stackBelow;
 
   // each body has its own copy of the switch, so a radio with focus hides itself: the shown body's takes focus
   const moveFocusRef = useRef(false);
