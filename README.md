@@ -119,8 +119,9 @@ beside the plugin:
   at meaningful moments, not on every keystroke. The class dashboard's read-only page shows the same workspace. The
   interactions the workspace logs to the Activity Player are listed in [LOGGED-EVENTS.md](LOGGED-EVENTS.md).
 - `report-item.html`: its report item, which answers the class dashboard with a short summary of a student's saved
-  work (what they built, their outputs and their settings) and an "Open in new tab" link to their read-only work. With
-  "Save Answer History" on, the summary follows the dashboard's scrubber through each saved moment.
+  work (the panes open, the switches and generator settings, the states and transitions, and how many outputs match)
+  and an "Open in new tab" link to their read-only work. With "Save Answer History" on, the summary follows the
+  dashboard's scrubber through each saved moment.
 - `demo.html`: the Demo and Standalone Authoring page, with the authoring form beside the interactive and, once the
   interactive saves, the teacher's read-only view of that save under it.
 

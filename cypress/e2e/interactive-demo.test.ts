@@ -288,19 +288,19 @@ describe("the interactive's demo page", () => {
   it("shows the report item's full answer, of the authored page and then of a save", () => {
     cy.visit("/demo.html");
     frameText("Report item").should("contain", "The student has saved work in the interactive.")
-      .and("contain", "Data: 11 words, 7 states");
+      .and("contain", "Data: 7 states, 9 transitions");
     cy.get<HTMLIFrameElement>("iframe[title='Report item']").should(([frame]) => {
       expect(frame.contentDocument?.documentElement.scrollHeight).to.equal(frame.clientHeight);
     });
     frameBody("Interactive").find("textarea[aria-label='Your text']").type(" the dog").blur({ force: true });
-    frameText("Report item").should("contain", "Data: 13 words, 8 states");
+    frameText("Report item").should("contain", "Data: 8 states, 10 transitions");
   });
 
   it("summarizes the authored page as it changes, before any save", () => {
     cy.visit("/demo.html");
-    frameText("Report item").should("contain", "Data: 11 words, 7 states");
+    frameText("Report item").should("contain", "Data: 7 states, 9 transitions");
     frameBody("Authoring").find("#startingText").clear().type("a b");
-    frameText("Report item").should("contain", "Data: 2 words, 2 states");
+    frameText("Report item").should("contain", "Data: 2 states, 1 transition");
   });
 
   it("summarizes a save with the authored state it was made under", () => {
@@ -309,7 +309,7 @@ describe("the interactive's demo page", () => {
     cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").should((doc: Document) => {
       expect(doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']")?.value).to.equal("a b");
     });
-    frameText("Report item").should("contain", "Data: 11 words, 7 states");
+    frameText("Report item").should("contain", "Data: 7 states, 9 transitions");
   });
 
   it("shows the teacher's view of the runtime's last save, starting it again with each", () => {

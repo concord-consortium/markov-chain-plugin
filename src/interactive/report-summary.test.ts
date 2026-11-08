@@ -36,60 +36,108 @@ describe("the generator's values the summary repeats", () => {
   });
 });
 
+// the lines from the one naming the mode on
+const counts = (state: unknown, authored: unknown = null) => {
+  const lines = reportSummaryLines(state, authored);
+  return lines.slice(lines.findIndex(line => /^(Data|Drawing):/.test(line)));
+};
+
 describe("reportSummaryLines", () => {
-  it("counts each word token and each state in Data mode, with the punctuation the tokenizer keeps", () => {
-    expect(reportSummaryLines({ version: 1, input: { text: "the cat [New York] the." } }, null)[0])
-      .toBe("Data: 5 words, 4 states");
-  });
-
-  it("counts no word for a blank line", () => {
-    expect(reportSummaryLines({ version: 1, input: { text: "a b\n\n\nc a" } }, null)[0])
-      .toBe("Data: 4 words, 3 states");
-  });
-
-  it("says one word and one state in the singular", () => {
-    expect(reportSummaryLines({ version: 1, input: { text: "cat" } }, null)[0]).toBe("Data: 1 word, 1 state");
-  });
-
-  it("describes a drawing, with the start's label and no order line", () => {
-    const state = { version: 1, mode: "draw", draw: { drawing, generator: generator(10, "n1") } };
-    expect(reportSummaryLines(state, null)).toEqual([
-      "Drawing: 2 states, 2 arrows", "Outputs: 0", "Settings: start Hot, max length 10"
+  it("gives the six lines in order, for a page as authored", () => {
+    expect(reportSummaryLines({ version: 1 }, { startingText: "a b a" })).toEqual([
+      "View: Input, Graph, Inspect, Sequence Generator", "Order matters: Yes", "Case sensitive: No",
+      "Data: 2 states, 2 transitions", "Settings: start (any), max length 5", "Outputs: 0",
     ]);
   });
 
-  it("says one arrow in the singular", () => {
+  it("counts each state and each transition in Data mode, with a state's transition to itself", () => {
+    expect(counts({ version: 1, input: { text: "the cat the the." } })[0]).toBe("Data: 3 states, 4 transitions");
+  });
+
+  it("counts no transitions with order off, as the graph and Inspect show none", () => {
+    expect(counts({ version: 1, input: { text: "a b a" }, orderMatters: false })[0])
+      .toBe("Data: 2 states, 0 transitions");
+  });
+
+  it("says one state and one transition in the singular", () => {
+    expect(counts({ version: 1, input: { text: "a b" } })[0]).toBe("Data: 2 states, 1 transition");
+    expect(counts({ version: 1, input: { text: "a" } })[0]).toBe("Data: 1 state, 0 transitions");
+  });
+
+  it("describes a drawing by its states and arrows, with the start's label", () => {
+    const state = { version: 1, mode: "draw", draw: { drawing, generator: generator(10, "n1") } };
+    expect(counts(state))
+      .toEqual(["Drawing: 2 states, 2 transitions", "Settings: start Hot, max length 10", "Outputs: 0"]);
     const one = { nodes: drawing.nodes, edges: drawing.edges.slice(0, 1) };
-    expect(reportSummaryLines({ version: 1, mode: "draw", draw: { drawing: one } }, null)[0])
-      .toBe("Drawing: 2 states, 1 arrow");
+    expect(counts({ version: 1, mode: "draw", draw: { drawing: one } })[0]).toBe("Drawing: 2 states, 1 transition");
   });
 
-  it("gives empty work as zeros, with no latest", () => {
-    expect(reportSummaryLines({ version: 1 }, null))
-      .toEqual(["Data: 0 words, 0 states", "Outputs: 0", "Settings: start (any), max length 5, order matters on"]);
-    expect(reportSummaryLines({ version: 1, mode: "draw" }, null)[0]).toBe("Drawing: 0 states, 0 arrows");
+  it("counts a drawing's arrows whatever Data mode's order switch says", () => {
+    expect(counts({ version: 1, mode: "draw", orderMatters: false, draw: { drawing } })[0])
+      .toBe("Drawing: 2 states, 2 transitions");
   });
 
-  it("counts matching outputs across every group, and takes the newest matching one as latest", () => {
-    const groups = [
-      group("", 20, [["a"], ["a", "b"]]), group("", 5, [["b"]]), group("", 20, [["b", "a"]]),
-      group("", 5, [["newest"]]),
-    ];
-    expect(reportSummaryLines(dataState(groups), null)[1]).toBe("Outputs: 3, latest: b a");
+  it("gives empty work as zeros", () => {
+    expect(counts({ version: 1 }))
+      .toEqual(["Data: 0 states, 0 transitions", "Settings: start (any), max length 5", "Outputs: 0"]);
+    expect(counts({ version: 1, mode: "draw" })[0]).toBe("Drawing: 0 states, 0 transitions");
   });
 
-  it("takes the newest output in a group as latest", () => {
-    expect(reportSummaryLines(dataState([group("", 20, [["old"], ["new"]])]), null)[1])
-      .toBe("Outputs: 2, latest: new");
+  describe("the View line", () => {
+    it("lists only the open panes, in the workspace's order", () => {
+      const state = { version: 1, useData: { panes: { input: false, inspect: false } } };
+      expect(reportSummaryLines(state, null)[0]).toBe("View: Graph, Sequence Generator");
+    });
+
+    it("leaves out a pane the author doesn't offer, and opens one as the author starts it", () => {
+      const authored = { panes: { inspect: { available: false }, generator: { startsOpen: false } } };
+      expect(reportSummaryLines({ version: 1 }, authored)[0]).toBe("View: Input, Graph");
+    });
+
+    it("says none when every pane is collapsed", () => {
+      const panes = { input: false, graph: false, inspect: false, generator: false };
+      expect(reportSummaryLines({ version: 1, useData: { panes } }, null)[0]).toBe("View: none");
+    });
+
+    it("lists the mode showing's panes, where a drawing has no Input pane and its Graph pane is always open", () => {
+      const state = {
+        version: 1, mode: "draw", useData: { panes: { inspect: false } },
+        draw: { panes: { graph: false, generator: false } },
+      };
+      expect(reportSummaryLines(state, null)[0]).toBe("View: Graph, Inspect");
+    });
   });
 
-  it("writes the latest with its own group's delimiter", () => {
-    const groups = [group("", 20, [["a", "b"]], { delimiter: "-" }), group("", 20, [["c", "d"]], { delimiter: "+" })];
-    expect(reportSummaryLines(dataState(groups), null)[1]).toBe("Outputs: 2, latest: c+d");
+  describe("the switch lines", () => {
+    it("reads the saved settings", () => {
+      expect(reportSummaryLines({ version: 1, orderMatters: false, caseSensitive: true }, null).slice(1, 3))
+        .toEqual(["Order matters: No", "Case sensitive: Yes"]);
+    });
+
+    it("leaves both out in Draw mode, which has neither switch", () => {
+      const state = { version: 1, mode: "draw", orderMatters: false, caseSensitive: true, draw: { drawing } };
+      expect(reportSummaryLines(state, null)).toEqual([
+        "View: Graph, Inspect, Sequence Generator", "Drawing: 2 states, 2 transitions",
+        "Settings: start (any), max length 5", "Outputs: 0",
+      ]);
+    });
+
+    it("reads the author's settings where the page shows no switch", () => {
+      const authored = {
+        capitalization: "asTyped", showCaseSwitch: false, orderMatters: { startsOn: false, showSwitch: false },
+      };
+      expect(reportSummaryLines({ version: 1, orderMatters: true, caseSensitive: false }, authored).slice(1, 3))
+        .toEqual(["Order matters: No", "Case sensitive: Yes"]);
+    });
   });
 
-  it("counts an empty output, and shows no latest for it", () => {
-    expect(reportSummaryLines(dataState([group("", 20, [["a"], []])]), null)[1]).toBe("Outputs: 2");
+  it("counts matching outputs across every group", () => {
+    const groups = [group("", 20, [["a"], ["a", "b"]]), group("", 5, [["b"]]), group("", 20, [["b", "a"]])];
+    expect(counts(dataState(groups))[2]).toBe("Outputs: 3");
+  });
+
+  it("counts an empty output", () => {
+    expect(counts(dataState([group("", 20, [["a"], []])]))[2]).toBe("Outputs: 2");
   });
 
   it("compares the starting state, Max Length and order, and not the delimiter", () => {
@@ -97,113 +145,101 @@ describe("reportSummaryLines", () => {
       group("a", 20, [["a"]]), group("", 7, [["b"]]), group("", 20, [["a"]], { orderMatters: false }),
       group("", 20, [["a", "b"]], { delimiter: "-" }),
     ];
-    expect(reportSummaryLines(dataState(groups), null)[1]).toBe("Outputs: 1, latest: a-b");
+    expect(counts(dataState(groups))[2]).toBe("Outputs: 1");
   });
 
   it("counts orderless outputs once order is off", () => {
-    const groups = [group("", 20, [["a"]]), group("", 20, [["b"]], { orderMatters: false })];
-    expect(reportSummaryLines(dataState(groups, generator(20), { orderMatters: false }), null).slice(1)).toEqual([
-      "Outputs: 1, latest: b", "Settings: start (any), max length 20, order matters off"
-    ]);
+    const groups = [group("", 20, [["a"]]), group("", 20, [["b"], ["c"]], { orderMatters: false })];
+    expect(counts(dataState(groups, generator(20), { orderMatters: false }))[2]).toBe("Outputs: 2");
   });
 
   it("reads an output saved with no order setting as ordered", () => {
     const groups = [group("", 20, [["a"]], { orderMatters: undefined })];
-    expect(reportSummaryLines(dataState(groups), null)[1]).toBe("Outputs: 1, latest: a");
+    expect(counts(dataState(groups))[2]).toBe("Outputs: 1");
   });
 
   it("counts only the mode showing", () => {
     const state = { ...dataState([group("", 5, [["a"]])]), mode: "draw", draw: { drawing } };
-    expect(reportSummaryLines(state, null)[1]).toBe("Outputs: 0");
+    expect(counts(state)[2]).toBe("Outputs: 0");
   });
 
   it("counts a drawing's outputs whatever Data mode's order switch says", () => {
     const outputs = encodeOutputs([group("", 5, [["a"]], { orderMatters: undefined })]);
     const state = { version: 1, mode: "draw", orderMatters: false, draw: { drawing, outputs } };
-    expect(reportSummaryLines(state, null)[1]).toBe("Outputs: 1, latest: a");
+    expect(counts(state)[2]).toBe("Outputs: 1");
   });
 
-  it("keeps all three lines on a page with no Sequence generator pane", () => {
+  it("keeps every line on a page with no Sequence generator pane", () => {
     const authored = { panes: { generator: { available: false } } };
     expect(reportSummaryLines(dataState([group("", 20, [["a"]])]), authored)).toEqual([
-      "Data: 3 words, 2 states", "Outputs: 1, latest: a", "Settings: start (any), max length 20, order matters on"
+      "View: Input, Graph, Inspect", "Order matters: Yes", "Case sensitive: No", "Data: 2 states, 2 transitions",
+      "Settings: start (any), max length 20", "Outputs: 1",
     ]);
   });
 
   it("uses the starting text when the student never changed the input", () => {
-    expect(reportSummaryLines({ version: 1 }, { startingText: "a b" })[0]).toBe("Data: 2 words, 2 states");
+    expect(counts({ version: 1 }, { startingText: "a b" })[0]).toBe("Data: 2 states, 1 transition");
   });
 
   it("ignores saved input on a page with no Input pane", () => {
     const authored = { startingText: "a", panes: { input: { available: false } } };
-    expect(reportSummaryLines({ version: 1, input: { text: "a b" } }, authored)[0]).toBe("Data: 1 word, 1 state");
+    expect(counts({ version: 1, input: { text: "a b" } }, authored)[0]).toBe("Data: 1 state, 0 transitions");
   });
 
   it("applies a saved case setting only where the page shows the switch", () => {
     const state = { version: 1, caseSensitive: true };
-    expect(reportSummaryLines(state, { startingText: "The the" })[0]).toBe("Data: 2 words, 2 states");
-    expect(reportSummaryLines(state, { startingText: "The the", showCaseSwitch: false })[0])
-      .toBe("Data: 2 words, 1 state");
-  });
-
-  it("applies saved order only where the page shows the switch", () => {
-    const authored = { orderMatters: { startsOn: true, showSwitch: false } };
-    expect(reportSummaryLines({ version: 1, orderMatters: false }, authored)[2]).toContain("order matters on");
+    expect(counts(state, { startingText: "The the" })[0]).toBe("Data: 2 states, 1 transition");
+    expect(counts(state, { startingText: "The the", showCaseSwitch: false })[0]).toBe("Data: 1 state, 1 transition");
   });
 
   it("falls back to the starting mode when the saved mode isn't offered", () => {
     const authored = { modes: { useData: true, draw: false } };
-    expect(reportSummaryLines({ version: 1, mode: "draw", draw: { drawing } }, authored)[0]).toMatch(/^Data:/);
+    expect(counts({ version: 1, mode: "draw", draw: { drawing } }, authored)[0]).toMatch(/^Data:/);
   });
 
   it("reads a starting state that has left the graph as (any)", () => {
     const groups = [group("", 20, [["a"]])];
-    expect(reportSummaryLines(dataState(groups, generator(20, "gone")), null).slice(1)).toEqual([
-      "Outputs: 1, latest: a", "Settings: start (any), max length 20, order matters on"
-    ]);
+    expect(counts(dataState(groups, generator(20, "gone"))).slice(1))
+      .toEqual(["Settings: start (any), max length 20", "Outputs: 1"]);
   });
 
   it("compares a drawn state by its id, so renaming it keeps its outputs", () => {
     const startingNode = { id: "n1", label: "Old name", value: 0 };
     const outputs = encodeOutputs([group("n1", 5, [["a"]], { startingNode })]);
     const state = { version: 1, mode: "draw", draw: { drawing, outputs, generator: generator(5, "n1") } };
-    expect(reportSummaryLines(state, null).slice(1))
-      .toEqual(["Outputs: 1, latest: a", "Settings: start Hot, max length 5"]);
+    expect(counts(state).slice(1)).toEqual(["Settings: start Hot, max length 5", "Outputs: 1"]);
   });
 
   it("compares the start an output's heading shows, which the one chosen may not be", () => {
     const noStart = { startingNode: undefined };
     const groups = [group("gone", 20, [["a"]], noStart), group("gone", 20, [["b"]])];
-    expect(reportSummaryLines(dataState(groups, generator(20, "gone")), null)[1]).toBe("Outputs: 1, latest: a");
+    expect(counts(dataState(groups, generator(20, "gone")))[2]).toBe("Outputs: 1");
     const backAgain = [group("a", 20, [["b"]], noStart)];
-    expect(reportSummaryLines(dataState(backAgain, generator(20, "a")), null)[1]).toBe("Outputs: 0");
+    expect(counts(dataState(backAgain, generator(20, "a")))[2]).toBe("Outputs: 0");
   });
 
   it("reads an empty Max Length as the default, and clamps one below 1", () => {
-    expect(reportSummaryLines(dataState([], generator(undefined)), null)[2]).toContain("max length 5,");
-    expect(reportSummaryLines(dataState([], generator(0)), null)[2]).toContain("max length 1,");
+    expect(counts(dataState([], generator(undefined)))[1]).toBe("Settings: start (any), max length 5");
+    expect(counts(dataState([], generator(0)))[1]).toBe("Settings: start (any), max length 1");
   });
 
   it("reads states and authored states as strings, and unreadable ones as nothing", () => {
-    expect(reportSummaryLines(JSON.stringify({ version: 1, input: { text: "a" } }), null)[0])
-      .toBe("Data: 1 word, 1 state");
-    expect(reportSummaryLines({ version: 1 }, "{\"startingText\":\"b c\"}")[0]).toBe("Data: 2 words, 2 states");
-    expect(reportSummaryLines("not json", "not json")[0]).toBe("Data: 0 words, 0 states");
-    expect(reportSummaryLines(null, null)[0]).toBe("Data: 0 words, 0 states");
+    expect(counts(JSON.stringify({ version: 1, input: { text: "a" } }))[0]).toBe("Data: 1 state, 0 transitions");
+    expect(counts({ version: 1 }, "{\"startingText\":\"b c\"}")[0]).toBe("Data: 2 states, 1 transition");
+    expect(counts("not json", "not json")[0]).toBe("Data: 0 states, 0 transitions");
+    expect(counts(null, null)[0]).toBe("Data: 0 states, 0 transitions");
   });
 
-  it("cuts a long output and a long start by code point", () => {
+  it("cuts a long start by code point", () => {
     const long = "😀".repeat(maxSummaryText + 1);
-    const state = dataState([group(long, 20, [[long]])], generator(20, long), { input: { text: long } });
-    const cut = `${"😀".repeat(maxSummaryText)}…`;
-    expect(reportSummaryLines(state, null).slice(1)).toEqual([
-      `Outputs: 1, latest: ${cut}`, `Settings: start ${cut}, max length 20, order matters on`
-    ]);
+    expect(counts(dataState([], generator(20, long), { input: { text: long } }))[1])
+      .toBe(`Settings: start ${"😀".repeat(maxSummaryText)}…, max length 20`);
   });
 
-  it("leaves text of exactly the limit whole", () => {
+  it("leaves a start of exactly the limit whole", () => {
     const text = "x".repeat(maxSummaryText);
-    expect(reportSummaryLines(dataState([group("", 20, [[text]])]), null)[1]).toBe(`Outputs: 1, latest: ${text}`);
+    expect(counts(dataState([], generator(20, text), { input: { text } }))[1])
+      .toBe(`Settings: start ${text}, max length 20`);
   });
 });
 
@@ -211,28 +247,26 @@ describe("reportSummaryHtml", () => {
   const attack = "<img src=x onerror=alert(1)>&";
   const escaped = "&lt;img src=x onerror=alert(1)&gt;&amp;";
 
-  it("holds the sentence and the three lines in both the tall and wide blocks", () => {
+  it("holds the sentence and the lines in both the tall and wide blocks", () => {
     const content = "<div style=\"overflow-wrap: anywhere\"><p>The student has saved work in the interactive.</p>" +
-      "<p>Data: 1 word, 1 state<br>Outputs: 0<br>Settings: start (any), max length 5, order matters on</p></div>";
+      "<p>View: Input, Graph, Inspect, Sequence Generator<br>Order matters: Yes<br>Case sensitive: No<br>" +
+      "Data: 1 state, 0 transitions<br>Settings: start (any), max length 5<br>Outputs: 0</p></div>";
     expect(reportSummaryHtml({ version: 1, input: { text: "a" } }, null))
       .toBe(`<div class="tall">${content}</div><div class="wide">${content}</div>`);
   });
 
-  it("escapes a drawn state's label and an output", () => {
+  it("escapes a drawn state's label", () => {
     const labeled = { nodes: [{ id: "n1", label: attack, value: 1 }], edges: [] };
-    const outputs = encodeOutputs([group("n1", 5, [[attack]])]);
-    const html = reportSummaryHtml({
-      version: 1, mode: "draw", draw: { drawing: labeled, outputs, generator: generator(5, "n1") }
-    }, null);
+    const draw = { drawing: labeled, generator: generator(5, "n1") };
+    const html = reportSummaryHtml({ version: 1, mode: "draw", draw }, null);
     expect(html).not.toContain("<img");
-    expect(html).toContain(`latest: ${escaped}<br>`);
     expect(html).toContain(`start ${escaped},`);
   });
 
   it("cuts before escaping, so an entity isn't split", () => {
     const text = `${"x".repeat(maxSummaryText - 1)}&more`;
-    expect(reportSummaryHtml(dataState([group("", 20, [[text]])]), null))
-      .toContain(`latest: ${"x".repeat(maxSummaryText - 1)}&amp;…<br>`);
+    expect(reportSummaryHtml(dataState([], generator(20, text), { input: { text } }), null))
+      .toContain(`start ${"x".repeat(maxSummaryText - 1)}&amp;…,`);
   });
 
   it("gives the same html for the same state", () => {

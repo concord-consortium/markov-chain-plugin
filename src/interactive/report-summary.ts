@@ -1,15 +1,20 @@
 import { clampLengthLimit } from "../components/app-utils";
 import type { MarkovToolStart } from "../hooks/use-markov-tool";
-import { readAuthoredState } from "./authored-state";
+import { caseSensitiveLabel, orderMattersLabel, readAuthoredState, yesNo } from "./authored-state";
 import { readInteractiveState } from "./interactive-state";
 import { restoreWork } from "./workspace/restore-work";
-import { workspaceConfig } from "./workspace/workspace-config";
+import { workspaceConfig, WorkspacePaneId } from "./workspace/workspace-config";
 
 export const maxSummaryText = 60;
 
 // what the generator shows for no starting state, and the Max Length it opens at when none is saved
 export const anyStartLabel = "(any)";
 export const defaultMaxLength = 5;
+
+// copies of the workspace's pane titles, held to them by a test
+export const paneTitles: Record<WorkspacePaneId, string> = {
+  input: "Input", graph: "Graph", inspect: "Inspect", generator: "Sequence Generator"
+};
 
 const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -21,36 +26,39 @@ const cutShort = (text: string) => {
 
 const counted = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
-// The three lines for a saved moment, read as the teacher's read-only view reads it, so the two agree. An output counts
-// when its heading's settings match the third line; a delimiter changes only how it is written.
+// The lines for a saved moment, read as the teacher's read-only view reads it, so the two agree. An output counts when
+// its heading's start, Max Length and order match the moment's; a delimiter changes only how it is written.
 export const reportSummaryLines = (interactiveState: unknown, authoredState: unknown): string[] => {
   const authored = readAuthoredState(authoredState);
-  const restored = restoreWork(readInteractiveState(interactiveState), authored, {
-    useData: workspaceConfig(authored, "useData"), draw: workspaceConfig(authored, "draw"),
-  }, { readOnly: true });
+  const configs = { useData: workspaceConfig(authored, "useData"), draw: workspaceConfig(authored, "draw") };
+  const restored = restoreWork(readInteractiveState(interactiveState), authored, configs, { readOnly: true });
   const inData = restored.mode === "useData";
+  const shown = restored[restored.mode];
   // restoreWork always fills these in
-  const { graph, generator, sequenceGroups } = restored[restored.mode].tool as Required<MarkovToolStart>;
+  const { graph, generator, sequenceGroups } = shown.tool as Required<MarkovToolStart>;
   const startingState = generator.startingState ?? "";
   const lengthLimit = clampLengthLimit(generator.lengthLimit) ?? defaultMaxLength;
-  const orderMatters = !inData || restored.orderMatters;
+  // a drawing is always ordered, and with order off Data mode's graph has no arrows and Inspect lists no transitions
+  const ordered = !inData || restored.orderMatters;
 
   const outputs = sequenceGroups
     .filter(group => (group.startingNode?.id ?? "") === startingState && group.lengthLimit === lengthLimit &&
-      (group.orderMatters !== false) === orderMatters)
-    .flatMap(group => group.sequences.map(sequence => ({ sequence, delimiter: group.delimiter })));
-  const newest = outputs[outputs.length - 1];
-  const latest = newest?.sequence.map(node => node.label).join(newest.delimiter);
+      (group.orderMatters !== false) === ordered)
+    .reduce((count, group) => count + group.sequences.length, 0);
+  const open = configs[restored.mode].panes.filter(({ id }) => shown.panes[id]).map(({ id }) => paneTitles[id]);
   const start = graph.nodes.find(node => node.id === startingState)?.label ?? anyStartLabel;
-  const words = graph.nodes.reduce((count, node) => count + node.value, 0);
 
   return [
-    inData
-      ? `Data: ${counted(words, "word")}, ${counted(graph.nodes.length, "state")}`
-      : `Drawing: ${counted(graph.nodes.length, "state")}, ${counted(graph.edges.length, "arrow")}`,
-    `Outputs: ${outputs.length}${latest ? `, latest: ${cutShort(latest)}` : ""}`,
-    `Settings: start ${cutShort(start)}, max length ${lengthLimit}` +
-      (inData ? `, order matters ${orderMatters ? "on" : "off"}` : ""),
+    `View: ${open.length > 0 ? open.join(", ") : "none"}`,
+    // a drawing has neither switch
+    ...(inData ? [
+      `${orderMattersLabel}: ${yesNo(restored.orderMatters)}`,
+      `${caseSensitiveLabel}: ${yesNo(restored.capitalization === "asTyped")}`,
+    ] : []),
+    `${inData ? "Data" : "Drawing"}: ${counted(graph.nodes.length, "state")}, ` +
+      counted(ordered ? graph.edges.length : 0, "transition"),
+    `Settings: start ${cutShort(start)}, max length ${lengthLimit}`,
+    `Outputs: ${outputs}`,
   ];
 };
 
