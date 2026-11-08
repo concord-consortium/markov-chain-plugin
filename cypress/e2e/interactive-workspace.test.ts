@@ -2689,6 +2689,37 @@ describe("the workspace's probabilities", () => {
     });
   });
 
+  it("sits in the Graph pane's header in both modes, and not in the controls row", () => {
+    const shown = () => cy.interactive().find(".workspace-body:not([hidden])");
+    start({ startingText: "the cat", modes: { useData: true, draw: true } });
+    ["Draw", "Data"].forEach(next => {
+      shown().find(".graph-pane .pane-header .probabilities-toggle").should("be.visible").then(button => {
+        const header = button[0].closest(".pane-header") as HTMLElement;
+        const [inner, outer] = [button[0].getBoundingClientRect(), header.getBoundingClientRect()];
+        expect(inner.top).to.be.at.least(outer.top);
+        expect(inner.bottom).to.be.at.most(outer.bottom);
+        const [title, collapse] = [header.querySelector("h2")!, header.querySelector(".pane-toggle")];
+        expect(title.getBoundingClientRect().right).to.be.at.most(inner.left);
+        // Draw mode's Graph pane can't collapse
+        expect(collapse !== null).to.equal(next === "Draw");
+        if (collapse) {
+          expect(inner.right).to.be.at.most(collapse.getBoundingClientRect().left);
+        }
+      });
+      shown().find(".controls-row .probabilities-toggle").should("not.exist");
+      shown().find(".mode-switch label").contains(next).click();
+    });
+  });
+
+  it("leaves the Graph pane's header while the pane is collapsed, keeping its setting", () => {
+    start({ startingText: "the cat the mat" });
+    toggle().click();
+    cy.interactive().find(".graph-pane .pane-toggle").click();
+    toggle().should("not.exist");
+    cy.interactive().find(".graph-pane .pane-toggle").click();
+    toggle().should("have.attr", "aria-pressed", "true");
+  });
+
   it("stays as authored without the toggle", () => {
     start({ startingText: "the cat the mat", buttons: { probabilities: { available: false, startsOn: true } } });
     cy.interactive().find(".controls-row").should("exist");
@@ -3067,7 +3098,7 @@ describe("the workspace's Order matters switch", () => {
         expect(control.getBoundingClientRect().right).to.be.at.most(right);
       });
     });
-    controls().invoke("css", "width", "500px");
+    controls().invoke("css", "width", "400px");
     controls().should(controlsRow => {
       const switchBottom = controlsRow[0].querySelector(".mode-switch")!.getBoundingClientRect().bottom;
       const groupTop = controlsRow[0].querySelector(".setting-switches")!.getBoundingClientRect().top;

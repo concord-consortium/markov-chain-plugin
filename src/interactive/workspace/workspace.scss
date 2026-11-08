@@ -199,6 +199,18 @@ $setting-gap: 4px 12px;
       }
     }
 
+    .pane-header-controls {
+      display: flex;
+      flex: none;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+
+      .probabilities-toggle {
+        padding: 1px 5px;
+      }
+    }
+
     .pane-toggle {
       display: flex;
       flex: none;

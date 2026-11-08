@@ -148,16 +148,10 @@ export const Workspace = ({
     hosts[mode].log("ProbabilitiesToggled", { on });
   };
 
-  const controls = (
-    <>
-      { configs.useData.modeSwitch &&
-        <ModeSwitch mode={mode} disabled={tools[mode].animating} onChange={handleModeChange} />
-      }
-      { configs[mode].probabilities.showToggle &&
-        <ProbabilitiesToggle on={probabilities} onChange={handleProbabilitiesChange} />
-      }
-    </>
-  );
+  const controls = configs.useData.modeSwitch &&
+    <ModeSwitch mode={mode} disabled={tools[mode].animating} onChange={handleModeChange} />;
+  const graphControls = configs[mode].probabilities.showToggle &&
+    <ProbabilitiesToggle on={probabilities} onChange={handleProbabilitiesChange} />;
 
   const { actions, dialog } = useTableActions({
     mode, configs, tools, hosts, orderMatters, reports: reportsRef, tablesSaved, readOnly, canSend, objectStorageConfig,
@@ -171,14 +165,15 @@ export const Workspace = ({
         <DataWorkspace text={restored.text} capitalization={restored.capitalization} inputSplit={restored.inputSplit}
           start={restored.useData} saving={saving.useData} limitReached={limitReached} readOnly={readOnly}
           host={hosts.useData} tool={tools.useData} config={configs.useData} stacked={stacked}
-          hidden={mode !== "useData"} controls={controls} actions={actions} probabilities={probabilities}
-          arrowWidths={arrowWidths} orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
+          hidden={mode !== "useData"} controls={controls} graphControls={graphControls} actions={actions}
+          probabilities={probabilities} arrowWidths={arrowWidths} orderMatters={orderMatters}
+          onOrderMattersChange={setOrderMatters} />
       }
       { authoredState.modes.draw &&
         <DrawWorkspace host={hosts.draw} tool={tools.draw} config={configs.draw} stacked={stacked}
-          hidden={mode !== "draw"} controls={controls} actions={actions} probabilities={probabilities}
-          arrowWidths={arrowWidths} start={restored.draw} saving={saving.draw} limitReached={limitReached}
-          readOnly={readOnly} />
+          hidden={mode !== "draw"} controls={controls} graphControls={graphControls} actions={actions}
+          probabilities={probabilities} arrowWidths={arrowWidths} start={restored.draw} saving={saving.draw}
+          limitReached={limitReached} readOnly={readOnly} />
       }
       { dialog }
     </div>

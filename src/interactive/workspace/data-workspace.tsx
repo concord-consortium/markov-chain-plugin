@@ -40,6 +40,8 @@ interface DataWorkspaceProps {
   hidden: boolean;
   // the shell's controls, first in the row
   controls: React.ReactNode;
+  // the shell's controls in the Graph pane's header
+  graphControls: React.ReactNode;
   // the shell's actions, last in the row
   actions: React.ReactNode;
   probabilities: boolean;
@@ -65,8 +67,8 @@ const laidOutWhole = (before: string[], after: string[]) => {
 // Data mode's body: the authored panes around the student's input
 export const DataWorkspace = ({
   text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, saving, limitReached,
-  readOnly, host, tool, config, stacked, hidden, controls, actions, probabilities, arrowWidths, orderMatters,
-  onOrderMattersChange
+  readOnly, host, tool, config, stacked, hidden, controls, graphControls, actions, probabilities, arrowWidths,
+  orderMatters, onOrderMattersChange
 }: DataWorkspaceProps) => {
   const { inputView } = config;
   const toolRef = useLatest(tool);
@@ -320,7 +322,8 @@ export const DataWorkspace = ({
         { !config.orderMatters.showSwitch && <SettingLabel label={orderMattersLabel} value={orderMatters} /> }
         { !config.caseSwitch && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
       </ControlsRow>
-      <WorkspacePanes layout={layout} stacked={stacked} sourcePaneRef={sourcePaneRef} renderPane={renderPane} />
+      <WorkspacePanes layout={layout} stacked={stacked} sourcePaneRef={sourcePaneRef} renderPane={renderPane}
+        graphControls={graphControls} />
       <NodeModal viewMode="dataset" node={dialogNode} graph={tool.graph} onChange={() => undefined}
         onCancel={() => setDialogNode(undefined)} />
     </div>
