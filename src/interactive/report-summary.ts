@@ -11,6 +11,9 @@ export const maxSummaryText = 60;
 export const anyStartLabel = "(any)";
 export const defaultMaxLength = 5;
 
+// copies of the Simulation Speed switch's two settings, in lower case, held to them by a test
+export const speedNames = { normal: "normal", fast: "fast" };
+
 // copies of the workspace's pane titles, held to them by a test
 export const paneTitles: Record<WorkspacePaneId, string> = {
   input: "Input", graph: "Graph", inspect: "Inspect", generator: "Sequence Generator"
@@ -46,10 +49,12 @@ export const reportSummaryLines = (interactiveState: unknown, authoredState: unk
       (group.orderMatters !== false) === ordered)
     .reduce((count, group) => count + group.sequences.length, 0);
   const open = configs[restored.mode].panes.filter(({ id }) => shown.panes[id]).map(({ id }) => paneTitles[id]);
+  const speed = generator.fast ? speedNames.fast : speedNames.normal;
   const start = graph.nodes.find(node => node.id === startingState)?.label ?? anyStartLabel;
 
   return [
     `View: ${open.length > 0 ? open.join(", ") : "none"}`,
+    `Probabilities: ${restored.probabilities ? "On" : "Off"}`,
     // a drawing has neither switch
     ...(inData ? [
       `${orderMattersLabel}: ${yesNo(restored.orderMatters)}`,
@@ -57,7 +62,7 @@ export const reportSummaryLines = (interactiveState: unknown, authoredState: unk
     ] : []),
     `${inData ? "Data" : "Drawing"}: ${counted(graph.nodes.length, "state")}, ` +
       counted(ordered ? graph.edges.length : 0, "transition"),
-    `Settings: start ${cutShort(start)}, max length ${lengthLimit}`,
+    `Settings: start ${cutShort(start)}, max length ${lengthLimit}, speed ${speed}`,
     `Outputs: ${outputs}`,
   ];
 };
