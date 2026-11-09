@@ -2716,7 +2716,7 @@ describe("the workspace's probabilities", () => {
   it("sits in the Graph pane's header in both modes, and not in the controls row", () => {
     const shown = () => cy.interactive().find(".workspace-body:not([hidden])");
     start({ startingText: "the cat", modes: { useData: true, draw: true } });
-    ["Draw", "Data"].forEach(next => {
+    (["Data", "Draw"] as const).forEach(current => {
       shown().find(".graph-pane .pane-header .probabilities-toggle").should("be.visible").then(button => {
         const header = button[0].closest(".pane-header") as HTMLElement;
         const [inner, outer] = [button[0].getBoundingClientRect(), header.getBoundingClientRect()];
@@ -2725,13 +2725,13 @@ describe("the workspace's probabilities", () => {
         const [title, collapse] = [header.querySelector("h2")!, header.querySelector(".pane-toggle")];
         expect(title.getBoundingClientRect().right).to.be.at.most(inner.left);
         // Draw mode's Graph pane can't collapse
-        expect(collapse !== null).to.equal(next === "Draw");
+        expect(collapse !== null).to.equal(current === "Data");
         if (collapse) {
           expect(inner.right).to.be.at.most(collapse.getBoundingClientRect().left);
         }
       });
       shown().find(".controls-row .probabilities-toggle").should("not.exist");
-      shown().find(".mode-switch label").contains(next).click();
+      shown().find(".mode-switch label").contains(current === "Data" ? "Draw" : "Data").click();
     });
   });
 

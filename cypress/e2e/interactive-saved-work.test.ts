@@ -849,7 +849,7 @@ describe("saving work", () => {
     const onStep = () => shown().find(".generator-pane button").contains("Step").click();
 
     const moments: [string, () => void, () => void, (state: any) => void][] = [
-      ["the input's text at a commit", () => start(), () => typeWord("ran"),
+      ["the input's text when the text box loses focus", () => start(), () => typeWord("ran"),
         state => expect(state.input.text).to.equal(`${startingText} ran`)],
       ["a sequence finishing", () => start({ startingText: "a b a b a" }), playToTheEnd, state => {
         expect(state.useData.outputs.groups[0].sequences).to.have.length(1);
