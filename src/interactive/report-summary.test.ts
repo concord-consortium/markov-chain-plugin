@@ -140,6 +140,19 @@ describe("reportSummaryLines", () => {
       const authored = { buttons: { probabilities: { available: false, startsOn: true } } };
       expect(reportSummaryLines({ version: 1, probabilities: false }, authored)[1]).toBe("Probabilities: On");
     });
+
+    it("reads the setting while no graph is showing", () => {
+      const closedGraph = { version: 1, probabilities: true, useData: { panes: { graph: false } } };
+      const closed = reportSummaryLines(closedGraph, null);
+      expect(closed.slice(0, 2)).toEqual(["View: Input, Inspect, Sequence Generator", "Probabilities: On"]);
+      // Draw mode always has a Graph pane, so only a Data-only page can leave it out
+      const noGraph = {
+        modes: { useData: true, draw: false }, panes: { graph: { available: false } },
+        buttons: { probabilities: { available: true, startsOn: true } },
+      };
+      const absent = reportSummaryLines({ version: 1, probabilities: false }, noGraph);
+      expect(absent.slice(0, 2)).toEqual(["View: Input, Inspect, Sequence Generator", "Probabilities: On"]);
+    });
   });
 
   describe("the switch lines", () => {

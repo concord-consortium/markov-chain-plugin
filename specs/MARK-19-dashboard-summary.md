@@ -6,7 +6,7 @@
 
 ## Overview
 
-The class dashboard's side panel shows a short plain text summary of a student's work at the moment the history scrubber is on, in place of the placeholder and the inline "View Work" view. A teacher can see what changed from step to step without opening the full view. The lines and their order are Rebecca Ellis's: which panes are open, whether probabilities are shown, the two switches, the states and transitions, the generator's settings, and how many outputs match them.
+The class dashboard's side panel shows a short plain text summary of a student's work at the moment the history scrubber is on, in place of the placeholder and the inline "View Work" view. A teacher can see what changed from step to step without opening the full view. The lines and their order are Rebecca Ellis's: which panes are open, the Show probabilities setting, the two switches, the states and transitions, the generator's settings, and how many outputs match them.
 
 Her sample covers Data mode only. In Draw mode, which has neither switch, the summary leaves out the two switch lines, as she confirmed; the `Drawing` line and keeping the first sentence are this story's defaults, sent to her for confirmation.
 
@@ -30,7 +30,7 @@ Rebecca Ellis's preferred layout, with "View Work" opening the stats below the s
 
   Draw mode has no "Order matters" or "Case sensitive" switch, so it leaves those two lines out and shows `View`, `Probabilities`, `Drawing`, `Settings` and `Outputs`. The placeholder's text goes.
 - **R2.** `View` lists the panes open in the saved moment's mode, out of the ones the author lets the student see there, in the workspace's order (Input, Graph, Inspect, Sequence Generator) and with the titles the student sees. Draw mode has no Input pane and its Graph pane is always open. With every pane collapsed, the line is `View: none`.
-- **R2a.** `Probabilities` is `On` or `Off`, in both modes: whether the graph shows probabilities at that moment, from the state's `probabilities` as the read-only view reads it (R7). It follows `View` because, like the panes, it changes what the student sees rather than what the generator does.
+- **R2a.** `Probabilities` is `On` or `Off`, in both modes: the Show probabilities setting at that moment, from the state's `probabilities` as the read-only view reads it (R7). It is the setting, not what is on screen: with the Graph pane closed, or on a page with no Graph pane, it can read `On` while no probabilities are visible. It follows `View` because, like the panes, it changes what the student sees rather than what the generator does.
 - **R3.** In Data mode, `Order matters` and `Case sensitive` are `Yes` or `No`, from the saved settings as the read-only view reads them (R7). Their names are the switches' names the student sees. Draw mode leaves both out: it has neither switch, always treats order as on, and case doesn't apply to a drawing.
 - **R4.** The line after the switches names the mode showing and what is in it:
   - Data mode: `Data: 9 states, 12 transitions`.
@@ -64,8 +64,8 @@ Rebecca Ellis's preferred layout, with "View Work" opening the stats below the s
 
 ### What else changes
 
-- **R15.** The demo page's "Report item, full answer" shows the summary of the state the runtime last saved, or of the authored page before any save, in a frame tall enough for all eight lines. The placeholder's constant goes.
-- **R16.** `README.md`'s description of `report-item.html` and the comments in `report-item-answer.ts` change to match. The demo page's Cypress test checks the summary of its starting text (`Data: 7 states, 9 transitions`) in place of the placeholder, that the frame follows a save, and that it holds all eight lines without scrolling.
+- **R15.** The demo page's "Report item, full answer" shows the summary of the state the runtime last saved, or of the authored page before any save, in a frame tall enough for the sentence and all seven of Data mode's lines. The placeholder's constant goes.
+- **R16.** `README.md`'s description of `report-item.html` and the comments in `report-item-answer.ts` change to match. The demo page's Cypress test checks the summary of its starting text (`Data: 7 states, 9 transitions`) in place of the placeholder, that the frame follows a save, and that it holds the sentence and all seven lines without scrolling.
 - **R17.** The CODAP plugin does not change. No file under `src/components` or `src/hooks` changes, and the built `index.*.js` and `main.*.css` are byte-identical to master's.
 
 ### Tests
@@ -120,7 +120,7 @@ The summary needs the generator's `(any)` label, its default Max Length and spee
 
 - Rebecca's layout with "View Work" opening the stats below the scrubber, or any other change to the class dashboard.
 - Which student actions make a step (MARK-28).
-- Showing the delimiter, speed, "Show probabilities", the latest output or a word count in the summary.
+- Showing the delimiter, the latest output or a word count in the summary.
 - The note on `report-item.html` opened on its own, which still names the Markov interactive for a developer.
 - Anything in the CODAP plugin, and any change to what is saved.
 

@@ -68,7 +68,7 @@ export const reportSummaryLines = (interactiveState: unknown, authoredState: unk
 };
 
 // The dashboard shows one block or the other. Each holds a single child so its paragraphs stack in the row the wide
-// block is, and the student's text is escaped because the dashboard draws this in a frame on its own origin.
+// block is, and the student's text is escaped because the dashboard draws this in a frame on the dashboard's origin.
 export const reportSummaryHtml = (interactiveState: unknown, authoredState: unknown) => {
   const lines = reportSummaryLines(interactiveState, authoredState).map(escapeHtml).join("<br>");
   const content = "<div style=\"overflow-wrap: anywhere\"><p>The student has saved work in the interactive.</p>" +
