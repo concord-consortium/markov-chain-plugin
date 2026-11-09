@@ -97,7 +97,10 @@ export const TablesDialog = ({
       return;
     }
     try {
-      await sender?.send(trimmed, tables);
+      if (!sender) {
+        throw new Error("no sender");
+      }
+      await sender.send(trimmed, tables);
       setSavedAs(trimmed);
       onFinished(trimmed, words);
     } catch {
