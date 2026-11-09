@@ -34,6 +34,10 @@ const pressKey = (element: HTMLElement, key: string, shiftKey = false) => {
 };
 const focused = () => cy.get<HTMLIFrameElement>("iframe#interactive").its("0.contentDocument")
   .invoke("querySelector", ":focus") as unknown as Cypress.Chainable<HTMLElement | null>;
+const drawing = {
+  nodes: [{ id: "n1", label: "Sun", value: 1, x: 0, y: 0 }, { id: "n2", label: "Rain", value: 1, x: 90, y: 0 }],
+  edges: [{ from: "n1", to: "n2", value: 1 }],
+};
 
 const offWith = (reason: string) => {
   downloadButton().should("have.attr", "aria-disabled", "true").and("have.attr", "title", reason)
@@ -152,10 +156,6 @@ describe("the tables popup", () => {
     expect(element?.textContent).to.equal("Download tables");
   });
   const expectStateStaysChosen = () => shown().find(".clear-highlight").should("exist");
-  const drawing = {
-    nodes: [{ id: "n1", label: "Sun", value: 1, x: 0, y: 0 }, { id: "n2", label: "Rain", value: 1, x: 90, y: 0 }],
-    edges: [{ from: "n1", to: "n2", value: 1 }],
-  };
   const outputs = {
     groups: [{ delimiter: " ", lengthLimit: 5, startingState: "", sequences: [[0, 1]] }], states: ["a", "b"],
   };
@@ -363,6 +363,25 @@ describe("the tables popup", () => {
       "\uFEFFState,Count\r\n\"a, b\",1\r\ncat,1\r\nthe,1\r\n");
   });
 
+  it("writes the Outputs file with each delimiter spelled out", () => {
+    const delimited = {
+      groups: [
+        { delimiter: " ", lengthLimit: 5, startingState: "", sequences: [[0, 1]] },
+        { delimiter: "", lengthLimit: 3, startingState: "", orderMatters: false, sequences: [[1, 0]] },
+      ],
+      states: ["a", "b"],
+    };
+    start({ startingText: "a b a" }, { interactiveState: { version: 1, useData: { outputs: delimited } } });
+    open();
+    nameField().clear().type("Delimited");
+    ["Input data", "States", "Transitions"].forEach(label => checkbox(label).uncheck());
+    submit().click();
+    dialog().should("not.exist");
+    cy.readFile("cypress/downloads/Delimited_Outputs.csv").should("equal",
+      "\uFEFFOutput number,Output,Starting state,Max length,Delimiter,Order matters\r\n" +
+      "1,a b,(any),5,(space),Yes\r\n2,ba,(any),3,(none),No\r\n");
+  });
+
   it("keeps the popup usable after a failed download, and leaves the count", () => {
     start({ startingText: "the cat sat" });
     open();
@@ -459,6 +478,23 @@ describe("Send to CODAP", () => {
   const saved = "Your tables have been saved as Mine. " +
     "Open the CODAP window on this page and choose this name in the Datalog plugin.";
   const failed = "Your tables couldn't be saved. Check your connection and try again.";
+  interface DemoStore { refuse: boolean; written: { metadata: any; data: any }[] }
+  // The demo store keeps each snapshot in the frame's Map, so wrapping Map's set lets a test read what was written,
+  // or refuse the write once the client has connected.
+  const watchStore = (store: DemoStore) => cy.get<HTMLIFrameElement>("iframe#interactive").its("0.contentWindow")
+    .then(win => {
+      const { prototype } = (win as Window & typeof globalThis).Map;
+      const realSet = prototype.set;
+      prototype.set = function(this: Map<unknown, unknown>, key: unknown, value: any) {
+        if (value?.metadata?.subType === "multi-value-snapshot") {
+          if (store.refuse) {
+            throw new Error("refused");
+          }
+          store.written.push(value);
+        }
+        return realSet.call(this, key, value);
+      };
+    });
 
   it("shows when the author turned it on and the host has object storage", () => {
     startSend();
@@ -577,6 +613,49 @@ describe("Send to CODAP", () => {
     cancel().click();
     sendButton().click();
     nameField().should("have.value", "Data1");
+  });
+
+  it("fails a save whose write is refused after the client connected, and saves on a retry", () => {
+    const store: DemoStore = { refuse: true, written: [] };
+    startSend();
+    watchStore(store);
+    sendButton().click();
+    nameField().clear().type("Mine");
+    submit().click();
+    dialog().find("[role='alert']").should("have.text", failed);
+    submit().should("be.enabled").and("have.text", "Send");
+    cy.wrap(store).its("written").should("have.length", 0);
+    tableEvents().should("deep.equal", [
+      ["TablesSendFailed", { name: "Mine", tables: ["Input", "States", "Transitions"], mode: "useData" }],
+    ]);
+    cy.then(() => { store.refuse = false; });
+    submit().click();
+    dialog().find("p").should("have.text", saved);
+    cy.wrap(store).its("written").should("have.length", 1);
+    tableEvents().its(1).should("deep.equal",
+      ["TablesSent", { name: "Mine", tables: ["Input", "States", "Transitions"], mode: "useData" }]);
+  });
+
+  it("sends Draw mode's tables, named for the drawing", () => {
+    const store: DemoStore = { refuse: false, written: [] };
+    startSend({ modes: drawOnly, startingMode: "draw" }, { interactiveState: { version: 1, draw: { drawing } } });
+    watchStore(store);
+    sendButton().click();
+    nameField().should("have.value", "Drawing1");
+    submit().click();
+    close().should("exist");
+    tableEvents().should("deep.equal", [
+      ["TablesSent", { name: "Drawing1", tables: ["States", "Transitions"], mode: "draw" }],
+    ]);
+    cy.wrap(store).its("written").should("have.length", 1).its(0).then(({ metadata, data }) => {
+      expect(metadata.name).to.equal("Drawing1");
+      expect(data.states.rows).to.deep.equal([["Rain"], ["Sun"]]);
+      expect(data.transitions.rows).to.deep.equal([["Sun", "Rain", 1]]);
+      expect(data.tables.tables).to.deep.equal([
+        { id: "states", colTypes: ["categorical"] },
+        { id: "transitions", colTypes: ["categorical", "categorical", "numeric"] },
+      ]);
+    });
   });
 
   it("logs a send and saves the count", () => {
