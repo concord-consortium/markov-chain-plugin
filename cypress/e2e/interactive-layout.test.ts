@@ -1,4 +1,4 @@
-import { rowOffset, scanLinePositions } from "../../src/components/scan-line-layout";
+import { scanLinePositions, wobble } from "../../src/components/scan-line-layout";
 
 const width = 1044;
 const sentence = "I went to the moon on Monday and it was great you would be so impressed";
@@ -40,7 +40,7 @@ describe("the interactive's layout", () => {
           expect(at[word].y, `${word} y`).to.be.closeTo(expected.get(word)!.y, 1e-6);
         });
         // more than one row, and the second runs right to left
-        const rowOf = (word: string) => Math.round(at[word].y - rowOffset(word));
+        const rowOf = (word: string) => Math.round(at[word].y - wobble(word).y);
         const rows = [...new Set(words.map(rowOf))];
         expect(rows.length).to.be.greaterThan(1);
         const second = words.filter(word => rowOf(word) === rows[1]);
