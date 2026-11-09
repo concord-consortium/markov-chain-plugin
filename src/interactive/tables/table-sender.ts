@@ -7,10 +7,6 @@ export interface TableSender {
   send: (name: string, tables: TableData[]) => Promise<void>;
 }
 
-const timedOut = (ms: number) => new Promise<never>((_resolve, reject) => {
-  window.setTimeout(() => reject(new Error("save timed out")), ms);
-});
-
 // The library and Firebase are a chunk of their own, loaded only where Send to CODAP shows. The client starts with the
 // workspace: it signs in as it is created, and the token in the config is freshest then.
 export const connectTableSender = (config: unknown): TableSender => {
@@ -36,7 +32,11 @@ export const connectTableSender = (config: unknown): TableSender => {
     send: (name, tables) => {
       const writing = write(name, tables);
       writing.catch(() => undefined);
-      return Promise.race([writing, timedOut(saveTimeout)]);
+      let timer: number | undefined;
+      const timedOut = new Promise<never>((_resolve, reject) => {
+        timer = window.setTimeout(() => reject(new Error("save timed out")), saveTimeout);
+      });
+      return Promise.race([writing, timedOut]).finally(() => window.clearTimeout(timer));
     }
   };
 };

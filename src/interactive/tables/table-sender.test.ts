@@ -91,6 +91,13 @@ describe("connectTableSender", () => {
     await expect(connectTableSender(demoConfig).send("Data1", [states])).rejects.toThrow("refused");
   });
 
+  it("leaves no timer running once the write finishes", async () => {
+    jest.useFakeTimers();
+    await connectTableSender(demoConfig).send("Data1", [states]);
+    expect(add).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
   it("rejects at the timeout when the write never finishes, and not before", async () => {
     jest.useFakeTimers();
     add.mockReturnValue(new Promise(() => undefined));
