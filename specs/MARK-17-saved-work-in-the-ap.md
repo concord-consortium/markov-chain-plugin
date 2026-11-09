@@ -239,7 +239,7 @@ A throwaway build on the fake Activity Player page, in headless Chrome, confirme
 - A) Everything in Jira's layout list rides along, including toggles.
 - B) A setting that changes what the graph shows saves; where the student is looking rides along.
 
-**Decision**: B. "Show probabilities" saves, so a teacher's scrubber shows it; switching modes rides along, since it changes no work. Both cost little either way. MARK-28 later made a mode switch, a pane opened or closed, and Inspect's tab save too (R9).
+**Decision**: B. "Show probabilities", a mode switch, a pane opened or closed, and Inspect's tab save, so a teacher's scrubber shows them (R9); where the student is looking (dividers, zoom, sorts, choices) rides along.
 
 ---
 
