@@ -46,10 +46,12 @@ describe("wobble", () => {
 });
 
 describe("slotColumns", () => {
-  it("fits as many slots across the view as its width holds at the planned scale, and at least one", () => {
+  it("fits the nearest whole number of slots across the view at the planned scale, and at least one", () => {
     const onScreen = slotPitch.across * plannedScale;
-    expect(slotColumns(4 * onScreen)).toBe(4);
-    expect(slotColumns(5 * onScreen - 1)).toBe(4);
+    expect(slotColumns(5 * onScreen)).toBe(5);
+    expect(slotColumns(4.6 * onScreen)).toBe(5);
+    expect(slotColumns(5.4 * onScreen)).toBe(5);
+    expect(slotColumns(5.6 * onScreen)).toBe(6);
     expect(slotColumns(10)).toBe(1);
   });
 });

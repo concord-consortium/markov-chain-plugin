@@ -5,16 +5,19 @@ export const wobbleSpread = 11;
 export const maxWobble = 2 * wobbleSpread;
 // the least space between two states in neighboring slots, whatever their sizes and offsets
 export const slotGap = 10;
+// the largest a state's radius grows in the slots, smaller than the plugin's so the slots can sit closer
+export const slotMaxRadius = 40;
 // A state's radius grows with its share of the text, and two states' shares add up to at most 1, so two radii add up
 // to at most this. The slots are spaced for it, so no later count can make neighbors overlap.
-export const maxRadiusPair = 2 * settings.minRadius + (settings.maxRadius - settings.minRadius);
+export const maxRadiusPair = 2 * settings.minRadius + (slotMaxRadius - settings.minRadius);
 // from one slot's center to the next, across a row and down to the next row
 export const slotPitch = {
   across: maxRadiusPair + 2 * maxWobble + slotGap,
   down: ry(maxRadiusPair) + 2 * maxWobble + slotGap,
 };
-// the columns are planned for the graph shown at this scale, where a typical word still reads
-export const plannedScale = 0.7;
+// the columns are planned for the graph shown at this scale: five slots across the Graph pane at the Activity Player's
+// standard width
+export const plannedScale = 0.69;
 
 const modulus = 2147483647;
 
@@ -37,9 +40,10 @@ const clippedNormal = (seed: number) => {
 // has its own hash, so its own seed
 export const wobble = (id: string) => ({ x: clippedNormal(seedOf(id, 257)), y: clippedNormal(seedOf(id, 131)) });
 
-// how many slots a row holds in a view this many px wide
+// how many slots a row holds in a view this many px wide: the nearest whole number at the planned scale, so a view a
+// few px off its usual width keeps its count
 export const slotColumns = (viewWidth: number) =>
-  Math.max(1, Math.floor(viewWidth / (slotPitch.across * plannedScale)));
+  Math.max(1, Math.round(viewWidth / (slotPitch.across * plannedScale)));
 
 // a slot's center: rows of `columns` slots, the first left to right and each next one back the other way
 export const slotCenter = (slot: number, columns: number) => {

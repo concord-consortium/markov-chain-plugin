@@ -4,7 +4,7 @@ import * as d3 from "d3";
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
 import { ArrowWidths, edgeWeights, graphSignature, isPlaced, settings } from "./graph-utils";
-import { slotColumns, slotPositions } from "./scan-line-layout";
+import { slotColumns, slotMaxRadius, slotPositions } from "./scan-line-layout";
 import { useLatest } from "../hooks/use-latest";
 import { D3Graph, D3Node } from "./graph-geometry";
 import {
@@ -185,7 +185,9 @@ export const Graph = (props: Props) => {
 
     // get the sum of all the values
     const totalNodeValue = graph.nodes.reduce((acc, cur) => acc + cur.value, 0);
-    const { minRadius, maxRadius } = settings;
+    const { minRadius } = settings;
+    // the slots are spaced for their own largest radius
+    const maxRadius = scanLine && keepPositions ? slotMaxRadius : settings.maxRadius;
 
     const oldD3Nodes = graph.nodes.map(node => d3Graph.nodes.find(n => n.id === node.id));
     const placed = graph.nodes.map((node, index) => isPlaced(!!keepPositions, !!oldD3Nodes[index], node));

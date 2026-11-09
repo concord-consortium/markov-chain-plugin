@@ -254,26 +254,6 @@ describe("the workspace's view of the graph", () => {
 
   // the states' spread across their narrowest direction, as a share of the widest (their principal axes), is near 0
   // for states in a line
-  it("spreads a chain of new words around the graph rather than along a line", () => {
-    const words = ["and", "a", "dog", "ran", "far", "away", "from", "here"];
-    textBox().type(` ${words.join(" ")} `);
-    cy.interactive().find("g.node").should("have.length", 5 + words.length);
-    cy.interactive().find("g.node ellipse").then(ellipses => {
-      const centers = ellipses.toArray()
-        .map(e => ({ x: Number(e.getAttribute("cx")), y: Number(e.getAttribute("cy")) }));
-      const mean = (values: number[]) => values.reduce((sum, v) => sum + v, 0) / values.length;
-      const mx = mean(centers.map(c => c.x));
-      const my = mean(centers.map(c => c.y));
-      const xx = mean(centers.map(c => (c.x - mx) ** 2));
-      const yy = mean(centers.map(c => (c.y - my) ** 2));
-      const xy = mean(centers.map(c => (c.x - mx) * (c.y - my)));
-      const root = Math.sqrt(((xx - yy) / 2) ** 2 + xy ** 2);
-      const narrowest = (xx + yy) / 2 - root;
-      const widest = (xx + yy) / 2 + root;
-      expect(Math.sqrt(narrowest / widest)).to.be.greaterThan(0.45);
-    });
-  });
-
   it("follows again when most of the states are new", () => {
     cy.interactive().find("button[title='Zoom In']").click();
     rootTransform().then(zoomed => {

@@ -1,4 +1,5 @@
-import { slotCenter, slotColumns, slotPositions, wobble } from "../../src/components/scan-line-layout";
+import { settings } from "../../src/components/graph-utils";
+import { slotCenter, slotColumns, slotMaxRadius, slotPositions, wobble } from "../../src/components/scan-line-layout";
 
 const width = 1044;
 const sentence = "I went to the moon on Monday and it was great you would be so impressed";
@@ -37,7 +38,8 @@ const places = () => graphBox().find("g.node").should("have.length.at.least", 1)
   const at: Record<string, Place> = {};
   nodes.toArray().forEach(node => {
     const ellipse = node.querySelector("ellipse")!;
-    at[node.textContent!] = {
+    // by id: a long word's label can be cut short to fit its oval
+    at[(node as unknown as { __data__: { id: string } }).__data__.id] = {
       x: Number(ellipse.getAttribute("cx")), y: Number(ellipse.getAttribute("cy")),
       rx: Number(ellipse.getAttribute("rx")), ry: Number(ellipse.getAttribute("ry")),
     };
@@ -50,7 +52,8 @@ describe("the interactive's layout", () => {
     start();
     graphBox().find("g.node").should("have.length", words.length);
     columns().then(across => {
-      expect(across).to.be.greaterThan(1);
+      // five slots across the Graph pane at the Activity Player's standard width
+      expect(across).to.equal(5);
       places().then(at => {
         const expected = slotPositions(words.map((id, slot) => ({ id, slot })), [], across);
         words.forEach(word => {
@@ -77,6 +80,16 @@ describe("the interactive's layout", () => {
       expect(drawn.right).to.be.at.most(view.right);
       expect(drawn.top).to.be.at.least(view.top);
       expect(drawn.bottom).to.be.at.most(view.bottom);
+    });
+  });
+
+  it("grows a frequent word only to the slots' largest radius", () => {
+    // "a" is 4 of the 5 words
+    start({ startingText: "a a a a b" });
+    graphBox().find("g.node").should("have.length", 2);
+    places().should(at => {
+      expect(at.a.rx).to.be.closeTo(settings.minRadius + (slotMaxRadius - settings.minRadius) * 0.8, 1e-6);
+      expect(at.b.rx).to.be.closeTo(settings.minRadius + (slotMaxRadius - settings.minRadius) * 0.2, 1e-6);
     });
   });
 
