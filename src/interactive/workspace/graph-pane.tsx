@@ -160,6 +160,7 @@ export const GraphPane = ({
             probabilityLabels={probabilities}
             arrowWidths={arrowWidths}
             orderMatters={orderMatters}
+            scanLine
           />
           </>
       }

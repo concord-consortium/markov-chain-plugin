@@ -1503,7 +1503,12 @@ describe("the workspace's dividers", () => {
     });
 
     it("fits a followed graph to the taller row", () => {
-      start({ startingText: "a b c d e f g h i j k l m n o p q r s t u v w x y z" });
+      // a saved column, which the row's height limits
+      const letters = "abcdefghijklmnopqrstuvwxyz".split("");
+      const positions = letters.reduce<number[]>((all, _, i) => [...all, 0, i * 60], []);
+      start({ startingText: letters.join(" ") }, {
+        interactiveState: { version: 1, caseSensitive: false, useData: { positions } },
+      });
       const scale = () => shown().find(".graph-pane g.root").invoke("attr", "transform")
         .then(transform => parseTransform(transform as unknown as string).k);
       shown().find(".graph-pane g.node").should("have.length", 26);

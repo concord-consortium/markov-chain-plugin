@@ -3,7 +3,9 @@ import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
-import { ArrowWidths, edgeWeights, graphSignature, isPlaced, settings, startPositions } from "./graph-utils";
+import { ArrowWidths, edgeWeights, graphSignature, isPlaced, layoutFor, settings, startPositions } from "./graph-utils";
+import { scanLinePositions } from "./scan-line-layout";
+import { useLatest } from "../hooks/use-latest";
 import { D3Graph, D3Node } from "./graph-geometry";
 import {
   GraphSelection, highlightAnimation, highlightSelected as highlightSelectedNodes,
@@ -80,6 +82,9 @@ type Props = {
   keepOutputOnRedraw?: boolean;
   // fits and recenters bring a graph off the origin to the view's center; absent, they move it half the way
   centerOffOrigin?: boolean;
+  // with keepPositions, a graph laid out whole goes in rows in the states' order, back and forth to fill the view,
+  // not by force
+  scanLine?: boolean;
 };
 
 // a press that moves this many px or less is still a click, and a gesture that moves the view no more isn't a zoom
@@ -96,12 +101,14 @@ export const Graph = (props: Props) => {
          selectedNodeId, setSelectedNodeId, animating, onDimensions, onTransformed, keepPositions, selectedEdge,
          onEdgeSelect, onBackgroundClick, zoomButtons = true, zoomRequest, onUserZoom, fitTransitionMs,
          probabilityLabels, arrowWidths = "byState", orderMatters, keepOutputOnRedraw,
-         centerOffOrigin, initialView } = props;
+         centerOffOrigin, initialView, scanLine } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(wrapperRef);
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
+  const sizeRef = useLatest({ width, height });
+  const sized = width > 0 && height > 0;
   const [d3Graph, setD3Graph] = useState<D3Graph>({ nodes: [], edges: [] });
   const lastClickTimeRef = useRef<number|undefined>(undefined);
   const lastClickIdRef = useRef<string|undefined>(undefined);
@@ -182,6 +189,19 @@ export const Graph = (props: Props) => {
 
     const oldD3Nodes = graph.nodes.map(node => d3Graph.nodes.find(n => n.id === node.id));
     const placed = graph.nodes.map((node, index) => isPlaced(!!keepPositions, !!oldD3Nodes[index], node));
+    const radiusOf = (node: Node) => minRadius + ((maxRadius - minRadius) * (node.value / totalNodeValue));
+    const placedCount = placed.filter(Boolean).length;
+    const inRows = !!scanLine && !!keepPositions && graph.nodes.length > 0 &&
+      layoutFor(placedCount, graph.nodes.length) === "whole";
+    // the rows are fitted to the view, so they wait for its size; a graph already placed is built while hidden, so its
+    // positions are still reported and saved
+    if (inRows && !sized) {
+      return;
+    }
+    const rows = inRows
+      ? scanLinePositions(graph.nodes.map(node => ({ id: node.id, radius: radiusOf(node) })),
+        sizeRef.current.width / sizeRef.current.height)
+      : undefined;
     const placedPositions = new Map<string, { x: number, y: number }>();
     graph.nodes.forEach((node, index) => {
       if (placed[index]) {
@@ -195,7 +215,7 @@ export const Graph = (props: Props) => {
 
     graph.nodes.forEach((node, index) => {
       const oldD3Node = oldD3Nodes[index];
-      const start = starts?.get(node.id);
+      const start = rows?.get(node.id) ?? starts?.get(node.id);
       const x = start?.x ?? oldD3Node?.x ?? node.x ?? 0;
       const y = start?.y ?? oldD3Node?.y ?? node.y ?? 0;
 
@@ -204,9 +224,9 @@ export const Graph = (props: Props) => {
         id: node.id,
         x,
         y,
-        placed: placed[index],
+        placed: !!rows || placed[index],
         label: node.label,
-        radius: minRadius + ((maxRadius - minRadius) * (node.value / totalNodeValue)),
+        radius: radiusOf(node),
         loops: false,
         loopWeight: 0,
         weight: node.value
@@ -236,7 +256,7 @@ export const Graph = (props: Props) => {
     if (graphSignature(d3Graph) !== graphSignature(newD3Graph)) {
       setD3Graph(newD3Graph);
     }
-  }, [d3Graph, graph, keepPositions, arrowWidths, orderMatters]);
+  }, [d3Graph, graph, keepPositions, arrowWidths, orderMatters, sized, scanLine, sizeRef]);
 
   // enable zooming
   useEffect(() => {
@@ -346,15 +366,17 @@ export const Graph = (props: Props) => {
     return true;
   }, [width, height, fitTransitionMs, centerOffOrigin]);
 
+  // a graph whose states wait for the view's size to be laid out has nothing drawn to fit yet
+  const undrawn = graph.nodes.length > 0 && d3Graph.nodes.length === 0;
   // listen for fit view requests
   useEffect(() => {
-    if ((fitViewAt ?? 0) > (lastFitViewAtRef.current ?? 0)) {
+    if (!undrawn && (fitViewAt ?? 0) > (lastFitViewAtRef.current ?? 0)) {
       // a host that follows the graph drops a fit with nothing to fit, or it would land later over the student's view
       if (fitOrCenter("fit") || (onUserZoom && width && height)) {
         lastFitViewAtRef.current = fitViewAt;
       }
     }
-  }, [fitViewAt, fitOrCenter, onUserZoom, width, height]);
+  }, [fitViewAt, fitOrCenter, onUserZoom, width, height, undrawn]);
 
   // listen for recenter view requests
   useEffect(() => {

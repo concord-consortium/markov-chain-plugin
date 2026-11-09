@@ -535,6 +535,14 @@ describe("saving work", () => {
     });
   });
 
+  it("keeps Data mode's saved positions through a save made with Data mode hidden", () => {
+    const positions = [-100, -50, 20, 70, 150, -20, 0, 90];
+    startDrawing({ version: 1, mode: "draw", caseSensitive: false, useData: { positions } });
+    toolButton("Add State").click();
+    shown().find(".graph > svg").trigger("click", 60, 60);
+    firstPost().its("useData.positions").should("deep.equal", positions);
+  });
+
   it("gives back at a page leave what a student who did nothing opened with, under a changed page", () => {
     const saved = {
       version: 1, input: { text: "my words" }, mode: "useData", probabilities: true,
