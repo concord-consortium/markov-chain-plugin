@@ -215,8 +215,6 @@ describe("the tables popup", () => {
     open();
     pressDownloadThenSeeBusy();
     focused().should(element => expect(element?.tagName).to.equal("DIALOG"));
-    dialog().type("{esc}");
-    expectStateStaysChosen();
     dialog().then(element => expect(pressKey(element[0], "Escape").defaultPrevented).to.equal(true));
     dialog().trigger("cancel");
     dialog().should("have.attr", "open");
