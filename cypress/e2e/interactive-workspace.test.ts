@@ -2643,13 +2643,16 @@ describe("the workspace's probabilities", () => {
     labels().should("not.exist");
   });
 
-  it("labels a generating step's candidates, and no longer once the step chooses", () => {
-    start({ startingText: "the cat the mat", ...on });
+  it("labels a generating step's candidates, and then only the transition it chose", () => {
+    start({ startingText: "the cat the mat the cat", ...on });
     cy.interactive().find(".generator-pane select").first().select("the");
     generatorButton("Step").click();
-    labelTexts().should("deep.equal", ["50%", "50%"]);
+    labelTexts().should("deep.equal", ["67%", "33%"]);
     generatorButton("Step").click();
-    labels().should("not.exist");
+    labels().should("have.length", 1).should(label => {
+      expect(label.attr("data-from")).to.equal("the");
+      expect(label.text()).to.equal(label.attr("data-to") === "cat" ? "67%" : "33%");
+    });
   });
 
   it("labels no candidates and no chosen output with probabilities off", () => {
@@ -2812,7 +2815,7 @@ describe("the workspace's probabilities", () => {
     generatorButton("Step").click();
     notes().should("deep.equal", [rounding]);
     generatorButton("Step").click();
-    labels().should("not.exist");
+    labels().should("have.length", 1);
     notes().should("deep.equal", [rounding]);
   });
 });
@@ -2930,7 +2933,7 @@ describe("the workspace's Order matters switch", () => {
       labelTexts().should("deep.equal", ["20%", "20%", "60%"]);
     });
 
-    it("dashes and labels a step's candidates, and then draws only the step taken", () => {
+    it("dashes and labels a step's candidates, and then draws and labels only the step taken", () => {
       start({ startingText: "the cat the mat the", ...both });
       cy.interactive().find(".generator-pane select").first().select("cat");
       cy.interactive().find(".generator-pane button").contains("Step").click();
@@ -2940,6 +2943,12 @@ describe("the workspace's Order matters switch", () => {
       cy.interactive().find(".generator-pane button").contains("Step").click();
       cy.interactive().find(".bag-arrows line, .bag-arrows path").should("have.length", 1);
       cy.interactive().find(".bag-arrows [stroke-dasharray='4']").should("not.exist");
+      // the word's share of all the words, whatever it came from
+      const shares: Record<string, string> = { the: "60%", cat: "20%", mat: "20%" };
+      cy.interactive().find("text.probability-label").should("have.length", 1).should(label => {
+        expect(label.attr("data-from")).to.equal("cat");
+        expect(label.text()).to.equal(shares[label.attr("data-to")!]);
+      });
     });
 
     it("labels exactly a chosen output's steps, with nothing faded", () => {
