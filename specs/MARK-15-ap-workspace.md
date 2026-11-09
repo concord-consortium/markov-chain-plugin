@@ -54,6 +54,7 @@ It builds on MARK-13 (PR #88: `src/interactive/`, its authored state, the runtim
   - While the generator is collapsed, the row takes the height the generator gave up, so the workspace's height stays the same, and gives it back when the generator reopens; stacked panes keep their heights.
   - The sizes are workspace state beside which panes are open, ready for MARK-17 to save; this story saves none (R31).
 - **R13b.** **Font.** The interactive's pages (the workspace hosted and standalone, the report placeholder and the authoring form) use Lato, as the Activity Player and Concord's question interactives do: Google Fonts' Lato stylesheet (weights 400 and 700) and `'Lato', arial, helvetica, sans-serif` on the body. A state's label in the graph is sized by measuring it in the page's font. The CODAP plugin keeps its font.
+- **R13c.** **Keyboard and narrow screens.** Every control in the workspace focused from the keyboard shows a 2 px teal (#177991) outline, 4.5:1 or better against the panes. At 320 px the generator's Clear Output and Cancel go onto two lines rather than past the pane's edge. With the system's reduced motion set, Fit, Recenter and the automatic fits move the view at once. The generator's Starting State, Max Length and Delimiter fields are named by their labels and the other delimiter's field is "Other delimiter"; the plugin shares these. Data mode's Select tool, the only tool there, reports itself pressed.
 - **R14.** Outputs in the generator's output alternate between very light background colors, sequence by sequence; a highlighted output keeps the output highlight. The CODAP plugin's output is unchanged.
 
 ### The tokenizer
@@ -98,6 +99,7 @@ It builds on MARK-13 (PR #88: `src/interactive/`, its authored state, the runtim
   - Every source but the graph works from the keyboard. Each table is one stop in the Tab order, and Up and Down move between its rows. Each output takes Tab and is chosen with Enter or Space, an option of the shared output that only the workspace sets. A chosen Inspect row or output reports `aria-pressed`.
 - **R25.** **What lights up.**
   - A state: in the graph as a selected state is today; its Inspect States row; the Transitions rows into and out of it; and every table row and text-box word that is that state.
+  - A word lit in the text box also has a 2 px line under it, teal for a chosen state or transition and dark pink (#c0006b) for an output, so its pale fill isn't its only mark. A Transitions row lit as into or out of the chosen state is described as "Into the chosen state" or "Out of the chosen state", which its border shows by color.
   - A transition: its arrow and its two states, the rest faded; its Transitions row and its two States rows; and every place in the table and the text where the first state is directly followed by the second.
   - An output, in pink: its path in the graph; the States rows of its states and the Transitions rows of its steps; and every table row and word that is one of its states.
   - In each pane other than the one the choice was made in, the first highlighted row or word scrolls into view.

@@ -11,6 +11,7 @@ import { useZoomRequest } from "../../hooks/use-zoom-request";
 import { graphBodyHeight, paneGap, toolbarColumns, toolbarWidth } from "./pane-sizes";
 import { useLatest } from "../../hooks/use-latest";
 import { graphNotes } from "./graph-notes";
+import { fitDuration } from "./motion";
 import { ModeSaving } from "./use-pane-layout";
 
 export const dataTools: Tool[] = ["select", "fitView", "recenter", "zoomIn", "zoomOut"];
@@ -113,7 +114,7 @@ export const GraphPane = ({
             onTransformed={handleTransformed}
             initialView={initialView}
             readOnly={readOnly}
-            fitTransitionMs={fitMs}
+            fitTransitionMs={fitDuration(fitMs)}
             probabilityLabels={probabilities}
             arrowWidths={arrowWidths}
             closeEditorOnEscape
@@ -124,6 +125,7 @@ export const GraphPane = ({
         : <>
           <Toolbar
             tools={tools}
+            selectedTool="select"
             disabled={tool.animating}
             onToolSelected={noop}
             onReset={noop}
@@ -147,7 +149,7 @@ export const GraphPane = ({
             onTransformed={handleTransformed}
             onAutoArrangeEnd={handleArranged}
             initialView={initialView}
-            fitTransitionMs={fitMs}
+            fitTransitionMs={fitDuration(fitMs)}
             centerOffOrigin
             fitViewAt={view.fitViewAt}
             recenterViewAt={view.recenterViewAt}

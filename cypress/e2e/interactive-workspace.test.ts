@@ -918,6 +918,21 @@ describe("the workspace's linked highlighting", () => {
   const arrow = (from: string, to: string) => lineFrom("line.edge-background", from, to);
   const drawnArrow = (from: string, to: string) => lineFrom("line.edge", from, to);
 
+  it("says which rows go into and out of the chosen state, and underlines its words in the text", () => {
+    start({ startingText: "the cat sat on the mat" });
+    clickState("cat");
+    cy.interactive().find(".text-input .backdrop mark").should("have.length", 1)
+      .and("have.css", "box-shadow", "rgb(23, 121, 145) 0px -2px 0px 0px inset");
+    inspectTab("Transitions").click();
+    const description = (label: string) => inspectRow(label).find("button").then(button =>
+      (button.attr("aria-describedby") ?? "").split(" ").filter(Boolean)
+        .map(id => button[0].ownerDocument.getElementById(id)!.textContent));
+    description("the → cat").should("include", "Into the chosen state");
+    description("cat → sat").should("include", "Out of the chosen state");
+    description("sat → on")
+      .should("not.include", "Into the chosen state").and("not.include", "Out of the chosen state");
+  });
+
   it("lights a state chosen in the graph in Inspect, the table and the text", () => {
     start({ startingText: "the cat sat on the mat" });
     clickState("cat");
@@ -994,7 +1009,8 @@ describe("the workspace's linked highlighting", () => {
     loggedEvents().should(events => expect(events.map(([action]) => action)).to.include("OutputSelected"));
     tableRows().eq(0).should("have.class", "highlight-output");
     cy.interactive().find(".inspect-pane tbody tr.highlight-output").should("have.length.at.least", 1);
-    cy.interactive().find(".text-input .backdrop mark.highlight-output").should("have.length.at.least", 1);
+    cy.interactive().find(".text-input .backdrop mark.highlight-output").should("have.length.at.least", 1)
+      .and("have.css", "box-shadow", "rgb(192, 0, 107) 0px -2px 0px 0px inset");
     stateEllipse("a").should("have.attr", "fill", animatedNodeColor);
     stateEllipse("b").should("have.attr", "fill", animatedNodeColor);
     drawnArrow("a", "b").should("have.attr", "stroke", animatedArrowColor);
@@ -3133,6 +3149,36 @@ describe("the workspace's Order matters switch", () => {
       const switchBottom = controlsRow[0].querySelector(".mode-switch")!.getBoundingClientRect().bottom;
       const groupTop = controlsRow[0].querySelector(".setting-switches")!.getBoundingClientRect().top;
       expect(groupTop).to.be.at.least(switchBottom);
+    });
+  });
+});
+
+describe("the workspace's keyboard and narrow-screen touches", () => {
+  it("rings a control focused from the keyboard in the workspace's teal", () => {
+    start({ startingText: "the cat" });
+    cy.interactive().find(".input-pane .pane-toggle").focus();
+    cy.interactive().find(".input-pane .pane-toggle").should(toggle => {
+      expect(toggle[0].matches(":focus-visible")).to.equal(true);
+      expect(toggle.css("outline-style")).to.equal("solid");
+      expect(toggle.css("outline-width")).to.equal("2px");
+      expect(toggle.css("outline-color")).to.equal("rgb(23, 121, 145)");
+    });
+  });
+
+  it("tells a screen reader that Data mode's Select tool is on", () => {
+    start({ startingText: "the cat" });
+    cy.interactive().find(".graph-pane .toolbar button[title='Select']").should("have.attr", "aria-pressed", "true");
+  });
+
+  it("keeps the generator's buttons inside its pane at 320 px", () => {
+    start({ startingText: "the cat" }, { width: 320 });
+    cy.interactive().find(".generator-pane").should(pane => {
+      const right = pane[0].getBoundingClientRect().right;
+      pane.find("button").each((_, button) => {
+        expect(button.getBoundingClientRect().right, button.textContent!).to.be.at.most(right);
+      });
+      const page = pane[0].ownerDocument.documentElement;
+      expect(page.scrollWidth).to.be.at.most(page.clientWidth);
     });
   });
 });
