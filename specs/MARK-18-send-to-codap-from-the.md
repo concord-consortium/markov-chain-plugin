@@ -165,7 +165,7 @@ CODAP 3.1.2 trims leading and trailing whitespace from a value and keeps inner s
 - R17's check sits in `Workspace`, in `outputLimitReached`, and not in `saved-outputs.ts`, which `interactive-state.ts` imports, so the tables' code stays out of anything else that reads saved state.
 - The dialog's closing runs in `useLayoutEffect`, since closing hands focus back only while it is in the page. It takes focus before its controls turn off, stops Escape's default while busy because Chromium closes a dialog past two refused `cancel` events, and wraps Tab itself because a modal dialog makes only its own document inert, so in a frame Tab would reach the host's page.
 - An ESLint warning counts as a failure here: CI's Cypress runs on `npm start`, whose overlay shows warnings over the page, and every click then fails as covered.
-- Jest maps `nanoid` to the library's CommonJS copy, so `table-sender.test.ts` runs against the real library and its demo store.
+- `jest-resolver.js` gives `nanoid` its CommonJS build, since jsdom asks for its browser build, an ES module Jest can't load, so `table-sender.test.ts` runs against the real library and its demo store.
 - Cypress's frame makes a page read as hosted, so the standalone rules are in `standalone.test.tsx`. `{esc}` sends only a keydown and `cy.press` doesn't reach a native dialog, so tests pair `{esc}` with `.trigger("cancel")`. `trigger("mouseover")` doesn't set `:hover`. The row's wrap test shows Clear highlight, since at 700 px the row without it fits exactly in some browsers.
 
 ### Corrections to earlier specs and notes
@@ -308,9 +308,9 @@ Each was checked against the code.
 ---
 
 ### Test the sender against the real library or a mock.
-**Context**: The library won't load in Jest without a mapper for `nanoid`.
+**Context**: The library won't load in Jest unless `nanoid` resolves to its CommonJS build.
 **Options considered**:
-- A) The real library, with a mapper.
+- A) The real library, with a Jest resolver for `nanoid`.
 - B) A `jest.mock` of the library.
 
 **Decision**: A. The test's job is to prove the object matches DP-12's reader, and a mock of `addDataTable` would only repeat what the code says.
