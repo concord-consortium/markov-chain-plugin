@@ -3,8 +3,8 @@ import * as d3 from "d3";
 
 import { useResizeObserver } from "../hooks/use-resize-observer";
 import { Edge, GraphData, Node } from "../type";
-import { ArrowWidths, edgeWeights, graphSignature, isPlaced, layoutFor, settings, startPositions } from "./graph-utils";
-import { scanLinePositions } from "./scan-line-layout";
+import { ArrowWidths, edgeWeights, graphSignature, isPlaced, settings } from "./graph-utils";
+import { slotColumns, slotPositions } from "./scan-line-layout";
 import { useLatest } from "../hooks/use-latest";
 import { D3Graph, D3Node } from "./graph-geometry";
 import {
@@ -82,8 +82,8 @@ type Props = {
   keepOutputOnRedraw?: boolean;
   // fits and recenters bring a graph off the origin to the view's center; absent, they move it half the way
   centerOffOrigin?: boolean;
-  // with keepPositions, a graph laid out whole goes in rows in the states' order, back and forth to fill the view,
-  // not by force
+  // with keepPositions, each new state goes in the slot of its order, in rows back and forth across the view, rather
+  // than being placed by force
   scanLine?: boolean;
 };
 
@@ -190,32 +190,32 @@ export const Graph = (props: Props) => {
     const oldD3Nodes = graph.nodes.map(node => d3Graph.nodes.find(n => n.id === node.id));
     const placed = graph.nodes.map((node, index) => isPlaced(!!keepPositions, !!oldD3Nodes[index], node));
     const radiusOf = (node: Node) => minRadius + ((maxRadius - minRadius) * (node.value / totalNodeValue));
-    const placedCount = placed.filter(Boolean).length;
-    const inRows = !!scanLine && !!keepPositions && graph.nodes.length > 0 &&
-      layoutFor(placedCount, graph.nodes.length) === "whole";
-    // the rows are fitted to the view, so they wait for its size; a graph already placed is built while hidden, so its
-    // positions are still reported and saved
-    if (inRows && !sized) {
-      return;
-    }
-    const rows = inRows
-      ? scanLinePositions(graph.nodes.map(node => ({ id: node.id, radius: radiusOf(node) })),
-        sizeRef.current.width / sizeRef.current.height)
-      : undefined;
     const placedPositions = new Map<string, { x: number, y: number }>();
     graph.nodes.forEach((node, index) => {
       if (placed[index]) {
         const oldD3Node = oldD3Nodes[index];
-        placedPositions.set(node.id, { x: oldD3Node?.x ?? node.x ?? 0, y: oldD3Node?.y ?? node.y ?? 0 });
+        // a dragged state's x trails its pin until the next tick
+        placedPositions.set(node.id, {
+          x: oldD3Node?.fx ?? oldD3Node?.x ?? node.x ?? 0, y: oldD3Node?.fy ?? oldD3Node?.y ?? node.y ?? 0
+        });
       }
     });
 
     const newIds = graph.nodes.filter((_, index) => !placed[index]).map(node => node.id);
-    const starts = keepPositions ? startPositions(newIds, graph.edges, placedPositions) : undefined;
+    const inSlots = !!scanLine && !!keepPositions && newIds.length > 0;
+    // a row's slots are counted from the view's width, so new states wait for its size; a graph already placed is
+    // built while hidden, so its positions are still reported and saved
+    if (inSlots && !sized) {
+      return;
+    }
+    const slots = inSlots
+      ? slotPositions(graph.nodes.flatMap((node, slot) => placed[slot] ? [] : [{ id: node.id, slot }]),
+        [...placedPositions.values()], slotColumns(sizeRef.current.width))
+      : undefined;
 
     graph.nodes.forEach((node, index) => {
       const oldD3Node = oldD3Nodes[index];
-      const start = rows?.get(node.id) ?? starts?.get(node.id);
+      const start = slots?.get(node.id) ?? placedPositions.get(node.id);
       const x = start?.x ?? oldD3Node?.x ?? node.x ?? 0;
       const y = start?.y ?? oldD3Node?.y ?? node.y ?? 0;
 
@@ -224,7 +224,7 @@ export const Graph = (props: Props) => {
         id: node.id,
         x,
         y,
-        placed: !!rows || placed[index],
+        placed: !!slots || placed[index],
         label: node.label,
         radius: radiusOf(node),
         loops: false,

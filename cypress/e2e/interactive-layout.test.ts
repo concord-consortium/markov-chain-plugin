@@ -1,4 +1,4 @@
-import { scanLinePositions, wobble } from "../../src/components/scan-line-layout";
+import { slotCenter, slotColumns, slotPositions, wobble } from "../../src/components/scan-line-layout";
 
 const width = 1044;
 const sentence = "I went to the moon on Monday and it was great you would be so impressed";
@@ -7,11 +7,29 @@ const shown = () => cy.interactive().find(".workspace-body:not([hidden])");
 const graphBox = () => shown().find(".graph-pane .graph");
 const orderSwitch = () => shown().find(".setting-switch").filter(":contains('Order matters')").find("[role='switch']");
 
-const start = (authoredState: Record<string, unknown> = {}, frameWidth = width) =>
+const start = (authoredState: Record<string, unknown> = {}, frameWidth = width, interactiveState?: unknown) =>
   cy.startInteractive({
-    mode: "runtime", width: frameWidth,
+    mode: "runtime", width: frameWidth, interactiveState,
     authoredState: { modes: { useData: true, draw: false }, startingText: sentence, ...authoredState },
   });
+
+const textBox = () => shown().find("textarea[aria-label='Your text']");
+// the slots a row of the Graph pane holds, from the width the graph measures
+const columns = () => graphBox().then(box => slotColumns(box[0].clientWidth));
+const inSlot = (word: string, slot: number, across: number) => {
+  const center = slotCenter(slot, across);
+  return { x: center.x + wobble(word).x, y: center.y + wobble(word).y };
+};
+// "I went to" opened from saved work with its states at these places
+const startSaved = (placed: { x: number, y: number }[]) => start({ startingText: "I went to" }, width, {
+  version: 1, caseSensitive: false,
+  useData: { positions: placed.reduce<number[]>((all, at) => [...all, at.x, at.y], []) },
+});
+// types each word and its space, waiting for the graph to take it before the next
+const typeWords = (typed: string[], before = 0) => typed.forEach((word, i) => {
+  textBox().type(`${word} `);
+  graphBox().find("g.node").should("have.length", before + i + 1);
+});
 
 type Place = { x: number, y: number, rx: number, ry: number };
 // each state's ellipse, by its word
@@ -28,13 +46,13 @@ const places = () => graphBox().find("g.node").should("have.length.at.least", 1)
 });
 
 describe("the interactive's layout", () => {
-  it("lays the words out in rows in the text's order, back and forth to fill the view, each offset by its word", () => {
+  it("puts each word in the slot of its order, in rows back and forth across the view, offset by its word", () => {
     start();
     graphBox().find("g.node").should("have.length", words.length);
-    graphBox().then(box => {
-      const aspect = box[0].clientWidth / box[0].clientHeight;
+    columns().then(across => {
+      expect(across).to.be.greaterThan(1);
       places().then(at => {
-        const expected = scanLinePositions(words.map(id => ({ id, radius: at[id].rx })), aspect);
+        const expected = slotPositions(words.map((id, slot) => ({ id, slot })), [], across);
         words.forEach(word => {
           expect(at[word].x, `${word} x`).to.be.closeTo(expected.get(word)!.x, 1e-6);
           expect(at[word].y, `${word} y`).to.be.closeTo(expected.get(word)!.y, 1e-6);
@@ -86,6 +104,56 @@ describe("the interactive's layout", () => {
       }));
     });
   }));
+
+  it("puts words typed one at a time where the whole text puts them", () => {
+    start();
+    graphBox().find("g.node").should("have.length", words.length);
+    places().then(pasted => {
+      start({ startingText: "" });
+      textBox().should("have.value", "");
+      typeWords(sentence.split(" "));
+      places().should(typed => words.forEach(word =>
+        expect([typed[word].x, typed[word].y], word).to.deep.equal([pasted[word].x, pasted[word].y])));
+    });
+  });
+
+  // a word the student dragged is opened from saved work at the place the drag left it; d3's drag handling throws in
+  // Cypress's frame, so the tests start from that saved place
+  it("keeps placed words, and a word the student moved, where they are when a new word comes", () => {
+    start({ startingText: "" });
+    columns().then(across => {
+      const moved = { x: inSlot("went", 1, across).x + 40, y: inSlot("went", 1, across).y + 70 };
+      const placed = [inSlot("i", 0, across), moved, inSlot("to", 2, across)];
+      startSaved(placed);
+      graphBox().find("g.node").should("have.length", 3);
+      textBox().type(" the ");
+      graphBox().find("g.node").should("have.length", 4);
+      places().should(after => ["i", "went", "to"].forEach((word, i) => {
+        expect(after[word].x, word).to.be.closeTo(placed[i].x, 0.5);
+        expect(after[word].y, word).to.be.closeTo(placed[i].y, 0.5);
+      }));
+    });
+  });
+
+  it("moves a new word on to the next free slot when a word the student moved there takes its own", () => {
+    // the pane's width, for its slots, before the saved work is opened
+    start({ startingText: "" });
+    columns().then(across => {
+      // "to" saved where a drag left it, on slot 3, where the next word would go
+      const moved = slotCenter(3, across);
+      const placed = [inSlot("i", 0, across), inSlot("went", 1, across), { x: moved.x + 12, y: moved.y - 9 }];
+      startSaved(placed);
+      graphBox().find("g.node").should("have.length", 3);
+      textBox().type(" the ");
+      graphBox().find("g.node").should("have.length", 4);
+      places().should(after => {
+        const next = inSlot("the", 4, across);
+        expect(after.to.x).to.be.closeTo(placed[2].x, 0.5);
+        expect(after.the.x).to.be.closeTo(next.x, 1e-6);
+        expect(after.the.y).to.be.closeTo(next.y, 1e-6);
+      });
+    });
+  });
 
   it("keeps the words in place when the text adds some, placing only the new ones", () => {
     start();

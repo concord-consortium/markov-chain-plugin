@@ -1,26 +1,15 @@
-import { ry, settings } from "./graph-utils";
-import { maxWobble, scanLineGap, scanLinePositions, wobble, wobbleSpread } from "./scan-line-layout";
+import { ry } from "./graph-utils";
+import {
+  maxRadiusPair, maxWobble, plannedScale, slotCenter, slotColumns, slotGap, slotPitch, slotPositions, wobble,
+  wobbleSpread
+} from "./scan-line-layout";
 
 const words = "i went to the moon on monday and it was great you would be so impressed".split(" ");
-const states = words.map((id, index) => ({ id, radius: settings.minRadius + (index % 3) * 10 }));
-const radiusOf = new Map(states.map(s => [s.id, s.radius]));
-
-type Positions = Map<string, { x: number, y: number }>;
-// a state's place before its wobble
-const home = (positions: Positions, id: string) => {
-  const at = positions.get(id)!;
-  const offset = wobble(id);
-  return { x: at.x - offset.x, y: at.y - offset.y };
-};
-
-// the rows as laid out, top to bottom
-const rowsOf = (positions: Positions) => {
-  const rows = new Map<number, string[]>();
-  positions.forEach((_, id) => {
-    const y = Math.round(home(positions, id).y);
-    rows.set(y, [...(rows.get(y) ?? []), id]);
-  });
-  return [...rows.entries()].sort(([a], [b]) => a - b).map(([, ids]) => ids);
+const columns = 4;
+const inOrder = (ids: string[], from = 0) => ids.map((id, i) => ({ id, slot: from + i }));
+const inSlot = (id: string, slot: number) => {
+  const center = slotCenter(slot, columns);
+  return { x: center.x + wobble(id).x, y: center.y + wobble(id).y };
 };
 
 const mean = (values: number[]) => values.reduce((sum, v) => sum + v, 0) / values.length;
@@ -56,80 +45,79 @@ describe("wobble", () => {
   });
 });
 
-describe("scanLinePositions", () => {
-  it("places nothing for no states, and one state at the origin, offset", () => {
-    expect(scanLinePositions([], 2).size).toBe(0);
-    expect(scanLinePositions([{ id: "moon", radius: 25 }], 2).get("moon")).toEqual(wobble("moon"));
+describe("slotColumns", () => {
+  it("fits as many slots across the view as its width holds at the planned scale, and at least one", () => {
+    const onScreen = slotPitch.across * plannedScale;
+    expect(slotColumns(4 * onScreen)).toBe(4);
+    expect(slotColumns(5 * onScreen - 1)).toBe(4);
+    expect(slotColumns(10)).toBe(1);
   });
+});
 
-  it("gives the same text the same layout", () => {
-    expect(scanLinePositions(states, 2)).toEqual(scanLinePositions(states.map(s => ({ ...s })), 2));
-  });
-
-  it("offsets each state from its place in its row by its own wobble", () => {
-    const rows = rowsOf(scanLinePositions(states, 2));
-    expect(rows.flat()).toHaveLength(words.length);
-    expect(rows.length).toBeGreaterThan(1);
-    expect(rows.length).toBeLessThan(words.length);
-  });
-
-  it("keeps the words' order, each row back the other way from the one before", () => {
-    const positions = scanLinePositions(states, 2);
-    const rows = rowsOf(positions);
-    expect(rows.flat()).toEqual(words);
+describe("slotCenter", () => {
+  it("fills a row left to right, then the next right to left, starting under where the row before ended", () => {
+    const centers = Array.from({ length: 3 * columns }, (_, slot) => slotCenter(slot, columns));
+    const rows = [0, 1, 2].map(row => centers.slice(row * columns, (row + 1) * columns));
     rows.forEach((row, index) => {
-      const xs = row.map(id => home(positions, id).x);
-      const sorted = [...xs].sort((a, b) => index % 2 === 0 ? a - b : b - a);
-      expect(xs).toEqual(sorted);
+      row.forEach(center => expect(center.y).toBe(index * slotPitch.down));
+      const xs = row.map(center => center.x);
+      expect(xs).toEqual([...xs].sort((a, b) => index % 2 === 0 ? a - b : b - a));
+      expect(new Set(xs).size).toBe(columns);
     });
+    expect(rows[1][0].x).toBe(rows[0][columns - 1].x);
+    expect(rows[2][0].x).toBe(rows[1][columns - 1].x);
+  });
+});
+
+describe("slotPositions", () => {
+  it("puts each state in the slot of its order, offset by its wobble", () => {
+    const positions = slotPositions(inOrder(words), [], columns);
+    words.forEach((word, slot) => expect(positions.get(word)).toEqual(inSlot(word, slot)));
   });
 
-  it("starts each row under where the one before ended, the rows but the last as wide as the layout", () => {
-    const positions = scanLinePositions(states, 2);
-    const rows = rowsOf(positions);
-    const left = (id: string) => home(positions, id).x - radiusOf.get(id)!;
-    const right = (id: string) => home(positions, id).x + radiusOf.get(id)!;
-    const edges = rows.slice(0, -1).map(row => [Math.min(...row.map(left)), Math.max(...row.map(right))]);
-    edges.forEach(([l, r]) => {
-      expect(l).toBeCloseTo(edges[0][0]);
-      expect(r).toBeCloseTo(edges[0][1]);
+  it("gives words typed one at a time the places they get laid out all at once", () => {
+    const atOnce = slotPositions(inOrder(words), [], columns);
+    const typed = new Map<string, { x: number, y: number }>();
+    words.forEach((word, slot) => {
+      const added = slotPositions([{ id: word, slot }], [...typed.values()], columns);
+      expect([...added.keys()]).toEqual([word]);
+      typed.set(word, added.get(word)!);
     });
-    rows.slice(1).forEach((row, index) => {
-      const ended = rows[index][rows[index].length - 1];
-      expect(Math.abs(home(positions, row[0]).x - home(positions, ended).x))
-        .toBeLessThanOrEqual(Math.abs(radiusOf.get(row[0])! - radiusOf.get(ended)!) + 0.001);
-    });
+    expect(typed).toEqual(atOnce);
   });
 
-  it("chooses the rows whose width to height comes nearest the view's", () => {
-    const extent = (aspect: number) => {
-      const positions = scanLinePositions(states, aspect);
-      const xs = [...positions].map(([id, at]) => [at.x - radiusOf.get(id)!, at.x + radiusOf.get(id)!]).flat();
-      const ys = [...positions].map(([id, at]) => [at.y - ry(radiusOf.get(id)!), at.y + ry(radiusOf.get(id)!)]).flat();
-      return (Math.max(...xs) - Math.min(...xs)) / (Math.max(...ys) - Math.min(...ys));
-    };
-    expect(rowsOf(scanLinePositions(states, 100))).toHaveLength(1);
-    expect(rowsOf(scanLinePositions(states, 0.01))).toHaveLength(words.length);
-    expect(extent(1)).toBeLessThan(extent(3));
-    expect(extent(3)).toBeLessThan(extent(20));
+  it("returns only the new states, so states already placed keep their places", () => {
+    const placed = slotPositions(inOrder(words.slice(0, 3)), [], columns);
+    const added = slotPositions(inOrder(words.slice(3), 3), [...placed.values()], columns);
+    expect([...added.keys()]).toEqual(words.slice(3));
   });
 
-  it("overlaps no two states, leaving at least the gaps between them", () => {
-    [0.5, 1, 2, 3, 6].forEach(aspect => {
-      const positions = [...scanLinePositions(states, aspect)];
-      positions.forEach(([a, at], i) => positions.slice(i + 1).forEach(([b, bt]) => {
-        const across = Math.abs(at.x - bt.x) - radiusOf.get(a)! - radiusOf.get(b)!;
-        const down = Math.abs(at.y - bt.y) - ry(radiusOf.get(a)!) - ry(radiusOf.get(b)!);
-        expect(across >= scanLineGap.across - 0.001 || down >= scanLineGap.down - 0.001).toBe(true);
-      }));
+  it("moves a new state on to the next free slot when a state already there takes its own", () => {
+    const placed = slotPositions(inOrder(["a", "b"]), [], columns);
+    // dragged a little off slot 2's center, toward slot 1
+    const dragged = { x: slotCenter(2, columns).x - 30, y: slotCenter(2, columns).y + 20 };
+    const added = slotPositions(inOrder(["c", "d"], 2), [...placed.values(), dragged], columns);
+    expect(added.get("c")).toEqual(inSlot("c", 3));
+    expect(added.get("d")).toEqual(inSlot("d", 4));
+  });
+
+  it("leaves a slot free for a state placed far enough from it that they can't overlap", () => {
+    const far = { x: -(slotPitch.across - maxWobble), y: 0 };
+    expect(slotPositions(inOrder(["a"]), [far], columns).get("a")).toEqual(inSlot("a", 0));
+  });
+
+  it("overlaps no two states it places, at the largest two neighbors can be, with states dragged anywhere", () => {
+    // two neighbors' radii add up to at most maxRadiusPair, so a pair checked at half of it each is the worst case
+    const radius = maxRadiusPair / 2;
+    const many = Array.from({ length: 300 }, (_, i) => `w${i}`);
+    const dragged = Array.from({ length: 20 }, (_, i) =>
+      ({ x: (i * 97) % (columns * slotPitch.across), y: (i * 61) % (20 * slotPitch.down) }));
+    const placed = [...slotPositions(inOrder(many), dragged, columns).values()];
+    const clear = (a: { x: number, y: number }, b: { x: number, y: number }) =>
+      Math.abs(a.x - b.x) - 2 * radius >= slotGap - 1e-9 || Math.abs(a.y - b.y) - 2 * ry(radius) >= slotGap - 1e-9;
+    placed.forEach((a, i) => {
+      placed.slice(i + 1).forEach(b => expect(clear(a, b)).toBe(true));
+      dragged.forEach(b => expect(clear(a, b)).toBe(true));
     });
-  });
-
-  it("centers the layout, with room for the wobbles, on the origin", () => {
-    const positions = scanLinePositions(states, 2);
-    const xs = states.flatMap(s => [-1, 1].map(side => home(positions, s.id).x + side * (s.radius + maxWobble)));
-    const ys = states.flatMap(s => [-1, 1].map(side => home(positions, s.id).y + side * (ry(s.radius) + maxWobble)));
-    expect(Math.min(...xs) + Math.max(...xs)).toBeCloseTo(0);
-    expect(Math.min(...ys) + Math.max(...ys)).toBeCloseTo(0);
   });
 });
