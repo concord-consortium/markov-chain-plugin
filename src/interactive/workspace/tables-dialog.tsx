@@ -117,7 +117,7 @@ export const TablesDialog = ({
     }
   };
 
-  // the document's Escape clears the graph's choice, and a browser closes a dialog past a refused cancel event
+  // the document's Escape clears the graph's choice, and Chromium closes a dialog past two refused cancel events
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.stopPropagation();

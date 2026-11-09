@@ -78,5 +78,5 @@ A state is named by its label. The generator's settings, which several events ca
 | `TablesDialogOpened` | `{ action }` | The student presses Send to CODAP or Download tables, and the popup opens |
 | `TablesDialogCanceled` | `{ action }` | The student closes the popup with Cancel or Escape, before anything is saved |
 | `TablesSent` | `{ name, tables }` | The chosen tables are saved as a snapshot; `name` is the name the student chose |
-| `TablesSendFailed` | `{ name, tables }` | A save fails or takes over 30 seconds |
+| `TablesSendFailed` | `{ name, tables }` | The popup stops waiting: a save fails or takes over 30 seconds. A write still going at 30 seconds can finish later, so the snapshot may exist |
 | `TablesDownloaded` | `{ name, tables }` | The popup's files have all started downloading; `name` is the name the student chose |
