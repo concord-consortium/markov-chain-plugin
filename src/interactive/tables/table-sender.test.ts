@@ -1,5 +1,6 @@
-import { DemoObjectStorage, StoredObject } from "@concord-consortium/object-storage";
-import { TableData } from "./table-data";
+import { DemoObjectStorage, FirebaseObjectStorage, StoredObject } from "@concord-consortium/object-storage";
+import { Node, SequenceGroup } from "../../type";
+import { buildTable, outputsTableFull, storedBytes, TableData } from "./table-data";
 import { connectTableSender, saveTimeout } from "./table-sender";
 
 const demoConfig = { version: 1, type: "demo" };
@@ -108,5 +109,57 @@ describe("connectTableSender", () => {
     await jest.advanceTimersByTimeAsync(1);
     expect(settled).toHaveBeenCalledTimes(1);
     expect(settled.mock.calls[0][0]).toEqual(new Error("save timed out"));
+  });
+});
+
+describe("an Outputs table at the size limit, as Firestore would store it", () => {
+  const firestoreLimit = 1048576;
+  const word = (id: number): Node => ({ id: `${id}`, label: "abcde", value: 1 });
+  const groupOf = (count: number): SequenceGroup[] => [{
+    startingState: "", startingNode: undefined, delimiter: " ", lengthLimit: 20,
+    sequences: Array.from({ length: count }, () => Array.from({ length: 20 }, (_, index) => word(index))),
+  }];
+  // the fewest outputs that reach the limit, which is where generating stops
+  const fullCount = () => {
+    let [low, high] = [1, 20000];
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      [low, high] = outputsTableFull(groupOf(middle)) ? [low, middle] : [middle + 1, high];
+    }
+    return low;
+  };
+  const long = "x".repeat(200);
+  const config = {
+    version: 1, type: "firebase", app: {}, root: long, questionId: long,
+    user: {
+      type: "authenticated", jwt: "", contextId: long, platformId: long, platformUserId: long, resourceLinkId: long,
+    },
+  };
+  // Firestore's documented sizes: a string or a field name is its UTF-8 bytes plus 1, a timestamp is 8, and a
+  // document is 32 more than its fields, plus 16 more than its path's segments
+  const utf8 = (text: string) => new Blob([text]).size + 1;
+  const documentBytes = (path: string, fields: Record<string, unknown>) => 32 + 16 +
+    path.split("/").reduce((sum, segment) => sum + utf8(segment), 0) +
+    Object.entries(fields).reduce((sum, [name, value]) =>
+      sum + utf8(name) + (typeof value === "string" ? utf8(value) : 8), 0);
+
+  it("stores the rows as exactly the bytes the limit counts, in a document that fits", async () => {
+    const outputs = buildTable("Outputs", {
+      mode: "useData", tokens: [], graph: { nodes: [], edges: [] }, sequenceGroups: groupOf(fullCount()),
+    });
+    const add = jest.spyOn(DemoObjectStorage.prototype, "add");
+    await connectTableSender(demoConfig).send("Data1", [outputs]);
+    const { id, data } = add.mock.calls[0][0] as StoredObject;
+    add.mockRestore();
+    const itemData = JSON.stringify(data.outputs);
+    expect(new Blob([itemData]).size).toBe(storedBytes(outputs));
+
+    const storage = FirebaseObjectStorage.prototype as unknown as {
+      createDocument: (contents: object) => Record<string, unknown>;
+      getItemDataPath: (objectId: string, itemId: string) => string;
+    };
+    const fields = storage.createDocument.call({ config }, { objectId: id, itemId: "outputs", itemData });
+    const room = firestoreLimit - documentBytes(storage.getItemDataPath.call({ config }, id, "outputs"), fields);
+    expect(room).toBeGreaterThan(45000);
   });
 });
