@@ -6,7 +6,7 @@
 
 ## Overview
 
-The class dashboard's side panel shows a short plain text summary of a student's work at the moment the history scrubber is on, in place of the placeholder and the inline "View Work" view. A teacher can see what changed from step to step without opening the full view. The lines and their order are Rebecca Ellis's: which panes are open, the two switches, the states and transitions, the generator's settings, and how many outputs match them.
+The class dashboard's side panel shows a short plain text summary of a student's work at the moment the history scrubber is on, in place of the placeholder and the inline "View Work" view. A teacher can see what changed from step to step without opening the full view. The lines and their order are Rebecca Ellis's: which panes are open, whether probabilities are shown, the two switches, the states and transitions, the generator's settings, and how many outputs match them.
 
 Her sample covers Data mode only. In Draw mode, which has neither switch, the summary leaves out the two switch lines, as she confirmed; the `Drawing` line and keeping the first sentence are this story's defaults, sent to her for confirmation.
 
@@ -20,31 +20,35 @@ Rebecca Ellis's preferred layout, with "View Work" opening the stats below the s
 
   ```
   View: Input, Graph, Inspect, Sequence Generator
+  Probabilities: Off
   Order matters: Yes
   Case sensitive: No
   Data: 9 states, 12 transitions
-  Settings: start (any), max length 20
+  Settings: start (any), max length 20, speed normal
   Outputs: 3
   ```
 
-  Draw mode has no "Order matters" or "Case sensitive" switch, so it leaves those two lines out and shows `View`, `Drawing`, `Settings` and `Outputs`. The placeholder's text goes.
+  Draw mode has no "Order matters" or "Case sensitive" switch, so it leaves those two lines out and shows `View`, `Probabilities`, `Drawing`, `Settings` and `Outputs`. The placeholder's text goes.
 - **R2.** `View` lists the panes open in the saved moment's mode, out of the ones the author lets the student see there, in the workspace's order (Input, Graph, Inspect, Sequence Generator) and with the titles the student sees. Draw mode has no Input pane and its Graph pane is always open. With every pane collapsed, the line is `View: none`.
+- **R2a.** `Probabilities` is `On` or `Off`, in both modes: whether the graph shows probabilities at that moment, from the state's `probabilities` as the read-only view reads it (R7). It follows `View` because, like the panes, it changes what the student sees rather than what the generator does.
 - **R3.** In Data mode, `Order matters` and `Case sensitive` are `Yes` or `No`, from the saved settings as the read-only view reads them (R7). Their names are the switches' names the student sees. Draw mode leaves both out: it has neither switch, always treats order as on, and case doesn't apply to a drawing.
-- **R4.** The fourth line names the mode showing and what is in it:
+- **R4.** The line after the switches names the mode showing and what is in it:
   - Data mode: `Data: 9 states, 12 transitions`.
   - Draw mode: `Drawing: 5 states, 7 transitions`.
   - States are the graph's states. Transitions are the graph's transitions, one per row of the Inspect pane's Transitions table, including a state's transition to itself; in Draw mode they are the drawing's arrows. With "Order matters" off, Data mode's graph draws no arrows and its Transitions tab lists none, so the count is 0.
-- **R5.** `Settings` is that moment's starting state and Max Length: `Settings: start (any), max length 20`. The start is the state's label, or `(any)`. Order is on its own line (R3), so this line leaves it out.
+- **R5.** `Settings` is that moment's starting state, Max Length and generator speed: `Settings: start (any), max length 20, speed normal`. The start is the state's label, or `(any)`. The speed is `normal` or `fast`, the two settings of the generator's Simulation Speed switch, in lower case like the rest of the line. Order is on its own line (R3), so this line leaves it out.
 - **R6.** `Outputs` is a count only, for the mode showing: the outputs that match that moment's settings. An output matches when its starting state, Max Length and "Order matters" equal that moment's, where Draw mode's outputs are always ordered whatever Data mode's "Order matters" is. Delimiter isn't compared, since it changes how an output is written and not what is generated. An output's starting state is the one its heading in the output list shows: one generated into a new group after its chosen state left the graph is `(any)`. States compare by id, so a drawn state renamed after its outputs were made still counts them, though their heading keeps the old name. Outputs made before a setting changed stop counting at the step where it changed, and count again if the student goes back to those settings.
-- **R7.** The summary reports what "Open in new tab" shows for the same moment. The mode, open panes, input, case rule, "Order matters", starting state and Max Length are all read by the rules the read-only view uses (MARK-17's R17), so:
+- **R7.** The summary reports what "Open in new tab" shows for the same moment. The mode, open panes, Show probabilities, input, case rule, "Order matters", starting state, Max Length and speed are all read by the rules the read-only view uses (MARK-17's R17), so:
   - a student who never changed the input is counted from the authored starting text (MARK-17's R2);
   - with no Input pane the saved input is ignored;
   - "Case sensitive" and "Order matters" apply only where the page shows that switch, and are the author's settings elsewhere;
+  - Show probabilities is the saved setting only where the page shows its toggle, and otherwise whether the author starts probabilities shown;
   - a pane with no saved open or closed state is open if the author starts it open;
   - a saved mode the page doesn't offer falls back to the starting mode;
   - a starting state no longer in the graph reads as `(any)`;
-  - a Max Length left empty, or a state with no generator settings, reads as the default, 5. A saved state doesn't always hold its own: an empty field saves no `lengthLimit`, and a state from before MARK-17 has no generator settings.
-- **R8.** Nothing is left out for lack of work. With no outputs matching, the line is `Outputs: 0`. With no input or drawing, the fourth line is `Data: 0 states, 0 transitions` or `Drawing: 0 states, 0 transitions`. A student whose state holds no work, such as one who only collapsed a pane (MARK-17's R13), gets the summary of the page as authored, with that pane's change, which is what the read-only view shows them. Every line for the mode shows on every page, including one with no Sequence generator pane, where the read-only view has no outputs or settings to compare them with. Counts use the singular for one: `1 state`, `1 transition`.
+  - a Max Length left empty, or a state with no generator settings, reads as the default, 5. A saved state doesn't always hold its own: an empty field saves no `lengthLimit`, and a state from before MARK-17 has no generator settings;
+  - a state with no saved speed reads as `normal`, the speed the generator opens at.
+- **R8.** Nothing is left out for lack of work. With no outputs matching, the line is `Outputs: 0`. With no input or drawing, the counts line is `Data: 0 states, 0 transitions` or `Drawing: 0 states, 0 transitions`. A student whose state holds no work, such as one who only collapsed a pane (MARK-17's R13), gets the summary of the page as authored, with that pane's change, which is what the read-only view shows them. Every line for the mode shows on every page, including one with no Sequence generator pane, where the read-only view has no outputs or settings to compare them with. Counts use the singular for one: `1 state`, `1 transition`.
 
 ### Safety and layout
 
@@ -60,13 +64,13 @@ Rebecca Ellis's preferred layout, with "View Work" opening the stats below the s
 
 ### What else changes
 
-- **R15.** The demo page's "Report item, full answer" shows the summary of the state the runtime last saved, or of the authored page before any save, in a frame tall enough for all seven lines. The placeholder's constant goes.
-- **R16.** `README.md`'s description of `report-item.html` and the comments in `report-item-answer.ts` change to match. The demo page's Cypress test checks the summary of its starting text (`Data: 7 states, 9 transitions`) in place of the placeholder, that the frame follows a save, and that it holds all seven lines without scrolling.
+- **R15.** The demo page's "Report item, full answer" shows the summary of the state the runtime last saved, or of the authored page before any save, in a frame tall enough for all eight lines. The placeholder's constant goes.
+- **R16.** `README.md`'s description of `report-item.html` and the comments in `report-item-answer.ts` change to match. The demo page's Cypress test checks the summary of its starting text (`Data: 7 states, 9 transitions`) in place of the placeholder, that the frame follows a save, and that it holds all eight lines without scrolling.
 - **R17.** The CODAP plugin does not change. No file under `src/components` or `src/hooks` changes, and the built `index.*.js` and `main.*.css` are byte-identical to master's.
 
 ### Tests
 
-- **R18.** Jest covers each rule R2 to R12 on the summary's own function, and that a compact answer has no items and a full answer has the links item with `hideViewInline`. The summary's copies of the generator's `(any)` label, its default Max Length and the pane titles are each asserted against the real value, so none can drift (Technical Notes).
+- **R18.** Jest covers each rule R2 to R12 on the summary's own function, and that a compact answer has no items and a full answer has the links item with `hideViewInline`. The summary's copies of the generator's `(any)` label, its default Max Length, the pane titles, and the speed switch's two settings and the speed it opens at are each asserted against the real value, so none can drift (Technical Notes).
 - **R19.** Cypress, on the fake Activity Player page: the report item answers a full answer built from the state and authored state in the request, in both modes, and a second request with a different state gives a different answer in the same frame, as a scrubber step does.
 - **R20.** On learn staging, on the branch build: in the class dashboard, a teacher sees the summary, in Rebecca Ellis's layout, change as they move the scrubber, in both modes, with no "View Work" link, and "Open in new tab" opens the step the scrubber is on. This is a hand check, recorded in the PR's test notes.
 
@@ -94,12 +98,13 @@ The change was built as throwaway code, and run in Jest, Cypress and headless Ch
 
 ### The values the summary repeats
 
-The summary needs the generator's `(any)` label, its default Max Length and the panes' titles, and takes none of them from the code that draws them, so `src/components`, `src/hooks` and the workspace stay as they are.
+The summary needs the generator's `(any)` label, its default Max Length and speed, the speed switch's two settings and the panes' titles, and takes none of them from the code that draws them, so `src/components`, `src/hooks` and the workspace stay as they are.
 
 - `AnyStartingState` is exported by `generator.tsx`, which the report item shouldn't import, since that brings a React component and its SVGs. `report-summary.ts` has its own `anyStartLabel`, and a test asserts it equals `AnyStartingState`.
 - `defaultLengthLimit` isn't exported from `use-markov-tool.tsx`. The summary does need a default: `toolParts` saves `clampLengthLimit(undefined)` for an empty field, which `JSON.stringify` drops (run: the saved generator had no `lengthLimit`), and a state from before MARK-17 has no generator at all. Both reopen at 5 in the read-only view, so the summary has to say 5 to agree with it (R7). `report-summary.ts` has its own `defaultMaxLength`, and a test renders `useMarkovTool` with no saved settings and asserts `generatorProps.lengthLimit` equals it. The test reads the value the hook really opens at, so changing the hook's default fails it with no export needed.
 
 - The pane titles live in `workspace-panes.tsx`, which isn't exported and sits beside React components the report item doesn't need. `report-summary.ts` has its own `paneTitles`, and a test renders the interactive with every pane and asserts its headings are those titles in that order.
+- The speed switch's `Normal` and `Fast` are text inside `speed-toggle.tsx`, and the speed it opens at is `defaultFastSimulation` in `use-markov-tool.tsx`, neither exported. `report-summary.ts` has its own `speedNames`; one test renders `SpeedToggle` and asserts its two settings, in lower case, are those names, and another renders `useMarkovTool` with no saved settings and asserts it opens at the speed the summary gives a state with none.
 
 ### Other notes
 
@@ -241,6 +246,16 @@ The summary needs the generator's `(any)` label, its default Max Length and the 
 - B) Copy the sample's `Case Sensitive` capital.
 
 **Decision**: A. The sample's own two switch lines differ in capitals, and the teacher can match each line to what the student sees. With no pane open the line is `View: none`.
+
+---
+
+### Speed and Show probabilities (second layout change)
+**Context**: On staging, two of a student's history steps changed only the generator's speed, and two only Show probabilities, and the summary looked the same across each. Rebecca Ellis asked to add speed to the settings line and to give probabilities their own line.
+**Options considered**:
+- A) Put `Probabilities` right after `View`.
+- B) Put it with the settings, or last.
+
+**Decision**: A (Doug suggested it, at Rebecca's request). Like the panes, it changes what the student sees, not what is generated, so it reads with `View`; the settings line stays about the generator. The speed words are the switch's own, `normal` and `fast`.
 
 ---
 
