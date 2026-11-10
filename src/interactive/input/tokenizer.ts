@@ -8,9 +8,13 @@ export type Token =
   | { kind: "break", start: number, end: number };
 
 export const punctuation = ".,?!:;";
-const separators = "\"(){}_+=|\\/<>[]";
+// straight and curly double quotes, all read as one state, so pasted text builds the same graph as typed text
+export const doubleQuotes = "\"\u201C\u201D";
+export const quoteState = "\"";
+const separators = "(){}_+=|\\/<>[]";
 export const isWhitespace = (char: string) => /\s/.test(char);
-export const endsWord = (char: string) => isWhitespace(char) || punctuation.includes(char) || separators.includes(char);
+const keptAlone = (char: string) => punctuation.includes(char) || doubleQuotes.includes(char);
+export const endsWord = (char: string) => isWhitespace(char) || keptAlone(char) || separators.includes(char);
 
 // where the bracket opened at start closes: the next "]" on its line with no "[" before it, or -1
 export const closingBracket = (text: ArrayLike<string>, start: number) => {
@@ -29,14 +33,16 @@ export const tokenize = (text: string, capitalization: Capitalization): Token[] 
   const tokens: Token[] = [];
   let blankLine: { start: number } | undefined;
 
-  const addWord = (word: string, start: number, end: number) => {
+  const addWord = (word: string, start: number, end: number, state?: string) => {
     if (blankLine) {
       // the break runs to this word, over any further blank lines and dropped characters
       tokens.push({ kind: "break", start: blankLine.start, end: start });
       blankLine = undefined;
     }
-    const state = capitalization === "lowercase" ? word.toLocaleLowerCase() : word;
-    tokens.push({ kind: "word", text: word, state, start, end });
+    tokens.push({
+      kind: "word", text: word, start, end,
+      state: state ?? (capitalization === "lowercase" ? word.toLocaleLowerCase() : word)
+    });
   };
 
   let i = 0;
@@ -65,6 +71,9 @@ export const tokenize = (text: string, capitalization: Capitalization): Token[] 
         }
         i = close + 1;
       }
+    } else if (doubleQuotes.includes(char)) {
+      addWord(char, i, i + 1, quoteState);
+      i++;
     } else if (punctuation.includes(char)) {
       addWord(char, i, i + 1);
       i++;
@@ -129,4 +138,4 @@ export const textChange = (old: string, next: string) => {
 };
 
 // a character that finishes a word as it is typed, so the input commits at once
-export const commitsOnTyping = (char: string) => isWhitespace(char) || punctuation.includes(char) || char === "]";
+export const commitsOnTyping = (char: string) => isWhitespace(char) || keptAlone(char) || char === "]";

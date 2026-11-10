@@ -9,7 +9,8 @@ import { Capitalization, capitalizationFor, caseSensitiveLabel, orderMattersLabe
 import { CsvRefusal, CsvValues } from "../input/csv";
 import { Token, tokenize, tokensToValues } from "../input/tokenizer";
 import { CommitHow, CommitView } from "./commit";
-import { ControlsRow } from "./controls-row";
+import { ClearHighlight, ControlsRow } from "./controls-row";
+import { emptyRowSpare } from "./pane-sizes";
 import { CsvUpload, CsvUploadStatus } from "./csv-upload";
 import { GeneratorPane } from "./generator-pane";
 import { GraphPane } from "./graph-pane";
@@ -73,7 +74,15 @@ export const DataWorkspace = ({
   const { inputView } = config;
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const layout = usePaneLayout(config, host, tool, stacked, hidden, start, saving);
+  // what the mode's own row holds besides the shell's controls: the setting switches when there's no Input pane to
+  // hold them, and a read-only label for each setting the author hid the switch for
+  const rowHolds = {
+    switches: !config.panes.some(pane => pane.id === "input") && (config.orderMatters.showSwitch || config.caseSwitch),
+    orderLabel: !config.orderMatters.showSwitch,
+    caseLabel: !config.caseSwitch,
+  };
+  const rowFilled = !!controls || !!actions || Object.values(rowHolds).some(Boolean);
+  const layout = usePaneLayout(config, host, tool, stacked, hidden, start, saving, rowFilled ? 0 : emptyRowSpare);
   const {
     hasPane, controlsOpen, toggleControls, followRef, handleFitPressed, handleRecenterPressed, handleUserZoom,
     handleGraphResized, top,
@@ -112,8 +121,13 @@ export const DataWorkspace = ({
     }
     lastValuesRef.current = values;
     tool.handle.dataChanged(values, { fit: followRef.current });
+    // an output was made from the old values, so it no longer matches the text; a chosen state or transition stays
+    // while it still exists
+    if (toolRef.current.selection?.kind === "output") {
+      toolRef.current.setSelectedNodeId();
+    }
     return tokens;
-  }, [tool.handle, saving, followRef]);
+  }, [tool.handle, saving, followRef, toolRef]);
 
   const commit = useCallback((nextText: string, how: CommitHow, view: CommitView) => {
     const tokens = commitText(nextText, capitalization);
@@ -316,14 +330,14 @@ export const DataWorkspace = ({
 
   return (
     <div className="workspace-body" hidden={hidden} ref={rootRef}>
-      <ControlsRow tool={tool} actions={actions}>
+      <ControlsRow tool={tool} filled={rowFilled} actions={actions}>
         { controls }
-        { hasPane("input") ? undefined : switches }
-        { !config.orderMatters.showSwitch && <SettingLabel label={orderMattersLabel} value={orderMatters} /> }
-        { !config.caseSwitch && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
+        { rowHolds.switches && switches }
+        { rowHolds.orderLabel && <SettingLabel label={orderMattersLabel} value={orderMatters} /> }
+        { rowHolds.caseLabel && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
       </ControlsRow>
       <WorkspacePanes layout={layout} stacked={stacked} sourcePaneRef={sourcePaneRef} renderPane={renderPane}
-        graphControls={graphControls} />
+        graphControls={graphControls} clearHighlight={!rowFilled && <ClearHighlight tool={tool} />} />
       <NodeModal viewMode="dataset" node={dialogNode} graph={tool.graph} onChange={() => undefined}
         onCancel={() => setDialogNode(undefined)} />
     </div>

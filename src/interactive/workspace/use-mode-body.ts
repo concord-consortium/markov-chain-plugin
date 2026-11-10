@@ -23,7 +23,8 @@ export const useEscape = (rootRef: React.RefObject<HTMLElement | null>, hidden: 
   }, [rootRef, hiddenRef, onEscapeRef]);
 };
 
-// A change that takes the chosen state or transition out of the graph clears it, logging nothing; an output stays.
+// A change that takes the chosen state or transition out of the graph clears it, logging nothing. Data mode clears an
+// output itself, when the input changes; a drawing's output stays.
 // It runs before the panes' effects, so a choice one makes for the same change, such as the row Up or Down reaches,
 // isn't cleared with it. Nothing clears while a sequence generates, so a drawing's change then clears when it ends.
 export const useClearGoneSelection = (tool: MarkovToolApi) => {

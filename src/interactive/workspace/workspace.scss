@@ -215,6 +215,15 @@ $highlight-output-line: #c0006b;
       gap: 4px;
       margin-left: auto;
 
+      &:focus {
+        outline: none;
+      }
+
+      .clear-highlight {
+        @include markov-button;
+        padding: 1px 5px;
+      }
+
       .probabilities-toggle {
         padding: 1px 5px;
       }
@@ -581,6 +590,11 @@ $highlight-output-line: #c0006b;
         }
         &.highlight-out {
           border-left-color: var(--highlight-out);
+        }
+
+        // a lit row is bold as well as colored, for students who can't tell the colors apart
+        &.highlight-selected, &.highlight-chosen, &.highlight-output, &.highlight-in, &.highlight-out {
+          font-weight: bold;
         }
       }
 

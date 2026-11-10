@@ -28,8 +28,9 @@ const dividerLabels: Record<PaneDivider, string> = {
 
 // One mode's panes: which are open, their sizes and dividers, and the view following the graph until the student zooms
 // or pans. Each mode calls it, so each keeps its own.
+// spare is the height the mode's own row leaves the panes when it has nothing in it.
 export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: MarkovToolApi, stacked: boolean,
-  hidden: boolean, start: RestoredMode, saving: ModeSaving) => {
+  hidden: boolean, start: RestoredMode, saving: ModeSaving, spare: number) => {
   const { report, markActive } = saving;
   const toolRef = useLatest(tool);
   const hasPane = (id: WorkspacePaneId) => config.panes.some(pane => pane.id === id);
@@ -111,7 +112,8 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   const room = (rowWidth ?? 0) - paneGap * (rowPanes.length - 1) -
     collapsedStrip * rowPanes.filter(pane => !open[pane.id]).length;
   const sizes = !stacked && rowWidth !== undefined ? fitPaneSizes(paneSizes, room, openPanes) : paneSizes;
-  const top = drawnRowHeight(sizes.top, stacked, hasPane("generator") && !open.generator);
+  const generator = !hasPane("generator") ? "absent" : open.generator ? "open" : "collapsed";
+  const top = drawnRowHeight(sizes.top, stacked, generator, spare);
   const graphWidth = room - (openPanes.input ? sizes.input : 0) - (openPanes.inspect ? sizes.inspect : 0);
 
   // the stored sizes this move is measured from
@@ -211,6 +213,6 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
 
   return {
     hasPane, open, controlsOpen, togglePane, toggleControls, followRef, handleFitPressed, handleRecenterPressed,
-    handleUserZoom, handleGraphResized, rowPanes, rowsDivider, rowRef, top, paneStyle, dividerFor, paneDivider,
+    handleUserZoom, handleGraphResized, rowPanes, rowsDivider, rowRef, top, spare, paneStyle, dividerFor, paneDivider,
   };
 };

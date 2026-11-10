@@ -56,7 +56,7 @@ describe("the Download tables button", () => {
     cy.startInteractive({
       mode: "runtime", width, authoredState: { modes: dataOnly, startingText: "the cat" },
     });
-    shown().find(".controls-row").should("exist");
+    shown().find(".graph-pane").should("exist");
     shown().find(".table-buttons").should("not.exist");
   });
 
@@ -70,7 +70,7 @@ describe("the Download tables button", () => {
       mode: "report", width, authoredState: { modes: dataOnly, ...onlyDownload },
       interactiveState: { version: 1, input: { text: "the cat" } },
     });
-    shown().find(".controls-row").should("exist");
+    shown().find(".graph-pane").should("exist");
     shown().find(".table-buttons").should("not.exist");
   });
 
@@ -509,7 +509,7 @@ describe("Send to CODAP", () => {
 
   it("is left out with a host that has no object storage", () => {
     startSend({}, { objectStorageConfig: null });
-    shown().find(".controls-row").should("exist");
+    shown().find(".graph-pane").should("exist");
     shown().find(".table-buttons").should("not.exist");
   });
 
@@ -518,7 +518,7 @@ describe("Send to CODAP", () => {
       mode: "report", width, authoredState: { modes: dataOnly, ...onlySend },
       interactiveState: { version: 1, input: { text: "the cat" } },
     });
-    shown().find(".controls-row").should("exist");
+    shown().find(".graph-pane").should("exist");
     shown().find(".table-buttons").should("not.exist");
   });
 

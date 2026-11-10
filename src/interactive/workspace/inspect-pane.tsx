@@ -98,8 +98,8 @@ const InspectPaneContent = ({
   const tabColumns: readonly SortColumn[] = columns[tab];
 
   const hintId = `${idPrefix}-hint`;
-  // a transition's direction from the chosen state, which its row's border shows by color
-  const directionId = (direction: "in" | "out") => `${idPrefix}-${direction}`;
+  // what a lit row's color shows: a transition's direction from the chosen state, or a part of the chosen output
+  const litId = (lit: "in" | "out" | "output") => `${idPrefix}-${lit}`;
   const panelId = `${idPrefix}-panel`;
   const tabId = (id: InspectTab) => `${idPrefix}-${id}`;
 
@@ -122,8 +122,8 @@ const InspectPaneContent = ({
         }}>
         <td>
           <button type="button" className="inspect-row-button" aria-pressed={chosen}
-            aria-describedby={clsx(at === tabRow && hintId, (lit === "in" || lit === "out") && directionId(lit))
-              || undefined}
+            aria-describedby={clsx(at === tabRow && hintId, (lit === "in" || lit === "out" || lit === "output") &&
+              litId(lit)) || undefined}
             tabIndex={at === tabRow ? 0 : -1} onFocus={() => setCurrent(prev => ({ ...prev, [tab]: at }))}
             onKeyDown={e => handleRowKey(e, at)} onClick={choose}>
             { row.label }
@@ -182,8 +182,9 @@ const InspectPaneContent = ({
         }
       </div>
       <p id={hintId} className="visually-hidden">Up and Down move between rows; Enter or Space chooses one.</p>
-      <p id={directionId("in")} className="visually-hidden">Into the chosen state</p>
-      <p id={directionId("out")} className="visually-hidden">Out of the chosen state</p>
+      <p id={litId("in")} className="visually-hidden">Into the chosen state</p>
+      <p id={litId("out")} className="visually-hidden">Out of the chosen state</p>
+      <p id={litId("output")} className="visually-hidden">In the highlighted output</p>
     </div>
   );
 };

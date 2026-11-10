@@ -18,6 +18,8 @@ export const paneHeader = 26;
 export const stackBelow = 700;
 // the workspace's own row is at least one control tall, so a control appearing doesn't move the panes
 export const controlsRowHeight = 32;
+// the height a mode with nothing in its own row gives its panes
+export const emptyRowSpare = controlsRowHeight + paneGap;
 
 // the shared toolbar's button size and padding (toolbar.scss), and the workspace's gap between its buttons
 export const toolbarButton = 32;
@@ -32,13 +34,21 @@ export const toolbarWidth = (columns: number) =>
 // the height inside the Graph pane's border, header and padding, in a row top px tall
 export const graphBodyHeight = (top: number) => top - paneHeader - 2 * paneBorder - 2 * panePadding;
 // the height the row's panes are drawn at, from the stored row height: stacked panes are all the starting row's
-// height, whatever row height is stored, and a row above a collapsed generator takes the height the generator gave up
-export const drawnRowHeight = (top: number, stacked: boolean, generatorCollapsed: boolean) => {
+// height, whatever row height is stored, and a row above a collapsed generator takes the height the generator gave up.
+// spare is the height the workspace's own row left, which goes to the generator, or to the row with no open generator.
+export const drawnRowHeight = (top: number, stacked: boolean, generator: "open" | "collapsed" | "absent",
+  spare = 0) => {
   if (stacked) {
     return defaultPaneSizes.top;
   }
-  return generatorCollapsed ? workspaceHeight - paneHeader - 2 * paneBorder : top;
+  switch (generator) {
+    case "open": return top;
+    case "collapsed": return workspaceHeight + spare - paneHeader - 2 * paneBorder;
+    case "absent": return top + spare;
+  }
 };
+// the open generator's height, below a row drawn top px tall
+export const generatorHeight = (top: number, spare = 0) => workspaceHeight + spare - top;
 // the fewest columns whose toolbar fits the Graph pane's body
 export const toolbarColumns = (tools: number, bodyHeight: number) => {
   let columns = 1;

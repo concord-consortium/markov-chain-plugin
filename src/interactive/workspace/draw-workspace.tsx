@@ -5,7 +5,8 @@ import { MarkovHost } from "../../components/host";
 import { Tool } from "../../components/toolbar";
 import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
-import { ControlsRow } from "./controls-row";
+import { ClearHighlight, ControlsRow } from "./controls-row";
+import { emptyRowSpare } from "./pane-sizes";
 import { GeneratorPane } from "./generator-pane";
 import { dataTools, GraphPane } from "./graph-pane";
 import { highlightsFor } from "./highlights";
@@ -48,7 +49,8 @@ export const DrawWorkspace = ({
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sourcePaneRef = useRef<WorkspacePaneId>(undefined);
-  const layout = usePaneLayout(config, host, tool, stacked, hidden, start, saving);
+  const rowFilled = !!controls || !!actions;
+  const layout = usePaneLayout(config, host, tool, stacked, hidden, start, saving, rowFilled ? 0 : emptyRowSpare);
   const highlights = useMemo(() => highlightsFor(tool.selection, [], tool.graph.edges),
     [tool.selection, tool.graph.edges]);
 
@@ -95,9 +97,10 @@ export const DrawWorkspace = ({
 
   return (
     <div className="workspace-body" hidden={hidden} ref={rootRef}>
-      <ControlsRow tool={tool} actions={actions}>{ controls }</ControlsRow>
+      <ControlsRow tool={tool} filled={rowFilled} actions={actions}>{ controls }</ControlsRow>
       <WorkspacePanes layout={layout} stacked={stacked} sourcePaneRef={sourcePaneRef} renderPane={renderPane}
-        fixedPane="graph" graphControls={graphControls} />
+        fixedPane="graph" graphControls={graphControls}
+        clearHighlight={!rowFilled && <ClearHighlight tool={tool} />} />
       { tool.view.confirmModal && <ConfirmModal {...tool.view.confirmModal} /> }
     </div>
   );

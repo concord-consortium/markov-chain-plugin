@@ -39,7 +39,7 @@ export const Pane = ({
       onPointerDownCapture={onInteract} onFocusCapture={onInteract} onKeyDownCapture={onInteract}>
       <header className="pane-header">
         <h2 id={titleId}>{ title }</h2>
-        { open && headerControls && <div className="pane-header-controls">{ headerControls }</div> }
+        { open && headerControls && <div className="pane-header-controls" tabIndex={-1}>{ headerControls }</div> }
         { collapsible &&
           <button type="button" className="pane-toggle" aria-expanded={open} aria-controls={bodyId}
             aria-label={`${action} ${title}`} title={`${action} ${title}`} onClick={onToggle}>
