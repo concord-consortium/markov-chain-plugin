@@ -18,7 +18,7 @@ A state is named by its label. The generator's settings, which several events ca
 | `SequenceGenerated` | `{ sequence, startingState, maxLength, delimiter, fast, orderMatters }` | A sequence finishes, played or stepped to its end; `sequence` is its states |
 | `GeneratorSettingChanged` | `{ setting: "startingState" \| "maxLength" \| "delimiterType" \| "delimiter" \| "fast", value }` | The student changes a generator setting: the starting state, the delimiter's type and the speed when chosen, Max Length and the "other" delimiter's text when their field loses focus with a changed value |
 | `OutputCleared` | `{ mode }` | The student clicks Clear Output |
-| `OutputLimitReached` | `{ outputs }` | A sequence ending or a drawing growing reaches the limit on what is saved, which stops new sequences; `outputs` is how many are saved, in both modes |
+| `OutputLimitReached` | `{ outputs }` | A sequence ending or a drawing growing reaches the limit on what is saved, or where Send to CODAP shows, a mode's Outputs table reaches the size a snapshot can store; either stops new sequences; `outputs` is how many are saved, in both modes |
 | `OutputSelected` | `{ sequence }` | The student clicks an output to highlight it; `sequence` is its states |
 
 ## Selection and highlighting
@@ -68,3 +68,15 @@ A state is named by its label. The generator's settings, which several events ca
 | `ModeSwitched` | `{ mode }` | The student switches between Data and Draw; `mode` is the mode switched to |
 | `ProbabilitiesToggled` | `{ on }` | The student presses "Show probabilities" |
 | `OrderMattersToggled` | `{ on }` | The student changes the "Order matters" switch |
+
+## Tables
+
+`action` is `send` or `download`, the button pressed. `tables` is the table words chosen: `Input`, `States`, `Transitions` and `Outputs`.
+
+| Event | Parameters | When |
+|-------|-----------|------|
+| `TablesDialogOpened` | `{ action }` | The student presses Send to CODAP or Download tables, and the popup opens |
+| `TablesDialogCanceled` | `{ action }` | The student closes the popup with Cancel or Escape, before anything is saved |
+| `TablesSent` | `{ name, tables }` | The chosen tables are saved as a snapshot; `name` is the name the student chose |
+| `TablesSendFailed` | `{ name, tables }` | The popup stops waiting: a save fails or takes over 30 seconds. A write still going at 30 seconds can finish later, so the snapshot may exist |
+| `TablesDownloaded` | `{ name, tables }` | The popup's files have all started downloading; `name` is the name the student chose |

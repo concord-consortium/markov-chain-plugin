@@ -16,6 +16,8 @@ export type StartOptions = {
   width?: number;
   // a query string on the interactive's URL, as an author could paste a standalone link into LARA
   search?: string;
+  // in place of the demo store: null gives a host with none, and { version: 2, type: "demo" } a store that refuses
+  objectStorageConfig?: unknown;
 };
 
 export type InteractiveMessage = { type: string, content: unknown };
@@ -36,7 +38,10 @@ const errors: string[] = [];
 const initMessage = () => options.mode === "reportItem"
   ? { version: 1, mode: "reportItem", hostFeatures: {}, interactiveItemId: "interactive_1", view: "singleAnswer",
     users: { student1: { hasAnswer: true } } }
-  : { ...initInteractiveMessage("runtime", options.authoredState, options.interactiveState), mode: options.mode };
+  : {
+    ...initInteractiveMessage("runtime", options.authoredState, options.interactiveState), mode: options.mode,
+    ...(options.objectStorageConfig === undefined ? {} : { objectStorageConfig: options.objectStorageConfig }),
+  };
 
 const start = (startOptions: StartOptions) => {
   phone?.disconnect();

@@ -11,7 +11,7 @@ const resolved = () => Promise.resolve();
 const savingEvents: ReadonlySet<LogEvent> = new Set<LogEvent>([
   "SequenceGenerated", "SequenceCanceled", "OutputCleared", "GeneratorSettingChanged", "StateMoved", "StateAdded",
   "TransitionAdded", "StateDeleted", "TransitionDeleted", "StateEdited", "GraphReset", "CaseSensitivityChanged",
-  "OrderMattersToggled", "ProbabilitiesToggled",
+  "OrderMattersToggled", "ProbabilitiesToggled", "TablesDownloaded", "TablesSent",
 ]);
 
 interface HostSaving {

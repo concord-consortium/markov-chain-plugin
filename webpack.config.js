@@ -49,6 +49,7 @@ module.exports = (env, argv) => {
       filename: ({ chunk }) => (chunk.name === 'main'
         ? 'assets/index.[contenthash].js'
         : 'assets/[name].[contenthash].js'),
+      chunkFilename: 'assets/[name].[contenthash].js',
     },
     performance: { hints: false },
     module: {

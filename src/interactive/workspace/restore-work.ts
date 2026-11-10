@@ -15,6 +15,7 @@ export interface RestoredMode {
   sizes: PaneSizes;
   inspect: SavedMode["inspect"];
   view: SavedView | undefined;
+  tablesSaved: number;
 }
 
 export interface RestoredWork {
@@ -73,6 +74,7 @@ const restoredMode = (saved: SavedMode | undefined, config: WorkspaceConfig, gra
     sizes: restoredSizes(saved?.sizes),
     inspect: saved?.inspect,
     view,
+    tablesSaved: saved?.tablesSaved ?? 0,
   };
 };
 
