@@ -275,7 +275,7 @@ describe("the interactive's demo page", () => {
         cy.window().then(win => win.open(String(link))).as("standalone");
       });
       cy.get<Window>("@standalone").its("document.body.innerText")
-        .should("contain", "the settings come from this page's link");
+        .should("contain", "Sequence Generator").and("not.contain", "Activity Player");
       cy.get<Window>("@standalone").its("document").should(doc => {
         expect(panesIn(doc)).to.deep.equal(hosted);
       });
