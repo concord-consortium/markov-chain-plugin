@@ -147,7 +147,10 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
         <div role="group" className="csv-upload-question" aria-labelledby={questionId}
           onKeyDown={handleQuestionKeyDown}>
           <span id={questionId}>Replace your words with the file&apos;s?</span>
-          <button type="button" ref={replaceRef} disabled={disabled} onClick={handleReplace}>Replace</button>
+          <button type="button" ref={replaceRef} disabled={disabled} aria-describedby={questionId}
+            onClick={handleReplace}>
+            Replace
+          </button>
           <button type="button" onClick={closeQuestion}>Cancel</button>
         </div>
       }

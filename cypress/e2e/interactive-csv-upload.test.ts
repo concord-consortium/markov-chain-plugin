@@ -163,7 +163,9 @@ describe("the interactive's Upload CSV button", () => {
     start({ startingText: "the old words" });
     choose(words);
     question().should("contain.text", "Replace your words with the file's?");
-    replace().should("have.focus");
+    replace().should("have.focus").invoke("attr", "aria-describedby").then(id => {
+      cy.interactive().find(`[id='${id}']`).should("have.text", "Replace your words with the file's?");
+    });
     cancel().click();
     question().should("not.exist");
     uploadButton().should("have.focus");
