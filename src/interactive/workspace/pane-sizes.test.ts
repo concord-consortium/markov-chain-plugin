@@ -1,7 +1,7 @@
 import {
-  defaultPaneSizes, dividerLimits, dragDivider, dragInputSplit, drawnInputSplit, drawnRowHeight, emptyRowSpare,
-  fitPaneSizes, generatorHeight, graphBodyHeight, inputPartMin, movesDivider, movesInputSplit, paneBorder, paneGap,
-  paneHeader, resizedPanes, toolbarColumns, toolbarHeight, toolbarWidth, workspaceHeight
+  defaultPaneSizes, dividerLimits, dragDivider, dragInputSplit, drawnInputSplit, drawnRowHeight, fitPaneSizes,
+  graphBodyHeight, inputPartMin, movesDivider, movesInputSplit, paneBorder, paneGap, paneHeader, resizedPanes,
+  toolbarColumns, toolbarHeight, toolbarWidth, workspaceHeight
 } from "./pane-sizes";
 
 const allOpen = { input: true, graph: true, inspect: true };
@@ -47,16 +47,6 @@ describe("pane sizes", () => {
     expect(drawnRowHeight(200, false, "absent")).toBe(workspaceHeight + paneGap);
     expect(drawnRowHeight(315, false, "absent")).toBe(workspaceHeight + paneGap);
     expect(drawnRowHeight(200, true, "absent")).toBe(defaultPaneSizes.top);
-  });
-
-  it("gives an empty controls row's height to the generator, or to the row when no generator is open", () => {
-    const header = paneHeader + 2 * paneBorder;
-    expect(drawnRowHeight(200, false, "open", emptyRowSpare)).toBe(200);
-    expect(generatorHeight(200, emptyRowSpare)).toBe(workspaceHeight + emptyRowSpare - 200);
-    expect(generatorHeight(200)).toBe(workspaceHeight - 200);
-    expect(drawnRowHeight(200, false, "collapsed", emptyRowSpare)).toBe(workspaceHeight + emptyRowSpare - header);
-    expect(drawnRowHeight(200, false, "absent", emptyRowSpare)).toBe(workspaceHeight + paneGap + emptyRowSpare);
-    expect(drawnRowHeight(200, true, "absent", emptyRowSpare)).toBe(defaultPaneSizes.top);
   });
 });
 

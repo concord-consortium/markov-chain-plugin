@@ -62,17 +62,43 @@ const takes = (at: Point, center: Point) =>
 // they first appear) with its wobble, or the next slot after it that no state in `placed` or placed before it takes.
 // States already placed keep their positions and aren't returned.
 export const slotPositions = (states: { id: string, slot: number }[], placed: Point[], columns: number) => {
-  const taken = [...placed];
+  // the states in place, by the cell of slot centers they fall in: a state can only take the slots at the corners of
+  // its cell, since it takes a slot only when it's less than a slot's pitch from its center either way
+  const cells = new Map<string, Point[]>();
+  const cellOf = (at: Point) => `${Math.floor(at.x / slotPitch.across)},${Math.floor(at.y / slotPitch.down)}`;
+  const place = (at: Point) => {
+    const key = cellOf(at);
+    cells.set(key, [...(cells.get(key) ?? []), at]);
+  };
+  placed.forEach(place);
+  const near = (center: Point) => {
+    const column = Math.round(center.x / slotPitch.across);
+    const row = Math.round(center.y / slotPitch.down);
+    const nearby: Point[] = [];
+    [column - 1, column].forEach(x => [row - 1, row].forEach(y => nearby.push(...(cells.get(`${x},${y}`) ?? []))));
+    return nearby;
+  };
+  // a slot found taken stays taken, since states are only added, so it's checked once
+  const blocked = new Set<number>();
+  const isTaken = (slot: number) => {
+    if (!blocked.has(slot)) {
+      const center = slotCenter(slot, columns);
+      if (near(center).some(other => takes(other, center))) {
+        blocked.add(slot);
+      }
+    }
+    return blocked.has(slot);
+  };
   const positions = new Map<string, Point>();
   states.forEach(({ id, slot }) => {
     let next = slot;
-    while (taken.some(other => takes(other, slotCenter(next, columns)))) {
+    while (isTaken(next)) {
       next++;
     }
     const center = slotCenter(next, columns);
     const offset = wobble(id);
     const at = { x: center.x + offset.x, y: center.y + offset.y };
-    taken.push(at);
+    place(at);
     positions.set(id, at);
   });
   return positions;

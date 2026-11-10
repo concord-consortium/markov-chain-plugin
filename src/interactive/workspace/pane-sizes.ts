@@ -18,8 +18,6 @@ export const paneHeader = 26;
 export const stackBelow = 700;
 // the workspace's own row is at least one control tall, so a control appearing doesn't move the panes
 export const controlsRowHeight = 32;
-// the height a mode with nothing in its own row gives its panes
-export const emptyRowSpare = controlsRowHeight + paneGap;
 
 // the shared toolbar's button size and padding (toolbar.scss), and the workspace's gap between its buttons
 export const toolbarButton = 32;
@@ -35,21 +33,17 @@ export const toolbarWidth = (columns: number) =>
 export const graphBodyHeight = (top: number) => top - paneHeader - 2 * paneBorder - 2 * panePadding;
 // the height the row's panes are drawn at, from the stored row height: stacked panes are all the starting row's
 // height, whatever row height is stored, a row above a collapsed generator takes the height the generator gave up, and
-// a row with no generator takes the generator's height and the gap above it, so the workspace is always as tall.
-// spare is the height the workspace's own row left, which goes to the generator, or to the row with no open generator.
-export const drawnRowHeight = (top: number, stacked: boolean, generator: "open" | "collapsed" | "absent",
-  spare = 0) => {
+// a row with no generator takes the generator's height and the gap above it, so the workspace is always as tall
+export const drawnRowHeight = (top: number, stacked: boolean, generator: "open" | "collapsed" | "absent") => {
   if (stacked) {
     return defaultPaneSizes.top;
   }
   switch (generator) {
     case "open": return top;
-    case "collapsed": return workspaceHeight + spare - paneHeader - 2 * paneBorder;
-    case "absent": return workspaceHeight + paneGap + spare;
+    case "collapsed": return workspaceHeight - paneHeader - 2 * paneBorder;
+    case "absent": return workspaceHeight + paneGap;
   }
 };
-// the open generator's height, below a row drawn top px tall
-export const generatorHeight = (top: number, spare = 0) => workspaceHeight + spare - top;
 // the fewest columns whose toolbar fits the Graph pane's body
 export const toolbarColumns = (tools: number, bodyHeight: number) => {
   let columns = 1;

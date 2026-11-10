@@ -1,6 +1,6 @@
 import {
-  defaultPaneSizes, emptyRowSpare, minInputPart, minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, stackBelow,
-  toolbarHeight, workspaceHeight
+  defaultPaneSizes, minInputPart, minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, stackBelow, toolbarHeight,
+  workspaceHeight
 } from "../../src/interactive/workspace/pane-sizes";
 import {
   animatedArrowColor, animatedNodeColor, outgoingArrowColor, pastDoubleClick, selectedNodeColor
@@ -15,9 +15,6 @@ const width = 1044;
 const dataOnly = { useData: true, draw: false };
 const start = (authoredState: Record<string, unknown> = {}, options: Record<string, unknown> = {}) =>
   cy.startInteractive({ mode: "runtime", width, authoredState: { modes: dataOnly, ...authoredState }, ...options });
-// the workspace's own row holding a table button, for the tests whose heights are measured with the row there
-const startWithRow = (authoredState: Record<string, unknown> = {}, options: Record<string, unknown> = {}) =>
-  start({ buttons: { downloadTables: { available: true } }, ...authoredState }, options);
 const textBox = () => cy.interactive().find("textarea[aria-label='Your text']");
 // the workspace's fits animate over 250 ms
 const afterFit = () => cy.wait(400);
@@ -185,7 +182,7 @@ describe("the interactive's workspace", () => {
   });
 
   it("keeps focus in the controls row when the focused Clear highlight button goes", () => {
-    start({ startingText: "the cat sat", modes: { useData: true, draw: true } });
+    start({ startingText: "the cat sat" });
     clickState("cat");
     cy.interactive().find(".clear-highlight").focus();
     cy.interactive().find(".clear-highlight").type("{esc}");
@@ -1188,7 +1185,7 @@ describe("the workspace's dividers", () => {
   const resized = () => loggedEvents().invoke("filter", ([action]: [string]) => action === "PaneResized");
 
   it("ends a drag when the browser cancels its pointer, moving no further", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     divider("Resize Input and Graph").then(band => {
       const win = band[0].ownerDocument.defaultView as Window & typeof globalThis;
       const fire = (type: string, clientX: number) => band[0].dispatchEvent(new win.PointerEvent(type,
@@ -1207,7 +1204,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("moves space between Input and Graph, and stops Input at its minimum", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     // the frame's own scrollbar goes once it fits the workspace, which widens the row
     cy.frameFitsInteractive();
     widthOf(".input-pane").should("equal", 280);
@@ -1227,13 +1224,13 @@ describe("the workspace's dividers", () => {
   });
 
   it("stops Inspect at its minimum", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     dragDivider("Resize Graph and Inspect", 1000, 0);
     widthOf(".inspect-pane").should("equal", 220);
   });
 
   it("moves space between the panes and the generator, keeping the reported height", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     cy.frameFitsInteractive();
     cy.get("iframe#interactive").invoke("height").then(frameHeight => {
       dragDivider("Resize the panes and the generator", 0, -100);
@@ -1247,7 +1244,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("moves a divider 10 px with the arrow keys, logging once when it loses focus", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     divider("Resize Input and Graph").focus();
     divider("Resize Input and Graph").type("{rightArrow}{rightArrow}");
     widthOf(".input-pane").should("equal", 300);
@@ -1259,7 +1256,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("moves the Graph/Inspect, row and split dividers 10 px with the arrow keys", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     divider("Resize Graph and Inspect").focus();
     divider("Resize Graph and Inspect").type("{rightArrow}");
     widthOf(".inspect-pane").should("equal", 250);
@@ -1276,7 +1273,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("keeps the chosen widths, logging nothing, for a key that can't move a divider in a narrow row", () => {
-    startWithRow({ startingText: "the cat sat" }, { width: 730 });
+    start({ startingText: "the cat sat" }, { width: 730 });
     cy.frameFitsInteractive();
     divider("Resize Input and Graph").should(band => {
       expect(band.attr("aria-valuenow")).to.equal(band.attr("aria-valuemax"));
@@ -1291,7 +1288,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("moves the linked view's split between the text box and the table", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     cy.interactive().find(".linked-input").then(linked => {
       const body = linked[0].clientHeight - paneGap - 2 * panePadding;
       height(".input-text-part .text-input").should("be.closeTo", 0.4 * body, 1);
@@ -1322,7 +1319,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("fits the graph after a drag while the view follows it, and not after the student zoomed", () => {
-    startWithRow({ startingText: "the cat sat on the mat" });
+    start({ startingText: "the cat sat on the mat" });
     cy.interactive().find("button[title='Fit View']").click();
     afterFit();
     // a narrower graph pane fits the graph smaller
@@ -1341,7 +1338,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("doesn't fit the graph again for a later change of its size after a key moved a divider", () => {
-    startWithRow({ startingText: "the cat sat on the mat" });
+    start({ startingText: "the cat sat on the mat" });
     // a graph pane narrow enough that its width limits the fit, so a wider pane would fit the graph larger
     dragDivider("Resize Input and Graph", 1000, 0);
     afterFit();
@@ -1359,7 +1356,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("doesn't fit the graph again when the student zooms before the graph measures a drag's new size", () => {
-    startWithRow({ startingText: "the cat sat on the mat" });
+    start({ startingText: "the cat sat on the mat" });
     dragDivider("Resize Input and Graph", 1000, 0);
     afterFit();
     cy.interactive().find("button[title='Zoom In']").then(zoomIn => {
@@ -1377,7 +1374,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("fits the graph again when it measures the size a key drew just before the divider lost focus", () => {
-    startWithRow({ startingText: "the cat sat on the mat" });
+    start({ startingText: "the cat sat on the mat" });
     dragDivider("Resize Input and Graph", 1000, 0);
     afterFit();
     divider("Resize Input and Graph").focus();
@@ -1404,7 +1401,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("keeps the split the student chose, logging nothing, for a key that can't move the split divider", () => {
-    startWithRow({ startingText: "the cat" });
+    start({ startingText: "the cat" });
     dragDivider("Resize the panes and the generator", 0, -1000);
     cy.interactive().find(".top-row").invoke("outerHeight").should("equal", minPaneSizes.top);
     divider("Resize the text box and the table").focus();
@@ -1422,7 +1419,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("joins only open neighbors", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     cy.interactive().find("button[aria-label='Collapse Inspect']").click();
     divider("Resize Input and Graph").should("exist");
     divider("Resize Graph and Inspect").should("not.exist");
@@ -1435,7 +1432,7 @@ describe("the workspace's dividers", () => {
       collapse: false },
   ].forEach(({ name, options, collapse }) => {
     it(`shares the row between Input and Inspect in proportion with the Graph pane ${name}`, () => {
-      startWithRow({ startingText: "the cat sat", ...options });
+      start({ startingText: "the cat sat", ...options });
       if (collapse) {
         cy.interactive().find("button[aria-label='Collapse Graph']").click();
       }
@@ -1461,7 +1458,7 @@ describe("the workspace's dividers", () => {
 
     (["Data", "Draw"] as const).forEach(mode => {
       it(`keeps the workspace's height in ${mode} mode, the row taking what the generator gave up`, () => {
-        startWithRow({ startingText: "the cat sat", modes: { useData: true, draw: true } });
+        start({ startingText: "the cat sat", modes: { useData: true, draw: true } });
         if (mode === "Draw") {
           shown().find(".mode-switch label").contains("Draw").click();
         }
@@ -1478,7 +1475,7 @@ describe("the workspace's dividers", () => {
     });
 
     it("goes back to the row height the student chose when the generator reopens", () => {
-      startWithRow({ startingText: "the cat sat" });
+      start({ startingText: "the cat sat" });
       dragDivider("Resize the panes and the generator", 0, -40);
       drawnHeight(".top-row").should("equal", defaultPaneSizes.top - 40);
       toggleGenerator("Collapse");
@@ -1491,7 +1488,7 @@ describe("the workspace's dividers", () => {
       // a saved column, which the row's height limits
       const letters = "abcdefghijklmnopqrstuvwxyz".split("");
       const positions = letters.reduce<number[]>((all, _, i) => [...all, 0, i * 60], []);
-      startWithRow({ startingText: letters.join(" ") }, {
+      start({ startingText: letters.join(" ") }, {
         interactiveState: { version: 1, caseSensitive: false, useData: { positions } },
       });
       const scale = () => shown().find(".graph-pane g.root").invoke("attr", "transform")
@@ -1515,7 +1512,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("puts the generator first with Input, Graph and Inspect turned off", () => {
-    startWithRow({ panes: { input: { available: false }, graph: { available: false }, inspect: { available: false } },
+    start({ panes: { input: { available: false }, graph: { available: false }, inspect: { available: false } },
       modes: { useData: true, draw: false }, startingText: "a b" });
     cy.interactive().find(".top-row").should("not.exist");
     cy.interactive().find(".workspace-body > section").first().should("have.class", "generator-pane");
@@ -1538,7 +1535,7 @@ describe("the workspace's dividers", () => {
     });
 
   it("keeps the toolbar inside the Graph pane just below the row height that fits one column", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     dragDivider("Resize the panes and the generator", 0, -100);
     height(".top-row").should("equal", 215);
     toolbarInsideGraphPane(2);
@@ -1548,7 +1545,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("zooms the graph with the toolbar's zoom buttons", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     afterFit();
     rootTransform().then(before => {
       cy.interactive().find("button[title='Zoom In']").click();
@@ -1561,7 +1558,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("fits the generator's default controls at its minimum, and scrolls them with the other delimiter", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     dragDivider("Resize the panes and the generator", 0, 1000);
     height(".generator-pane").should("equal", minPaneSizes.generator);
     cy.interactive().find(".generator-controls").should(controls =>
@@ -1574,7 +1571,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("pads and colors the generator's contents as the other panes', and centers the panes' toggles", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     cy.interactive().find(".input-pane-content").then(input => {
       cy.interactive().find(".generator-pane-content")
         .should("have.css", "padding-top", input.css("padding-top"))
@@ -1590,7 +1587,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("centers the column dividers on their gaps, and keeps the row divider off the generator", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     cy.interactive().find(".top-row").should(topRow => {
       const panes = [...topRow[0].querySelectorAll(":scope > .pane")].map(pane => pane.getBoundingClientRect());
       const bands = [...topRow[0].querySelectorAll(".divider.vertical")].map(band => band.getBoundingClientRect());
@@ -1621,7 +1618,7 @@ describe("the workspace's dividers", () => {
   });
 
   it("draws the stacked panes at the starting row height whatever row height the student chose", () => {
-    startWithRow({ startingText: "the cat sat" });
+    start({ startingText: "the cat sat" });
     dragDivider("Resize the panes and the generator", 0, -1000);
     height(".generator-pane").should("equal", workspaceHeight - minPaneSizes.top);
     cy.get("iframe#interactive").invoke("attr", "width", "690");
@@ -1761,8 +1758,7 @@ describe("the workspace's Case sensitive switch", () => {
       start({ startingText: "the cat sat" }, { width: frameWidth });
       cy.interactive().find(".markov-workspace").should(workspace => {
         const outer = workspace[0].getBoundingClientRect();
-        // the panes' row, as nothing is in the workspace's own row
-        const controls = workspace[0].querySelector(".top-row")!.getBoundingClientRect();
+        const controls = workspace[0].querySelector(".controls-row")!.getBoundingClientRect();
         const generator = workspace[0].querySelector(".generator-pane")!.getBoundingClientRect();
         expect(workspace.hasClass("stacked")).to.equal(frameWidth < stackBelow);
         expect(controls.left - outer.left).to.be.closeTo(paneGap, 0.5);
@@ -1846,7 +1842,7 @@ describe("the workspace's modes", () => {
 
     it("is absent with one mode", () => {
       start({ startingText: "the cat" });
-      cy.interactive().find(".markov-workspace").should("exist");
+      cy.interactive().find(".controls-row").should("exist");
       cy.interactive().find(".mode-switch").should("not.exist");
     });
 
@@ -2732,7 +2728,7 @@ describe("the workspace's probabilities", () => {
 
   it("stays as authored without the toggle", () => {
     start({ startingText: "the cat the mat", buttons: { probabilities: { available: false, startsOn: true } } });
-    cy.interactive().find(".markov-workspace").should("exist");
+    cy.interactive().find(".controls-row").should("exist");
     toggle().should("not.exist");
     clickState("the");
     labelTexts().should("deep.equal", ["50%", "50%"]);
@@ -3154,9 +3150,6 @@ describe("the workspace's keyboard and narrow-screen touches", () => {
 });
 
 describe("the workspace's fit and finish from testing", () => {
-  const bothModes = { useData: true, draw: true };
-  const box = (selector: string) => cy.interactive().find(selector).first()
-    .then(element => element[0].getBoundingClientRect());
   const generateOutput = () => {
     playButton().click();
     // the button reads Pause while the sequence plays
@@ -3173,68 +3166,10 @@ describe("the workspace's fit and finish from testing", () => {
     inspectRow("hi").find("td").eq(1).should("have.text", "2");
   });
 
-  it("has no row above the panes when nothing is in it, and gives its height to the generator", () => {
-    start({ startingText: "the cat sat" });
-    cy.interactive().find(".controls-row").should("not.exist");
-    cy.interactive().find(".markov-workspace").invoke("outerHeight").should("equal", 614);
-    box(".top-row").then(topRow => box(".markov-workspace").then(workspace =>
-      expect(topRow.top - workspace.top).to.be.closeTo(paneGap, 0.5)));
-    cy.interactive().find(".generator-pane").invoke("outerHeight")
-      .should("equal", workspaceHeight + emptyRowSpare - defaultPaneSizes.top);
-  });
-
-  it("gives an empty row's height to the panes above a collapsed generator", () => {
-    start({ startingText: "the cat sat" });
-    cy.interactive().find("button[aria-label='Collapse Sequence Generator']").click();
-    cy.interactive().find(".markov-workspace").invoke("outerHeight").should("equal", 614);
-  });
-
-  it("keeps the row while it holds a control, at its height", () => {
-    start({ startingText: "the cat sat", modes: bothModes });
-    cy.interactive().find(".workspace-body:not([hidden]) .controls-row").should("exist");
-    cy.interactive().find(".markov-workspace").invoke("outerHeight").should("equal", 614);
-    cy.interactive().find(".workspace-body:not([hidden]) .generator-pane").invoke("outerHeight")
-      .should("equal", workspaceHeight - defaultPaneSizes.top);
-  });
-
-  it("keeps its height with no Sequence Generator, the panes taking its place, with or without the row", () => {
-    const noGenerator = { startingText: "the cat sat", panes: { generator: { available: false, startsOpen: true } } };
-    start(noGenerator);
-    cy.interactive().find(".controls-row").should("not.exist");
-    cy.interactive().find(".markov-workspace").invoke("outerHeight").should("equal", 614);
-    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", workspaceHeight + paneGap + emptyRowSpare);
-    startWithRow(noGenerator);
-    cy.interactive().find(".controls-row").should("exist");
+  it("keeps its height with no Sequence Generator, the panes taking its place", () => {
+    start({ startingText: "the cat sat", panes: { generator: { available: false, startsOpen: true } } });
     cy.interactive().find(".markov-workspace").invoke("outerHeight").should("equal", 614);
     cy.interactive().find(".top-row").invoke("outerHeight").should("equal", workspaceHeight + paneGap);
-  });
-
-  it("has no row in a drawing with no buttons", () => {
-    start({ modes: { useData: false, draw: true } });
-    cy.interactive().find(".controls-row").should("not.exist");
-    cy.interactive().find(".markov-workspace").invoke("outerHeight").should("equal", 614);
-  });
-
-  it("puts Clear highlight in the Graph pane's header with no row, so choosing moves no pane", () => {
-    start({ startingText: "the cat sat" });
-    box(".top-row").then(before => {
-      clickState("cat");
-      cy.interactive().find(".graph-pane .pane-header .clear-highlight").should("be.visible");
-      box(".top-row").should(after => expect(after.top).to.equal(before.top));
-    });
-    cy.interactive().find(".graph-pane .clear-highlight").focus();
-    cy.interactive().find(".graph-pane .clear-highlight").click();
-    cy.interactive().find(".clear-highlight").should("not.exist");
-    stateEllipse("cat").should("have.attr", "fill", "#fff");
-    focused().should("have.class", "pane-header-controls");
-  });
-
-  it("puts Clear highlight in Inspect's header with no row while the Graph pane is collapsed", () => {
-    start({ startingText: "the cat sat" });
-    cy.interactive().find("button[aria-label='Collapse Graph']").click();
-    inspectRow("cat").find("button").click();
-    cy.interactive().find(".inspect-pane .pane-header .clear-highlight").should("be.visible").click();
-    inspectRow("cat").should("not.have.class", "highlight-selected");
   });
 
   it("bolds every lit Inspect row, and only those", () => {

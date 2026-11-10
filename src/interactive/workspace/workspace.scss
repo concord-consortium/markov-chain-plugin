@@ -215,15 +215,6 @@ $highlight-output-line: #c0006b;
       gap: 4px;
       margin-left: auto;
 
-      &:focus {
-        outline: none;
-      }
-
-      .clear-highlight {
-        @include markov-button;
-        padding: 1px 5px;
-      }
-
       .probabilities-toggle {
         padding: 1px 5px;
       }

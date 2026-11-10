@@ -108,6 +108,19 @@ describe("slotPositions", () => {
     expect(slotPositions(inOrder(["a"]), [far], columns).get("a")).toEqual(inSlot("a", 0));
   });
 
+  it("places many new words ahead of many placed ones without checking every placed word for every slot", () => {
+    const count = 1500;
+    const placedIds = Array.from({ length: count }, (_, i) => `old${i}`);
+    const newIds = Array.from({ length: count }, (_, i) => `new${i}`);
+    const placed = [...slotPositions(inOrder(placedIds), [], columns).values()];
+    const begun = Date.now();
+    const added = slotPositions(inOrder(newIds), placed, columns);
+    // checking every placed word for every slot each word tries takes billions of checks here, and many seconds
+    expect(Date.now() - begun).toBeLessThan(1000);
+    expect(added.size).toBe(count);
+    newIds.forEach((id, i) => expect(added.get(id)).toEqual(inSlot(id, count + i)));
+  });
+
   it("overlaps no two states it places, at the largest two neighbors can be, with states dragged anywhere", () => {
     // two neighbors' radii add up to at most maxRadiusPair, so a pair checked at half of it each is the worst case
     const radius = maxRadiusPair / 2;
