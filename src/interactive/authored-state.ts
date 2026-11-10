@@ -55,6 +55,7 @@ export interface MarkovAuthoredState {
   panes: Record<PaneId, PaneSettings>;
   buttons: Record<ButtonId, ButtonSettings>;
   inputView: InputView;
+  allowCsvUpload: boolean;
   // the "Case sensitive" switch's starting value
   capitalization: Capitalization;
   showCaseSwitch: boolean;
@@ -78,6 +79,7 @@ export const defaultAuthoredState: MarkovAuthoredState = {
     downloadTables: { available: false },
   },
   inputView: "textAndTable",
+  allowCsvUpload: false,
   capitalization: "lowercase",
   showCaseSwitch: true,
   orderMatters: { startsOn: true, showSwitch: true },
@@ -126,6 +128,7 @@ export const settingLabels = {
   startingMode: "Starting mode",
   useData: "Data settings",
   inputView: "How students enter their data",
+  allowCsvUpload: "Let students start from a CSV file",
   capitalization: `${caseSensitiveLabel} at the start`,
   showCaseSwitch: `Show students the "${caseSensitiveLabel}" switch`,
   ordering: "Ordering",
@@ -230,6 +233,7 @@ export const readAuthoredState = (raw: unknown): MarkovAuthoredState => {
     panes,
     buttons: readButtons(saved.buttons),
     inputView: readChoice(saved.inputView, inputViews, defaultAuthoredState.inputView),
+    allowCsvUpload: readBoolean(saved.allowCsvUpload, defaultAuthoredState.allowCsvUpload),
     capitalization: readChoice(saved.capitalization, capitalizations, defaultAuthoredState.capitalization),
     showCaseSwitch: readBoolean(saved.showCaseSwitch, defaultAuthoredState.showCaseSwitch),
     orderMatters: {

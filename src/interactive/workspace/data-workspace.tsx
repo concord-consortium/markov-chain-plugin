@@ -6,9 +6,11 @@ import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { Node } from "../../type";
 import { Capitalization, capitalizationFor, caseSensitiveLabel, orderMattersLabel } from "../authored-state";
+import { CsvRefusal, CsvValues } from "../input/csv";
 import { Token, tokenize, tokensToValues } from "../input/tokenizer";
 import { CommitHow, CommitView } from "./commit";
 import { ControlsRow } from "./controls-row";
+import { CsvUpload, CsvUploadStatus } from "./csv-upload";
 import { GeneratorPane } from "./generator-pane";
 import { GraphPane } from "./graph-pane";
 import { highlightsFor } from "./highlights";
@@ -81,6 +83,8 @@ export const DataWorkspace = ({
   const lastValuesRef = useRef(start.tool.values ?? []);
   const lastSavedRef = useRef(startText);
 
+  const [uploadStatus, setUploadStatus] = useState<CsvUploadStatus>();
+
   const [capitalization, setCapitalization] = useState(startCapitalization);
   // reads the text under a rule and hands the core its values when they changed, returning its tokens if they did
   const commitText = useCallback((nextText: string, rule: Capitalization) => {
@@ -91,6 +95,7 @@ export const DataWorkspace = ({
     if (nextText !== lastSavedRef.current) {
       lastSavedRef.current = nextText;
       saving.requestSave();
+      setUploadStatus(undefined);
     }
     if (sameValues(values, lastValuesRef.current)) {
       return undefined;
@@ -125,9 +130,10 @@ export const DataWorkspace = ({
     host.log("CaseSensitivityChanged", { caseSensitive, states: stateCount(lastValuesRef.current) });
   };
   const isCaseSensitive = capitalization === "asTyped";
+  const inputReadOnly = tool.animating || readOnly;
   const caseSwitch = config.caseSwitch &&
     <SettingSwitch label={caseSensitiveLabel} value={isCaseSensitive} onChange={handleCaseChange}
-      disabled={tool.animating || readOnly} />;
+      disabled={inputReadOnly} />;
 
   const handleOrderChange = (on: boolean) => {
     // a transition can't be chosen in a bag of words; the logged change says why it went
@@ -139,9 +145,26 @@ export const DataWorkspace = ({
   };
   const orderSwitch = config.orderMatters.showSwitch &&
     <SettingSwitch label={orderMattersLabel} value={orderMatters} onChange={handleOrderChange}
-      disabled={tool.animating || readOnly} />;
+      disabled={inputReadOnly} />;
   const switches = (orderSwitch || caseSwitch) &&
     <div className="setting-switches">{ orderSwitch }{ caseSwitch }</div>;
+
+  const handleCsvRead = (read: CsvValues) => {
+    commitText(read.text, capitalization);
+    host.log("CsvUploaded", {
+      rows: read.rows, tokens: tokenize(read.text, capitalization).length, states: stateCount(lastValuesRef.current)
+    });
+    setUploadStatus({ kind: "read", values: read.values, column: read.column });
+  };
+  const handleCsvRefused = (reason: CsvRefusal) => {
+    setUploadStatus({ kind: "refused", reason });
+    host.log("CsvUploadRefused", { reason });
+  };
+  const rowLayout = orderMatters ? "prose" : "list";
+  const csvUpload = config.csvUpload &&
+    <CsvUpload disabled={inputReadOnly}
+      hasWords={[committed.tokens, liveTokens].some(tokens => tokens.some(token => token.kind === "word"))}
+      layout={rowLayout} status={uploadStatus} onRead={handleCsvRead} onRefused={handleCsvRefused} />;
 
   const [dialogNode, setDialogNode] = useState<Node>();
   const dialogNodeRef = useLatest(dialogNode);
@@ -241,12 +264,12 @@ export const DataWorkspace = ({
     switch (id) {
       case "input":
         return (
-          <InputPane switches={switches} rowLayout={orderMatters ? "prose" : "list"} view={inputView} split={inputSplit}
-            onSplitChange={setInputSplit}
+          <InputPane switches={switches} csvUpload={csvUpload} rowLayout={rowLayout} view={inputView}
+            split={inputSplit} onSplitChange={setInputSplit}
             onSplitResized={handleSplitResized} text={text} liveTokens={liveTokens}
             liveHighlights={liveHighlights} committed={committed}
             highlights={highlights}
-            readOnly={tool.animating || readOnly} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
+            readOnly={inputReadOnly} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
             onTableCommit={handleTableCommit} onRowBlur={handleBlurCommit} afterPress={afterPress}
             onRowAdded={handleRowAdded}
             onRowDeleted={handleRowDeleted} onFocusToken={handleFocusToken} />

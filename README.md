@@ -116,7 +116,8 @@ beside the plugin:
   and the sequence generator, around the plugin's shared Markov tool. The interactive state holds the student's work
   in both modes and its layout, so it reopens as they left it: their input, drawing, outputs and generator settings,
   each state's place on the graph, and the panes. Nothing is saved until the student does something, and saves happen
-  at meaningful moments, not on every keystroke. Two buttons an author can turn on take the student's tables out:
+  at meaningful moments, not on every keystroke. When the author allows it, students can start their input from the
+  first column of a CSV file. Two buttons an author can turn on take the student's tables out:
   Send to CODAP saves them to the Activity Player's object storage for the Datalog plugin, and Download tables saves
   them as CSV files. The class dashboard's read-only page shows the same workspace. The interactions the workspace
   logs to the Activity Player are listed in [LOGGED-EVENTS.md](LOGGED-EVENTS.md).
