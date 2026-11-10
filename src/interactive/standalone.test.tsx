@@ -35,9 +35,9 @@ describe("opened outside a host", () => {
     window.history.replaceState(null, "", "/");
   });
 
-  it("the interactive runs with the default settings, and leaves the library alone", () => {
+  it("the interactive runs with the default settings and no note above it, and leaves the library alone", () => {
     render(<App />);
-    expect(screen.getByText(/the settings come from this page's link, and nothing is saved/)).toBeInTheDocument();
+    expect(screen.queryByText(/Activity Player/)).not.toBeInTheDocument();
     expect(panes()).toEqual(["Input", "Graph", "Inspect", "Sequence Generator"]);
     expect(warn).not.toHaveBeenCalled();
   });

@@ -26,7 +26,7 @@ It builds on MARK-13 (PR #88: `src/interactive/`, its authored state, the runtim
   - The workspace has no loading state: it renders only once the init message has arrived, carrying both states, and the standalone page has its settings at once.
 - **R3.** The shared core's state (the graph, the selection, generation and its animation, the output's sequence groups, the generator's settings) is usable without `MarkovTool`'s CODAP layout, so the workspace lays out the same graph, generator and output in its own panes. The CODAP plugin keeps its layout and behavior exactly: MARK-14's tests, and every other existing plugin test, pass unchanged.
 - **R4.** `MarkovHost` gains `log(event, data)`, called by the shared core at each interaction R33 lists. The CODAP host's `log` does nothing, so the CODAP plugin sends CODAP nothing new. The AP host's `log` calls the library's `log`. The standalone page's does nothing.
-- **R5.** Opened standalone (MARK-13's R14), the interactive shows the workspace with its URL's settings and MARK-13's note that nothing is saved; it saves and logs nothing and makes no library call. Inside a host the URL is still ignored.
+- **R5.** Opened standalone (MARK-13's R14), the interactive shows the workspace with its URL's settings and no note above it; it saves and logs nothing and makes no library call. Inside a host the URL is still ignored.
 
 ### Loading from the authored settings
 
