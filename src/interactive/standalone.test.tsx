@@ -1,6 +1,7 @@
 import React from "react";
 import { act, render, screen, within } from "@testing-library/react";
 import { App } from "./app";
+import { paneTitles } from "./report-summary";
 
 jest.mock("nanoid", () => ({ nanoid: () => "id" }));
 
@@ -39,6 +40,11 @@ describe("opened outside a host", () => {
     expect(screen.getByText(/the settings come from this page's link, and nothing is saved/)).toBeInTheDocument();
     expect(panes()).toEqual(["Input", "Graph", "Inspect", "Sequence Generator"]);
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("titles its panes as the report item's summary names them", () => {
+    render(<App />);
+    expect(panes()).toEqual(Object.values(paneTitles));
   });
 
   it("the interactive takes its settings from its link", () => {

@@ -17,8 +17,9 @@ const ReportItem = () => {
 
   useReportItem<MarkovInteractiveState, MarkovAuthoredState>({
     metadata: { compactAnswerReportItemsAvailable: true },
-    handler: ({ platformUserId, version, itemsType }) => {
-      sendReportItemAnswer({ version, platformUserId, itemsType, items: reportItemAnswerItems(itemsType) });
+    handler: ({ platformUserId, version, itemsType, interactiveState, authoredState }) => {
+      const items = reportItemAnswerItems(itemsType, interactiveState, authoredState);
+      sendReportItemAnswer({ version, platformUserId, itemsType, items });
     }
   });
 

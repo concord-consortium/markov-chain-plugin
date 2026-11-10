@@ -22,6 +22,18 @@ const messageOf = (data: unknown) => {
   }
 };
 
+// opens the page and waits for a save that holds no input, so the runtime's text still follows the authoring form
+const visitAndSave = () => {
+  let saved = false;
+  cy.visit("/demo.html", {
+    onBeforeLoad: win => win.addEventListener("message", event => {
+      saved ||= messageOf(event.data)?.type === "interactiveState";
+    })
+  });
+  frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
+  cy.wrap(null, { timeout: 5000 }).should(() => expect(saved).to.equal(true));
+};
+
 // the workspace's panes in a document, by their titles
 const panesIn = (doc: Document) => [...doc.querySelectorAll(".markov-workspace section.pane > .pane-header h2")]
   .map(title => title.textContent);
@@ -88,14 +100,7 @@ describe("the interactive's demo page", () => {
   });
 
   it("shows an authoring change after a student's save", () => {
-    let saved = false;
-    cy.visit("/demo.html", {
-      onBeforeLoad: win => win.addEventListener("message", event => {
-        saved ||= messageOf(event.data)?.type === "interactiveState";
-      })
-    });
-    frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
-    cy.wrap(null, { timeout: 5000 }).should(() => expect(saved).to.equal(true));
+    visitAndSave();
     frameBody("Authoring").find("#startingMode").select("draw");
     cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").should((doc: Document) => {
       const shown = doc.querySelector(".workspace-body:not([hidden]) .mode-switch input:checked");
@@ -280,9 +285,31 @@ describe("the interactive's demo page", () => {
     });
   });
 
-  it("shows the report item's full answer", () => {
+  it("shows the report item's full answer, of the authored page and then of a save", () => {
     cy.visit("/demo.html");
-    frameText("Report item").should("contain", "This student has saved work in the Markov interactive.");
+    frameText("Report item").should("contain", "The student has saved work in the interactive.")
+      .and("contain", "Data: 7 states, 9 transitions");
+    cy.get<HTMLIFrameElement>("iframe[title='Report item']").should(([frame]) => {
+      expect(frame.contentDocument?.documentElement.scrollHeight).to.equal(frame.clientHeight);
+    });
+    frameBody("Interactive").find("textarea[aria-label='Your text']").type(" the dog").blur({ force: true });
+    frameText("Report item").should("contain", "Data: 8 states, 10 transitions");
+  });
+
+  it("summarizes the authored page as it changes, before any save", () => {
+    cy.visit("/demo.html");
+    frameText("Report item").should("contain", "Data: 7 states, 9 transitions");
+    frameBody("Authoring").find("#startingText").clear().type("a b");
+    frameText("Report item").should("contain", "Data: 2 states, 1 transition");
+  });
+
+  it("summarizes a save with the authored state it was made under", () => {
+    visitAndSave();
+    frameBody("Authoring").find("#startingText").clear().type("a b");
+    cy.get("iframe[title=\"Interactive\"]").its("0.contentDocument").should((doc: Document) => {
+      expect(doc.querySelector<HTMLTextAreaElement>("textarea[aria-label='Your text']")?.value).to.equal("a b");
+    });
+    frameText("Report item").should("contain", "Data: 7 states, 9 transitions");
   });
 
   it("shows the teacher's view of the runtime's last save, starting it again with each", () => {

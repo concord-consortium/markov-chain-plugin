@@ -1,0 +1,270 @@
+# The AP Interactive's Summary of Each Student's Work in the Dashboard
+
+**Jira**: https://concord-consortium.atlassian.net/browse/MARK-19
+
+**Status**: **Closed**
+
+## Overview
+
+The class dashboard's side panel shows a short plain text summary of a student's work at the moment the history scrubber is on, in place of the placeholder and the inline "View Work" view. A teacher can see what changed from step to step without opening the full view. The lines and their order are Rebecca Ellis's: which panes are open, the Show probabilities setting, the two switches, the states and transitions, the generator's settings, and how many outputs match them.
+
+Her sample covers Data mode only. In Draw mode, which has neither switch, the summary leaves out the two switch lines, as she confirmed; the `Drawing` line and keeping the first sentence are this story's defaults, sent to her for confirmation.
+
+Rebecca Ellis's preferred layout, with "View Work" opening the stats below the scrubber, needs a change to the class dashboard and isn't part of this story.
+
+## Requirements
+
+### What the teacher sees
+
+- **R1.** The full answer's HTML starts with "The student has saved work in the interactive." (no "Markov"), followed by lines describing the saved moment, in this order (Rebecca Ellis's layout). In Data mode:
+
+  ```
+  View: Input, Graph, Inspect, Sequence Generator
+  Probabilities: Off
+  Order matters: Yes
+  Case sensitive: No
+  Data: 9 states, 12 transitions
+  Settings: start (any), max length 20, speed normal
+  Outputs: 3
+  ```
+
+  Draw mode has no "Order matters" or "Case sensitive" switch, so it leaves those two lines out and shows `View`, `Probabilities`, `Drawing`, `Settings` and `Outputs`. The placeholder's text goes.
+- **R2.** `View` lists the panes open in the saved moment's mode, out of the ones the author lets the student see there, in the workspace's order (Input, Graph, Inspect, Sequence Generator) and with the titles the student sees. Draw mode has no Input pane and its Graph pane is always open. With every pane collapsed, the line is `View: none`.
+- **R2a.** `Probabilities` is `On` or `Off`, in both modes: the Show probabilities setting at that moment, from the state's `probabilities` as the read-only view reads it (R7). It is the setting, not what is on screen: with the Graph pane closed, or on a page with no Graph pane, it can read `On` while no probabilities are visible. It follows `View` because, like the panes, it changes what the student sees rather than what the generator does.
+- **R3.** In Data mode, `Order matters` and `Case sensitive` are `Yes` or `No`, from the saved settings as the read-only view reads them (R7). Their names are the switches' names the student sees. Draw mode leaves both out: it has neither switch, always treats order as on, and case doesn't apply to a drawing.
+- **R4.** The line after the switches names the mode showing and what is in it:
+  - Data mode: `Data: 9 states, 12 transitions`.
+  - Draw mode: `Drawing: 5 states, 7 transitions`.
+  - States are the graph's states. Transitions are the graph's transitions, one per row of the Inspect pane's Transitions table, including a state's transition to itself; in Draw mode they are the drawing's arrows. With "Order matters" off, Data mode's graph draws no arrows and its Transitions tab lists none, so the count is 0.
+- **R5.** `Settings` is that moment's starting state, Max Length and generator speed: `Settings: start (any), max length 20, speed normal`. The start is the state's label, or `(any)`. The speed is `normal` or `fast`, the two settings of the generator's Simulation Speed switch, in lower case like the rest of the line. Order is on its own line (R3), so this line leaves it out.
+- **R6.** `Outputs` is a count only, for the mode showing: the outputs that match that moment's settings. An output matches when its starting state, Max Length and "Order matters" equal that moment's, where Draw mode's outputs are always ordered whatever Data mode's "Order matters" is. Delimiter isn't compared, since it changes how an output is written and not what is generated. An output's starting state is the one its heading in the output list shows: one generated into a new group after its chosen state left the graph is `(any)`. States compare by id, so a drawn state renamed after its outputs were made still counts them, though their heading keeps the old name. Outputs made before a setting changed stop counting at the step where it changed, and count again if the student goes back to those settings.
+- **R7.** The summary reports what "Open in new tab" shows for the same moment. The mode, open panes, Show probabilities, input, case rule, "Order matters", starting state, Max Length and speed are all read by the rules the read-only view uses (MARK-17's R17), so:
+  - a student who never changed the input is counted from the authored starting text (MARK-17's R2);
+  - with no Input pane the saved input is ignored;
+  - "Case sensitive" and "Order matters" apply only where the page shows that switch, and are the author's settings elsewhere;
+  - Show probabilities is the saved setting only where the page shows its toggle, and otherwise whether the author starts probabilities shown;
+  - a pane with no saved open or closed state is open if the author starts it open;
+  - a saved mode the page doesn't offer falls back to the starting mode;
+  - a starting state no longer in the graph reads as `(any)`;
+  - a Max Length left empty, or a state with no generator settings, reads as the default, 5. A saved state doesn't always hold its own: an empty field saves no `lengthLimit`, and a state from before MARK-17 has no generator settings;
+  - a state with no saved speed reads as `normal`, the speed the generator opens at.
+- **R8.** Nothing is left out for lack of work. With no outputs matching, the line is `Outputs: 0`. With no input or drawing, the counts line is `Data: 0 states, 0 transitions` or `Drawing: 0 states, 0 transitions`. A student whose state holds no work, such as one who only collapsed a pane (MARK-17's R13), gets the summary of the page as authored, with that pane's change, which is what the read-only view shows them. Every line for the mode shows on every page, including one with no Sequence generator pane, where the read-only view has no outputs or settings to compare them with. Counts use the singular for one: `1 state`, `1 transition`.
+
+### Safety and layout
+
+- **R9.** Everything the student wrote is HTML-escaped. The only student text in the summary is the starting state's label, in both modes. The HTML is drawn in a same-origin `srcdoc` frame in the teacher's dashboard, so a label such as `<img src=x onerror=...>` must arrive as text.
+- **R10.** A starting state over 60 characters is cut to 60 and ends with `…`. Characters are counted by code point, so a surrogate pair isn't split, though an emoji built from several code points (a skin tone, a family) can lose its later parts. The cut comes before escaping, so an entity isn't split. Unbroken text wraps inside the panel rather than scrolling sideways.
+- **R11.** The answer keeps both the `.tall` and `.wide` blocks, since the dashboard shows one or the other: `tall` in the side panel and `wide` in the question's response lists. In each, the sentence sits above the lines.
+- **R12.** The output is deterministic: the same state and authored state give the same HTML. The dashboard can post 2 to 3 requests per step, so the answer is built and sent synchronously in the handler, and a repeat changes nothing the teacher sees.
+
+### The links and the compact answer
+
+- **R13.** The links item sets `hideViewInline: true`, so "View Work" goes. "Open in new tab" stays and opens the moment the scrubber is on.
+- **R14.** The compact answer stays empty, since the grid shows only a score, and building it reads nothing from the state.
+
+### What else changes
+
+- **R15.** The demo page's "Report item, full answer" shows the summary of the state the runtime last saved, or of the authored page before any save, in a frame tall enough for the sentence and all seven of Data mode's lines. The placeholder's constant goes.
+- **R16.** `README.md`'s description of `report-item.html` and the comments in `report-item-answer.ts` change to match. The demo page's Cypress test checks the summary of its starting text (`Data: 7 states, 9 transitions`) in place of the placeholder, that the frame follows a save, and that it holds the sentence and all seven lines without scrolling.
+- **R17.** The CODAP plugin does not change. No file under `src/components` or `src/hooks` changes, and the built `index.*.js` and `main.*.css` are byte-identical to master's.
+
+### Tests
+
+- **R18.** Jest covers each rule R2 to R12 on the summary's own function, and that a compact answer has no items and a full answer has the links item with `hideViewInline`. The summary's copies of the generator's `(any)` label, its default Max Length, the pane titles, and the speed switch's two settings and the speed it opens at are each asserted against the real value, so none can drift (Technical Notes).
+- **R19.** Cypress, on the fake Activity Player page: the report item answers a full answer built from the state and authored state in the request, in both modes, and a second request with a different state gives a different answer in the same frame, as a scrubber step does.
+- **R20.** On learn staging, on the branch build: in the class dashboard, a teacher sees the summary, in Rebecca Ellis's layout, change as they move the scrubber, in both modes, with no "View Work" link, and "Open in new tab" opens the step the scrubber is on. This is a hand check, recorded in the PR's test notes.
+
+## Technical Notes
+
+### What was checked in `portal-report` (master)
+
+- **The flow.** `Answer` (`js/containers/portal-dashboard/answer.tsx`) swaps its `answer` to the history entry when the scrubber moves. `IframeAnswer` (`js/components/report/iframe-answer.tsx`) sees the new answer and dispatches `getReportItemAnswer`. `processReportItemRequests` (`js/reducers/report-reducer.ts`) parses the answer's `reportState` and posts `interactiveState` and `authoredState`, each parsed. Whatever fails to parse is sent as it was, and either can be `null`, so the summary reads both through the existing readers.
+- **The authored state is the one saved with that step**, not the page's current one.
+- **Layout.** `render()` draws the report items, then the iframe if open, then `InteractiveStateHistoryRangeInput`, unconditionally, so the summary sits above the scrubber whatever `hideViewInline` says. Links come first because the item list does.
+- **The frame.** `IframeAnswerReportItem` draws an `html` item as `<iframe srcDoc=...>`, with no `sandbox`, sized to its content by a `ResizeObserver`, and with a key that includes the history id, so each step is a new frame. A `srcdoc` frame shares the dashboard's origin, which is why R9 matters.
+- **Injected styles.** `updateReportItemAnswerItems` prepends only the font and `.tall`/`.wide` display rules. `.wide` is `display: flex; flex-direction: row`.
+- **Orientation.** `overlay-student-response.tsx` passes `tall`. The popup lists pass `wide`.
+
+### Checked by running it
+
+The change was built as throwaway code, and run in Jest, Cypress and headless Chrome, before it was implemented.
+
+- `restoreWork` gives everything the summary needs, and agrees with the read-only view by construction. With `caseSensitive: true` saved on a page with no case switch, `The the` is 1 state under `restoreWork`; reading `caseSensitive` straight off the state gives 2.
+- `null`, `{}`, `{ version: 1 }`, an unparseable string, a JSON string and a state from MARK-15 all read without throwing, and 50,000 characters of input took about 10 ms.
+- With the dashboard's injected styles at 320px, an unbroken 60-character output scrolled the frame sideways without `overflow-wrap: anywhere`, and wrapped with it. In `.wide`, two sibling paragraphs sat side by side with no gap, so each block wraps its paragraphs in one child, which stacks them in both orientations.
+- The report item's bundle grows by about 10 KB, since it now pulls in the readers and the tokenizer.
+- For 3,000 states, half of them damaged, the mode, states, start, Max Length and output count all matched what `useMarkovTool` opens with, counting outputs by their headings.
+- The demo's starting text, `the cat sat on the mat. the cat ran.`, reads `Data: 7 states, 9 transitions`, since `.` is a state with a transition in and out.
+
+### The values the summary repeats
+
+The summary needs the generator's `(any)` label, its default Max Length and speed, the speed switch's two settings and the panes' titles, and takes none of them from the code that draws them, so `src/components`, `src/hooks` and the workspace stay as they are.
+
+- `AnyStartingState` is exported by `generator.tsx`, which the report item shouldn't import, since that brings a React component and its SVGs. `report-summary.ts` has its own `anyStartLabel`, and a test asserts it equals `AnyStartingState`.
+- `defaultLengthLimit` isn't exported from `use-markov-tool.tsx`. The summary does need a default: `toolParts` saves `clampLengthLimit(undefined)` for an empty field, which `JSON.stringify` drops (run: the saved generator had no `lengthLimit`), and a state from before MARK-17 has no generator at all. Both reopen at 5 in the read-only view, so the summary has to say 5 to agree with it (R7). `report-summary.ts` has its own `defaultMaxLength`, and a test renders `useMarkovTool` with no saved settings and asserts `generatorProps.lengthLimit` equals it. The test reads the value the hook really opens at, so changing the hook's default fails it with no export needed.
+
+- The pane titles live in `workspace-panes.tsx`, which isn't exported and sits beside React components the report item doesn't need. `report-summary.ts` has its own `paneTitles`, and a test renders the interactive with every pane and asserts its headings are those titles in that order.
+- The speed switch's `Normal` and `Fast` are text inside `speed-toggle.tsx`, and the speed it opens at is `defaultFastSimulation` in `use-markov-tool.tsx`, neither exported. `report-summary.ts` has its own `speedNames`; one test renders `SpeedToggle` and asserts its two settings, in lower case, are those names, and another renders `useMarkovTool` with no saved settings and asserts it opens at the speed the summary gives a state with none.
+
+### Other notes
+
+- Saved `startingState` is an id, and in Draw mode an id isn't the label, so the label comes from the graph.
+- The generator keeps a chosen state after it leaves the graph, and generates as `(any)`. Run through the real workspace (choose `cat`, change the input, generate): the select shows `(any)`, the heading `(any)/3/" "`, and the save holds `startingState: "cat"` on both the generator and the group, with no `start`. So a group's `startingState` isn't what it started from; its `startingNode` is what the heading shows (R6).
+- A group's `startingNode` is set once, and `generateNewSequence` adds to the last group when `startingState` matches, whatever the graph holds now, so a heading can be wrong for a later output. Run through the real workspace: `a c`, generated after `cat` left, sits under the heading `cat`, and the summary reads `Outputs: 0` at `start (any)`; `cat a b`, generated once `cat` came back, sits under `(any)`, and reads `Outputs: 0` at `start cat`. The count stays in step with the headings a teacher can open. A group saves nothing better, and the cause is in `src/hooks`.
+- A group's `orderMatters` is undefined in older saves, and the output pane reads that as on (`group.orderMatters === false` is the only orderless case).
+- `generateNewSequence` compares a group only to the last one, so groups with the same settings can repeat in a list. Counting filters every group.
+- A sequence in a save is at least one state long, even one saved part way through (MARK-17's R4). An empty one in a damaged state still counts.
+- Outputs aren't cleared when the input changes, and a group doesn't record the text it came from, so outputs from earlier text still count while the settings match.
+
+## Out of Scope
+
+- Rebecca's layout with "View Work" opening the stats below the scrubber, or any other change to the class dashboard.
+- Which student actions make a step (MARK-28).
+- Showing the delimiter, the latest output or a word count in the summary.
+- The note on `report-item.html` opened on its own, which still names the Markov interactive for a developer.
+- Anything in the CODAP plugin, and any change to what is saved.
+
+## Decisions
+
+### What does "outputs that match the current settings" mean once settings change after outputs exist?
+**Context**: "Current" has to mean the settings of the moment the scrubber is on, since each step is its own saved state. A student with 12 outputs at Max Length 20 who changes it to 10 reads `Outputs: 0` at that step, the same as a student with no outputs. The full list stays in "Open in new tab".
+**Options considered**:
+- A) As Jira and the note to Rebecca say: count only matching outputs (R6). The drop to 0 shows the settings changed.
+- B) Keep the match but show the total too: `Outputs: 3 of 12`.
+- C) Count every output in the mode.
+
+**Decision**: A (Doug). It is what Jira and the note to Rebecca say, and the drop to 0 shows the settings changed.
+
+---
+
+### Read saved work through `restoreWork`, or straight off the state?
+**Options considered**:
+- A) `input.text` through the tokenizer with `caseSensitive`, falling back to `startingText`, as the first sketch said.
+- B) `restoreWork`, as the read-only view does.
+
+**Decision**: B. A disagrees with "Open in new tab" on a page with no Input pane or no case switch, and repeats rules that already exist.
+
+---
+
+### What is compared when matching outputs?
+**Options considered**:
+- A) Every field that splits a group: starting state, Max Length, "Order matters", delimiter.
+- B) Only the three the summary shows.
+
+**Decision**: B. A teacher can check the count against the `Settings` line and, in Data mode, the `Order matters` line. Under A, changing a space delimiter to a comma would zero the count with nothing on the line to explain it.
+
+---
+
+### What does a student with no state show?
+**Options considered**:
+- A) The sentence alone.
+- B) The summary of the authored page.
+
+**Decision**: B. It is what the read-only view shows (MARK-17's R22), and it needs no second path. The dashboard's `hasResponse` shows "No response" for a null or empty state, so only a state with keys gets here.
+
+---
+
+### What do the Settings and Outputs lines say on a page with no Sequence generator pane?
+**Context**: An author can turn the pane off, which leaves the read-only view with no outputs or settings to show, while the summary still reads `Outputs: 0` and its settings, or `Outputs: 1` if outputs were saved before the author turned it off (run on the proposed code). This isn't the "zeros show" decision, which is about a student with no work.
+**Options considered**:
+- A) Keep every line.
+- B) Leave out the `Settings` and `Outputs` lines on such a page, a small check on `config.panes` in `reportSummaryLines`.
+
+**Decision**: A (Doug). One path on every page, and an author removing the generator after students start is rare. R8 says so.
+
+---
+
+### Should the summary name its own frame?
+**Context**: The dashboard draws the frame with no `title`, and the document in it has no `<title>` or `lang`, so in Chrome's accessibility tree both the frame and its document have an empty name. The report item can't reach the frame's attribute. Starting the html with a `<title>` names the document (run: `Summary of saved work`), and the frame stays unnamed.
+**Options considered**:
+- A) Leave it: the frame belongs to the dashboard, and the placeholder had the same gap.
+- B) Add a `<title>` to `reportSummaryHtml`, which is a new string for Doug or Rebecca Ellis to word.
+
+**Decision**: A. The frame belongs to the dashboard, a `<title>` wouldn't name it, and B adds wording nobody has agreed. A named frame is a change to the class dashboard.
+
+---
+
+### Several commits, or one?
+**Options considered**:
+- A) One commit, about 390 lines.
+- B) Two: the pure function, then the wiring with the demo and README.
+
+**Decision**: B. A newer reviewer reads the rules on their own before seeing how they reach the dashboard, and each commit is green on its own.
+
+---
+
+### Where do the generator's `(any)` label and default Max Length come from?
+**Options considered**:
+- A) Move both to `app-utils.ts` and import them. The plugin's bundle came out byte-identical, but plugin source files change.
+- B) Keep copies in `report-summary.ts`, each asserted against the real value by a test.
+
+**Decision**: B (Doug). MARK-19 stays in the report item's files, and the tests stop the copies drifting.
+
+---
+
+### Should `RestoredMode.tool` be narrowed in `restore-work.ts`?
+**Options considered**:
+- A) Narrow the type, so the summary needs no cast.
+- B) Leave `restore-work.ts` alone and cast in the summary.
+
+**Decision**: B. The report item doesn't need the change: it is one cast in one place, and it keeps the workspace's code out of this story.
+
+---
+
+### Which lines does the summary show? (layout change)
+**Context**: The first layout (`Data: 42 words, 9 states`, `Outputs: 3, latest: ...`, settings with order) went to Rebecca Ellis, who tried it on the branch build and asked for her own: which panes are open, `Order matters` and `Case sensitive` on lines of their own, states and transitions in place of words, settings without order, and a count of outputs with no latest.
+**Options considered**:
+- A) Keep the first layout.
+- B) Rebecca's layout (R1 to R8).
+
+**Decision**: B (Doug, at Rebecca's request). The latest output and the word count go, along with the code that wrote and cut them.
+
+---
+
+### What does Draw mode show for the lines Rebecca's sample doesn't cover?
+**Context**: Her sample covers Data mode only. Draw mode shows no "Order matters" or "Case sensitive" switch, always treats order as on, and case doesn't apply to a drawing.
+**Options considered**:
+- A) Show both switch lines from the saved Data mode settings.
+- B) Leave both out, and show `View`, `Drawing: X states, Y transitions`, `Settings` and `Outputs` under the first sentence.
+
+**Decision**: B (Rebecca Ellis, through Doug). The `Drawing` line and keeping the first sentence are defaults sent to her for confirmation.
+
+---
+
+### How many transitions does Data mode count with "Order matters" off?
+**Options considered**:
+- A) 0, since the graph draws no arrows and the Transitions tab lists none.
+- B) The transitions the text has, as with order on.
+
+**Decision**: A. The summary says what "Open in new tab" shows (R7), and the `Order matters: No` line above it explains the 0.
+
+---
+
+### What do the line names say?
+**Options considered**:
+- A) The names the student sees: the pane titles, and the switches' `Order matters` and `Case sensitive`, from the labels the workspace uses.
+- B) Copy the sample's `Case Sensitive` capital.
+
+**Decision**: A. The sample's own two switch lines differ in capitals, and the teacher can match each line to what the student sees. With no pane open the line is `View: none`.
+
+---
+
+### Speed and Show probabilities (second layout change)
+**Context**: On staging, two of a student's history steps changed only the generator's speed, and two only Show probabilities, and the summary looked the same across each. Rebecca Ellis asked to add speed to the settings line and to give probabilities their own line.
+**Options considered**:
+- A) Put `Probabilities` right after `View`.
+- B) Put it with the settings, or last.
+
+**Decision**: A (Doug suggested it, at Rebecca's request). Like the panes, it changes what the student sees, not what is generated, so it reads with `View`; the settings line stays about the generator. The speed words are the switch's own, `normal` and `fast`.
+
+---
+
+### What the spec reviews changed
+
+Each finding was checked against the code or by throwaway code, and the requirements and notes above carry the result.
+
+- Outputs compared `group.startingState`, which missed outputs generated after the chosen state left the graph, so the filter compares `startingNode` (R6). A shared group can still leave a heading wrong for a later output, and the count follows the heading (Other notes).
+- R10 claimed an emoji is never split; it is counted by code point, so a surrogate pair isn't.
+- The demo's report item frame was 60px, which would clip the summary (R15).
+- Several planned tests could not fail until they were tightened: dropping the authored state, comparing a drawn state by label, Draw mode reading Data mode's order, an authored state sent as a string, the demo frame ignoring a save or staying at 60px, and an escaped label that never reached an answer.
+- The code reviews added tests for a page with no generator pane, an empty output, both sides of the demo frame's authored state, and counting only the mode showing.
