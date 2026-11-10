@@ -158,6 +158,10 @@ describe("readInteractiveState", () => {
     [["draw", "drawing"], "a drawing"],
     [["draw", "drawing"], { nodes: [] }],
     [["draw", "drawing"], { nodes: {}, edges: [] }],
+    [["useData", "tablesSaved"], -1],
+    [["useData", "tablesSaved"], 1.5],
+    [["useData", "tablesSaved"], "2"],
+    [["draw", "tablesSaved"], null],
   ])("drops %j when it is %j, and keeps the rest", (path, value) => {
     expect(readInteractiveState(withField(path, value))).toEqual(withoutField(path));
   });
@@ -168,6 +172,9 @@ describe("readInteractiveState", () => {
     [["useData", "selection"], { kind: "state", id: "the" }],
     [["useData", "selection"], { kind: "transition", from: "the", to: "cat" }],
     [["useData", "selection"], { kind: "output", group: 1, sequence: 2 }],
+    [["useData", "tablesSaved"], 0],
+    [["useData", "tablesSaved"], 3],
+    [["draw", "tablesSaved"], 3],
     [["useData", "inspect", "tab"], "states"],
     [["useData", "inspect", "tab"], "transitions"],
     [["useData", "generator", "delimiter"], "-".repeat(maxDelimiterLength)],

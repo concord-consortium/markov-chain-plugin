@@ -53,6 +53,7 @@ const parts = (overrides: Partial<StateParts> = {}): StateParts => ({
   orderMatters: true,
   tools: { useData: tool(), draw: tool({ graph: { nodes: [], edges: [] } }) },
   reports: { useData: dataReport(), draw: report() },
+  tablesSaved: { useData: 0, draw: 0 },
   ...overrides,
 });
 
@@ -184,6 +185,26 @@ describe("buildInteractiveState", () => {
     expect(build({ tools: { useData, draw: tool() } }).useData?.selection).toBeUndefined();
   });
 
+  describe("tablesSaved", () => {
+    it("leaves the field out at 0, so the JSON is what it was without the field", () => {
+      const state = asSaved(build());
+      expect(Object.keys(state.useData)).not.toContain("tablesSaved");
+      expect(Object.keys(state.draw)).not.toContain("tablesSaved");
+    });
+
+    it("writes each mode's own count", () => {
+      const state = build({ tablesSaved: { useData: 3, draw: 7 } });
+      expect(state.useData?.tablesSaved).toBe(3);
+      expect(state.draw?.tablesSaved).toBe(7);
+    });
+
+    it("keeps the count of a mode the page doesn't offer", () => {
+      const previous: MarkovInteractiveState = { version: 1, draw: { tablesSaved: 4 } };
+      const state = build({ offered: { useData: true, draw: false } }, previous);
+      expect(state.draw?.tablesSaved).toBe(4);
+    });
+  });
+
   it("leaves out outputs when there are none, clearing earlier ones", () => {
     const previous = { version: 1 as const, useData: { outputs: { states: ["a"], groups: [] } } };
     expect(asSaved(build({}, previous)).useData).not.toHaveProperty("outputs");
@@ -224,12 +245,15 @@ describe("reading what buildInteractiveState builds", () => {
         }),
         draw: report({ following: () => false, view }),
       },
+      tablesSaved: { useData: 2, draw: 6 },
     });
     const work = reopen(state);
     expect(work).toMatchObject({
       mode: "draw", probabilities: true, orderMatters: false, capitalization: "asTyped", text: "the cat ran",
       inputSplit: 0.25,
     });
+    expect(work.useData.tablesSaved).toBe(2);
+    expect(work.draw.tablesSaved).toBe(6);
     expect(work.useData).toMatchObject({
       panes: open, controlsOpen: false, sizes: { input: 300, inspect: 240, top: 250 }, inspect,
     });

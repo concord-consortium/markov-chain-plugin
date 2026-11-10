@@ -36,6 +36,8 @@ export interface SavedMode {
   outputs?: SavedOutputs;
   selection?: SavedSelection;
   view?: SavedView;
+  // how many sends and downloads have finished, which numbers the next name
+  tablesSaved?: number;
 }
 
 export interface MarkovInteractiveState {
@@ -67,6 +69,7 @@ type Check = (value: unknown) => boolean;
 const isBoolean: Check = value => typeof value === "boolean";
 const isString: Check = value => typeof value === "string";
 const isNumber: Check = value => Number.isFinite(value);
+const isCount: Check = value => Number.isInteger(value) && (value as number) >= 0;
 const isOneOf = (choices: readonly unknown[]): Check => value => choices.includes(value);
 
 const isView: Check = value => isRecord(value) && isNumber(value.x) && isNumber(value.y) && isNumber(value.k) &&
@@ -115,7 +118,9 @@ const readInspect = (inspect: Fields) => {
 };
 
 const readMode = (mode: Fields) => {
-  keepValid(mode, { controlsOpen: isBoolean, outputs: isSavedOutputs, selection: isSelection, view: isView });
+  keepValid(mode, {
+    controlsOpen: isBoolean, outputs: isSavedOutputs, selection: isSelection, view: isView, tablesSaved: isCount,
+  });
   readRecord(mode, "panes", panes => keepValid(panes, {
     input: isBoolean, graph: isBoolean, inspect: isBoolean, generator: isBoolean,
   }));

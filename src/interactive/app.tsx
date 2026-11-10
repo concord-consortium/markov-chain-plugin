@@ -29,7 +29,7 @@ const HostedApp = () => {
       case "runtime":
         return (
           <Runtime authoredState={readAuthoredState(initMessage.authoredState)}
-            interactiveState={initMessage.interactiveState} />
+            interactiveState={initMessage.interactiveState} objectStorageConfig={initMessage.objectStorageConfig} />
         );
       case "report":
         return (

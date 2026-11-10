@@ -2,6 +2,7 @@
 @use "../visually-hidden";
 
 $pane-border-color: #c7c7c7;
+$error-color: #b00020;
 
 // the pane layout's sizes come from pane-sizes.ts, set as custom properties on the workspace
 .markov-workspace {
@@ -72,6 +73,25 @@ $pane-border-color: #c7c7c7;
 
     .clear-highlight {
       @include markov-button;
+    }
+
+    .table-buttons {
+      display: flex;
+      gap: var(--pane-gap);
+      margin-left: auto;
+
+      button {
+        @include markov-button;
+
+        &[aria-disabled="true"] {
+          cursor: default;
+          opacity: 0.5;
+
+          &:hover {
+            background-color: #fff;
+          }
+        }
+      }
     }
   }
 
@@ -576,7 +596,7 @@ $pane-border-color: #c7c7c7;
 
     .input-table-limit {
       margin: 4px 0 0;
-      color: #b00020;
+      color: $error-color;
       font-size: 13px;
 
       // kept in the page while empty, so a screen reader is listening when the note arrives
@@ -747,6 +767,92 @@ $pane-border-color: #c7c7c7;
   }
 
   @include markov-node-modal;
+
+  // under the row, not at the dialog's default center, which a tall stacked frame can put below the fold
+  .tables-dialog {
+    width: 300px;
+    margin: 40px auto auto;
+    padding: 16px;
+    border: solid 1px $markov-teal;
+    border-radius: 4px;
+
+    &:focus {
+      outline: none;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    .tables-dialog-name {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-weight: bold;
+
+      input {
+        padding: 3px 5px;
+        border: solid 1px $markov-teal;
+        border-radius: 3px;
+        font-weight: normal;
+      }
+    }
+
+    fieldset {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin: 12px 0 0;
+      padding: 0;
+      border: none;
+
+      legend {
+        padding: 0 0 4px;
+        font-weight: bold;
+      }
+
+      label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        &.empty {
+          opacity: 0.5;
+        }
+      }
+    }
+
+    [role="alert"] {
+      margin: 12px 0 0;
+      color: $error-color;
+    }
+
+    p {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .tables-dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--pane-gap);
+      margin-top: 16px;
+
+      button {
+        @include markov-button;
+
+        &:disabled {
+          cursor: default;
+          opacity: 0.5;
+
+          &:hover {
+            background-color: #fff;
+          }
+        }
+      }
+    }
+  }
 
   // inside a pane, so fixed to cover the whole interactive as Data mode's dialog does
   .drawing .nodeModalBackground, .drawing .nodeModal {

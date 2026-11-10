@@ -26,6 +26,20 @@ const outputs = (...sequences: string[][]) => encodeOutputs([{
 
 const xy = (nodes: Node[] | undefined) => nodes?.map(({ x, y }) => [x, y]);
 
+describe("restoreWork's count of tables saved", () => {
+  it("starts at 0 with nothing saved", () => {
+    const work = restore({});
+    expect(work.useData.tablesSaved).toBe(0);
+    expect(work.draw.tablesSaved).toBe(0);
+  });
+
+  it("gives each mode its own count", () => {
+    const work = restore({ useData: { tablesSaved: 2 }, draw: { tablesSaved: 5 } });
+    expect(work.useData.tablesSaved).toBe(2);
+    expect(work.draw.tablesSaved).toBe(5);
+  });
+});
+
 describe("restoreWork with nothing saved", () => {
   it("gives the workspace as authored", () => {
     const work = restore({}, {
