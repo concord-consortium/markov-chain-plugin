@@ -112,11 +112,14 @@ describe("slotPositions", () => {
     const count = 1500;
     const placedIds = Array.from({ length: count }, (_, i) => `old${i}`);
     const newIds = Array.from({ length: count }, (_, i) => `new${i}`);
-    const placed = [...slotPositions(inOrder(placedIds), [], columns).values()];
-    const begun = Date.now();
+    let reads = 0;
+    const placed = [...slotPositions(inOrder(placedIds), [], columns).values()]
+      .map(({ x, y }) => ({ get x() { reads++; return x; }, y }));
     const added = slotPositions(inOrder(newIds), placed, columns);
-    // checking every placed word for every slot each word tries takes billions of checks here, and many seconds
-    expect(Date.now() - begun).toBeLessThan(1000);
+    // checking every placed word for every slot, or every slot again for each word, reads a placed word millions of
+    // times here
+    expect(reads).toBeGreaterThan(0);
+    expect(reads).toBeLessThan(10 * count);
     expect(added.size).toBe(count);
     newIds.forEach((id, i) => expect(added.get(id)).toEqual(inSlot(id, count + i)));
   });

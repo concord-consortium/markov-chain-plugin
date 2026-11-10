@@ -42,7 +42,7 @@ The story comes from question 4 and follow-up B of Rebecca's "Markov Tech Specs 
   - the drawing changes: a state or arrow added, deleted, edited or moved, or Reset;
   - a Data-mode state is dragged.
 - **R10.** No save happens while a sequence plays or steps; a change made then saves when it ends.
-- **R11.** Where the mode has a graph, the state posted for a change holds the positions the graph drew for it, so a scrubber step shows the new states where the student saw them.
+- **R11.** Where the mode has a graph, the state posted for a change holds the positions the graph drew for it, so a scrubber step shows the new states where the student saw them. While Data mode's Graph pane is collapsed it has no width to place new words by (MARK-16's R10b), so a save then holds no positions for them; they are placed, and saved, when the pane opens again.
 - **R12.** **Other layout changes don't save.** Moving a divider, zooming or panning, choosing a state, transition or output, and Inspect's sort ride along with the next save, or with the Activity Player's page-leave request (`getInteractiveState` with `unloading`), which the interactive answers through the library's `setOnUnload` with the whole state. Closing the browser tab sends no such request, so layout changed since the last save is lost then.
 - **R13.** **Anything the student does counts.** Any logged action, a zoom or pan, or a press on Fit View or Recenter View marks the student as having done something, so at page leave their state is saved even if all they did was move a divider or choose a state. A page that leaves students nothing to save, such as Graph and Inspect over starting text, still shows a student who explored it, which the Activity Player's completion page and the dashboard need. These changes still save only at page leave, not when made.
 - **R14.** Work the page can't show is kept: with the Input pane left out, the saved `input` is written back unchanged, and with a mode not offered, that mode's saved fields are, and without Data mode so are `orderMatters` and `caseSensitive`. Fields this version doesn't know are kept too, at the top level and inside `useData` and `draw`.
@@ -239,7 +239,9 @@ A throwaway build on the fake Activity Player page, in headless Chrome, confirme
 - A) Everything in Jira's layout list rides along, including toggles.
 - B) A setting that changes what the graph shows saves; where the student is looking rides along.
 
-**Decision**: B. "Show probabilities", a mode switch, a pane opened or closed, and Inspect's tab save, so a teacher's scrubber shows them (R9); where the student is looking (dividers, zoom, sorts, choices) rides along.
+**Decision**: B. "Show probabilities" saves, so a teacher's scrubber shows it; switching modes rides along, since it changes no work. Both cost little either way.
+
+Later, in MARK-28, Rebecca's list of fixes asked for a mode switch, a pane opened or closed, and Inspect's tab to make history steps, so they save too (R9); where the student is looking (dividers, zoom, sorts, choices) still rides along.
 
 ---
 

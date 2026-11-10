@@ -24,7 +24,7 @@ $highlight-output-line: #c0006b;
   gap: var(--pane-gap);
   padding: var(--pane-gap);
 
-  // the browser's default ring is too pale against the panes; teal is 4.5:1 on their headers
+  // the browser's default ring is too pale against the panes; teal is 4.4:1 on their headers, over the 3:1 an outline needs
   :focus-visible {
     outline: 2px solid $markov-teal;
     outline-offset: 2px;

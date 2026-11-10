@@ -59,7 +59,7 @@ Add a second app to this repo, the Markov Interactive, that runs in the Activity
 ### Opened outside a host
 
 - **R14.** Opened directly, not in a frame (for example from a link on a collection page, as ConnectedBio's interactives can be):
-  - `interactive.html` shows the runtime placeholder at once, listing the settings its URL gives, with a note that they come from the link and nothing is saved. It doesn't wait for a host.
+  - `interactive.html` shows the runtime placeholder at once, listing the settings its URL gives, with a note that they come from the link and nothing is saved. It doesn't wait for a host. (MARK-28 later removed the note from the interactive.)
   - **Settings in the URL:** one parameter per setting (R4 to R9), named by its path in the authored state, with `true` or `false`, or text: `?modes.draw=false&panes.inspect.available=false&buttons.probabilities.startsOn=true&orderMatters.showSwitch=false&startingText=the+cat+sat`. They are read as R10 reads a saved state, so a missing, unknown or invalid value takes its default. The parameters and their types come from the authored state's defaults, not from a list kept beside them (Technical Notes, "Settings in a standalone link").
   - **Inside a host the URL is ignored:** authored state is the only source of settings, whatever the interactive's URL carries.
   - It sends nothing: no message to a parent, so no interactive state, height or supported features. Reopening it starts over.

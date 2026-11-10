@@ -57,8 +57,8 @@ const stateCount = (values: string[]) => new Set(values.filter(value => value)).
 
 const sameValues = (a: string[], b: string[]) => a.length === b.length && a.every((value, i) => value === b[i]);
 
-// whether a commit's states are mostly new, so the graph lays them all out again rather than adding to it
-const laidOutWhole = (before: string[], after: string[]) => {
+// whether most of a commit's states are new, which makes the view follow the graph again
+const mostlyNew = (before: string[], after: string[]) => {
   const placed = new Set(before.filter(value => value));
   const states = new Set(after.filter(value => value));
   return layoutFor([...states].filter(state => placed.has(state)).length, states.size) === "whole";
@@ -107,7 +107,7 @@ export const DataWorkspace = ({
     if (sameValues(values, lastValuesRef.current)) {
       return undefined;
     }
-    if (laidOutWhole(lastValuesRef.current, values)) {
+    if (mostlyNew(lastValuesRef.current, values)) {
       followRef.current = true;
     }
     lastValuesRef.current = values;

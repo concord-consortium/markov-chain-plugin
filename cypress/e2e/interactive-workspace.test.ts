@@ -3234,6 +3234,30 @@ describe("the workspace's fit and finish from testing", () => {
     cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "false");
   });
 
+  it("clears a highlighted output when the case switch changes the graph, and keeps it when it doesn't", () => {
+    const caseSwitch = () => cy.interactive().find(".setting-switch:contains('Case sensitive') [role='switch']");
+    start({ startingText: "a b a b" });
+    generateOutput();
+    caseSwitch().click();
+    caseSwitch().should("have.attr", "aria-checked", "true");
+    cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "true");
+    start({ startingText: "A b a b" });
+    generateOutput();
+    caseSwitch().click();
+    caseSwitch().should("have.attr", "aria-checked", "true");
+    cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "false");
+  });
+
+  it("clears a highlighted output when a CSV upload changes the graph", () => {
+    start({ startingText: "a b a b", allowCsvUpload: true });
+    generateOutput();
+    cy.interactive().find("input[type='file']")
+      .selectFile({ contents: Cypress.Buffer.from("word\nc\nd\n"), fileName: "data.csv" }, { force: true });
+    cy.interactive().find(".csv-upload-question button").contains("Replace").click();
+    textBox().should("have.value", "c d");
+    cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "false");
+  });
+
   it("keeps a chosen state the text still has when the text changes", () => {
     start({ startingText: "the cat sat" });
     clickState("cat");
