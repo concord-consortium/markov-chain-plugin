@@ -162,7 +162,8 @@ export const DataWorkspace = ({
   };
   const rowLayout = orderMatters ? "prose" : "list";
   const csvUpload = config.csvUpload &&
-    <CsvUpload disabled={inputReadOnly} hasWords={committed.tokens.some(token => token.kind === "word")}
+    <CsvUpload disabled={inputReadOnly}
+      hasWords={[committed.tokens, liveTokens].some(tokens => tokens.some(token => token.kind === "word"))}
       layout={rowLayout} status={uploadStatus} onRead={handleCsvRead} onRefused={handleCsvRefused} />;
 
   const [dialogNode, setDialogNode] = useState<Node>();

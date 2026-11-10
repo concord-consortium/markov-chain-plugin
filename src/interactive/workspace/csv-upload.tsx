@@ -54,6 +54,8 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
   const focusOwed = useRef(false);
   // a new key each refusal, so that a screen reader announces a line that reads as the last one did
   const [refusalCount, setRefusalCount] = useState(0);
+  // counts the files chosen, so that a read ending after a later file was chosen is dropped
+  const reads = useRef(0);
 
   useEffect(() => {
     if (pending) {
@@ -91,6 +93,7 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
   const takeFileRef = useLatest(takeFile);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const read = ++reads.current;
     const file = e.target.files?.[0];
     e.target.value = "";
     setPending(undefined);
@@ -101,14 +104,20 @@ export const CsvUpload = ({ disabled, hasWords, layout, status, onRead, onRefuse
       refuse("tooLarge");
       return;
     }
-    let bytes: Uint8Array;
+    let bytes: Uint8Array | undefined;
     try {
       bytes = new Uint8Array(await file.arrayBuffer());
     } catch {
-      refuse("unreadable");
+      bytes = undefined;
+    }
+    if (read !== reads.current) {
       return;
     }
-    takeFileRef.current(bytes, false);
+    if (bytes) {
+      takeFileRef.current(bytes, false);
+    } else {
+      refuse("unreadable");
+    }
   };
 
   const closeQuestion = () => {

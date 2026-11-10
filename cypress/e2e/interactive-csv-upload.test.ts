@@ -336,6 +336,53 @@ describe("the interactive's Upload CSV button", () => {
     textBox().should("have.value", "typed words");
   });
 
+  it("asks before replacing a word typed but not yet committed when the read ends", () => {
+    let finishRead: () => void;
+    start();
+    cy.get<HTMLIFrameElement>("iframe#interactive").then(frame => {
+      const win = frame[0].contentWindow as Window & typeof globalThis;
+      const read = win.Blob.prototype.arrayBuffer;
+      cy.stub(win.Blob.prototype, "arrayBuffer").callsFake(function (this: Blob) {
+        return new win.Promise(resolve => {
+          finishRead = () => resolve(read.call(this));
+        });
+      });
+    });
+    choose(words);
+    textBox().type("typed");
+    tableValues().should("deep.equal", []);
+    cy.then(() => finishRead());
+    question().should("exist");
+    cancel().click();
+    textBox().should("have.value", "typed");
+  });
+
+  it("drops a read that ends after a later file was chosen", () => {
+    let finishFirst: () => Promise<void>;
+    start();
+    cy.get<HTMLIFrameElement>("iframe#interactive").then(frame => {
+      const win = frame[0].contentWindow as Window & typeof globalThis;
+      const read = win.Blob.prototype.arrayBuffer;
+      let calls = 0;
+      cy.stub(win.Blob.prototype, "arrayBuffer").callsFake(function (this: Blob) {
+        calls++;
+        return calls > 1 ? read.call(this) : new win.Promise(resolve => {
+          finishFirst = () => new Promise(done => {
+            resolve(read.call(this));
+            setTimeout(done, 100);
+          });
+        });
+      });
+    });
+    choose("word\nant\n");
+    choose(words);
+    textBox().should("have.value", "cat dog");
+    cy.then(() => finishFirst());
+    question().should("not.exist");
+    textBox().should("have.value", "cat dog");
+    status().should("have.text", "Read 2 values from the column \"word\".");
+  });
+
   it("refuses a file that isn't text", () => {
     start({ startingText: "the old words" });
     choose("\u0089PNG\n\0\0\nIHDR\n");

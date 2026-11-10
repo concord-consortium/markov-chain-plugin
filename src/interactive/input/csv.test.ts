@@ -93,6 +93,10 @@ describe("CODAP's leading # lines", () => {
     expect(firstColumn(parseCsv("# note\nword\ncat"))).toEqual({ name: "# note", cells: ["word", "cat"] });
   });
 
+  it.each(["# attributes", "# attribute", "# names"])("reads a header %s as the column's name", header => {
+    expect(firstColumn(parseCsv(`${header}\nred\nblue`))).toEqual({ name: header, cells: ["red", "blue"] });
+  });
+
   it("skips those of a CODAP export", () => {
     const csv = "# name: data\n# attribute -- name: weather\n# attribute -- name: day\n" +
       "weather,day\nsunny,1\nrainy,2\n,3\nSunny,4\n";
