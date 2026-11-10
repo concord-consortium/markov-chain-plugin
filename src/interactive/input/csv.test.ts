@@ -76,13 +76,21 @@ describe("a file that isn't text", () => {
   });
 });
 
-describe("leading # lines", () => {
+describe("CODAP's leading # lines", () => {
   it("skips them whole, so a quote in one opens nothing", () => {
-    expect(parseCsv("# note: a,\"b\r\n# two\nword\ncat")).toEqual([["word"], ["cat"]]);
+    expect(parseCsv("# name: a,\"b\r\n# attribute -- name: x\nword\ncat")).toEqual([["word"], ["cat"]]);
   });
 
   it("ends one at a lone carriage return", () => {
-    expect(parseCsv("# a\rword\rcat")).toEqual([["word"], ["cat"]]);
+    expect(parseCsv("# name: a\rword\rcat")).toEqual([["word"], ["cat"]]);
+  });
+
+  it("reads a header starting with # as the column's name", () => {
+    expect(firstColumn(parseCsv("# of heads\n3\n5\n2\n"))).toEqual({ name: "# of heads", cells: ["3", "5", "2"] });
+  });
+
+  it("reads any other leading # line as the header", () => {
+    expect(firstColumn(parseCsv("# note\nword\ncat"))).toEqual({ name: "# note", cells: ["word", "cat"] });
   });
 
   it("skips those of a CODAP export", () => {
@@ -97,7 +105,7 @@ describe("leading # lines", () => {
   });
 
   it("reads the file after a # line holding an open quote", () => {
-    expect(readCsv(bytesOf("# note: a,\"b\nword\ncat\ndog\n"), "list")).toMatchObject({
+    expect(readCsv(bytesOf("# name: a,\"b\nword\ncat\ndog\n"), "list")).toMatchObject({
       ok: true, column: "word", text: "cat\ndog"
     });
   });
@@ -123,7 +131,7 @@ describe("firstColumn", () => {
 
 describe("cellText", () => {
   it("writes every control character as a space", () => {
-    expect(cellText("a\u0001b\u007fc")).toBe("a b c");
+    expect(cellText("a\u0001b\u007fc\td\ne\rf")).toBe("a b c d e f");
   });
 
   it("trims a cell and removes its brackets", () => {

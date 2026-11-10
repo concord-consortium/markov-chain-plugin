@@ -19,10 +19,11 @@ export const decodeCsv = (bytes: Uint8Array) => {
   }
 };
 
-// CODAP's export metadata, skipped as whole lines so that a quote in one opens nothing
-const leadingCommentLines = /^(?:#[^\r\n]*(?:\r\n|\r|\n|$))+/;
+// CODAP's export metadata ("# name:" and "# attribute" lines), skipped as whole lines so that a quote in one opens
+// nothing; any other line starting with "#", such as a header "# of heads", is read as usual
+const leadingCommentLines = /^(?:# (?:name:|attribute)[^\r\n]*(?:\r\n|\r|\n|$))+/;
 
-// rows of fields after any leading "#" lines; a quoted field may hold commas, line breaks and doubled quotes; an
+// rows of fields after CODAP's leading "#" lines; a quoted field may hold commas, line breaks and doubled quotes; an
 // unclosed quote runs to the end
 export const parseCsv = (file: string) => {
   const text = file.replace(leadingCommentLines, "");
