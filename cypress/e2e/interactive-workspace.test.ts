@@ -3197,6 +3197,18 @@ describe("the workspace's fit and finish from testing", () => {
       .should("equal", workspaceHeight - defaultPaneSizes.top);
   });
 
+  it("keeps its height with no Sequence Generator, the panes taking its place, with or without the row", () => {
+    const noGenerator = { startingText: "the cat sat", panes: { generator: { available: false, startsOpen: true } } };
+    start(noGenerator);
+    cy.interactive().find(".controls-row").should("not.exist");
+    cy.interactive().find(".markov-workspace").invoke("outerHeight").should("equal", 614);
+    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", workspaceHeight + paneGap + emptyRowSpare);
+    startWithRow(noGenerator);
+    cy.interactive().find(".controls-row").should("exist");
+    cy.interactive().find(".markov-workspace").invoke("outerHeight").should("equal", 614);
+    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", workspaceHeight + paneGap);
+  });
+
   it("has no row in a drawing with no buttons", () => {
     start({ modes: { useData: false, draw: true } });
     cy.interactive().find(".controls-row").should("not.exist");

@@ -34,7 +34,8 @@ export const toolbarWidth = (columns: number) =>
 // the height inside the Graph pane's border, header and padding, in a row top px tall
 export const graphBodyHeight = (top: number) => top - paneHeader - 2 * paneBorder - 2 * panePadding;
 // the height the row's panes are drawn at, from the stored row height: stacked panes are all the starting row's
-// height, whatever row height is stored, and a row above a collapsed generator takes the height the generator gave up.
+// height, whatever row height is stored, a row above a collapsed generator takes the height the generator gave up, and
+// a row with no generator takes the generator's height and the gap above it, so the workspace is always as tall.
 // spare is the height the workspace's own row left, which goes to the generator, or to the row with no open generator.
 export const drawnRowHeight = (top: number, stacked: boolean, generator: "open" | "collapsed" | "absent",
   spare = 0) => {
@@ -44,7 +45,7 @@ export const drawnRowHeight = (top: number, stacked: boolean, generator: "open" 
   switch (generator) {
     case "open": return top;
     case "collapsed": return workspaceHeight + spare - paneHeader - 2 * paneBorder;
-    case "absent": return top + spare;
+    case "absent": return workspaceHeight + paneGap + spare;
   }
 };
 // the open generator's height, below a row drawn top px tall
