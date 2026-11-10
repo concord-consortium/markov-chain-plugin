@@ -276,7 +276,7 @@ describe("the interactive's Upload CSV button", () => {
     status().should("have.text", `Read 1 value from the column "${"x".repeat(60)}\u2026".`);
   });
 
-  it("shows a column name of exactly 60 characters whole, and keeps an emoji whole when it cuts", () => {
+  it("shows a column name of exactly 60 characters whole, and doesn't split a surrogate pair when it cuts", () => {
     start();
     choose(`${"x".repeat(60)}\ncat\n`);
     status().should("have.text", `Read 1 value from the column "${"x".repeat(60)}".`);
@@ -411,6 +411,22 @@ describe("the interactive's Upload CSV button", () => {
     textBox().focus();
     uploadButton({ timeout: 15000 }).should("be.enabled");
     textBox().should("be.focused");
+  });
+
+  it("saves the same fields after an upload as after typing the same words", () => {
+    const savedFields = () => cy.interactiveMessages("interactiveState").invoke("at", -1)
+      .should((state: any) => {
+        expect(state.input.text).to.equal("cat dog");
+        expect(state.useData.positions).to.have.length(4);
+      })
+      .then((state: any) => ({ top: Object.keys(state).sort(), useData: Object.keys(state.useData).sort() }));
+    start();
+    textBox().type("cat dog").blur({ force: true });
+    savedFields().then(typed => {
+      start();
+      choose(words);
+      savedFields().should("deep.equal", typed);
+    });
   });
 
   it("saves the uploaded text and positions, and a restart from them shows the words where they were", () => {

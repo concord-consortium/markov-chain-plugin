@@ -51,7 +51,7 @@ A state is named by its label. The generator's settings, which several events ca
 | `TableRowAdded` | `{ mode }` | The student adds a row to the input table |
 | `TableRowDeleted` | `{ mode }` | The student deletes a row from the input table |
 | `CsvUploaded` | `{ rows, tokens, states }` | A CSV file replaces the input: `rows` is the file's rows after the header, `tokens` the table's rows after the upload (words and breaks), `states` the graph's states. It takes the place of `InputCommitted`. The file's name is not logged |
-| `CsvUploadRefused` | `{ reason: "tooLong" \| "tooLarge" \| "noValues" \| "unreadable" }` | A CSV file is refused, leaving the input as it was: its text would pass the input's limit, the file is over 2 MB, its column has no values, or it couldn't be read. The file's name is not logged |
+| `CsvUploadRefused` | `{ reason: "tooLong" \| "tooLarge" \| "noValues" \| "unreadable" }` | A CSV file is refused, leaving the input as it was: its text would pass the input's limit, the file is over 2 MB, its column has no values, or it couldn't be read or isn't text (`unreadable`). The file's name is not logged |
 
 ## Panes and Inspect
 

@@ -17,7 +17,7 @@ const refusals: Record<CsvRefusal, string> = {
 };
 
 const maxColumnNameShown = 60;
-// by code points, so that an emoji stays whole
+// by code points, so that a surrogate pair isn't split
 const shortened = (name: string) => {
   const characters = Array.from(name);
   return characters.length > maxColumnNameShown ? `${characters.slice(0, maxColumnNameShown).join("")}\u2026` : name;
