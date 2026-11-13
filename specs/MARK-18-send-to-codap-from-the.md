@@ -128,7 +128,7 @@ Measured with a dynamic `import()` from the interactive: the plugin's script and
 
 ### The row
 
-Measured in Chrome by adding the two buttons and Clear highlight to the real row: the buttons' group is 225 px. The widest row, with no Input pane so both switches sit in it, is 899 px; with both read-only labels, 800 px; the usual row, 563 px. It wraps below those widths, with the group on its own line at the right, and the workspace grows 22 px. In those wider cases at widths under 899 px, Clear highlight coming and going can move the panes by that much. The usual row fits at 700 px, the narrowest side-by-side width.
+Measured in Chrome with the two buttons and Clear highlight in the real row: the buttons' group is 228 px. The widest row, with no Input pane so both switches sit in it, is 672 px; with both read-only labels, 576 px; the usual row, 333 px. So the row fits on one line at 700 px, the narrowest side-by-side width, and wraps only in a stacked workspace, with the group on its own line at the right and the workspace a line taller. There, Clear highlight coming and going can move the panes by that much.
 
 ### Datalog 0.0.3 and earlier
 
@@ -166,7 +166,7 @@ CODAP 3.1.2 trims leading and trailing whitespace from a value and keeps inner s
 - The dialog's closing runs in `useLayoutEffect`, since closing hands focus back only while it is in the page. It takes focus before its controls turn off, stops Escape's default while busy because Chromium closes a dialog past two refused `cancel` events, and wraps Tab itself because a modal dialog makes only its own document inert, so in a frame Tab would reach the host's page.
 - An ESLint warning counts as a failure here: CI's Cypress runs on `npm start`, whose overlay shows warnings over the page, and every click then fails as covered.
 - `jest-resolver.js` gives `nanoid` its CommonJS build, since jsdom asks for its browser build, an ES module Jest can't load, so `table-sender.test.ts` runs against the real library and its demo store.
-- Cypress's frame makes a page read as hosted, so the standalone rules are in `standalone.test.tsx`. `{esc}` sends only a keydown and `cy.press` doesn't reach a native dialog, so tests pair `{esc}` with `.trigger("cancel")`. `trigger("mouseover")` doesn't set `:hover`. The row's wrap test shows Clear highlight, since at 700 px the row without it fits exactly in some browsers.
+- Cypress's frame makes a page read as hosted, so the standalone rules are in `standalone.test.tsx`. `{esc}` sends only a keydown and `cy.press` doesn't reach a native dialog, so tests pair `{esc}` with `.trigger("cancel")`. `trigger("mouseover")` doesn't set `:hover`. The row's wrap tests show Clear highlight, since the row's widest case includes it.
 
 ### Corrections to earlier specs and notes
 
@@ -175,7 +175,7 @@ Each was checked against the code.
 - **An early note, "reuse `inspectColumns`".** Partly right. `inspectColumns` decides which columns exist, so Draw mode has no counts (R12), but its cells are display text ("the → cat", "2 of 3 = 67%") that CODAP can't use, so the tables take their values from `transitionRows`.
 - **An early note, "disable the Transitions checkbox".** Rebecca's default for question 27, which her answer left standing, is no Transitions checkbox with order off. The note predates that answer. R6 follows her default.
 - **MARK-15's "`outputSequence` ... MARK-18 adds the data saved for CODAP".** Not needed. `outputSequence` fires for each finished sequence, and a snapshot is taken on a press from the tool's `sequenceGroups`. `ap-host.ts` keeps its no-op.
-- **MARK-16's "two buttons take it past 904 px in its widest cases".** Measured, the widest row is 899 px, Clear highlight included, so it fits at 904 and wraps only below that (Technical Notes).
+- **MARK-16's "two buttons take it past 904 px in its widest cases".** Measured with Show probabilities in the Graph pane's header, the widest row is 672 px, Clear highlight included, so it fits at 700 px and wraps only in a stacked workspace (Technical Notes).
 - **MARK-17's "its name counter is a new optional field the builder will carry".** Correct, and it needs a place in the reader too (R10).
 
 ## Out of Scope

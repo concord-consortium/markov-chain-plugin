@@ -1,5 +1,5 @@
 import {
-  defaultPaneSizes, minInputPart, minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, toolbarHeight,
+  defaultPaneSizes, minInputPart, minPaneSizes, paneBorder, paneGap, paneHeader, panePadding, stackBelow, toolbarHeight,
   workspaceHeight
 } from "../../src/interactive/workspace/pane-sizes";
 import {
@@ -134,7 +134,7 @@ describe("the interactive's workspace", () => {
 
   it("asks for words while the graph is empty", () => {
     start();
-    cy.interactive().find(".graph-empty").should("have.text", "Type some words in the Input pane to build the chain.");
+    cy.interactive().find(".graph-empty").should("have.text", "Type some words in the Input pane to build the graph.");
     textBox().type("the cat").blur({ force: true });
     cy.interactive().find(".graph-empty").should("not.exist");
   });
@@ -142,7 +142,7 @@ describe("the interactive's workspace", () => {
   it("asks for words in the table in the table-only view", () => {
     start({ inputView: "table" });
     cy.interactive().find(".graph-empty")
-      .should("have.text", "Type some words in the Input pane's table to build the chain.");
+      .should("have.text", "Type some words in the Input pane's table to build the graph.");
   });
 
   it("builds the graph from the starting text alone with no Input pane", () => {
@@ -254,26 +254,6 @@ describe("the workspace's view of the graph", () => {
 
   // the states' spread across their narrowest direction, as a share of the widest (their principal axes), is near 0
   // for states in a line
-  it("spreads a chain of new words around the graph rather than along a line", () => {
-    const words = ["and", "a", "dog", "ran", "far", "away", "from", "here"];
-    textBox().type(` ${words.join(" ")} `);
-    cy.interactive().find("g.node").should("have.length", 5 + words.length);
-    cy.interactive().find("g.node ellipse").then(ellipses => {
-      const centers = ellipses.toArray()
-        .map(e => ({ x: Number(e.getAttribute("cx")), y: Number(e.getAttribute("cy")) }));
-      const mean = (values: number[]) => values.reduce((sum, v) => sum + v, 0) / values.length;
-      const mx = mean(centers.map(c => c.x));
-      const my = mean(centers.map(c => c.y));
-      const xx = mean(centers.map(c => (c.x - mx) ** 2));
-      const yy = mean(centers.map(c => (c.y - my) ** 2));
-      const xy = mean(centers.map(c => (c.x - mx) * (c.y - my)));
-      const root = Math.sqrt(((xx - yy) / 2) ** 2 + xy ** 2);
-      const narrowest = (xx + yy) / 2 - root;
-      const widest = (xx + yy) / 2 + root;
-      expect(Math.sqrt(narrowest / widest)).to.be.greaterThan(0.45);
-    });
-  });
-
   it("follows again when most of the states are new", () => {
     cy.interactive().find("button[title='Zoom In']").click();
     rootTransform().then(zoomed => {
@@ -918,6 +898,21 @@ describe("the workspace's linked highlighting", () => {
   const arrow = (from: string, to: string) => lineFrom("line.edge-background", from, to);
   const drawnArrow = (from: string, to: string) => lineFrom("line.edge", from, to);
 
+  it("says which rows go into and out of the chosen state, and underlines its words in the text", () => {
+    start({ startingText: "the cat sat on the mat" });
+    clickState("cat");
+    cy.interactive().find(".text-input .backdrop mark").should("have.length", 1)
+      .and("have.css", "box-shadow", "rgb(23, 121, 145) 0px -2px 0px 0px inset");
+    inspectTab("Transitions").click();
+    const description = (label: string) => inspectRow(label).find("button").then(button =>
+      (button.attr("aria-describedby") ?? "").split(" ").filter(Boolean)
+        .map(id => button[0].ownerDocument.getElementById(id)!.textContent));
+    description("the → cat").should("include", "Into the chosen state");
+    description("cat → sat").should("include", "Out of the chosen state");
+    description("sat → on")
+      .should("not.include", "Into the chosen state").and("not.include", "Out of the chosen state");
+  });
+
   it("lights a state chosen in the graph in Inspect, the table and the text", () => {
     start({ startingText: "the cat sat on the mat" });
     clickState("cat");
@@ -994,7 +989,8 @@ describe("the workspace's linked highlighting", () => {
     loggedEvents().should(events => expect(events.map(([action]) => action)).to.include("OutputSelected"));
     tableRows().eq(0).should("have.class", "highlight-output");
     cy.interactive().find(".inspect-pane tbody tr.highlight-output").should("have.length.at.least", 1);
-    cy.interactive().find(".text-input .backdrop mark.highlight-output").should("have.length.at.least", 1);
+    cy.interactive().find(".text-input .backdrop mark.highlight-output").should("have.length.at.least", 1)
+      .and("have.css", "box-shadow", "rgb(192, 0, 107) 0px -2px 0px 0px inset");
     stateEllipse("a").should("have.attr", "fill", animatedNodeColor);
     stateEllipse("b").should("have.attr", "fill", animatedNodeColor);
     drawnArrow("a", "b").should("have.attr", "stroke", animatedArrowColor);
@@ -1055,20 +1051,6 @@ describe("the workspace's linked highlighting", () => {
     cy.interactive().find(".clear-highlight").should("not.exist");
     tableRows().eq(0).should("not.have.class", "highlight-output");
     stateEllipse("a").should("have.attr", "fill", "#fff");
-  });
-
-  it("keeps a chosen output through a commit that takes one of its states out", () => {
-    start({ startingText: "a b a b" });
-    playButton().click();
-    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
-    cy.interactive().find(".sequence-output .sequence").should("have.length", 1).click();
-    tableRows().eq(0).should("have.class", "highlight-output");
-    textBox().type(" c").blur({ force: true });
-    stateLabels().should("deep.equal", ["a", "b", "c"]);
-    textBox().clear().type("a c ").blur({ force: true });
-    stateLabels().should("deep.equal", ["a", "c"]);
-    cy.interactive().find(".clear-highlight").should("exist");
-    tableRows().eq(0).should("have.class", "highlight-output");
   });
 
   it("brings a lit Inspect row scrolled above the view out from under the table's header", () => {
@@ -1466,6 +1448,69 @@ describe("the workspace's dividers", () => {
     });
   });
 
+  describe("with the Sequence Generator collapsed", () => {
+    const shown = () => cy.interactive().find(".workspace-body:not([hidden])");
+    const drawnHeight = (selector: string) => shown().find(selector).invoke("outerHeight");
+    const workspaceBottom = () => cy.interactive().find(".markov-workspace").then(workspace =>
+      workspace[0].getBoundingClientRect().height);
+    const toggleGenerator = (action: string) =>
+      shown().find(`button[aria-label='${action} Sequence Generator']`).click();
+
+    (["Data", "Draw"] as const).forEach(mode => {
+      it(`keeps the workspace's height in ${mode} mode, the row taking what the generator gave up`, () => {
+        start({ startingText: "the cat sat", modes: { useData: true, draw: true } });
+        if (mode === "Draw") {
+          shown().find(".mode-switch label").contains("Draw").click();
+        }
+        workspaceBottom().then(opened => {
+          toggleGenerator("Collapse");
+          drawnHeight(".top-row").should("equal", workspaceHeight - paneHeader - 2 * paneBorder);
+          workspaceBottom().should("equal", opened);
+          cy.frameFitsInteractive();
+          toggleGenerator("Expand");
+          drawnHeight(".top-row").should("equal", defaultPaneSizes.top);
+          workspaceBottom().should("equal", opened);
+        });
+      });
+    });
+
+    it("goes back to the row height the student chose when the generator reopens", () => {
+      start({ startingText: "the cat sat" });
+      dragDivider("Resize the panes and the generator", 0, -40);
+      drawnHeight(".top-row").should("equal", defaultPaneSizes.top - 40);
+      toggleGenerator("Collapse");
+      drawnHeight(".top-row").should("be.greaterThan", defaultPaneSizes.top);
+      toggleGenerator("Expand");
+      drawnHeight(".top-row").should("equal", defaultPaneSizes.top - 40);
+    });
+
+    it("fits a followed graph to the taller row", () => {
+      // a saved column, which the row's height limits
+      const letters = "abcdefghijklmnopqrstuvwxyz".split("");
+      const positions = letters.reduce<number[]>((all, _, i) => [...all, 0, i * 60], []);
+      start({ startingText: letters.join(" ") }, {
+        interactiveState: { version: 1, caseSensitive: false, useData: { positions } },
+      });
+      const scale = () => shown().find(".graph-pane g.root").invoke("attr", "transform")
+        .then(transform => parseTransform(transform as unknown as string).k);
+      shown().find(".graph-pane g.node").should("have.length", 26);
+      cy.wait(500);
+      scale().then(before => {
+        toggleGenerator("Collapse");
+        cy.wait(500);
+        scale().should("be.greaterThan", before);
+      });
+    });
+
+    it("opens a page saved with the generator collapsed at the full height", () => {
+      cy.startInteractive({
+        mode: "runtime", width: 1044, authoredState: { startingText: "the cat sat" },
+        interactiveState: { version: 1, useData: { panes: { generator: false } } },
+      });
+      drawnHeight(".top-row").should("equal", workspaceHeight - paneHeader - 2 * paneBorder);
+    });
+  });
+
   it("puts the generator first with Input, Graph and Inspect turned off", () => {
     start({ panes: { input: { available: false }, graph: { available: false }, inspect: { available: false } },
       modes: { useData: true, draw: false }, startingText: "a b" });
@@ -1707,6 +1752,22 @@ describe("the workspace's Case sensitive switch", () => {
     divider("Resize the text box and the table").should(band =>
       expect(Number(band.attr("aria-valuemin"))).to.be.at.most(Number(band.attr("aria-valuemax"))));
   });
+
+  [width, stackBelow, 560].forEach(frameWidth =>
+    it(`leaves the panes' gap around its edges at ${frameWidth} px`, () => {
+      start({ startingText: "the cat sat" }, { width: frameWidth });
+      cy.interactive().find(".markov-workspace").should(workspace => {
+        const outer = workspace[0].getBoundingClientRect();
+        const controls = workspace[0].querySelector(".controls-row")!.getBoundingClientRect();
+        const generator = workspace[0].querySelector(".generator-pane")!.getBoundingClientRect();
+        expect(workspace.hasClass("stacked")).to.equal(frameWidth < stackBelow);
+        expect(controls.left - outer.left).to.be.closeTo(paneGap, 0.5);
+        expect(controls.top - outer.top).to.be.closeTo(paneGap, 0.5);
+        expect(outer.right - generator.right).to.be.closeTo(paneGap, 0.5);
+        expect(outer.bottom - generator.bottom).to.be.closeTo(paneGap, 0.5);
+      });
+      cy.frameFitsInteractive();
+    }));
 
   it("lets the workspace's own row wrap at 700 px", () => {
     start({ startingText: "the cat sat", panes: { input: { available: false } } }, { width: 700 });
@@ -2569,13 +2630,16 @@ describe("the workspace's probabilities", () => {
     labels().should("not.exist");
   });
 
-  it("labels a generating step's candidates, and no longer once the step chooses", () => {
-    start({ startingText: "the cat the mat", ...on });
+  it("labels a generating step's candidates, and then only the transition it chose", () => {
+    start({ startingText: "the cat the mat the cat", ...on });
     cy.interactive().find(".generator-pane select").first().select("the");
     generatorButton("Step").click();
-    labelTexts().should("deep.equal", ["50%", "50%"]);
+    labelTexts().should("deep.equal", ["67%", "33%"]);
     generatorButton("Step").click();
-    labels().should("not.exist");
+    labels().should("have.length", 1).should(label => {
+      expect(label.attr("data-from")).to.equal("the");
+      expect(label.text()).to.equal(label.attr("data-to") === "cat" ? "67%" : "33%");
+    });
   });
 
   it("labels no candidates and no chosen output with probabilities off", () => {
@@ -2629,6 +2693,37 @@ describe("the workspace's probabilities", () => {
         win.dispatchEvent(new win.MouseEvent("mouseup", { bubbles: true, view: win }));
       });
     });
+  });
+
+  it("sits in the Graph pane's header in both modes, and not in the controls row", () => {
+    const shown = () => cy.interactive().find(".workspace-body:not([hidden])");
+    start({ startingText: "the cat", modes: { useData: true, draw: true } });
+    (["Data", "Draw"] as const).forEach(current => {
+      shown().find(".graph-pane .pane-header .probabilities-toggle").should("be.visible").then(button => {
+        const header = button[0].closest(".pane-header") as HTMLElement;
+        const [inner, outer] = [button[0].getBoundingClientRect(), header.getBoundingClientRect()];
+        expect(inner.top).to.be.at.least(outer.top);
+        expect(inner.bottom).to.be.at.most(outer.bottom);
+        const [title, collapse] = [header.querySelector("h2")!, header.querySelector(".pane-toggle")];
+        expect(title.getBoundingClientRect().right).to.be.at.most(inner.left);
+        // Draw mode's Graph pane can't collapse
+        expect(collapse !== null).to.equal(current === "Data");
+        if (collapse) {
+          expect(inner.right).to.be.at.most(collapse.getBoundingClientRect().left);
+        }
+      });
+      shown().find(".controls-row .probabilities-toggle").should("not.exist");
+      shown().find(".mode-switch label").contains(current === "Data" ? "Draw" : "Data").click();
+    });
+  });
+
+  it("leaves the Graph pane's header while the pane is collapsed, keeping its setting", () => {
+    start({ startingText: "the cat the mat" });
+    toggle().click();
+    cy.interactive().find(".graph-pane .pane-toggle").click();
+    toggle().should("not.exist");
+    cy.interactive().find(".graph-pane .pane-toggle").click();
+    toggle().should("have.attr", "aria-pressed", "true");
   });
 
   it("stays as authored without the toggle", () => {
@@ -2707,7 +2802,7 @@ describe("the workspace's probabilities", () => {
     generatorButton("Step").click();
     notes().should("deep.equal", [rounding]);
     generatorButton("Step").click();
-    labels().should("not.exist");
+    labels().should("have.length", 1);
     notes().should("deep.equal", [rounding]);
   });
 });
@@ -2825,7 +2920,7 @@ describe("the workspace's Order matters switch", () => {
       labelTexts().should("deep.equal", ["20%", "20%", "60%"]);
     });
 
-    it("dashes and labels a step's candidates, and then draws only the step taken", () => {
+    it("dashes and labels a step's candidates, and then draws and labels only the step taken", () => {
       start({ startingText: "the cat the mat the", ...both });
       cy.interactive().find(".generator-pane select").first().select("cat");
       cy.interactive().find(".generator-pane button").contains("Step").click();
@@ -2835,6 +2930,12 @@ describe("the workspace's Order matters switch", () => {
       cy.interactive().find(".generator-pane button").contains("Step").click();
       cy.interactive().find(".bag-arrows line, .bag-arrows path").should("have.length", 1);
       cy.interactive().find(".bag-arrows [stroke-dasharray='4']").should("not.exist");
+      // the word's share of all the words, whatever it came from
+      const shares: Record<string, string> = { the: "60%", cat: "20%", mat: "20%" };
+      cy.interactive().find("text.probability-label").should("have.length", 1).should(label => {
+        expect(label.attr("data-from")).to.equal("cat");
+        expect(label.text()).to.equal(shares[label.attr("data-to")!]);
+      });
     });
 
     it("labels exactly a chosen output's steps, with nothing faded", () => {
@@ -3009,11 +3110,160 @@ describe("the workspace's Order matters switch", () => {
         expect(control.getBoundingClientRect().right).to.be.at.most(right);
       });
     });
-    controls().invoke("css", "width", "500px");
+    controls().invoke("css", "width", "400px");
     controls().should(controlsRow => {
       const switchBottom = controlsRow[0].querySelector(".mode-switch")!.getBoundingClientRect().bottom;
       const groupTop = controlsRow[0].querySelector(".setting-switches")!.getBoundingClientRect().top;
       expect(groupTop).to.be.at.least(switchBottom);
     });
+  });
+});
+
+describe("the workspace's keyboard and narrow-screen touches", () => {
+  it("rings a control focused from the keyboard in the workspace's teal", () => {
+    start({ startingText: "the cat" });
+    cy.interactive().find(".input-pane .pane-toggle").focus();
+    cy.interactive().find(".input-pane .pane-toggle").should(toggle => {
+      expect(toggle[0].matches(":focus-visible")).to.equal(true);
+      expect(toggle.css("outline-style")).to.equal("solid");
+      expect(toggle.css("outline-width")).to.equal("2px");
+      expect(toggle.css("outline-color")).to.equal("rgb(23, 121, 145)");
+    });
+  });
+
+  it("tells a screen reader that Data mode's Select tool is on", () => {
+    start({ startingText: "the cat" });
+    cy.interactive().find(".graph-pane .toolbar button[title='Select']").should("have.attr", "aria-pressed", "true");
+  });
+
+  it("keeps the generator's buttons inside its pane at 320 px", () => {
+    start({ startingText: "the cat" }, { width: 320 });
+    cy.interactive().find(".generator-pane").should(pane => {
+      const right = pane[0].getBoundingClientRect().right;
+      pane.find("button").each((_, button) => {
+        expect(button.getBoundingClientRect().right, button.textContent!).to.be.at.most(right);
+      });
+      const page = pane[0].ownerDocument.documentElement;
+      expect(page.scrollWidth).to.be.at.most(page.clientWidth);
+    });
+  });
+});
+
+describe("the workspace's fit and finish from testing", () => {
+  const generateOutput = () => {
+    playButton().click();
+    // the button reads Pause while the sequence plays
+    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+    cy.interactive().find(".sequence-output .sequence").should("have.length", 1).click();
+  };
+
+  it("reads straight and curly double quotes as one state of their own, and commits on a typed one", () => {
+    start({ startingText: "she said “hi” and he said" });
+    inspectRow("\"").find("td").eq(1).should("have.text", "2");
+    inspectRow("hi").find("td").eq(1).should("have.text", "1");
+    textBox().type(" \"hi\"");
+    inspectRow("\"").find("td").eq(1).should("have.text", "4");
+    inspectRow("hi").find("td").eq(1).should("have.text", "2");
+  });
+
+  it("keeps its height with no Sequence Generator, the panes taking its place", () => {
+    start({ startingText: "the cat sat", panes: { generator: { available: false, startsOpen: true } } });
+    cy.interactive().find(".markov-workspace").invoke("outerHeight").should("equal", 614);
+    cy.interactive().find(".top-row").invoke("outerHeight").should("equal", workspaceHeight + paneGap);
+  });
+
+  it("bolds every lit Inspect row, and only those", () => {
+    const weights = () => cy.interactive().find(".inspect-pane tbody tr").then(rows =>
+      [...rows as JQuery<HTMLTableRowElement>]
+        .map(tr => `${tr.cells[0].textContent}:${getComputedStyle(tr).fontWeight}`));
+    start({ startingText: "the cat sat on the mat" });
+    weights().should("deep.equal", ["cat:400", "mat:400", "on:400", "sat:400", "the:400"]);
+    clickState("cat");
+    weights().should("deep.equal", ["cat:700", "mat:400", "on:400", "sat:400", "the:400"]);
+    inspectTab("Transitions").click();
+    weights().should("include.members", ["the → cat:700", "cat → sat:700", "sat → on:400"]);
+    inspectRow("sat → on").find("button").click();
+    weights().should("include.members", ["sat → on:700", "the → cat:400"]);
+  });
+
+  it("bolds an output's Inspect rows and says they are in it", () => {
+    start({ startingText: "a b a b" });
+    generateOutput();
+    inspectRow("a").should("have.css", "font-weight", "700").find("button").then(button =>
+      expect((button.attr("aria-describedby") ?? "").split(" ").filter(Boolean)
+        .map(id => button[0].ownerDocument.getElementById(id)!.textContent)).to.include("In the highlighted output"));
+  });
+
+  // the columns share out the table's width by their text, so a bold row may shift them by under a pixel
+  it("keeps the Inspect table's columns within a pixel and its rows' heights when a row turns bold", () => {
+    start({ startingText: "extraordinarily magnificent extraordinarily wonderful magnificent" });
+    inspectTab("Transitions").click();
+    const sizes = () => cy.interactive().find(".inspect-pane table").then(table =>
+      [...table[0].querySelectorAll("th, tbody tr")].map(cell => {
+        const rect = cell.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      }));
+    sizes().then(before => {
+      cy.interactive().find(".inspect-pane tbody tr button").first().click();
+      cy.interactive().find(".inspect-pane tbody tr.highlight-chosen").should("have.css", "font-weight", "700");
+      sizes().should(after => {
+        expect(after).to.have.length(before.length).and.length.above(4);
+        after.forEach((size, i) => {
+          expect(size.width).to.be.closeTo(before[i].width, 1);
+          expect(size.height).to.equal(before[i].height);
+        });
+      });
+    });
+  });
+
+  it("clears a highlighted output when the text changes the graph, and keeps it when it doesn't", () => {
+    start({ startingText: "a b a b" });
+    generateOutput();
+    textBox().type(" ");
+    cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "true");
+    textBox().type("c ");
+    cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "false");
+    cy.interactive().find(".inspect-pane tbody tr.highlight-output").should("not.exist");
+    cy.interactive().find(".text-input .backdrop mark").should("not.exist");
+  });
+
+  it("clears a highlighted output when a table row changes the graph", () => {
+    start({ startingText: "a b a b" });
+    generateOutput();
+    row(4).clear().type("c").blur({ force: true });
+    cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "false");
+  });
+
+  it("clears a highlighted output when the case switch changes the graph, and keeps it when it doesn't", () => {
+    const caseSwitch = () => cy.interactive().find(".setting-switch:contains('Case sensitive') [role='switch']");
+    start({ startingText: "a b a b" });
+    generateOutput();
+    caseSwitch().click();
+    caseSwitch().should("have.attr", "aria-checked", "true");
+    cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "true");
+    start({ startingText: "A b a b" });
+    generateOutput();
+    caseSwitch().click();
+    caseSwitch().should("have.attr", "aria-checked", "true");
+    cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "false");
+  });
+
+  it("clears a highlighted output when a CSV upload changes the graph", () => {
+    start({ startingText: "a b a b", allowCsvUpload: true });
+    generateOutput();
+    cy.interactive().find("input[type='file']")
+      .selectFile({ contents: Cypress.Buffer.from("word\nc\nd\n"), fileName: "data.csv" }, { force: true });
+    cy.interactive().find(".csv-upload-question button").contains("Replace").click();
+    textBox().should("have.value", "c d");
+    cy.interactive().find(".sequence-output .sequence").should("have.attr", "aria-pressed", "false");
+  });
+
+  it("keeps a chosen state the text still has when the text changes", () => {
+    start({ startingText: "the cat sat" });
+    clickState("cat");
+    textBox().type(" on");
+    textBox().type(" ");
+    inspectRow("on").should("exist");
+    inspectRow("cat").should("have.class", "highlight-selected");
   });
 });

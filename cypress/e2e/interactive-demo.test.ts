@@ -123,8 +123,8 @@ describe("the interactive's demo page", () => {
           }
         })
       });
-      frameBody("Interactive").find("textarea[aria-label='Your text']").type(" dog ");
-      // the library posts a state 2 seconds after the last save
+      frameBody("Interactive").find("textarea[aria-label='Your text']").type(" dog ").blur({ force: true });
+      // the text saves as it loses focus, and the library posts a state 2 seconds after the last save
       cy.wrap(savedTexts, { timeout: 5000 }).should(texts =>
         expect(texts[texts.length - 1]).to.equal("the cat sat on the mat. the cat ran. dog "));
     });
@@ -275,7 +275,7 @@ describe("the interactive's demo page", () => {
         cy.window().then(win => win.open(String(link))).as("standalone");
       });
       cy.get<Window>("@standalone").its("document.body.innerText")
-        .should("contain", "the settings come from this page's link");
+        .should("contain", "Sequence Generator").and("not.contain", "Activity Player");
       cy.get<Window>("@standalone").its("document").should(doc => {
         expect(panesIn(doc)).to.deep.equal(hosted);
       });

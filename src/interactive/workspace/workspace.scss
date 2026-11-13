@@ -4,6 +4,8 @@
 $pane-border-color: #c7c7c7;
 $error-color: #b00020;
 $setting-gap: 4px 12px;
+// the line under a word the generator chose, darker than its fill for 3:1 against the text box
+$highlight-output-line: #c0006b;
 
 @mixin button-off {
   cursor: default;
@@ -20,6 +22,13 @@ $setting-gap: 4px 12px;
   display: flex;
   flex-direction: column;
   gap: var(--pane-gap);
+  padding: var(--pane-gap);
+
+  // the browser's default ring is too pale against the panes; teal is 4.4:1 on their headers, over the 3:1 an outline needs
+  :focus-visible {
+    outline: 2px solid $markov-teal;
+    outline-offset: 2px;
+  }
 
   // a pane's body is a flex container, whose display would otherwise beat the browser's rule for [hidden]
   [hidden] {
@@ -196,6 +205,18 @@ $setting-gap: 4px 12px;
         font-weight: bold;
         white-space: nowrap;
         text-overflow: ellipsis;
+      }
+    }
+
+    .pane-header-controls {
+      display: flex;
+      flex: none;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+
+      .probabilities-toggle {
+        padding: 1px 5px;
       }
     }
 
@@ -447,6 +468,14 @@ $setting-gap: 4px 12px;
         border-radius: 2px;
         color: transparent;
       }
+
+      // a line under each highlighted word, so the pale fill isn't its only mark
+      mark.highlight-selected, mark.highlight-chosen {
+        box-shadow: inset 0 -2px 0 $markov-teal;
+      }
+      mark.highlight-output {
+        box-shadow: inset 0 -2px 0 $highlight-output-line;
+      }
     }
 
     textarea {
@@ -552,6 +581,11 @@ $setting-gap: 4px 12px;
         }
         &.highlight-out {
           border-left-color: var(--highlight-out);
+        }
+
+        // a lit row is bold as well as colored, for students who can't tell the colors apart
+        &.highlight-selected, &.highlight-chosen, &.highlight-output, &.highlight-in, &.highlight-out {
+          font-weight: bold;
         }
       }
 
@@ -741,6 +775,11 @@ $setting-gap: 4px 12px;
       flex: 1;
       flex-direction: column;
       min-width: 0;
+    }
+
+    // the output's buttons go onto two lines in a narrow pane rather than past its edge
+    .sequence-output .buttons {
+      flex-wrap: wrap;
     }
 
     .output-limit {

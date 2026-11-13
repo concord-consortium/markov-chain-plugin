@@ -7,11 +7,13 @@ import { ModeId } from "../authored-state";
 const noop = () => undefined;
 const resolved = () => Promise.resolve();
 
-// the logged actions that save; a commit requests its own, and layout changes ride along with the next save
+// the logged actions that save; the input's text saves through useTextSave, and the rest of the layout rides along
+// with the next save
 const savingEvents: ReadonlySet<LogEvent> = new Set<LogEvent>([
   "SequenceGenerated", "SequenceCanceled", "OutputCleared", "GeneratorSettingChanged", "StateMoved", "StateAdded",
   "TransitionAdded", "StateDeleted", "TransitionDeleted", "StateEdited", "GraphReset", "CaseSensitivityChanged",
-  "OrderMattersToggled", "ProbabilitiesToggled", "TablesDownloaded", "TablesSent",
+  "OrderMattersToggled", "ProbabilitiesToggled", "TablesDownloaded", "TablesSent", "PaneOpened", "PaneClosed",
+  "InspectTabChosen", "ModeSwitched",
 ]);
 
 interface HostSaving {

@@ -33,11 +33,6 @@ export const Runtime = ({ authoredState, interactiveState, view = "hosted", obje
 
   return (
     <>
-      { view === "standalone" && (
-        <p className="standalone-note">
-          Opened outside the Activity Player: the settings come from this page&apos;s link, and nothing is saved.
-        </p>
-      ) }
       { view === "report" && (
         <p className="report-note">This is a student&apos;s saved work. It can&apos;t be changed here.</p>
       ) }
