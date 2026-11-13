@@ -114,7 +114,7 @@ describe("slotPositions", () => {
     const newIds = Array.from({ length: count }, (_, i) => `new${i}`);
     let reads = 0;
     const placed = [...slotPositions(inOrder(placedIds), [], columns).values()]
-      .map(({ x, y }) => ({ get x() { reads++; return x; }, y }));
+      .map(({ x, y }) => ({ get x() { reads++; return x; }, get y() { reads++; return y; } }));
     const added = slotPositions(inOrder(newIds), placed, columns);
     // checking every placed word for every slot, or every slot again for each word, reads a placed word millions of
     // times here
