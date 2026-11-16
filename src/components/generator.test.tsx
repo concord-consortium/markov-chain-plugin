@@ -93,6 +93,14 @@ const generatorProps = (overrides: Partial<GeneratorProps> = {}): GeneratorProps
 describe("Generator's delimiter field", () => {
   const props = generatorProps({ delimiter: "-", delimiterType: "other" });
 
+  it("names each field for a screen reader, the other delimiter's field included", () => {
+    render(<Generator {...props} />);
+    expect(screen.getByRole("combobox", { name: "Starting State:" })).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Max Length:" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Delimiter:" })).toHaveValue("other");
+    expect(screen.getByRole("textbox", { name: "Other delimiter" })).toHaveValue("-");
+  });
+
   it("takes focus as it shows", () => {
     render(<Generator {...props} />);
     expect(screen.getByPlaceholderText("delimiter")).toHaveFocus();

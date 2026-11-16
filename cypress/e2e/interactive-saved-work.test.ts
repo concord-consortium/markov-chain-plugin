@@ -2,6 +2,7 @@ import { defaultAuthoredState } from "../../src/interactive/authored-state";
 import {
   decodeOutputs, encodeOutputs, maxDelimiterLength, maxOutputBytes, savedBytes
 } from "../../src/interactive/saved-outputs";
+import { textSavePause } from "../../src/interactive/workspace/use-text-save";
 import { Node } from "../../src/type";
 import { animatedNodeColor, pastDoubleClick, selectedNodeColor } from "../support/graph";
 import { divider, loggedEvents, parseTransform, stateEllipse } from "../support/workspace";
@@ -441,14 +442,14 @@ describe("saving work", () => {
     posts().should(states => expect(states).to.deep.equal([undefined]));
   });
 
-  it("saves a collapsed pane at a page leave, and not before", () => {
+  it("saves a sort at a page leave, and not before", () => {
     start();
     graphReady();
-    paneToggle("Inspect").click();
+    inspectHeader("Count").find("button").click();
     pastDebounce();
     posts().should("have.length", 0);
     leavePage();
-    firstPost().its("useData.panes.inspect").should("equal", false);
+    firstPost().its("useData.inspect.sorts.states.column").should("equal", "count");
   });
 
   it("saves a wheel zoom at a page leave, and not before", () => {
@@ -484,38 +485,38 @@ describe("saving work", () => {
     firstPost().its("draw.view.k").should("be.a", "number");
   });
 
-  it("saves Inspect's tab and sort and the input's split at a page leave", () => {
+  it("saves Inspect's sort and the input's split at a page leave", () => {
     start();
     graphReady();
     shown().find(".inspect-tab").contains("Transitions").click();
     inspectHeader("Probability").find("button").click();
     divider("Resize the text box and the table").focus().type("{downArrow}");
     leavePage();
-    firstPost().then(state => {
+    lastPost().then(state => {
       expect(state.useData.inspect.tab).to.equal("transitions");
       expect(state.useData.inspect.sorts.transitions).to.deep.equal({ column: "probability", ascending: true });
       expect(state.useData.inputSplit).to.be.greaterThan(0.4);
     });
   });
 
-  it("carries a pane collapsed before a word was typed", () => {
+  it("carries a sort made before a word was typed", () => {
     start();
     graphReady();
-    paneToggle("Inspect").click();
+    inspectHeader("Count").find("button").click();
     typeWord("ran");
     firstPost().then(state => {
-      expect(state.useData.panes.inspect).to.equal(false);
+      expect(state.useData.inspect.sorts.states.column).to.equal("count");
       expect(state.input.text).to.equal(`${startingText} ran`);
     });
   });
 
-  it("saves a pane collapsed by a student with work at a page leave", () => {
+  it("saves a sort made by a student with work at a page leave", () => {
     start({}, { version: 1, input: { text: "my words" } });
     graphReady();
-    paneToggle("Inspect").click();
+    inspectHeader("Count").find("button").click();
     leavePage();
     firstPost().then(state => {
-      expect(state.useData.panes.inspect).to.equal(false);
+      expect(state.useData.inspect.sorts.states.column).to.equal("count");
       expect(state.input.text).to.equal("my words");
     });
   });
@@ -532,6 +533,14 @@ describe("saving work", () => {
         expect(state.useData.positions[9]).to.equal(Math.round(Number(ellipse.attr("cy"))));
       });
     });
+  });
+
+  it("keeps Data mode's saved positions through a save made with Data mode hidden", () => {
+    const positions = [-100, -50, 20, 70, 150, -20, 0, 90];
+    startDrawing({ version: 1, mode: "draw", caseSensitive: false, useData: { positions } });
+    toolButton("Add State").click();
+    shown().find(".graph > svg").trigger("click", 60, 60);
+    firstPost().its("useData.positions").should("deep.equal", positions);
   });
 
   it("gives back at a page leave what a student who did nothing opened with, under a changed page", () => {
@@ -669,6 +678,158 @@ describe("saving work", () => {
     });
   });
 
+  describe("the input's steps in the teacher's history", () => {
+    const pastPause = () => cy.wait(textSavePause + 2500);
+    // a post already here, sooner than the pause and the library's 2 seconds could bring it; then() doesn't retry
+    const postBeforePause = () => {
+      pastDebounce();
+      return posts().then(states => {
+        expect(states).to.have.length(1);
+        return states[0];
+      });
+    };
+    const typeWords = (words: string) => textBox().type(words);
+    const tableRow = (label: string) => shown().find(`.input-table input[aria-label='${label}']`);
+
+    beforeEach(() => {
+      start({ inputView: "textAndTable" });
+      graphReady();
+      cy.wait(300);
+    });
+
+    it("makes one step for words typed in a row, once the typing has paused", () => {
+      typeWords(" and ");
+      cy.wait(1000);
+      typeWords("a dog ");
+      shown().find("g.node").should("have.length", 6);
+      pastDebounce();
+      posts().should("have.length", 0);
+      pastPause();
+      posts().should("have.length", 1);
+      firstPost().then(state => {
+        expect(state.input.text).to.equal(`${startingText} and a dog `);
+        expect(state.useData.positions).to.have.length(12);
+      });
+    });
+
+    it("waits out each new keystroke, even one that commits nothing", () => {
+      typeWords(" ran ");
+      cy.wait(textSavePause - 1500);
+      typeWords("f");
+      cy.wait(textSavePause - 1500);
+      typeWords("a");
+      pastDebounce();
+      posts().should("have.length", 0);
+    });
+
+    it("saves the committed text at the pause, leaving out a word still being typed", () => {
+      typeWords(" ran fa");
+      pastPause();
+      posts().should("have.length", 1);
+      firstPost().its("input.text").should("equal", `${startingText} ran `);
+    });
+
+    it("saves at once when the text box loses focus after a change", () => {
+      typeWords(" ran");
+      textBox().blur({ force: true });
+      postBeforePause().its("input.text").should("equal", `${startingText} ran`);
+      pastPause();
+      posts().should("have.length", 1);
+    });
+
+    it("makes no step for a focus lost with no change", () => {
+      textBox().focus().blur({ force: true });
+      pastDebounce();
+      posts().should("have.length", 0);
+    });
+
+    it("makes no step for text typed and taken back", () => {
+      typeWords(" ");
+      typeWords("{backspace}");
+      pastPause();
+      posts().should("have.length", 0);
+    });
+
+    it("lets another save take the text, and adds no step of its own after it", () => {
+      typeWords(" ran ");
+      // a drag moves no focus, so the pause is still running when the drag saves
+      dragState("cat", 30, 20);
+      textBox().should("have.focus");
+      firstPost().its("input.text").should("equal", `${startingText} ran `);
+      pastPause();
+      posts().should("have.length", 1);
+    });
+
+    it("doesn't step for the graph drawn for a word typed after a save", () => {
+      shown().find(".probabilities-toggle").click();
+      firstPost();
+      pastDebounce();
+      posts().should("have.length", 1);
+      typeWords(" ran ");
+      shown().find("g.node").should("have.length", 5);
+      pastDebounce();
+      posts().should("have.length", 1);
+    });
+
+    it("answers a page leave before the pause with the text, even one with the same words", () => {
+      typeWords(" ");
+      leavePage();
+      firstPost().its("input.text").should("equal", `${startingText} `);
+    });
+
+    it("holds rows committed in the table for one step when focus leaves it", () => {
+      tableRow("New row").type("ran{enter}");
+      tableRow("New row").type("far{uparrow}");
+      shown().find("g.node").should("have.length", 6);
+      pastDebounce();
+      posts().should("have.length", 0);
+      tableRow("Row 1").blur({ force: true });
+      postBeforePause().its("input.text").should("contain", "ran").and("contain", "far");
+      pastDebounce();
+      posts().should("have.length", 1);
+    });
+
+    it("makes one step for rows committed in the table at the pause, each row's typing putting it off", () => {
+      tableRow("New row").type("ran{enter}");
+      cy.wait(textSavePause - 1500);
+      tableRow("New row").type("f");
+      cy.wait(textSavePause - 500);
+      posts().should("have.length", 0);
+      pastPause();
+      posts().should("have.length", 1);
+      firstPost().its("input.text").should("contain", "ran");
+    });
+
+    it("saves a deleted row at the pause", () => {
+      shown().find(".delete-row").first().click();
+      pastDebounce();
+      posts().should("have.length", 0);
+      pastPause();
+      posts().should("have.length", 1);
+    });
+  });
+
+  it("saves an upload at once, without the typing's pause", () => {
+    start({ allowCsvUpload: true, startingText: "" });
+    shown().find(".input-pane input[type='file']")
+      .selectFile({ contents: Cypress.Buffer.from("words\none\ntwo\n"), fileName: "w.csv" }, { force: true });
+    shown().find("g.node").should("have.length", 2);
+    pastDebounce();
+    posts().should("have.length.at.least", 1);
+    lastPost().its("input.text").should("contain", "two");
+  });
+
+  it("makes no step for highlighting or reordering Inspect's rows", () => {
+    start();
+    graphReady();
+    shown().find(".inspect-row-button").first().click();
+    shown().find(".inspect-table tbody tr").eq(1).click();
+    inspectHeader("Count").find("button").click();
+    inspectHeader("State").find("button").click();
+    pastDebounce();
+    posts().should("have.length", 0);
+  });
+
   describe("posts once for", () => {
     const withOutput = { version: 1, useData: { outputs: outputs([["the", "cat"]]) } };
     const drawn = { version: 1, mode: "draw", draw: { drawing } };
@@ -688,7 +849,7 @@ describe("saving work", () => {
     const onStep = () => shown().find(".generator-pane button").contains("Step").click();
 
     const moments: [string, () => void, () => void, (state: any) => void][] = [
-      ["the input's text at a commit", () => start(), () => typeWord("ran"),
+      ["the input's text when the text box loses focus", () => start(), () => typeWord("ran"),
         state => expect(state.input.text).to.equal(`${startingText} ran`)],
       ["a sequence finishing", () => start({ startingText: "a b a b a" }), playToTheEnd, state => {
         expect(state.useData.outputs.groups[0].sequences).to.have.length(1);
@@ -715,6 +876,26 @@ describe("saving work", () => {
         state => expect(state.caseSensitive).to.equal(true)],
       ["Show probabilities", () => start(), () => shown().find(".probabilities-toggle").click(),
         state => expect(state.probabilities).to.equal(true)],
+      ["a pane closed", () => start(), () => paneToggle("Inspect").click(),
+        state => expect(state.useData.panes.inspect).to.equal(false)],
+      ["a pane opened", () => start({}, { version: 1, useData: { panes: { inspect: false } } }),
+        () => paneToggle("Inspect").click(), state => expect(state.useData.panes.inspect).to.equal(true)],
+      ["the generator closed", () => start(), () => paneToggle("Sequence Generator").click(),
+        state => expect(state.useData.panes.generator).to.equal(false)],
+      ["the generator's controls closed", () => start(), () => shown().find(".controls-toggle").click(),
+        state => expect(state.useData.controlsOpen).to.equal(false)],
+      ["a drawing's pane closed", () => startDrawing(drawn), () => paneToggle("Inspect").click(),
+        state => expect(state.draw.panes.inspect).to.equal(false)],
+      ["Inspect's tab", () => start(), () => shown().find(".inspect-tab").contains("Transitions").click(),
+        state => expect(state.useData.inspect.tab).to.equal("transitions")],
+      ["a drawing's Inspect tab", () => startDrawing(drawn),
+        () => shown().find(".inspect-tab").contains("Transitions").click(),
+        state => expect(state.draw.inspect.tab).to.equal("transitions")],
+      ["a switch to Draw", () => start({ modes: { useData: true, draw: true } }), draw,
+        state => expect(state.mode).to.equal("draw")],
+      ["a switch to Data", () => start({ modes: { useData: true, draw: true }, startingMode: "draw" }, drawn),
+        () => shown().find(".mode-switch label").contains("Data").click(),
+        state => expect(state.mode).to.equal("useData")],
       ["a Data-mode state dragged", () => start(), () => dragState("cat", 30, 20), state => {
         stateEllipse("cat").then(ellipse => {
           expect(state.useData.positions[2]).to.be.closeTo(Number(ellipse.attr("cx")), 1);

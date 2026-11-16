@@ -4,7 +4,7 @@ import { InspectPane } from "./inspect-pane";
 import { highlightsFor } from "./highlights";
 import { bagOfWordsExplanation } from "./inspect-rows";
 import { ModeId } from "../authored-state";
-import { GraphData } from "../../type";
+import { GraphData, SequenceGroup } from "../../type";
 
 const graph = {
   nodes: [{ id: "a", label: "a", value: 1 }, { id: "b", label: "b", value: 1 }],
@@ -80,5 +80,28 @@ describe("InspectPane", () => {
     rerenderWith(true);
     expect(screen.getByRole("columnheader", { name: /Transition/ })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: /Count/ })).toHaveAttribute("aria-sort", "descending");
+  });
+});
+
+describe("InspectPane's lit rows", () => {
+  const inOutput = expect.stringContaining("In the highlighted output");
+  const row = (name: string) => screen.getByRole("button", { name });
+  const sequence = [{ id: "a", label: "a", value: 1 }, { id: "b", label: "b", value: 1 }];
+  const outputOf = (nodes: typeof sequence) =>
+    highlightsFor({ kind: "output", group: {} as SequenceGroup, sequence: nodes }, []);
+
+  it("says a state row is in the highlighted output, and leaves the other rows unsaid", () => {
+    const outputOnlyA = outputOf(sequence.slice(0, 1));
+    render(<InspectPane mode="useData" orderMatters={true} graph={graph} {...props} highlights={outputOnlyA} />);
+    expect(row("a")).toHaveAccessibleDescription(inOutput);
+    expect(row("b")).not.toHaveAccessibleDescription(inOutput);
+  });
+
+  it("says a transition the highlighted output takes is in it", () => {
+    const output = outputOf(sequence);
+    render(<InspectPane mode="useData" orderMatters={true} graph={graph} {...props} highlights={output} />);
+    openTransitions();
+    expect(row("a → b")).toHaveAccessibleDescription(inOutput);
+    expect(row("a → a")).not.toHaveAccessibleDescription(inOutput);
   });
 });

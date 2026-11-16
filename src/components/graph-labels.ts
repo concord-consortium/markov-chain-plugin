@@ -7,6 +7,8 @@ export interface LabelState {
   animating: boolean;
   selectedNodeId?: string;
   highlightNode?: Node;
+  // a generating step's chosen transition
+  highlightEdge?: Edge;
   highlightAllNextNodes: boolean;
   highlightOutputNodes?: Node[];
   // leaves out a chosen output's faded labels
@@ -33,13 +35,15 @@ const labelsFrom = (outgoing: Outgoing, id: string, strength: (to: string) => Pr
     .map(e => ({ from: id, to: e.to, text: `${percentOf(e.value, total)}%`, strength: strength(e.to) }));
 };
 
-// the candidates of a generating step; else a chosen output's path; else a chosen state's arrows
+// the candidates of a generating step, or the one it chose; else a chosen output's path; else a chosen state's arrows
 export const probabilityLabels = (s: LabelState): ProbabilityLabel[] => {
   if (s.animating) {
-    // an arrow of no value can't be taken, so it isn't a candidate
-    return s.highlightNode && s.highlightAllNextNodes
-      ? labelsFrom(s.outgoing, s.highlightNode.id, () => "full", e => e.value > 0)
-      : [];
+    const chosen = s.highlightEdge;
+    if (s.highlightNode && s.highlightAllNextNodes) {
+      // an arrow of no value can't be taken, so it isn't a candidate
+      return labelsFrom(s.outgoing, s.highlightNode.id, () => "full", e => e.value > 0);
+    }
+    return chosen ? labelsFrom(s.outgoing, chosen.from, () => "full", e => e.to === chosen.to) : [];
   }
   const path = s.highlightOutputNodes;
   if (path && path.length > 0) {
@@ -65,7 +69,7 @@ export const graphLabels = (graph: GraphData, orderMatters: boolean | undefined,
 export type BagArrow = Edge & { kind: "chosen" | "candidate" | "step" };
 
 // the only arrows a bag of words draws: a generating step's, a chosen output's steps, or a chosen state's
-export const bagArrows = (s: Omit<LabelState, "stepsOnly"> & { highlightEdge?: Edge }): BagArrow[] => {
+export const bagArrows = (s: Omit<LabelState, "stepsOnly">): BagArrow[] => {
   const leaving = (id: string, kind: BagArrow["kind"]) => s.outgoing(id).map(e => ({ ...e, kind }));
   const step = ({ from, to }: { from: string, to: string }) => leaving(from, "step").filter(e => e.to === to);
 

@@ -20,6 +20,7 @@ import { RestoredMode } from "./restore-work";
 import { SettingLabel, SettingSwitch } from "./setting-switch";
 import { useClearGoneSelection, useEscape, useInspectChoices, useScrollToChoice } from "./use-mode-body";
 import { ModeSaving, usePaneLayout } from "./use-pane-layout";
+import { useTextSave } from "./use-text-save";
 import { DataWorkspaceConfig, WorkspacePaneId } from "./workspace-config";
 import { WorkspacePanes } from "./workspace-panes";
 
@@ -39,6 +40,8 @@ interface DataWorkspaceProps {
   hidden: boolean;
   // the shell's controls, first in the row
   controls: React.ReactNode;
+  // the shell's controls in the Graph pane's header
+  graphControls: React.ReactNode;
   // the shell's actions, last in the row
   actions: React.ReactNode;
   probabilities: boolean;
@@ -54,8 +57,8 @@ const stateCount = (values: string[]) => new Set(values.filter(value => value)).
 
 const sameValues = (a: string[], b: string[]) => a.length === b.length && a.every((value, i) => value === b[i]);
 
-// whether a commit's states are mostly new, so the graph lays them all out again rather than adding to it
-const laidOutWhole = (before: string[], after: string[]) => {
+// whether most of a commit's states are new, which makes the view follow the graph again
+const mostlyNew = (before: string[], after: string[]) => {
   const placed = new Set(before.filter(value => value));
   const states = new Set(after.filter(value => value));
   return layoutFor([...states].filter(state => placed.has(state)).length, states.size) === "whole";
@@ -64,8 +67,8 @@ const laidOutWhole = (before: string[], after: string[]) => {
 // Data mode's body: the authored panes around the student's input
 export const DataWorkspace = ({
   text: startText, capitalization: startCapitalization, inputSplit: startSplit, start, saving, limitReached,
-  readOnly, host, tool, config, stacked, hidden, controls, actions, probabilities, arrowWidths, orderMatters,
-  onOrderMattersChange
+  readOnly, host, tool, config, stacked, hidden, controls, graphControls, actions, probabilities, arrowWidths,
+  orderMatters, onOrderMattersChange
 }: DataWorkspaceProps) => {
   const { inputView } = config;
   const toolRef = useLatest(tool);
@@ -81,7 +84,10 @@ export const DataWorkspace = ({
     () => ({ text: startText, tokens: tokenize(startText, startCapitalization) }));
 
   const lastValuesRef = useRef(start.tool.values ?? []);
-  const lastSavedRef = useRef(startText);
+  const lastTextRef = useRef(startText);
+  const textSave = useTextSave({
+    requestSave: saving.requestSave, committedRef: lastTextRef, savedRef: saving.savedTextRef
+  });
 
   const [uploadStatus, setUploadStatus] = useState<CsvUploadStatus>();
 
@@ -92,28 +98,35 @@ export const DataWorkspace = ({
     const values = tokensToValues(tokens);
     setText(nextText);
     setCommitted({ text: nextText, tokens });
-    if (nextText !== lastSavedRef.current) {
-      lastSavedRef.current = nextText;
-      saving.requestSave();
+    if (nextText !== lastTextRef.current) {
+      lastTextRef.current = nextText;
+      // a commit with the same values logs nothing, and a page leave before its save still has to answer with it
+      saving.markActive();
       setUploadStatus(undefined);
     }
     if (sameValues(values, lastValuesRef.current)) {
       return undefined;
     }
-    if (laidOutWhole(lastValuesRef.current, values)) {
+    if (mostlyNew(lastValuesRef.current, values)) {
       followRef.current = true;
     }
     lastValuesRef.current = values;
     tool.handle.dataChanged(values, { fit: followRef.current });
+    // an output was made from the old values, so it no longer matches the text; a chosen state or transition stays
+    // while it still exists
+    if (toolRef.current.selection?.kind === "output") {
+      toolRef.current.setSelectedNodeId();
+    }
     return tokens;
-  }, [tool.handle, saving, followRef]);
+  }, [tool.handle, saving, followRef, toolRef]);
 
   const commit = useCallback((nextText: string, how: CommitHow, view: CommitView) => {
     const tokens = commitText(nextText, capitalization);
+    textSave.committed();
     if (tokens) {
       host.log("InputCommitted", { view, how, tokens: tokens.length, states: stateCount(lastValuesRef.current) });
     }
-  }, [commitText, capitalization, host]);
+  }, [commitText, capitalization, host, textSave]);
 
   const liveTokens = useMemo(() => tokenize(text, capitalization), [text, capitalization]);
   const highlights = useMemo(() => highlightsFor(tool.selection, committed.tokens),
@@ -151,6 +164,7 @@ export const DataWorkspace = ({
 
   const handleCsvRead = (read: CsvValues) => {
     commitText(read.text, capitalization);
+    textSave.saveNow();
     host.log("CsvUploaded", {
       rows: read.rows, tokens: tokenize(read.text, capitalization).length, states: stateCount(lastValuesRef.current)
     });
@@ -217,8 +231,15 @@ export const DataWorkspace = ({
   }, []);
   const handleBlurCommit = useCallback((commitBlur: () => void) => afterPress(commitBlur, redrawnByCommit),
     [afterPress]);
-  const handleTextBlur = useCallback(() => handleBlurCommit(() => commit(textRef.current, "blur", "text")),
-    [handleBlurCommit, commit, textRef]);
+  const handleTextChange = (next: string) => {
+    setText(next);
+    textSave.typed();
+  };
+  const handleTextBlur = useCallback(() => handleBlurCommit(() => {
+    commit(textRef.current, "blur", "text");
+    textSave.saveNow();
+  }), [handleBlurCommit, commit, textRef, textSave]);
+  const handleTableLeft = useCallback(() => handleBlurCommit(textSave.saveNow), [handleBlurCommit, textSave]);
   const handleTableCommit = useCallback((next: string) => commit(next, "row", "table"), [commit]);
   const handleRowAdded = useCallback(() => host.log("TableRowAdded"), [host]);
   const handleRowDeleted = useCallback(() => host.log("TableRowDeleted"), [host]);
@@ -251,8 +272,8 @@ export const DataWorkspace = ({
   const emptyMessage = !hasPane("input")
     ? "No data was provided for this activity."
     : inputView === "table"
-      ? "Type some words in the Input pane's table to build the chain."
-      : "Type some words in the Input pane to build the chain.";
+      ? "Type some words in the Input pane's table to build the graph."
+      : "Type some words in the Input pane to build the graph.";
 
   // the pane the student last pressed, focused or typed in, where a choice is made, and which doesn't scroll to it
   const sourcePaneRef = useRef<WorkspacePaneId>(undefined);
@@ -269,9 +290,9 @@ export const DataWorkspace = ({
             onSplitResized={handleSplitResized} text={text} liveTokens={liveTokens}
             liveHighlights={liveHighlights} committed={committed}
             highlights={highlights}
-            readOnly={inputReadOnly} onChange={setText} onTextCommit={commit} onTextBlur={handleTextBlur}
+            readOnly={inputReadOnly} onChange={handleTextChange} onTextCommit={commit} onTextBlur={handleTextBlur}
             onTableCommit={handleTableCommit} onRowBlur={handleBlurCommit} afterPress={afterPress}
-            onRowAdded={handleRowAdded}
+            onTableTyped={textSave.typed} onTableLeft={handleTableLeft} onRowAdded={handleRowAdded}
             onRowDeleted={handleRowDeleted} onFocusToken={handleFocusToken} />
         );
       case "graph":
@@ -306,7 +327,8 @@ export const DataWorkspace = ({
         { !config.orderMatters.showSwitch && <SettingLabel label={orderMattersLabel} value={orderMatters} /> }
         { !config.caseSwitch && <SettingLabel label={caseSensitiveLabel} value={isCaseSensitive} /> }
       </ControlsRow>
-      <WorkspacePanes layout={layout} stacked={stacked} sourcePaneRef={sourcePaneRef} renderPane={renderPane} />
+      <WorkspacePanes layout={layout} stacked={stacked} sourcePaneRef={sourcePaneRef} renderPane={renderPane}
+        graphControls={graphControls} />
       <NodeModal viewMode="dataset" node={dialogNode} graph={tool.graph} onChange={() => undefined}
         onCancel={() => setDialogNode(undefined)} />
     </div>

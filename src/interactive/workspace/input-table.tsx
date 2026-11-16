@@ -19,6 +19,9 @@ interface InputTableProps {
   onRowBlur: (commitRow: () => void) => void;
   // runs once a press ends, or now with none
   afterPress: (run: () => void) => void;
+  onTyped: () => void;
+  // focus left the table, not just a row
+  onLeft: () => void;
   onFocusToken: (token: Token | undefined) => void;
   rowLayout: RowLayout;
 }
@@ -88,8 +91,8 @@ const InputTableRow = memo(InputTableRowContent);
 // The input's tokens, one per row, a break as an empty row. The rows are one stop in the Tab order, with the current
 // row's input and delete button taking Tab, and Up and Down move between rows.
 const InputTableRows = ({
-  text, tokens, highlights, readOnly, onCommit, onRowAdded, onRowDeleted, onRowBlur, afterPress, onFocusToken,
-  rowLayout
+  text, tokens, highlights, readOnly, onCommit, onRowAdded, onRowDeleted, onRowBlur, afterPress, onTyped, onLeft,
+  onFocusToken, rowLayout
 }: InputTableProps) => {
   const hintId = useId();
   const [current, setCurrent] = useState<RowKey>({ kind: "row", index: 0 });
@@ -133,7 +136,10 @@ const InputTableRows = ({
 
   const latestActions = useLatest({
     focus: (at: number) => handleFocus(rows[at]),
-    change: (at: number, value: string) => setDraft({ row: rows[at], value }),
+    change: (at: number, value: string) => {
+      setDraft({ row: rows[at], value });
+      onTyped();
+    },
     blur: (at: number) => {
       const row = rows[at];
       onRowBlur(() => commitLeftRow(row));
@@ -395,7 +401,11 @@ const InputTableRows = ({
   };
 
   return (
-    <div className="input-table" ref={tableRef}>
+    <div className="input-table" ref={tableRef} onBlur={e => {
+      if (!e.currentTarget.contains(e.relatedTarget)) {
+        onLeft();
+      }
+    }}>
       <div className="input-table-rows">
         <table>
           <tbody>

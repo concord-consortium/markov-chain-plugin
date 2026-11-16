@@ -169,7 +169,7 @@ describe("textFromCells", () => {
 
   const pool = [
     "sunny", ".", ",", "?", "No!", "ice cream", "3.5", "a+b", "[x]", "a]b", "#1", "  padded  ", "multi\nline",
-    "tab\there", "café", "naïve", "😀", "", "", "rainy",
+    "tab\there", "\"", "\u201C", "say \"hi\"", "café", "naïve", "😀", "", "", "rainy",
   ];
   const columns = Array.from({ length: 40 }, (_, column) =>
     Array.from({ length: 8 + column % 5 }, (__, cell) => pool[(column * 7 + cell * (column % 6 + 1)) % pool.length]));

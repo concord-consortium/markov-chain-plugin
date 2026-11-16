@@ -41,7 +41,7 @@ describe("editRow", () => {
 
   it("writes a word into a break row in place of its blank line", () => {
     expect(edit("a\n\nc", 1, "b")).toBe("a\nb\nc");
-    expect(table(edit("a\n\n\"\n\nc", 1, "b"))).toEqual(["a", "b", "c"]);
+    expect(table(edit("a\n\n(\n\nc", 1, "b"))).toEqual(["a", "b", "c"]);
   });
 
   it("takes an emptied first or last row out of the text, with the whitespace beside it", () => {

@@ -18,6 +18,8 @@ export interface ModeSaving {
   requestSave: () => void;
   markActive: () => void;
   afterDraw: () => void;
+  // the text the last save held
+  savedTextRef: React.RefObject<string>;
 }
 
 const dividerLabels: Record<PaneDivider, string> = {
@@ -50,6 +52,10 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
     if (id === "graph" && opening) {
       followRef.current = true;
       tool.view.onFitView();
+    }
+    // the row above the generator changes height, which the graph measures after this render
+    if (id === "generator") {
+      fitWhenResizedRef.current = true;
     }
   };
   const toggleControls = () => {
@@ -105,7 +111,8 @@ export const usePaneLayout = (config: WorkspaceConfig, host: MarkovHost, tool: M
   const room = (rowWidth ?? 0) - paneGap * (rowPanes.length - 1) -
     collapsedStrip * rowPanes.filter(pane => !open[pane.id]).length;
   const sizes = !stacked && rowWidth !== undefined ? fitPaneSizes(paneSizes, room, openPanes) : paneSizes;
-  const top = drawnRowHeight(sizes.top, stacked);
+  const generator = !hasPane("generator") ? "absent" : open.generator ? "open" : "collapsed";
+  const top = drawnRowHeight(sizes.top, stacked, generator);
   const graphWidth = room - (openPanes.input ? sizes.input : 0) - (openPanes.inspect ? sizes.inspect : 0);
 
   // the stored sizes this move is measured from

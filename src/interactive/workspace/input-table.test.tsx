@@ -10,7 +10,7 @@ const table = (text: string) => (
   <InputTable rowLayout="prose" text={text} tokens={tokenize(text, "lowercase")} highlights={noHighlights()}
     readOnly={false}
     onCommit={jest.fn()} onRowAdded={jest.fn()} onRowDeleted={jest.fn()} onRowBlur={jest.fn()} afterPress={jest.fn()}
-    onFocusToken={jest.fn()} />
+    onTyped={jest.fn()} onLeft={jest.fn()} onFocusToken={jest.fn()} />
 );
 
 describe("InputTable", () => {

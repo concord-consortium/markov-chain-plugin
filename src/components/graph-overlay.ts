@@ -163,12 +163,14 @@ export const drawOverlay = (root: GraphSelection, d3Graph: D3Graph, options: Ove
   }
 
   const nodes = new Map(d3Graph.nodes.map(node => [node.id, node]));
-  const highlights = { animating, selectedNodeId, highlightNode, highlightAllNextNodes, highlightOutputNodes };
+  const highlights = {
+    animating, selectedNodeId, highlightNode, highlightEdge, highlightAllNextNodes, highlightOutputNodes
+  };
 
   let edges = d3Graph.edges;
   if (bag) {
     const outgoing = outgoingFor(graph, options.orderMatters);
-    const { lines, loops } = drawnBagArrows(bagArrows({ ...highlights, outgoing, highlightEdge }), outgoing,
+    const { lines, loops } = drawnBagArrows(bagArrows({ ...highlights, outgoing }), outgoing,
       arrowWidths, nodes);
     drawBagArrows(root, lines, loops);
     edges = lines;

@@ -13,6 +13,8 @@ interface PaneProps {
   divider?: React.ReactNode;
   // false leaves out the button that collapses the pane
   collapsible?: boolean;
+  // controls in the header, between the title and the collapse button, shown while the pane is open
+  headerControls?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -26,7 +28,7 @@ export const ToggleIcon = ({ open }: { open: boolean }) => (
 // A workspace pane: a header with its title and, unless collapsible is false, a button that collapses and reopens
 // it. A collapsed pane keeps its body mounted, hidden, so what the student did in it is there when it reopens.
 export const Pane = ({
-  className, title, open, onToggle, onInteract, style, divider, collapsible = true, children
+  className, title, open, onToggle, onInteract, style, divider, collapsible = true, headerControls, children
 }: PaneProps) => {
   const bodyId = useId();
   const titleId = useId();
@@ -37,6 +39,7 @@ export const Pane = ({
       onPointerDownCapture={onInteract} onFocusCapture={onInteract} onKeyDownCapture={onInteract}>
       <header className="pane-header">
         <h2 id={titleId}>{ title }</h2>
+        { open && headerControls && <div className="pane-header-controls">{ headerControls }</div> }
         { collapsible &&
           <button type="button" className="pane-toggle" aria-expanded={open} aria-controls={bodyId}
             aria-label={`${action} ${title}`} title={`${action} ${title}`} onClick={onToggle}>

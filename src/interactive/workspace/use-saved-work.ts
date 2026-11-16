@@ -27,31 +27,44 @@ interface SavedWorkOptions {
   activeRef: React.RefObject<boolean>;
   animating: boolean;
   build: () => MarkovInteractiveState;
+  // told after each save, once its state is built
+  onSaved: () => void;
+  // whether a save is already due for what a draw shows, which then takes the draw's positions with it
+  saveDue: () => boolean;
 }
 
 // Saves the whole state when a save is requested, holding it while a sequence runs, and answers a page leave with the
 // whole state once the student has done anything.
-export const useSavedWork = ({ saver, request, activeRef, animating, build }: SavedWorkOptions) => {
+export const useSavedWork = ({ saver, request, activeRef, animating, build, onSaved, saveDue }: SavedWorkOptions) => {
   const handledRef = useRef(0);
   const awaitingDrawRef = useRef(false);
   const buildRef = useLatest(build);
   const animatingRef = useLatest(animating);
+  const onSavedRef = useLatest(onSaved);
+  const saveDueRef = useLatest(saveDue);
+
+  const save = useCallback(() => {
+    saver?.save(buildRef.current());
+    onSavedRef.current();
+  }, [saver, buildRef, onSavedRef]);
 
   useEffect(() => {
     if (request !== handledRef.current && !animating) {
       handledRef.current = request;
       awaitingDrawRef.current = true;
-      saver?.save(buildRef.current());
+      save();
     }
-  }, [saver, request, animating, buildRef]);
+  }, [save, request, animating]);
 
   // the drawing that follows a change holds its states' positions, and the library posts only the last state it gets
   const afterDraw = useCallback(() => {
     if (awaitingDrawRef.current && !animatingRef.current) {
       awaitingDrawRef.current = false;
-      saver?.save(buildRef.current());
+      if (!saveDueRef.current()) {
+        save();
+      }
     }
-  }, [saver, buildRef, animatingRef]);
+  }, [save, animatingRef, saveDueRef]);
 
   useEffect(() => {
     saver?.setFinalState(() => activeRef.current ? buildRef.current() : undefined);

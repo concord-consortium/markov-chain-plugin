@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 
 import { DelimiterType, GenerationMode, Node } from "../type";
 import { SpeedToggle } from "./speed-toggle";
@@ -43,6 +43,7 @@ export const Generator = ({
   onLengthLimitCommit, onDelimiterTypeChange, onDelimiterChange, onDelimiterCommit, onSpeedChange, onPlay, onPause,
   onResume, onStep
 }: GeneratorProps) => {
+  const id = useId();
   const animating = generationMode !== "ready";
   const playLabel = generationMode === "playing" ? "Pause" : (generationMode === "paused" ? "Resume" : "Play");
   const PlayOrPauseIcon = generationMode === "playing" ? PauseIcon : PlayIcon;
@@ -62,8 +63,8 @@ export const Generator = ({
     <div className="generate">
       <div className="flex-col">
         <div>
-          <label>Starting State:</label>
-          <select onChange={onStartingStateChange} value={startingState} disabled={animating}>
+          <label htmlFor={`${id}-start`}>Starting State:</label>
+          <select id={`${id}-start`} onChange={onStartingStateChange} value={startingState} disabled={animating}>
             <option value="">{ AnyStartingState }</option>
             { sortedNodes.map(n => <option key={n.id} value={n.id}>{ n.label }</option>) }
           </select>
@@ -71,8 +72,8 @@ export const Generator = ({
 
         <div className="flex-row">
           <div>
-            <label>Max Length:</label>
-            <input className="bordered" type="number"
+            <label htmlFor={`${id}-length`}>Max Length:</label>
+            <input id={`${id}-length`} className="bordered" type="number"
               value={lengthLimit}
               onChange={onLengthLimitChange}
               onBlur={onLengthLimitCommit}
@@ -83,8 +84,8 @@ export const Generator = ({
           </div>
 
           <div>
-            <label>Delimiter:</label>
-            <select value={delimiterType} onChange={onDelimiterTypeChange}>
+            <label htmlFor={`${id}-delimiter`}>Delimiter:</label>
+            <select id={`${id}-delimiter`} value={delimiterType} onChange={onDelimiterTypeChange}>
               <option value="none">none</option>
               <option value="space">space</option>
               <option value="other">other ...</option>
@@ -94,6 +95,7 @@ export const Generator = ({
               onBlur={onDelimiterCommit}
               value={delimiter}
               placeholder="delimiter"
+              aria-label="Other delimiter"
               maxLength={delimiterMaxLength}
               disabled={animating}
               style={{ width: 75, marginTop: 5 }}

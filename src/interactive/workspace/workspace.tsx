@@ -103,8 +103,13 @@ export const Workspace = ({
   }, [animating, dataGroups, drawGroups, outputLimitReached, limitReachedRef, logRef]);
 
   const reportsRef = useRef<Record<ModeId, ModeReport>>({ useData: {}, draw: {} });
+  const savedTextRef = useRef(restored.text);
   const { afterDraw } = useSavedWork({
     saver, request, activeRef, animating,
+    onSaved: () => {
+      savedTextRef.current = reportsRef.current.useData.text ?? savedTextRef.current;
+    },
+    saveDue: () => (reportsRef.current.useData.text ?? savedTextRef.current) !== savedTextRef.current,
     build: () => buildInteractiveState(savedState, {
       offered: authoredState.modes,
       hasInputPane: restored.hasInputPane,
@@ -116,13 +121,14 @@ export const Workspace = ({
     }),
   });
   const saving = useMemo(() => ({
-    useData: { report: reportsRef.current.useData, requestSave, markActive, afterDraw },
-    draw: { report: reportsRef.current.draw, requestSave, markActive, afterDraw },
+    useData: { report: reportsRef.current.useData, requestSave, markActive, afterDraw, savedTextRef },
+    draw: { report: reportsRef.current.draw, requestSave, markActive, afterDraw, savedTextRef },
   }), [requestSave, markActive, afterDraw]);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dimensions = useResizeObserver(rootRef);
-  const stacked = !!dimensions && dimensions.width < stackBelow;
+  // the observed width is inside the workspace's padding, and the panes stack by the interactive's whole width
+  const stacked = !!dimensions && dimensions.width + 2 * paneGap < stackBelow;
 
   // each body has its own copy of the switch, so a radio with focus hides itself: the shown body's takes focus
   const moveFocusRef = useRef(false);
@@ -143,16 +149,10 @@ export const Workspace = ({
     hosts[mode].log("ProbabilitiesToggled", { on });
   };
 
-  const controls = (
-    <>
-      { configs.useData.modeSwitch &&
-        <ModeSwitch mode={mode} disabled={tools[mode].animating} onChange={handleModeChange} />
-      }
-      { configs[mode].probabilities.showToggle &&
-        <ProbabilitiesToggle on={probabilities} onChange={handleProbabilitiesChange} />
-      }
-    </>
-  );
+  const controls = configs.useData.modeSwitch &&
+    <ModeSwitch mode={mode} disabled={tools[mode].animating} onChange={handleModeChange} />;
+  const graphControls = configs[mode].probabilities.showToggle &&
+    <ProbabilitiesToggle on={probabilities} onChange={handleProbabilitiesChange} />;
 
   const { actions, dialog } = useTableActions({
     mode, configs, tools, hosts, orderMatters, reports: reportsRef, tablesSaved, readOnly, canSend, objectStorageConfig,
@@ -166,14 +166,15 @@ export const Workspace = ({
         <DataWorkspace text={restored.text} capitalization={restored.capitalization} inputSplit={restored.inputSplit}
           start={restored.useData} saving={saving.useData} limitReached={limitReached} readOnly={readOnly}
           host={hosts.useData} tool={tools.useData} config={configs.useData} stacked={stacked}
-          hidden={mode !== "useData"} controls={controls} actions={actions} probabilities={probabilities}
-          arrowWidths={arrowWidths} orderMatters={orderMatters} onOrderMattersChange={setOrderMatters} />
+          hidden={mode !== "useData"} controls={controls} graphControls={graphControls} actions={actions}
+          probabilities={probabilities} arrowWidths={arrowWidths} orderMatters={orderMatters}
+          onOrderMattersChange={setOrderMatters} />
       }
       { authoredState.modes.draw &&
         <DrawWorkspace host={hosts.draw} tool={tools.draw} config={configs.draw} stacked={stacked}
-          hidden={mode !== "draw"} controls={controls} actions={actions} probabilities={probabilities}
-          arrowWidths={arrowWidths} start={restored.draw} saving={saving.draw} limitReached={limitReached}
-          readOnly={readOnly} />
+          hidden={mode !== "draw"} controls={controls} graphControls={graphControls} actions={actions}
+          probabilities={probabilities} arrowWidths={arrowWidths} start={restored.draw} saving={saving.draw}
+          limitReached={limitReached} readOnly={readOnly} />
       }
       { dialog }
     </div>

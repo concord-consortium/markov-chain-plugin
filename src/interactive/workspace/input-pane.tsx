@@ -33,6 +33,8 @@ interface InputPaneProps {
   onTableCommit: (text: string) => void;
   onRowBlur: (commitRow: () => void) => void;
   afterPress: (run: () => void) => void;
+  onTableTyped: () => void;
+  onTableLeft: () => void;
   onRowAdded: () => void;
   onRowDeleted: () => void;
   onFocusToken: (token: Token | undefined) => void;
@@ -48,7 +50,8 @@ export const InputPane = (props: InputPaneProps) => {
     <InputTable text={committed.text} tokens={committed.tokens} highlights={props.highlights} readOnly={readOnly}
       onCommit={props.onTableCommit} onRowAdded={props.onRowAdded}
       onRowDeleted={props.onRowDeleted} onRowBlur={props.onRowBlur}
-      afterPress={props.afterPress} onFocusToken={props.onFocusToken} rowLayout={props.rowLayout} />;
+      afterPress={props.afterPress} onTyped={props.onTableTyped} onLeft={props.onTableLeft}
+      onFocusToken={props.onFocusToken} rowLayout={props.rowLayout} />;
   return (
     <div className={`input-pane-content ${view}`}>
       { (props.switches || props.csvUpload) &&

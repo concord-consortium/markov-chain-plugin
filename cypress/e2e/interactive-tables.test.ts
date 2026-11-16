@@ -92,8 +92,8 @@ describe("the Download tables button", () => {
   });
 
   const wrapCases: [string, Record<string, unknown>, number][] = [
-    ["both buttons at the narrowest side-by-side width", bothButtons, 700],
-    ["Download alone in a stacked workspace", onlyDownload, 560],
+    ["both buttons in a stacked workspace", bothButtons, 600],
+    ["Download alone in a narrower stacked workspace", onlyDownload, 480],
   ];
   wrapCases.forEach(([name, buttons, frameWidth]) => it(`wraps as a group at the row's widest, with ${name}`, () => {
     start({

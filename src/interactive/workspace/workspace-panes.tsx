@@ -16,10 +16,12 @@ interface WorkspacePanesProps {
   renderPane: (id: WorkspacePaneId) => React.ReactNode;
   // a pane the student can't collapse
   fixedPane?: WorkspacePaneId;
+  graphControls?: React.ReactNode;
 }
 
 // a mode's panes: Input, Graph and Inspect in a row, and the generator below them
-export const WorkspacePanes = ({ layout, stacked, sourcePaneRef, renderPane, fixedPane }: WorkspacePanesProps) => {
+export const WorkspacePanes = ({ layout, stacked, sourcePaneRef, renderPane, fixedPane, graphControls
+}: WorkspacePanesProps) => {
   const { hasPane, open, togglePane, rowPanes, rowsDivider, rowRef, top, paneStyle, dividerFor, paneDivider } = layout;
   return (
     <>
@@ -28,7 +30,8 @@ export const WorkspacePanes = ({ layout, stacked, sourcePaneRef, renderPane, fix
           { rowPanes.map(({ id }) => (
             <Pane key={id} className={`${id}-pane`} title={paneTitles[id]} open={open[id]}
               onToggle={() => togglePane(id)} onInteract={() => (sourcePaneRef.current = id)} style={paneStyle(id)}
-              divider={paneDivider(id)} collapsible={id !== fixedPane}>
+              divider={paneDivider(id)} collapsible={id !== fixedPane}
+              headerControls={id === "graph" ? graphControls : undefined}>
               { renderPane(id) }
             </Pane>
           )) }

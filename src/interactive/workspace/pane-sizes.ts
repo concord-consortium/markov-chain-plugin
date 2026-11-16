@@ -32,8 +32,18 @@ export const toolbarWidth = (columns: number) =>
 // the height inside the Graph pane's border, header and padding, in a row top px tall
 export const graphBodyHeight = (top: number) => top - paneHeader - 2 * paneBorder - 2 * panePadding;
 // the height the row's panes are drawn at, from the stored row height: stacked panes are all the starting row's
-// height, whatever row height is stored
-export const drawnRowHeight = (top: number, stacked: boolean) => stacked ? defaultPaneSizes.top : top;
+// height, whatever row height is stored, a row above a collapsed generator takes the height the generator gave up, and
+// a row with no generator takes the generator's height and the gap above it, so the workspace is always as tall
+export const drawnRowHeight = (top: number, stacked: boolean, generator: "open" | "collapsed" | "absent") => {
+  if (stacked) {
+    return defaultPaneSizes.top;
+  }
+  switch (generator) {
+    case "open": return top;
+    case "collapsed": return workspaceHeight - paneHeader - 2 * paneBorder;
+    case "absent": return workspaceHeight + paneGap;
+  }
+};
 // the fewest columns whose toolbar fits the Graph pane's body
 export const toolbarColumns = (tools: number, bodyHeight: number) => {
   let columns = 1;

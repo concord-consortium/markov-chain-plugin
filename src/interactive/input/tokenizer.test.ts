@@ -9,10 +9,26 @@ describe("tokenize", () => {
       ["the", "cat", ",", "sat", ".", "On", "the", "mat", "?", "yes", "!", "a", ":", "b", ";"]);
   });
 
-  it("splits and drops characters as the plugin's text does, outside brackets", () => {
-    const text = "The Cat, sat.\tOn  the mat? yes! a: b; \"c\" (d) {e} f_g+h=i|j\\k/l<m>n";
+  it("splits and drops characters as the plugin's text does, outside brackets and double quotes", () => {
+    const text = "The Cat, sat.\tOn  the mat? yes! a: b; (d) {e} f_g+h=i|j\\k/l<m>n";
     const states = tokenize(text, "lowercase").flatMap(token => token.kind === "word" ? [token.state] : []);
     expect(states).toEqual(textToWords(text));
+  });
+
+  it("makes each straight or curly double quote a token, all with the one state \"", () => {
+    const tokens = tokenize("\"Hi\" \u201CHi\u201D x\"y", "lowercase");
+    expect(tokens.map(t => t.kind === "word" ? t.text : "|")).toEqual(
+      ["\"", "Hi", "\"", "\u201C", "Hi", "\u201D", "x", "\"", "y"]);
+    expect(tokensToValues(tokens)).toEqual(["\"", "hi", "\"", "\"", "hi", "\"", "x", "\"", "y"]);
+  });
+
+  it("keeps single quotes, straight or curly, in the word", () => {
+    expect(words("girls' don't \u2018tis rock\u2019n")).toEqual(["girls'", "don't", "\u2018tis", "rock\u2019n"]);
+  });
+
+  it("keeps a double quote inside brackets as typed", () => {
+    expect(tokenize("[say \u201Chi\u201D]", "asTyped"))
+      .toMatchObject([{ text: "say \u201Chi\u201D", state: "say \u201Chi\u201D" }]);
   });
 
   it("keeps a bracketed token whole, trimmed at its ends", () => {
@@ -35,7 +51,7 @@ describe("tokenize", () => {
     expect(words("a \n \t\n b")).toEqual(["a", "|", "b"]);
     expect(words("a\n\n\n\n\nb\n\nc")).toEqual(["a", "|", "b", "|", "c"]);
     expect(words("\n\na b\n\n")).toEqual(["a", "b"]);
-    expect(words("a\n\n\"\n\nb")).toEqual(["a", "|", "b"]);
+    expect(words("a\n\n(\n\nb")).toEqual(["a", "|", "b"]);
   });
 
   it("keeps each token's place in the text, a bracketed token's brackets included", () => {
@@ -73,6 +89,8 @@ describe("textForRow", () => {
   it("writes a row the tokenizer gives back as one word as it is", () => {
     expect(textForRow("cat")).toBe("cat");
     expect(textForRow(".")).toBe(".");
+    expect(textForRow("\"")).toBe("\"");
+    expect(textForRow("\u201D")).toBe("\u201D");
   });
 
   it("brackets a row the tokenizer would split or change", () => {
@@ -80,6 +98,7 @@ describe("textForRow", () => {
     expect(textForRow("ice cream")).toBe("[ice cream]");
     expect(textForRow("a+b")).toBe("[a+b]");
     expect(textForRow("(cat)")).toBe("[(cat)]");
+    expect(textForRow("say \"hi\"")).toBe("[say \"hi\"]");
   });
 });
 
@@ -120,11 +139,12 @@ describe("textChange", () => {
 });
 
 describe("commitsOnTyping", () => {
-  it("commits on whitespace, punctuation and a closing bracket", () => {
-    [" ", "\n", "\t", ".", ",", "?", "!", ":", ";", "]"].forEach(char => expect(commitsOnTyping(char)).toBe(true));
+  it("commits on whitespace, punctuation, a double quote and a closing bracket", () => {
+    [" ", "\n", "\t", ".", ",", "?", "!", ":", ";", "\"", "\u201C", "\u201D", "]"]
+      .forEach(char => expect(commitsOnTyping(char)).toBe(true));
   });
 
   it("waits on letters, digits and the characters that open or join words", () => {
-    ["a", "Z", "7", "[", "(", "-", "'", "+"].forEach(char => expect(commitsOnTyping(char)).toBe(false));
+    ["a", "Z", "7", "[", "(", "-", "'", "\u2019", "+"].forEach(char => expect(commitsOnTyping(char)).toBe(false));
   });
 });

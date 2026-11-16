@@ -59,6 +59,19 @@ describe("probabilityLabels", () => {
     expect(summary(state(sentence, { ...step, highlightAllNextNodes: false }))).toEqual([]);
   });
 
+  it("labels only the transition a generating step chose, with its share of the arrows out of its state", () => {
+    const edges = [edge("the", "cat", 3), edge("the", "mat", 1), edge("cat", "the", 1)];
+    const chosen = { animating: true, highlightNode: node("cat"), highlightEdge: edge("the", "cat", 3) };
+    expect(summary(state(edges, chosen))).toEqual(["the>cat 75% full"]);
+    expect(summary(state(edges, { ...chosen, animating: false }))).toEqual([]);
+  });
+
+  it("labels the loop a generating step chose", () => {
+    const edges = [edge("a", "a", 1), edge("a", "b", 3)];
+    expect(summary(state(edges, { animating: true, highlightNode: node("a"), highlightEdge: edge("a", "a", 1) })))
+      .toEqual(["a>a 25% full"]);
+  });
+
   describe("in a drawing, whose values are weights", () => {
     const weights = [edge("a", "b", 0.25), edge("a", "c", 0.75), edge("b", "a", 2)];
 
@@ -140,6 +153,12 @@ describe("the bag of words", () => {
       .toEqual(["cat>the 60% full", "cat>cat 20% full", "cat>mat 20% full"]);
   });
 
+  it("labels a generating step's pick with the word's share of all the words, whatever it came from", () => {
+    const pick = { animating: true, highlightNode: node("the") };
+    expect(summary(bag({ ...pick, highlightEdge: edge("cat", "the", 3) }))).toEqual(["cat>the 60% full"]);
+    expect(summary(bag({ ...pick, highlightEdge: edge("mat", "the", 3) }))).toEqual(["mat>the 60% full"]);
+  });
+
   describe("a chosen output's labels", () => {
     it("label exactly its steps, with stepsOnly", () => {
       const highlightOutputNodes = [node("the"), node("cat"), node("the")];
@@ -168,7 +187,7 @@ describe("the bag of words", () => {
       const animating = { animating: true, selectedNodeId: "mat" };
       expect(arrows({ ...animating, highlightNode: node("cat"), highlightAllNextNodes: true }))
         .toEqual(["cat>the candidate", "cat>cat candidate", "cat>mat candidate"]);
-      expect(arrows({ ...animating, highlightNode: node("the"), highlightEdge: { from: "cat", to: "the", value: 3 } }))
+      expect(arrows({ ...animating, highlightNode: node("the"), highlightEdge: edge("cat", "the", 3) }))
         .toEqual(["cat>the step"]);
       expect(arrows({ ...animating, highlightNode: node("the") })).toEqual([]);
     });

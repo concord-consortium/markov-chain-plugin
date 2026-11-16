@@ -28,6 +28,8 @@ interface DrawWorkspaceProps {
   hidden: boolean;
   // the shell's controls, first in the row
   controls: React.ReactNode;
+  // the shell's controls in the Graph pane's header
+  graphControls: React.ReactNode;
   // the shell's actions, last in the row
   actions: React.ReactNode;
   probabilities: boolean;
@@ -40,8 +42,8 @@ interface DrawWorkspaceProps {
 
 // Draw mode's body: a drawing in the Graph pane, with Inspect and the generator as the author set them
 export const DrawWorkspace = ({
-  host, tool, config, stacked, hidden, controls, actions, probabilities, arrowWidths, start, saving, limitReached,
-  readOnly
+  host, tool, config, stacked, hidden, controls, graphControls, actions, probabilities, arrowWidths, start, saving,
+  limitReached, readOnly
 }: DrawWorkspaceProps) => {
   const toolRef = useLatest(tool);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -95,7 +97,7 @@ export const DrawWorkspace = ({
     <div className="workspace-body" hidden={hidden} ref={rootRef}>
       <ControlsRow tool={tool} actions={actions}>{ controls }</ControlsRow>
       <WorkspacePanes layout={layout} stacked={stacked} sourcePaneRef={sourcePaneRef} renderPane={renderPane}
-        fixedPane="graph" />
+        fixedPane="graph" graphControls={graphControls} />
       { tool.view.confirmModal && <ConfirmModal {...tool.view.confirmModal} /> }
     </div>
   );
