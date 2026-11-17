@@ -109,8 +109,8 @@ The summary needs the generator's `(any)` label, its default Max Length and spee
 ### Other notes
 
 - Saved `startingState` is an id, and in Draw mode an id isn't the label, so the label comes from the graph.
-- The generator keeps a chosen state after it leaves the graph, and generates as `(any)`. Run through the real workspace (choose `cat`, change the input, generate): the select shows `(any)`, the heading `(any)/3/" "`, and the save holds `startingState: "cat"` on both the generator and the group, with no `start`. So a group's `startingState` isn't what it started from; its `startingNode` is what the heading shows (R6).
-- A group's `startingNode` is set once, and `generateNewSequence` adds to the last group when `startingState` matches, whatever the graph holds now, so a heading can be wrong for a later output. Run through the real workspace: `a c`, generated after `cat` left, sits under the heading `cat`, and the summary reads `Outputs: 0` at `start (any)`; `cat a b`, generated once `cat` came back, sits under `(any)`, and reads `Outputs: 0` at `start cat`. The count stays in step with the headings a teacher can open. A group saves nothing better, and the cause is in `src/hooks`.
+- A chosen state that leaves the graph puts the generator back to `(any)` (MARK-37). Work saved before then can still hold the gone id as `startingState` on the generator and on a group, with no `start`, so a group's `startingState` isn't always what it started from; its `startingNode` is what the heading shows (R6).
+- A group's `startingNode` is set once, and `generateNewSequence` adds to the last group when `startingState` matches. In work saved before MARK-37 that can leave an output under the wrong heading (`a c`, generated after `cat` left, under `cat`), and the count follows the headings a teacher can open.
 - A group's `orderMatters` is undefined in older saves, and the output pane reads that as on (`group.orderMatters === false` is the only orderless case).
 - `generateNewSequence` compares a group only to the last one, so groups with the same settings can repeat in a list. Counting filters every group.
 - A sequence in a save is at least one state long, even one saved part way through (MARK-17's R4). An empty one in a damaged state still counts.
@@ -263,7 +263,7 @@ The summary needs the generator's `(any)` label, its default Max Length and spee
 
 Each finding was checked against the code or by throwaway code, and the requirements and notes above carry the result.
 
-- Outputs compared `group.startingState`, which missed outputs generated after the chosen state left the graph, so the filter compares `startingNode` (R6). A shared group can still leave a heading wrong for a later output, and the count follows the heading (Other notes).
+- Outputs compared `group.startingState`, which missed outputs generated after the chosen state left the graph, so the filter compares `startingNode` (R6). In work saved before MARK-37, a shared group can still leave a heading wrong for a later output, and the count follows the heading (Other notes).
 - R10 claimed an emoji is never split; it is counted by code point, so a surrogate pair isn't.
 - The demo's report item frame was 60px, which would clip the summary (R15).
 - Several planned tests could not fail until they were tightened: dropping the authored state, comparing a drawn state by label, Draw mode reading Data mode's order, an authored state sent as a string, the demo frame ignoring a save or staying at 60px, and an escaped label that never reached an answer.

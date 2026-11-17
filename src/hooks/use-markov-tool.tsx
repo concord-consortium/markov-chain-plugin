@@ -189,10 +189,16 @@ export const useMarkovTool = (host: MarkovHost, start?: MarkovToolStart): Markov
   }, [graph, viewMode, markDirty]);
 
   const graphEmpty = useMemo(() => graph.nodes.length === 0, [graph]);
+  // a starting state that leaves the graph goes back to any, and stays there if it returns
+  useLayoutEffect(() => {
+    if (startingState && !graph.nodes.some(node => node.id === startingState)) {
+      setStartingState(defaultStartingState);
+    }
+  }, [graph, startingState]);
 
   // the log names states by their labels; "" is no state, as for any starting state
   const labelOf = useCallback((id: string) => id && (graph.nodes.find(n => n.id === id)?.label ?? id), [graph]);
-  // the starting state's label, "" for none or one no longer in the graph, which generates as none
+  // the starting state's label, "" for any
   const startingLabel = useCallback(() => graph.nodes.find(n => n.id === startingState)?.label ?? "",
     [graph, startingState]);
 

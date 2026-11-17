@@ -1,7 +1,7 @@
 import React, { createRef } from "react";
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { MarkovTool } from "../components/markov-tool";
-import { MarkovToolStart, useMarkovTool } from "./use-markov-tool";
+import { MarkovToolApi, MarkovToolStart, useMarkovTool } from "./use-markov-tool";
 import { useClearGoneSelection } from "../interactive/workspace/use-mode-body";
 import { MarkovHost, MarkovToolHandle } from "../components/host";
 import { GraphData, SequenceGroup, ViewMode } from "../type";
@@ -307,19 +307,6 @@ describe("useMarkovTool's log", () => {
     });
   });
 
-  it("logs no starting state for a play whose starting state the input has taken out", async () => {
-    const host = recordingHost("dataset");
-    const { result } = renderHook(() => useMarkovTool(host));
-    act(() => result.current.handle.dataChanged(["cat", "sat", "cat"]));
-    act(() => result.current.generatorProps.onStartingStateChange({ target: { value: "cat" } } as any));
-    act(() => result.current.handle.dataChanged(["the", "sat", "the"]));
-    host.log.mockClear();
-    await act(async () => result.current.generatorProps.onPlay());
-    await act(async () => jest.advanceTimersByTime(30000));
-    expect(host.log.mock.calls.map(([event, data]) => [event, data?.startingState])).toEqual(
-      [["SequencePlayed", ""], ["SequenceGenerated", ""]]);
-  });
-
   it("logs a renamed starting state's new label for the whole of the next sequence", async () => {
     const host = recordingHost("drawing");
     const { result } = renderHook(() => useMarkovTool(host));
@@ -447,6 +434,106 @@ describe("useMarkovTool's log", () => {
   });
 });
 
+describe("useMarkovTool's starting state", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const chooseStart = (result: { current: MarkovToolApi }, id: string) =>
+    act(() => result.current.generatorProps.onStartingStateChange({ target: { value: id } } as any));
+  const play = async (result: { current: MarkovToolApi }) => {
+    await act(async () => result.current.generatorProps.onPlay());
+    await act(async () => jest.advanceTimersByTime(30000));
+  };
+  const groupStarts = (result: { current: MarkovToolApi }) =>
+    result.current.outputProps.sequenceGroups.map(group => [group.startingState, group.startingNode?.label]);
+
+  it("goes back to any when the input takes its state out, and the next play starts an (any) group", async () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("dataset")));
+    act(() => result.current.handle.dataChanged(["the", "cat", "the", "dog"]));
+    chooseStart(result, "the");
+    await play(result);
+
+    act(() => result.current.handle.dataChanged(["a", "cat", "a", "dog"]));
+    expect(result.current.generatorProps.startingState).toBe("");
+    await play(result);
+    expect(groupStarts(result)).toEqual([["the", "the"], ["", undefined]]);
+  });
+
+  it("goes back to any when its state is deleted from a drawing", async () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("drawing")));
+    act(() => result.current.handle.loadDrawing(drawing, 2));
+    chooseStart(result, "a");
+    await play(result);
+
+    act(() => result.current.view.setGraph(graph => ({
+      nodes: graph.nodes.filter(n => n.id !== "a"), edges: graph.edges.filter(e => e.from !== "a" && e.to !== "a"),
+    })));
+    expect(result.current.generatorProps.startingState).toBe("");
+    await play(result);
+    expect(groupStarts(result)).toEqual([["a", "a"], ["", undefined]]);
+  });
+
+  it("finishes a stepped sequence in its own group when its state leaves the graph", async () => {
+    const host = recordingHost("dataset");
+    const { result } = renderHook(() => useMarkovTool(host));
+    act(() => result.current.handle.dataChanged(["the", "cat", "the", "dog"]));
+    chooseStart(result, "the");
+    await act(async () => result.current.generatorProps.onStep());
+    act(() => result.current.handle.dataChanged(["a", "cat", "a", "dog"]));
+    for (let i = 0; i < 12 && result.current.animating; i++) {
+      await act(async () => result.current.generatorProps.onStep());
+    }
+    expect(result.current.animating).toBe(false);
+    expect(result.current.outputProps.sequenceGroups.map(group => group.sequences.map(s => s[0].label)))
+      .toEqual([["the"]]);
+    expect(host.log).toHaveBeenCalledWith("SequenceGenerated", expect.objectContaining({ startingState: "the" }));
+
+    await play(result);
+    expect(groupStarts(result)).toEqual([["the", "the"], ["", undefined]]);
+  });
+
+  it("stays at any when its state comes back", () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("dataset")));
+    act(() => result.current.handle.dataChanged(["the", "cat", "the"]));
+    chooseStart(result, "the");
+    act(() => result.current.handle.dataChanged(["a", "cat", "a"]));
+    act(() => result.current.handle.dataChanged(["the", "cat", "the"]));
+    expect(result.current.generatorProps.startingState).toBe("");
+  });
+
+  it("logs nothing when it goes back to any", () => {
+    const host = recordingHost("dataset");
+    const { result } = renderHook(() => useMarkovTool(host));
+    act(() => result.current.handle.dataChanged(["the", "cat", "the"]));
+    chooseStart(result, "the");
+    host.log.mockClear();
+    act(() => result.current.handle.dataChanged(["a", "cat", "a"]));
+    expect(result.current.generatorProps.startingState).toBe("");
+    expect(host.log).not.toHaveBeenCalled();
+  });
+
+  it("goes back to any when Back To Main Menu empties the graph", () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("drawing")));
+    act(() => result.current.handle.loadDrawing(drawing, 2));
+    chooseStart(result, "a");
+    act(() => result.current.view.onReturnToMainMenu());
+    act(() => result.current.view.confirmModal?.onOk?.());
+    expect(result.current.graph.nodes).toEqual([]);
+    expect(result.current.generatorProps.startingState).toBe("");
+  });
+
+  it("keeps a drawn state that is renamed", () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("drawing")));
+    act(() => result.current.handle.loadDrawing(drawing, 2));
+    chooseStart(result, "a");
+    act(() => result.current.view.setGraph(graph => ({
+      ...graph, nodes: graph.nodes.map(n => n.id === "a" ? { ...n, label: "A" } : n),
+    })));
+    expect(result.current.graph.nodes.map(n => n.label)).toContain("A");
+    expect(result.current.generatorProps.startingState).toBe("a");
+  });
+});
+
 describe("useMarkovTool's start", () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
@@ -478,7 +565,7 @@ describe("useMarkovTool's start", () => {
   });
 
   it("starts from generator settings, and takes the default of any left out", () => {
-    const tool = startedTool({ generator: {
+    const tool = startedTool({ graph: drawing, generator: {
       startingState: "a", lengthLimit: 9, delimiter: "-", delimiterType: "other", fast: true,
     } });
     expect(tool.current.generatorProps).toMatchObject({
@@ -490,6 +577,12 @@ describe("useMarkovTool's start", () => {
     expect(startedTool({ generator: { delimiter: "-" } }).current.generatorProps).toMatchObject(expected);
     expect(startedTool({ generator: { delimiter: "-", lengthLimit: undefined } }).current.generatorProps)
       .toMatchObject(expected);
+  });
+
+  it("starts at any with a starting state its graph doesn't have, or with no graph", () => {
+    expect(startedTool({ graph: drawing, generator: { startingState: "gone" } }).current.generatorProps.startingState)
+      .toBe("");
+    expect(startedTool({ generator: { startingState: "a" } }).current.generatorProps.startingState).toBe("");
   });
 
   it("starts a Max Length that's out of range at its nearest allowed value, and logs nothing for committing it", () => {
