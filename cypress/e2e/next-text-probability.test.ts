@@ -28,7 +28,8 @@ describe("the Next Text Probability pages", () => {
     cy.get("main").contains("h2", "Graph").should("be.visible");
     cy.get("footer").should("contain.text", `© ${year} The Concord Consortium, Inc.`)
       .find("svg[aria-hidden='true']").should("be.visible");
-    cy.get("footer").should("have.css", "border-top-width", "1px");
+    cy.get("footer").should("have.css", "border-top-width", "1px")
+      .and("have.css", "border-top-color", "rgb(199, 199, 199)");
     openAndCloseAbout();
   });
 
@@ -41,7 +42,8 @@ describe("the Next Text Probability pages", () => {
     cy.get("footer").should("contain.text", `© ${year} The Concord Consortium, Inc.`)
       .find("a").should("have.attr", "href", "https://concord.org/terms-of-use/");
     cy.get("footer svg").should("not.exist");
-    cy.get("footer").should("have.css", "border-top-width", "0px");
+    cy.get("footer").should("have.css", "border-top-width", "1px")
+      .and("have.css", "border-top-color", "rgb(199, 199, 199)");
     cy.get("main").should("have.class", "demo-columns");
     cy.get("body").should("not.contain.text", "Activity Player");
     cy.contains("footer button", "About").click();

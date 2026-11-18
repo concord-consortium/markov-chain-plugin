@@ -42,7 +42,6 @@ The Jira description and AI instructions are the scope, with two changes Doug ma
 | Authoring header | "Markov Chain Interactive" + divider + "Authoring" | "Next Text Probability" + divider + "Authoring" |
 | Authoring page contents | The Activity Player page width choice and a "Report item, full answer" section, with a note that the preview is as the Activity Player shows it | The authoring form, the Standalone link and a full-width preview only; the width choice, teacher's view and report item stay on `demo.html` |
 | Authoring link label | "Standalone link to use outside Activity Player:" | "Link to the interactive with these settings:", with no mention of the Activity Player anywhere on the page |
-| Authoring footer | A 1 px #c7c7c7 rule above the footer | No rule (Doug, 11/17); the interactive page keeps its rule |
 | Interactive page footer rule | Inset 10 px from each edge, inside the page's padding | The window's full width |
 | Dialog paragraph 1 | "The Markov Chain interactive is free, open-source software. Its source code is released under…" | "Next Text Probability is free, open-source software. The Next Text Probability source code is released under…" (CODAP's wording) |
 | Dialog paragraph 2 lead-in | "Your use of the Markov Chain interactive at models-resources.concord.org" | "Your use of Next Text Probability at models-resources.concord.org" |
@@ -73,7 +72,7 @@ The mockup's open question about the host is settled by the repo: every build th
 
 ### Footer
 
-- **R12.** Both new pages end with a footer row, right-aligned, 13 px Lato, text #595959, with a 1 px #c7c7c7 rule above it on `index.html` and none on `authoring.html`: `© {year} The Concord Consortium, Inc.` · `Terms of Use` · `About`, the dots decorative and hidden from screen readers.
+- **R12.** Both new pages end with a footer row, right-aligned, 13 px Lato, text #595959, with a 1 px #c7c7c7 rule above it: `© {year} The Concord Consortium, Inc.` · `Terms of Use` · `About`, the dots decorative and hidden from screen readers.
 - **R13.** `{year}` is the current year from the viewer's clock when the page renders.
 - **R14.** The `index.html` footer alone also shows the full-color Concord logo, 22 px tall, before the copyright line, with empty alt text (the copyright line names Concord). The authoring footer has no logo.
 - **R15.** "Terms of Use" is a link to https://concord.org/terms-of-use/ that opens in a new tab.
@@ -108,7 +107,7 @@ The mockup's open question about the host is settled by the repo: every build th
 
 - **R28.** Unit tests of the shared parts assert: the header's `h1` and its accessible name with and without "Authoring"; the footer's copyright line, in the footer and the dialog, under two different pinned clocks, as literal years; the Terms of Use link's href, target, rel and accessible name; that About opens the dialog named "License & Terms of Use", focused, with the logo; the copy word for word including the curly apostrophe and the two bold lead-ins; each link's literal href, target and rel (none on the mailto) and accessible name; Tab and Shift+Tab wrapping; closing by Esc, × and Close with focus back on About; and that an Escape that closes the dialog reaches no `keydown` listener on the document or the window. Tests that render `App` assert that `page="next-text-probability"` shows the header, the workspace in `main`, and the footer whose About opens the dialog, and still does inside a frame; and that the default page, opened on its own and hosted in each mode, and `report-item.html`, show none of it.
 - **R29.** A unit test of the build's configuration asserts the new pages' titles against the name and separator the header uses, the existing pages' title, and that the new pages load assets from the folder above; a test of the logo file asserts it defines no ids (Jest replaces SVGs with a stub, so a rendered page can't show them).
-- **R30.** A Cypress spec opens both new pages in the dev server and checks their titles, headers, footers and the About dialog as a real modal; that `authoring.html`'s frames load the interactive with no header or footer inside them; and that `authoring.html` has no page width choice or report item, previews at the full width of its column, shows no teacher's view after the interactive saves, says nothing about the Activity Player, and has no rule above its footer while `index.html` has one. The existing demo spec's standalone link tests (the link and its settings, Copy and its status, the copy failures, the long-link warning, refusing a link too long to open, and opening it in Chrome) move to the new spec and run against `authoring.html`, with the link opening `next-text-probability/index.html`. The demo spec instead checks that `demo.html` has its title and no link controls or footer.
+- **R30.** A Cypress spec opens both new pages in the dev server and checks their titles, headers, footers and the About dialog as a real modal; that `authoring.html`'s frames load the interactive with no header or footer inside them; and that `authoring.html` has no page width choice or report item, previews at the full width of its column, shows no teacher's view after the interactive saves, and says nothing about the Activity Player; and that both pages have a rule above their footers. The existing demo spec's standalone link tests (the link and its settings, Copy and its status, the copy failures, the long-link warning, refusing a link too long to open, and opening it in Chrome) move to the new spec and run against `authoring.html`, with the link opening `next-text-probability/index.html`. The demo spec instead checks that `demo.html` has its title and no link controls or footer.
 
 ## Technical Notes
 
@@ -154,10 +153,10 @@ The mockup's open question about the host is settled by the repo: every build th
 **Options considered**: A) keep them, as the mockup's authoring board does; B) drop all three from the new page and keep them on `demo.html`.
 **Decision**: B (Doug, 11/17): R5. A difference from the mockup, listed for Kiley.
 
-### RESOLVED: Activity Player wording and the footer rule on the new authoring page
-**Context**: The new authoring page's users don't know what the Activity Player is, and the link label said "Standalone link to use outside Activity Player:". The mockup draws a rule above the authoring page's footer.
-**Options considered**: A) keep the label and the rule; B) plain wording with no mention of the Activity Player, and no rule above the authoring footer.
-**Decision**: B (Doug, 11/17): R10 and R12. The interactive page's footer keeps its rule.
+### RESOLVED: Activity Player wording on the new authoring page
+**Context**: The new authoring page's users don't know what the Activity Player is, and the link label said "Standalone link to use outside Activity Player:".
+**Options considered**: A) keep the label; B) plain wording with no mention of the Activity Player.
+**Decision**: B (Doug, 11/17): R10. Both footers keep the rule the mockup draws (R12).
 
 ### RESOLVED: demo.html's title
 **Context**: "Demo and Standalone Authoring" describes a page that builds standalone links, which `demo.html` no longer does (R6).

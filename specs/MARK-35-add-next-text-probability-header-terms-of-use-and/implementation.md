@@ -970,7 +970,8 @@ describe("the Next Text Probability pages", () => {
     cy.get("main").contains("h2", "Graph").should("be.visible");
     cy.get("footer").should("contain.text", `© ${year} The Concord Consortium, Inc.`)
       .find("svg[aria-hidden='true']").should("be.visible");
-    cy.get("footer").should("have.css", "border-top-width", "1px");
+    cy.get("footer").should("have.css", "border-top-width", "1px")
+      .and("have.css", "border-top-color", "rgb(199, 199, 199)");
     openAndCloseAbout();
   });
 });
@@ -988,7 +989,7 @@ describe("the Next Text Probability pages", () => {
 - `src/interactive/host-messages.ts`: the storage config becomes optional, for the new page's frames
 - `src/interactive/demo-index.tsx`: new, the `demo.html` entry
 - `src/interactive/next-text-probability/authoring.tsx`: new, the entry
-- `src/interactive/demo.scss`: `$teal` comes from `_dark-teal.scss`; the `h1` rule moves into `.demo-header` and the `h2` rule into `.demo-columns`; the authoring header's padding and label and the footer's padding as the mockup, with no rule above the footer
+- `src/interactive/demo.scss`: `$teal` comes from `_dark-teal.scss`; the `h1` rule moves into `.demo-header` and the `h2` rule into `.demo-columns`; the authoring header's padding and label and the footer's padding as the mockup
 - `webpack.config.js`: the `demo` entry points at `demo-index.tsx`; `demo.html`'s title is "Demo Authoring"; the new entry and page
 - `src/interactive/webpack-pages.test.ts`: the authoring page's title and paths, and `demo.html`'s title
 - `cypress/support/demo-page.ts`: new, `frameBody` and `messageOf`, shared by the two authoring specs
@@ -1114,7 +1115,7 @@ createRoot(document.getElementById("app") as HTMLElement).render(<Demo page="nex
 `demo.scss`: add `@use "dark-teal" as *;` before `@use "visually-hidden";`, delete the `$teal` definition and its comment (the comment moved with the value), replace `$teal` with `$dark-teal` (four places), move the `h1 { margin: 0; font-size: 20px; }` rule from `.demo` into `.demo-header` and delete that rule's `justify-content` and `gap`, which spaced the link group the header no longer holds, and move the `h2 { margin: 10px 0 5px; … }` rule from `.demo` into `.demo-columns`, which holds every `h2` the demo pages have. Left in `.demo`, the two rules would also style the shared header's `h1` and the About dialog's `h2` on the new page, since they have the same specificity and `demo.scss` loads later; checked in the browser, the new header's `h1` is 18 px, the dialog's title sits centered in its bar with no margin, and `demo.html`'s `h1` is still 20 px. The `.demo-standalone` styles stay: the new page's header uses them. At the end of the file:
 
 ```scss
-// the authoring page's header and footer spacing; its footer has no rule above it
+// the authoring page's header and footer spacing
 .demo .page-header {
   padding: 0 12px;
 
@@ -1126,7 +1127,6 @@ createRoot(document.getElementById("app") as HTMLElement).render(<Demo page="nex
 
 .demo .page-footer {
   padding: 8px 16px;
-  border-top: 0;
 }
 ```
 
@@ -1200,7 +1200,8 @@ export const messageOf = (data: unknown) => {
     cy.get("footer").should("contain.text", `© ${year} The Concord Consortium, Inc.`)
       .find("a").should("have.attr", "href", "https://concord.org/terms-of-use/");
     cy.get("footer svg").should("not.exist");
-    cy.get("footer").should("have.css", "border-top-width", "0px");
+    cy.get("footer").should("have.css", "border-top-width", "1px")
+      .and("have.css", "border-top-color", "rgb(199, 199, 199)");
     cy.get("main").should("have.class", "demo-columns");
     cy.get("body").should("not.contain.text", "Activity Player");
     cy.contains("footer button", "About").click();
@@ -1322,7 +1323,7 @@ With the Standalone link on both authoring pages, `demo.html` would keep making 
 As `demo.html`'s copy, the new page kept the page width choice, the teacher's view and the report item, which only matter inside an activity. Doug chose to leave all three to `demo.html` (requirements, R5). Checked in Chrome: the new page previews at its column's full width, and the Cypress test that waits for a save and then looks for the teacher's view passes, and fails when the views are left in.
 
 #### RESOLVED: the new authoring page named the Activity Player
-Its users don't know the Activity Player, but the link label read "Standalone link to use outside Activity Player:". The label, the group's name and the copy status now use plain wording, and a Cypress check asserts the page's text never says "Activity Player". At Doug's request the authoring footer also drops its top rule. Both checked in Chrome.
+Its users don't know the Activity Player, but the link label read "Standalone link to use outside Activity Player:". The label, the group's name and the copy status now use plain wording, and a Cypress check asserts the page's text never says "Activity Player". Checked in Chrome.
 
 ## Self-Review (round 1)
 
