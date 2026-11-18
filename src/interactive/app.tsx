@@ -3,6 +3,9 @@ import { inIframe, setSupportedFeatures, useInitMessage } from "@concord-consort
 import { readAuthoredState } from "./authored-state";
 import { Authoring } from "./authoring";
 import { MarkovInteractiveState } from "./interactive-state";
+import { PageFooter } from "./page/page-footer";
+import { PageHeader } from "./page/page-header";
+import { PageId } from "./page/page-links";
 import { Runtime } from "./runtime";
 import { authoredStateFromSearch } from "./url-settings";
 import { useFrameHeight } from "./use-frame-height";
@@ -50,10 +53,27 @@ const HostedApp = () => {
 
 // Opened directly, as a link from a collection page opens it: no host will send an init message or keep a state,
 // so it takes its settings from its link and leaves the library alone, whose client would only warn and hold messages.
-const StandaloneApp = () => (
-  <div className="markov-interactive">
-    <Runtime authoredState={authoredStateFromSearch(window.location.search)} view="standalone" />
-  </div>
-);
+const StandaloneApp = ({ page }: { page: PageId }) => {
+  const nextText = page === "next-text-probability";
+  const runtime = <Runtime authoredState={authoredStateFromSearch(window.location.search)} view="standalone" />;
+  if (!nextText) {
+    return <div className="markov-interactive">{ runtime }</div>;
+  }
+  return (
+    <div className="standalone-page">
+      <PageHeader />
+      <main className="markov-interactive">{ runtime }</main>
+      <PageFooter showLogo />
+    </div>
+  );
+};
 
-export const App = () => inIframe() ? <HostedApp /> : <StandaloneApp />;
+interface AppProps {
+  // the page the interactive is on
+  page?: PageId;
+}
+
+// Hosts load interactive.html; the Next Text Probability page is never a host's, so in another site's frame it still
+// shows itself rather than waiting for an init message that won't come
+export const App = ({ page = "markov" }: AppProps) =>
+  inIframe() && page === "markov" ? <HostedApp /> : <StandaloneApp page={page} />;

@@ -736,7 +736,7 @@ const StandaloneApp = ({ page }: { page: PageId }) => {
 };
 
 interface AppProps {
-  // which page opened the interactive
+  // the page the interactive is on
   page?: PageId;
 }
 
@@ -776,7 +776,7 @@ createRoot(document.getElementById("app") as HTMLElement).render(<App page="next
 `webpack.config.js`:
 
 ```js
-// the interactive's own pages' title; the authoring pages' titles match their headers (webpack-pages.test.ts)
+// the interactive's own pages' title; the other pages' titles match their headers (webpack-pages.test.ts)
 const interactiveTitle = 'Markov Interactive';
 // …
     entry: {
@@ -844,11 +844,11 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { App } from "./app";
 
-let mockMode = "runtime";
+let mockInitMessage: object | undefined;
 jest.mock("@concord-consortium/lara-interactive-api", () => ({
   ...jest.requireActual("@concord-consortium/lara-interactive-api"),
   inIframe: () => true,
-  useInitMessage: () => ({ mode: mockMode, authoredState: null, interactiveState: null }),
+  useInitMessage: () => mockInitMessage,
   setSupportedFeatures: jest.fn(),
   setHeight: jest.fn(),
 }));
@@ -873,7 +873,7 @@ describe("started by a host", () => {
     ["runtime", "Input"], ["report", "This is a student's saved work. It can't be changed here."],
     ["authoring", "Usable mode(s)"],
   ])("shows no header, footer or About in %s mode", (mode, shown) => {
-    mockMode = mode;
+    mockInitMessage = { mode, authoredState: null, interactiveState: null };
     render(<App />);
     expect(screen.getAllByText(shown).length).toBeGreaterThan(0);
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
@@ -884,6 +884,9 @@ describe("started by a host", () => {
 });
 
 describe("the Next Text Probability page in another site's frame", () => {
+  // a page waiting for a host would show its loading state
+  beforeEach(() => { mockInitMessage = undefined; });
+
   it("shows itself with its header and footer, waiting for no host", () => {
     render(<App page="next-text-probability" />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Next Text Probability$/);
@@ -938,7 +941,6 @@ describe("the build's interactive pages", () => {
 ```ts
 const year = new Date().getFullYear();
 
-// opens About from the footer, checks the dialog is the page's modal, and closes it by Escape
 const openAndCloseAbout = () => {
   cy.contains("footer button", "About").focus();
   cy.focused().click();
