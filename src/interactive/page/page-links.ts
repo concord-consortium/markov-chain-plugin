@@ -16,5 +16,6 @@ export const licensingEmail = "licensing@concord.org";
 
 // between the product's name and a page's own, in the header and the pages' titles
 export const titleSeparator = " | ";
+export const authoringSubtitle = "Authoring";
 
 export const copyrightLine = () => `© ${new Date().getFullYear()} The Concord Consortium, Inc.`;

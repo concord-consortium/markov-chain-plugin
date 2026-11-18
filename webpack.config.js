@@ -38,8 +38,9 @@ module.exports = (env, argv) => {
       main: './src/index.tsx',
       interactive: './src/interactive/index.tsx',
       'report-item': './src/interactive/report-item.tsx',
-      demo: './src/interactive/demo.tsx',
+      demo: './src/interactive/demo-index.tsx',
       'next-text-probability': './src/interactive/next-text-probability/index.tsx',
+      'next-text-probability-authoring': './src/interactive/next-text-probability/authoring.tsx',
       // the Cypress tests' fake CODAP and Activity Player pages are served by the dev server only, never deployed
       ...(devMode ? {
         'fake-codap': './cypress/fake-codap/fake-codap.ts',
@@ -183,7 +184,7 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         filename: 'demo.html',
         template: 'src/interactive/index.html',
-        title: interactiveTitle,
+        title: 'Demo Authoring',
         publicPath: '.',
         chunks: ['demo'],
       }),
@@ -195,6 +196,13 @@ module.exports = (env, argv) => {
         title: 'Next Text Probability',
         publicPath: '..',
         chunks: ['next-text-probability'],
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'next-text-probability/authoring.html',
+        template: 'src/interactive/index.html',
+        title: 'Next Text Probability | Authoring',
+        publicPath: '..',
+        chunks: ['next-text-probability-authoring'],
       }),
       ...(devMode ? [new HtmlWebpackPlugin({
         filename: 'fake-codap.html',

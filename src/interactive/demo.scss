@@ -1,9 +1,8 @@
+@use "dark-teal" as *;
 @use "visually-hidden";
 
 // the authoring column is LARA's authoring column's width, so authors see the room they get there
 $authoring-width: 435px;
-// Concord's dark teal, 7:1 against white as text or as a background under white text
-$teal: #016082;
 
 .demo-visually-hidden {
   @extend %visually-hidden;
@@ -14,17 +13,6 @@ $teal: #016082;
   display: flex;
   flex-direction: column;
   height: 100vh;
-
-  h1 {
-    margin: 0;
-    font-size: 20px;
-  }
-
-  h2 {
-    margin: 10px 0 5px;
-    font-size: 14px;
-    font-weight: bold;
-  }
 
   iframe {
     display: block;
@@ -38,6 +26,12 @@ $teal: #016082;
   gap: 20px;
   min-height: 0;
   padding: 0 10px;
+
+  h2 {
+    margin: 10px 0 5px;
+    font-size: 14px;
+    font-weight: bold;
+  }
 }
 
 // as wide as the frame and its scrollbar, so the scrollbar takes none of the frame's width
@@ -77,8 +71,8 @@ $teal: #016082;
 
   label {
     padding: 4px 10px;
-    border: 1px solid $teal;
-    color: $teal;
+    border: 1px solid $dark-teal;
+    color: $dark-teal;
     cursor: pointer;
 
     & + label {
@@ -95,7 +89,7 @@ $teal: #016082;
 
     &.selected {
       color: white;
-      background-color: $teal;
+      background-color: $dark-teal;
     }
 
     &:focus-within {
@@ -129,7 +123,12 @@ $teal: #016082;
   gap: 20px;
   padding: 10px;
   color: white;
-  background-color: $teal;
+  background-color: $dark-teal;
+
+  h1 {
+    margin: 0;
+    font-size: 20px;
+  }
 }
 
 .demo-standalone {
@@ -143,7 +142,7 @@ $teal: #016082;
     border: 1px solid white;
     border-radius: 4px;
     font: inherit;
-    color: $teal;
+    color: $dark-teal;
     background-color: white;
     text-decoration: none;
     white-space: nowrap;
@@ -171,4 +170,19 @@ $teal: #016082;
 .demo-report-item {
   width: 100%;
   height: 200px;
+}
+
+// the authoring page's header and footer as its mockup spaces them; the footer has no rule above it
+.demo .page-header {
+  padding: 0 12px;
+
+  .demo-standalone-warning {
+    font-size: 14px;
+    font-weight: bold;
+  }
+}
+
+.demo .page-footer {
+  padding: 8px 16px;
+  border-top: 0;
 }
