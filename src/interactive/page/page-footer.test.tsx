@@ -1,14 +1,18 @@
 import React from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { newTabNote as newTab } from "./external-link";
 import { PageFooter } from "./page-footer";
 
+const newTab = " (opens in a new tab)";
 const paragraph = (text: string) => (_: string, element: Element | null) =>
   element?.tagName === "P" && element.textContent === text;
 
 describe("the page footer and its About dialog", () => {
   beforeAll(() => {
-    HTMLDialogElement.prototype.showModal ??= function(this: HTMLDialogElement) { this.open = true; };
+    // a browser lets a modal dialog take focus itself, which jsdom allows only an element with a tabindex
+    HTMLDialogElement.prototype.showModal ??= function(this: HTMLDialogElement) {
+      this.open = true;
+      this.tabIndex = -1;
+    };
     HTMLDialogElement.prototype.close ??= function(this: HTMLDialogElement) { this.open = false; };
   });
 
@@ -107,6 +111,19 @@ describe("the page footer and its About dialog", () => {
     }
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(about).toHaveFocus();
+  });
+
+  it("keeps a held Escape's repeats at About from the workspace, and hands it a new press", () => {
+    renderPage();
+    const { about, dialog } = openAbout();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    const heard = jest.fn();
+    document.addEventListener("keydown", heard);
+    fireEvent.keyDown(about, { key: "Escape", repeat: true });
+    expect(heard).not.toHaveBeenCalled();
+    fireEvent.keyDown(about, { key: "Escape" });
+    document.removeEventListener("keydown", heard);
+    expect(heard).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the Escape that closes the dialog from the workspace", () => {

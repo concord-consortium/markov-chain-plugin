@@ -28,6 +28,13 @@ describe("the build's interactive pages", () => {
     expect(pages["demo.html"].title).toBe(demoPageTitle);
   });
 
+  it("lays the Next Text Probability interactive out at a phone's width, and no other page", () => {
+    const { pages } = builtPages();
+    expect(pages["next-text-probability/index.html"].meta).toEqual({ viewport: "width=device-width, initial-scale=1" });
+    ["interactive.html", "report-item.html", "demo.html", "next-text-probability/authoring.html"].forEach(page =>
+      expect(pages[page].meta).toBeUndefined());
+  });
+
   it("loads the Next Text Probability pages' assets from the folder above", () => {
     const { entries, pages } = builtPages();
     ["next-text-probability/index.html", "next-text-probability/authoring.html"].forEach(page => {

@@ -16,6 +16,13 @@ export const PageFooter = ({ showLogo }: Props) => {
   const [aboutOpen, setAboutOpen] = useState(false);
   const aboutRef = useRef<HTMLButtonElement>(null);
 
+  // a held Escape that closed the dialog keeps repeating at About, and the workspace mustn't take those as its own
+  const handleAboutKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && e.repeat) {
+      e.stopPropagation();
+    }
+  };
+
   return (
     <>
       <footer className="page-footer">
@@ -24,7 +31,8 @@ export const PageFooter = ({ showLogo }: Props) => {
         <span aria-hidden="true">·</span>
         <ExternalLink href={termsOfUseUrl}>Terms of Use</ExternalLink>
         <span aria-hidden="true">·</span>
-        <button type="button" className="page-footer-about" ref={aboutRef} onClick={() => setAboutOpen(true)}>
+        <button type="button" className="page-footer-about" ref={aboutRef} onClick={() => setAboutOpen(true)}
+          onKeyDown={handleAboutKeyDown}>
           About
         </button>
       </footer>

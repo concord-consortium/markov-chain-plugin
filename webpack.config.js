@@ -194,6 +194,8 @@ module.exports = (env, argv) => {
         filename: 'next-text-probability/index.html',
         template: 'src/interactive/index.html',
         title: 'Next Text Probability',
+        // phones lay the page out at their own width, where the workspace stacks its panes; hosts' frames ignore it
+        meta: { viewport: 'width=device-width, initial-scale=1' },
         publicPath: '..',
         chunks: ['next-text-probability'],
       }),

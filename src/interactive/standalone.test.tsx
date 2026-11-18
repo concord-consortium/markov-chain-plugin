@@ -79,7 +79,9 @@ describe("opened outside a host", () => {
     document.body.innerHTML = "<div id=\"app\"></div>";
     await act(async () => { await import("./report-item"); });
     expect(screen.getByText(/It shows a student's answer in the class dashboard/)).toBeInTheDocument();
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "About" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Next Text Probability/)).not.toBeInTheDocument();
     expect(warn).not.toHaveBeenCalled();
   });

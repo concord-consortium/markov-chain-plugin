@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { App } from "./app";
 
 let mockInitMessage: object | undefined;
@@ -45,10 +45,17 @@ describe("the Next Text Probability page in another site's frame", () => {
   // a page waiting for a host would show its loading state
   beforeEach(() => { mockInitMessage = undefined; });
 
-  it("shows itself with its header and footer, waiting for no host", () => {
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal ??= function(this: HTMLDialogElement) { this.open = true; };
+    HTMLDialogElement.prototype.close ??= function(this: HTMLDialogElement) { this.open = false; };
+  });
+
+  it("shows itself with its header, workspace and footer, waiting for no host", () => {
     render(<App page="next-text-probability" />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Next Text Probability$/);
-    expect(screen.getByRole("contentinfo")).toBeInTheDocument();
+    expect(within(screen.getByRole("main")).getAllByRole("region")).toHaveLength(4);
     expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("contentinfo")).getByRole("button", { name: "About" }));
+    expect(screen.getByRole("dialog", { name: "License & Terms of Use" })).toBeInTheDocument();
   });
 });

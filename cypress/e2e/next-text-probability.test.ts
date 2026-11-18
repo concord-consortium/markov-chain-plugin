@@ -54,17 +54,20 @@ describe("the Next Text Probability pages", () => {
   });
 
   it("previews the interactive at full width, with none of the Activity Player's views", () => {
+    // only a save after the toggle counts, so the check below waits for the one the toggle makes
+    let toggled = false;
     let saved = false;
     cy.visit("/next-text-probability/authoring.html", {
       onBeforeLoad: win => win.addEventListener("message", event => {
-        saved ||= messageOf(event.data)?.type === "interactiveState";
+        saved ||= toggled && messageOf(event.data)?.type === "interactiveState";
       })
     });
     cy.get(".demo-widths").should("not.exist");
     cy.get("iframe[title='Report item']").should("not.exist");
     cy.get("iframe[title='Interactive']").invoke("outerWidth")
       .then(width => cy.get(".demo-runtime-frame").invoke("width").should("be.closeTo", width, 2));
-    frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle").click();
+    frameBody("Interactive").find(".workspace-body:not([hidden]) .probabilities-toggle")
+      .then(() => { toggled = true; }).click();
     cy.wrap(null, { timeout: 5000 }).should(() => expect(saved).to.equal(true));
     cy.contains("h2", "Teacher's view").should("not.exist");
     cy.get("iframe[title=\"Teacher's view\"]").should("not.exist");
@@ -124,6 +127,8 @@ describe("the authoring page's standalone link", () => {
   it("announces a second copy that repeats the first", () => {
     cy.visit("/next-text-probability/authoring.html");
     cy.window().then(win => cy.stub(win.navigator.clipboard, "writeText").resolves());
+    // the result shows on a real animation frame, and only the 2 seconds are faked
+    cy.clock(0, ["setTimeout", "clearTimeout"]);
     // each text the status shows in a rendered frame, in order: a screen reader sees only what a frame shows
     const announced: string[] = [];
     cy.window().then(win => {
@@ -167,19 +172,20 @@ describe("the authoring page's standalone link", () => {
     // val() sets the text without the form noticing, and the typed letter makes the form save all of it
     frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(1000)).type("b");
     standaloneLink().invoke("attr", "href").its("length").should("be.greaterThan", 2000);
-    cy.get(".demo-standalone-long-words").should("be.visible")
+    cy.get(".demo-standalone-long").should("be.visible")
       .and("have.text", "Long link: some sites may cut it short").and("have.attr", "aria-hidden", "true");
-    cy.get(".demo-standalone-long .demo-visually-hidden").should("contain.text", "longer than 2,000 characters");
+    cy.get(".demo-standalone-long-sentence").should("have.attr", "aria-live", "polite")
+      .and("contain.text", "longer than 2,000 characters");
     cy.get(".demo-standalone button").should("be.enabled");
     cy.get("header").invoke("outerHeight").should("equal", 44);
   });
 
-  it("leaves a warning's words out of a narrow header, telling only a screen reader", () => {
+  it("leaves a long link's advice out of a narrow header, telling only a screen reader", () => {
     cy.viewport(700, 660);
     cy.visit("/next-text-probability/authoring.html");
     frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(1000)).type("b");
-    cy.get(".demo-standalone-long .demo-visually-hidden").should("contain.text", "longer than 2,000 characters");
-    cy.get(".demo-standalone-long-words").should("not.be.visible");
+    cy.get(".demo-standalone-long-sentence").should("contain.text", "longer than 2,000 characters");
+    cy.get(".demo-standalone-long").should("not.be.visible");
     cy.get("header").invoke("outerHeight").should("equal", 44);
   });
 
@@ -187,14 +193,23 @@ describe("the authoring page's standalone link", () => {
     cy.viewport(800, 660);
     cy.visit("/next-text-probability/authoring.html");
     frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(4100)).type("b");
-    cy.get(".demo-standalone-long-words").should("be.visible")
+    cy.get(".demo-standalone-long").should("be.visible")
       .and("have.text", "Too long to open: shorten the starting text");
-    cy.get(".demo-standalone-long .demo-visually-hidden").should("contain.text", "too long to open")
+    cy.get(".demo-standalone-long-sentence").should("contain.text", "too long to open")
       .and("contain.text", "over 8,192 characters");
     cy.get("header").invoke("outerHeight").should("equal", 44);
     cy.get(".demo-standalone button").should("be.disabled");
     standaloneLink().should("have.attr", "aria-disabled", "true");
     standaloneLink().should("not.have.attr", "href");
+  });
+
+  it("keeps saying why a refused link is off in a narrow header", () => {
+    cy.viewport(700, 660);
+    cy.visit("/next-text-probability/authoring.html");
+    frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(4100)).type("b");
+    cy.get(".demo-standalone-long").should("be.visible")
+      .and("have.text", "Too long to open: shorten the starting text");
+    cy.get(".demo-standalone button").should("be.disabled");
   });
 
   // Electron's window.open gives Cypress no window; the CI job runs Chrome

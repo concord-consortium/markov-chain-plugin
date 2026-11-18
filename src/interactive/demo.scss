@@ -180,9 +180,10 @@ $authoring-width: 435px;
   }
 }
 
-// below 800 px a warning's words have no room beside the link's label; a screen reader still hears the warning
+// below 800 px a long link's advice has no room beside the link's label, and a screen reader still hears it; a
+// refused link's warning stays, since it says why Copy and Open are off
 @media (max-width: 799px) {
-  .demo .page-header .demo-standalone-long-words {
+  .demo .page-header .demo-standalone-long:not(.demo-standalone-refused) {
     display: none;
   }
 }

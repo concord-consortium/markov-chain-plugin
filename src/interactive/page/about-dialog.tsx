@@ -48,7 +48,7 @@ export const AboutDialog = ({ onClose, returnFocusTo }: Props) => {
   };
 
   return (
-    <dialog className="about-dialog" ref={dialogRef} tabIndex={-1} aria-labelledby={titleId}
+    <dialog className="about-dialog" ref={dialogRef} aria-labelledby={titleId}
       onCancel={handleCancel} onKeyDown={handleKeyDown}>
       <div className="about-dialog-title-bar">
         <h2 id={titleId}>License &amp; Terms of Use</h2>

@@ -76,6 +76,20 @@ const interactivePaths: Record<PageId, string> = {
 // the link group's label; the page's users don't know the Activity Player, so nothing here names it
 const linkLabel = "Link to the interactive with these settings:";
 
+// what a link of this length warns, in a few words beside the label and in full for a screen reader
+const linkWarning = (tooLong: boolean, length: number) => {
+  if (tooLong) {
+    return { refused: true, words: "Too long to open: shorten the starting text",
+      sentence: "This link is too long to open: the deployed site refuses links over " +
+        `${maxLinkPathLength.toLocaleString("en-US")} characters. Shorten the starting text to make one.` };
+  }
+  if (length > longLinkLength) {
+    return { refused: false, words: "Long link: some sites may cut it short",
+      sentence: `This link is longer than ${longLinkLength.toLocaleString("en-US")} characters, mostly its starting ` +
+        "text, and some sites and email programs cut long links short." };
+  }
+};
+
 // The Next Text Probability page with the authoring form's settings, for a collection page or any page outside the
 // Activity Player. The page is beside this one, so the link names the same branch or version.
 const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
@@ -83,6 +97,7 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
     window.location.href);
   const link = url.href;
   const tooLong = isLinkTooLong(url.pathname, url.search);
+  const warning = linkWarning(tooLong, link.length);
   const [copyResult, setCopyResult] = useState<{ copied: boolean }>();
 
   useEffect(() => {
@@ -103,29 +118,13 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
       .then(() => showCopyResult(true), () => showCopyResult(false));
   };
 
-  // screen readers may not announce the focused button's new text, so the status says it too; a long-link warning
-  // shows a few words, so the header keeps its height, and a screen reader hears the whole of it
+  // screen readers may not announce the focused button's new text, so the status says it too. A warning appears
+  // while the author types in the authoring frame, so its live region announces it there.
   return (
     <div className="demo-standalone" role="group" aria-label="Link to the interactive">
-      { tooLong ? (
-        <p className="demo-standalone-long">
-          <span className="demo-standalone-long-words" aria-hidden="true">
-            Too long to open: shorten the starting text
-          </span>
-          <span className="demo-visually-hidden">
-            This link is too long to open: the deployed site refuses links over
-            { " " }{ maxLinkPathLength.toLocaleString("en-US") } characters. Shorten the starting text to make one.
-          </span>
-        </p>
-      ) : link.length > longLinkLength && (
-        <p className="demo-standalone-long">
-          <span className="demo-standalone-long-words" aria-hidden="true">
-            Long link: some sites may cut it short
-          </span>
-          <span className="demo-visually-hidden">
-            This link is longer than { longLinkLength.toLocaleString("en-US") } characters, mostly its starting text,
-            and some sites and email programs cut long links short.
-          </span>
+      { warning && (
+        <p className={`demo-standalone-long${warning.refused ? " demo-standalone-refused" : ""}`} aria-hidden="true">
+          { warning.words }
         </p>
       ) }
       <p id="demo-standalone-warning" className="demo-standalone-warning">{ linkLabel }</p>
@@ -138,6 +137,9 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
       </a>
       <span role="status" className="demo-visually-hidden">
         { copyResult && (copyResult.copied ? "Link copied" : "The link couldn't be copied") }
+      </span>
+      <span aria-live="polite" className="demo-visually-hidden demo-standalone-long-sentence">
+        { warning?.sentence }
       </span>
     </div>
   );
