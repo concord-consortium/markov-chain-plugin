@@ -1,8 +1,8 @@
 import React from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { newTabNote as newTab } from "./external-link";
 import { PageFooter } from "./page-footer";
 
-const newTab = " (opens in a new tab)";
 const paragraph = (text: string) => (_: string, element: Element | null) =>
   element?.tagName === "P" && element.textContent === text;
 
@@ -92,6 +92,8 @@ describe("the page footer and its About dialog", () => {
     expect(close).toHaveFocus();
     fireEvent.keyDown(close, { key: "Tab" });
     expect(x).toHaveFocus();
+    fireEvent.keyDown(x, { key: "Tab", shiftKey: true });
+    expect(close).toHaveFocus();
   });
 
   it.each(["Escape", "×", "Close"])("closes by %s and gives focus back to About", how => {

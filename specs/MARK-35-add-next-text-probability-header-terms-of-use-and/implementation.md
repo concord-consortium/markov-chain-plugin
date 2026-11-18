@@ -115,10 +115,13 @@ interface Props {
   children: React.ReactNode;
 }
 
+// what a screen reader hears after a link that opens in a new tab
+export const newTabNote = " (opens in a new tab)";
+
 // a link that opens in a new tab, and says so to a screen reader, as CODAP's ExternalLink does
 export const ExternalLink = ({ href, children }: Props) => (
   <a href={href} target="_blank" rel="noopener noreferrer">
-    { children }<span className="page-visually-hidden"> (opens in a new tab)</span>
+    { children }<span className="page-visually-hidden">{ newTabNote }</span>
   </a>
 );
 ```
@@ -539,9 +542,9 @@ describe("the page header", () => {
 ```tsx
 import React from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { newTabNote as newTab } from "./external-link";
 import { PageFooter } from "./page-footer";
 
-const newTab = " (opens in a new tab)";
 const paragraph = (text: string) => (_: string, element: Element | null) =>
   element?.tagName === "P" && element.textContent === text;
 
@@ -631,6 +634,8 @@ describe("the page footer and its About dialog", () => {
     expect(close).toHaveFocus();
     fireEvent.keyDown(close, { key: "Tab" });
     expect(x).toHaveFocus();
+    fireEvent.keyDown(x, { key: "Tab", shiftKey: true });
+    expect(close).toHaveFocus();
   });
 
   it.each(["Escape", "×", "Close"])("closes by %s and gives focus back to About", how => {
@@ -736,7 +741,6 @@ const StandaloneApp = ({ page }: { page: PageId }) => {
 };
 
 interface AppProps {
-  // the page the interactive is on
   page?: PageId;
 }
 
@@ -973,7 +977,7 @@ describe("the Next Text Probability pages", () => {
 **Summary**: `Demo` takes the same `page` prop and stays in `demo.tsx`, whose two mounting lines move to a new `demo-index.tsx` entry. A second new entry mounts it as `next-text-probability/authoring.html` with the shared header ("Next Text Probability | Authoring", the Standalone link at its right) and footer, framing `../interactive.html`, with none of the Activity Player's views (page widths, teacher's view, report item). The Standalone link now opens `next-text-probability/index.html` and appears only on this page: `demo.html` keeps its own header with its title alone, retitled "Demo Authoring". The link's Cypress tests move with it to the new page, and the README lists the two new pages and says where links are built. Covers R1, R2, R5, R6, R8, R10, R11, R17, R25 and R27, and R28 to R30 as they apply to this page.
 
 **Files affected**:
-- `src/interactive/page/page-links.ts`: adds `authoringSubtitle`
+- `src/interactive/page/page-links.ts`: adds `authoringSubtitle` and `demoPageTitle`
 - `src/interactive/demo.tsx`: exports `Demo` with the `page` prop; no longer mounts it; the Standalone link only on the new page, pointing at `index.html`; the page widths, teacher's view and report item only on `demo.html`; the new page's columns in `main` and its frames without object storage; `demo.html`'s title becomes "Demo Authoring"
 - `src/interactive/host-messages.ts`: the storage config becomes optional, for the new page's frames
 - `src/interactive/demo-index.tsx`: new, the `demo.html` entry
@@ -990,15 +994,16 @@ describe("the Next Text Probability pages", () => {
 
 Keeping `Demo` in `demo.tsx` keeps its diff to the changes; moving it to a new file instead shows as the whole file deleted and re-added.
 
-`page-links.ts`: `export const authoringSubtitle = "Authoring";` after `titleSeparator`.
+`page-links.ts`: `export const authoringSubtitle = "Authoring";` after `titleSeparator`, and after it, with the comment "demo.html's title, in its header and, from webpack.config.js, its tab", `export const demoPageTitle = "Demo Authoring";`, so the header and the test of the build's titles share one value. `external-link.tsx` exports the hidden text as `newTabNote` (" (opens in a new tab)", with the comment "what a screen reader hears after a link that opens in a new tab"), which `ExternalLink`, the Open link and `page-footer.test.tsx` (as `newTab`) use.
 
 `src/interactive/demo.tsx`:
 
 ```tsx
 // imports: drop createRoot; add
+import { newTabNote } from "./page/external-link";
 import { PageFooter } from "./page/page-footer";
 import { PageHeader } from "./page/page-header";
-import { authoringSubtitle, PageId } from "./page/page-links";
+import { authoringSubtitle, demoPageTitle, PageId } from "./page/page-links";
 
 interface HostedFrameProps {
   // interactive.html, from the page's folder
@@ -1018,8 +1023,6 @@ const HostedFrame = ({ src, objectStorage, title, mode, authoredState, getIntera
   }, [src, objectStorage, mode, authoredState, getInteractiveState, onMessage]);
   // …
 };
-
-const pageTitle = "Demo Authoring";
 
 // where each form of the page finds the interactive it frames
 const interactivePaths: Record<PageId, string> = {
@@ -1049,7 +1052,7 @@ export const Demo = ({ page = "markov" }: { page?: PageId }) => {
   const frameWidth = apViews ? demoWidths.find(w => w.id === widthId)?.frameWidth : undefined;
   // the page its link opens is never hosted, so has no object storage; its preview has none either, to match
   const objectStorage = !nextText;
-  // the Next Text Probability page's columns are its main content, beside its banner and contentinfo
+  // the page's main landmark, between its header and footer
   const Columns = nextText ? "main" : "div";
 
   return (
@@ -1062,7 +1065,7 @@ export const Demo = ({ page = "markov" }: { page?: PageId }) => {
         )
         : (
           <header className="demo-header">
-            <h1>{ pageTitle }</h1>
+            <h1>{ demoPageTitle }</h1>
           </header>
         ) }
       { /* the columns as they are, in <Columns className="demo-columns">, each HostedFrame given */ }
@@ -1076,9 +1079,9 @@ export const Demo = ({ page = "markov" }: { page?: PageId }) => {
 };
 ```
 
-`StandaloneLink`'s wording (R10): `linkLabel` replaces `standaloneWarning` in the label paragraph, the group's `aria-label` becomes "Link to the interactive", and the status says "Link copied" or "The link couldn't be copied". The Open link gets `<span className="demo-visually-hidden"> (opens in a new tab)</span>` after "Open" (R21). The class names and the `demo-standalone-warning` id stay, since the styles and `aria-describedby` use them.
+`StandaloneLink`'s wording (R10): `linkLabel` replaces `standaloneWarning` in the label paragraph, the group's `aria-label` becomes "Link to the interactive", and the status says "Link copied" or "The link couldn't be copied". The Open link gets `<span className="demo-visually-hidden">{ newTabNote }</span>` after "Open" (R21). The class names and the `demo-standalone-warning` id stay, since the styles and `aria-describedby` use them.
 
-The three `HostedFrame`s (Authoring, Interactive, Teacher's view) each get `src={interactiveSrc}` and `objectStorage={objectStorage}` as their first props, keeping `src`, `objectStorage`, `title` and `mode` on the opening line and moving the rest to the lines after it to stay within 120 characters (the teacher's view wraps after `key={report.saves}`); the report item's `srcDoc` frame is unchanged apart from its wrapper (its `srcDoc` expression wraps after `report?.state,` at 120 characters). On the new page the width state is still read from `?width=` but never used, and saves still reach `report`, which only `demo.html` shows; the preview's restarts keep typed input as before. `pageTitle` becomes "Demo Authoring" (R6), for the header; the tab's title is in `demo.html` itself (R8). The two lines at the end of the file (`document.title = pageTitle;` and the `createRoot(…).render(<Demo />)`) are deleted: mounting moves to the entries. `StandaloneLink` is otherwise unchanged; its long-link checks measure the new path, which is 16 characters longer than `interactive.html`.
+The three `HostedFrame`s (Authoring, Interactive, Teacher's view) each get `src={interactiveSrc}` and `objectStorage={objectStorage}` as their first props, keeping `src`, `objectStorage`, `title` and `mode` on the opening line and moving the rest to the lines after it to stay within 120 characters (the teacher's view wraps after `key={report.saves}`); the report item's `srcDoc` frame is unchanged apart from its wrapper (its `srcDoc` expression wraps after `report?.state,` at 120 characters). On the new page the width state is still read from `?width=` but never used, and saves still reach `report`, which only `demo.html` shows; the preview's restarts keep typed input as before. `pageTitle` is replaced by `demoPageTitle`, "Demo Authoring" (R6), for the header; the tab's title is in `demo.html` itself (R8). The two lines at the end of the file (`document.title = pageTitle;` and the `createRoot(…).render(<Demo />)`) are deleted: mounting moves to the entries. `StandaloneLink` is otherwise unchanged; its long-link checks measure the new path, which is 16 characters longer than `interactive.html`.
 
 `src/interactive/host-messages.ts`: `initInteractiveMessage` takes a fourth parameter, `objectStorage = true`, and includes `objectStorageConfig` only when it is true (`...(objectStorage ? { objectStorageConfig: { version: 1, type: "demo" } } : {})`), so `fake-ap.ts` is unchanged. Its header comment's last sentence becomes "Their object storage is the library's in-memory store, unless the page asks for none.", wrapped after "store, unless".
 
@@ -1102,10 +1105,10 @@ import { Demo } from "../demo";
 createRoot(document.getElementById("app") as HTMLElement).render(<Demo page="next-text-probability" />);
 ```
 
-`demo.scss`: add `@use "dark-teal" as *;` before `@use "visually-hidden";`, delete the `$teal` definition and its comment (the comment moved with the value), replace `$teal` with `$dark-teal` (four places), move the `h1 { margin: 0; font-size: 20px; }` rule from `.demo` into `.demo-header`, and move the `h2 { margin: 10px 0 5px; … }` rule from `.demo` into `.demo-columns`, which holds every `h2` the demo pages have. Left in `.demo`, the two rules would also style the shared header's `h1` and the About dialog's `h2` on the new page, since they have the same specificity and `demo.scss` loads later; checked in the browser, the new header's `h1` is 18 px, the dialog's title sits centered in its bar with no margin, and `demo.html`'s `h1` is still 20 px. The `.demo-standalone` styles stay: the new page's header uses them. At the end of the file:
+`demo.scss`: add `@use "dark-teal" as *;` before `@use "visually-hidden";`, delete the `$teal` definition and its comment (the comment moved with the value), replace `$teal` with `$dark-teal` (four places), move the `h1 { margin: 0; font-size: 20px; }` rule from `.demo` into `.demo-header` and delete that rule's `justify-content` and `gap`, which spaced the link group the header no longer holds, and move the `h2 { margin: 10px 0 5px; … }` rule from `.demo` into `.demo-columns`, which holds every `h2` the demo pages have. Left in `.demo`, the two rules would also style the shared header's `h1` and the About dialog's `h2` on the new page, since they have the same specificity and `demo.scss` loads later; checked in the browser, the new header's `h1` is 18 px, the dialog's title sits centered in its bar with no margin, and `demo.html`'s `h1` is still 20 px. The `.demo-standalone` styles stay: the new page's header uses them. At the end of the file:
 
 ```scss
-// the authoring page's header and footer as its mockup spaces them; the footer has no rule above it
+// the authoring page's header and footer spacing; its footer has no rule above it
 .demo .page-header {
   padding: 0 12px;
 
@@ -1121,7 +1124,7 @@ createRoot(document.getElementById("app") as HTMLElement).render(<Demo page="nex
 }
 ```
 
-`webpack.config.js`: the `demo.html` page's `title: interactiveTitle` becomes `title: 'Demo Authoring'` (R8), and the "keeps the interactive's own pages' title" test drops `demo.html` from its list and asserts that title for it instead; `demo: './src/interactive/demo-index.tsx'`, `'next-text-probability-authoring': './src/interactive/next-text-probability/authoring.tsx'` in `entry`, and after the new interactive page:
+`webpack.config.js`: the `demo.html` page's `title: interactiveTitle` becomes `title: 'Demo Authoring'` (R8), and the "keeps the interactive's own pages' title" test drops `demo.html` from its list and asserts `demoPageTitle` for it instead; `demo: './src/interactive/demo-index.tsx'`, `'next-text-probability-authoring': './src/interactive/next-text-probability/authoring.tsx'` in `entry`, and after the new interactive page:
 
 ```js
       new HtmlWebpackPlugin({

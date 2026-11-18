@@ -3,7 +3,7 @@
  */
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import webpackConfig from "../../webpack.config.js";
-import { authoringSubtitle, productName, titleSeparator } from "./page/page-links";
+import { authoringSubtitle, demoPageTitle, productName, titleSeparator } from "./page/page-links";
 
 // the pages the production build writes, by file name
 const builtPages = () => {
@@ -25,7 +25,7 @@ describe("the build's interactive pages", () => {
     const { pages } = builtPages();
     ["interactive.html", "report-item.html"].forEach(page =>
       expect(pages[page].title).toBe("Markov Interactive"));
-    expect(pages["demo.html"].title).toBe("Demo Authoring");
+    expect(pages["demo.html"].title).toBe(demoPageTitle);
   });
 
   it("loads the Next Text Probability pages' assets from the folder above", () => {

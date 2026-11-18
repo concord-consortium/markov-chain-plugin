@@ -18,4 +18,7 @@ export const licensingEmail = "licensing@concord.org";
 export const titleSeparator = " | ";
 export const authoringSubtitle = "Authoring";
 
+// demo.html's title, in its header and, from webpack.config.js, its tab
+export const demoPageTitle = "Demo Authoring";
+
 export const copyrightLine = () => `© ${new Date().getFullYear()} The Concord Consortium, Inc.`;

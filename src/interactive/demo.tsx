@@ -4,9 +4,10 @@ import { readAuthoredState } from "./authored-state";
 import { interactiveStateVersion, readInteractiveState } from "./interactive-state";
 import { demoWidths, DemoWidthId, readDemoWidth } from "./demo-widths";
 import { HostedMode, initInteractiveMessage } from "./host-messages";
+import { newTabNote } from "./page/external-link";
 import { PageFooter } from "./page/page-footer";
 import { PageHeader } from "./page/page-header";
-import { authoringSubtitle, PageId } from "./page/page-links";
+import { authoringSubtitle, demoPageTitle, PageId } from "./page/page-links";
 import { reportSummaryHtml } from "./report-summary";
 import { isLinkTooLong, longLinkLength, maxLinkPathLength, searchFromAuthoredState } from "./url-settings";
 
@@ -66,8 +67,6 @@ const HostedFrame = ({ src, objectStorage, title, mode, authoredState, getIntera
   return <iframe ref={ref} title={title} className={`hosted-frame ${mode}`} style={{ width, height }} />;
 };
 
-const pageTitle = "Demo Authoring";
-
 // where each form of the page finds the interactive it frames
 const interactivePaths: Record<PageId, string> = {
   markov: "interactive.html",
@@ -124,7 +123,7 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
       </button>
       <a href={tooLong ? undefined : link} aria-disabled={tooLong || undefined} target="_blank"
         rel="noopener noreferrer" aria-describedby="demo-standalone-warning">
-        Open<span className="demo-visually-hidden"> (opens in a new tab)</span>
+        Open<span className="demo-visually-hidden">{ newTabNote }</span>
       </a>
       <span role="status" className="demo-visually-hidden">
         { copyResult && (copyResult.copied ? "Link copied" : "The link couldn't be copied") }
@@ -182,7 +181,7 @@ export const Demo = ({ page = "markov" }: { page?: PageId }) => {
   const frameWidth = apViews ? demoWidths.find(w => w.id === widthId)?.frameWidth : undefined;
   // the page its link opens is never hosted, so has no object storage; its preview has none either, to match
   const objectStorage = !nextText;
-  // the Next Text Probability page's columns are its main content, beside its banner and contentinfo
+  // the page's main landmark, between its header and footer
   const Columns = nextText ? "main" : "div";
 
   return (
@@ -195,7 +194,7 @@ export const Demo = ({ page = "markov" }: { page?: PageId }) => {
         )
         : (
           <header className="demo-header">
-            <h1>{ pageTitle }</h1>
+            <h1>{ demoPageTitle }</h1>
           </header>
         ) }
       <Columns className="demo-columns">

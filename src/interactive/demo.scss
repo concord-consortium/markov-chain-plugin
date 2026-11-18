@@ -119,8 +119,6 @@ $authoring-width: 435px;
   display: flex;
   flex: none;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
   padding: 10px;
   color: white;
   background-color: $dark-teal;
@@ -172,7 +170,7 @@ $authoring-width: 435px;
   height: 200px;
 }
 
-// the authoring page's header and footer as its mockup spaces them; the footer has no rule above it
+// the authoring page's header and footer spacing; its footer has no rule above it
 .demo .page-header {
   padding: 0 12px;
 

@@ -69,7 +69,6 @@ const StandaloneApp = ({ page }: { page: PageId }) => {
 };
 
 interface AppProps {
-  // the page the interactive is on
   page?: PageId;
 }
 
