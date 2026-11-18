@@ -183,8 +183,8 @@ export const AboutDialog = ({ onClose, returnFocusTo }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
-  // the browser would focus the first link, partway through the copy, and gives focus back only after Escape; focus
-  // can return only once the dialog no longer holds the rest of the page inert
+  // the browser focuses the first link, partway through the copy, and gives focus back only after Escape; the opener
+  // can take focus only once close() has lifted the dialog's hold on the rest of the page
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
     const opener = returnFocusTo.current;
@@ -201,7 +201,7 @@ export const AboutDialog = ({ onClose, returnFocusTo }: Props) => {
     onClose();
   };
 
-  // the workspace hears Escape on the document and the window, to clear the graph's choice
+  // the workspace hears Escape on the document and the window, to clear the graph's choice or leave a drawing tool
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
@@ -570,6 +570,13 @@ describe("the page footer and its About dialog", () => {
       const { dialog } = openAbout();
       expect(within(dialog).getByText(`© ${year} The Concord Consortium, Inc.`)).toBeInTheDocument();
     });
+
+  it("hides the separators between the footer's items from screen readers", () => {
+    renderPage();
+    const separators = within(screen.getByRole("contentinfo")).getAllByText("·");
+    expect(separators).toHaveLength(2);
+    separators.forEach(separator => expect(separator).toHaveAttribute("aria-hidden", "true"));
+  });
 
   it("links to the Terms of Use in a new tab", () => {
     renderPage();
