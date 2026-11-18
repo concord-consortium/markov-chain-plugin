@@ -180,6 +180,13 @@ $authoring-width: 435px;
   }
 }
 
+// below 800 px a warning's words have no room beside the link's label; a screen reader still hears the warning
+@media (max-width: 799px) {
+  .demo .page-header .demo-standalone-long-words {
+    display: none;
+  }
+}
+
 .demo .page-footer {
   padding: 8px 16px;
   border-top: 0;

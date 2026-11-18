@@ -35,8 +35,14 @@ $close-button-color: #dceff2;
 
 .page-header-title {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 10px;
+
+  // the controls beside it wrap instead
+  h1 {
+    white-space: nowrap;
+  }
 }
 
 .page-header-icon {

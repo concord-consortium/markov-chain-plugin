@@ -103,18 +103,29 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
       .then(() => showCopyResult(true), () => showCopyResult(false));
   };
 
-  // screen readers may not announce the focused button's new text, so the status says it too
+  // screen readers may not announce the focused button's new text, so the status says it too; a long-link warning
+  // shows a few words, so the header keeps its height, and a screen reader hears the whole of it
   return (
     <div className="demo-standalone" role="group" aria-label="Link to the interactive">
       { tooLong ? (
         <p className="demo-standalone-long">
-          This link is too long to open: the deployed site refuses links over
-          { " " }{ maxLinkPathLength.toLocaleString("en-US") } characters. Shorten the starting text to make one.
+          <span className="demo-standalone-long-words" aria-hidden="true">
+            Too long to open: shorten the starting text
+          </span>
+          <span className="demo-visually-hidden">
+            This link is too long to open: the deployed site refuses links over
+            { " " }{ maxLinkPathLength.toLocaleString("en-US") } characters. Shorten the starting text to make one.
+          </span>
         </p>
       ) : link.length > longLinkLength && (
         <p className="demo-standalone-long">
-          This link is longer than { longLinkLength.toLocaleString("en-US") } characters, mostly its starting text, and
-          some sites and email programs cut long links short.
+          <span className="demo-standalone-long-words" aria-hidden="true">
+            Long link: some sites may cut it short
+          </span>
+          <span className="demo-visually-hidden">
+            This link is longer than { longLinkLength.toLocaleString("en-US") } characters, mostly its starting text,
+            and some sites and email programs cut long links short.
+          </span>
         </p>
       ) }
       <p id="demo-standalone-warning" className="demo-standalone-warning">{ linkLabel }</p>

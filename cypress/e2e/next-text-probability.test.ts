@@ -158,20 +158,38 @@ describe("the authoring page's standalone link", () => {
     cy.get(".demo-standalone button").should("have.text", "Copy failed");
   });
 
-  it("says when the link is long", () => {
+  it("says when the link is long, in a header that keeps its height", () => {
+    // narrow enough that the header's title would otherwise wrap
+    cy.viewport(800, 660);
     cy.visit("/next-text-probability/authoring.html");
     // val() sets the text without the form noticing, and the typed letter makes the form save all of it
     frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(1000)).type("b");
     standaloneLink().invoke("attr", "href").its("length").should("be.greaterThan", 2000);
-    cy.get(".demo-standalone-long").should("contain.text", "longer than 2,000 characters");
+    cy.get(".demo-standalone-long-words").should("be.visible")
+      .and("have.text", "Long link: some sites may cut it short").and("have.attr", "aria-hidden", "true");
+    cy.get(".demo-standalone-long .demo-visually-hidden").should("contain.text", "longer than 2,000 characters");
     cy.get(".demo-standalone button").should("be.enabled");
+    cy.get("header").invoke("outerHeight").should("equal", 44);
+  });
+
+  it("leaves a warning's words out of a narrow header, telling only a screen reader", () => {
+    cy.viewport(700, 660);
+    cy.visit("/next-text-probability/authoring.html");
+    frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(1000)).type("b");
+    cy.get(".demo-standalone-long .demo-visually-hidden").should("contain.text", "longer than 2,000 characters");
+    cy.get(".demo-standalone-long-words").should("not.be.visible");
+    cy.get("header").invoke("outerHeight").should("equal", 44);
   });
 
   it("offers no link the deployed site would refuse", () => {
+    cy.viewport(800, 660);
     cy.visit("/next-text-probability/authoring.html");
     frameBody("Authoring").find("#startingText").invoke("val", "a ".repeat(4100)).type("b");
-    cy.get(".demo-standalone-long").should("contain.text", "too long to open")
+    cy.get(".demo-standalone-long-words").should("be.visible")
+      .and("have.text", "Too long to open: shorten the starting text");
+    cy.get(".demo-standalone-long .demo-visually-hidden").should("contain.text", "too long to open")
       .and("contain.text", "over 8,192 characters");
+    cy.get("header").invoke("outerHeight").should("equal", 44);
     cy.get(".demo-standalone button").should("be.disabled");
     standaloneLink().should("have.attr", "aria-disabled", "true");
     standaloneLink().should("not.have.attr", "href");
