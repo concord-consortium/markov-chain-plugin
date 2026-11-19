@@ -4,7 +4,7 @@
 
 **Status**: **Closed**
 
-**Followed by**: [MARK-37-output-group-order-and-graph](MARK-37-output-group-order-and-graph/), which states order in every Data mode header and starts a new group when the chain changes.
+**Followed by**: [MARK-37-output-group-order-and-graph](MARK-37-output-group-order-and-graph.md), which states order in every Data mode header and starts a new group when the chain changes.
 
 ## Overview
 
