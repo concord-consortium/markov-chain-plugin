@@ -75,6 +75,9 @@ const interactivePaths: Record<PageId, string> = {
 
 // the link group's label; the page's users don't know the Activity Player, so nothing here names it
 const linkLabel = "Link to the interactive with these settings:";
+// the page the link opens saves no work and doesn't report its height to a host, so an activity needs interactive.html
+const linkNote = "This link opens the interactive on its own, saving no work; in an activity, use interactive.html.";
+const linkDescription = "demo-standalone-warning demo-standalone-note";
 
 // what a link of this length warns, in a few words beside the label and in full for a screen reader
 const linkWarning = (tooLong: boolean, length: number) => {
@@ -128,11 +131,11 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
         </p>
       ) }
       <p id="demo-standalone-warning" className="demo-standalone-warning">{ linkLabel }</p>
-      <button type="button" onClick={copy} disabled={tooLong} aria-describedby="demo-standalone-warning">
+      <button type="button" onClick={copy} disabled={tooLong} aria-describedby={linkDescription}>
         { copyResult === undefined ? "Copy" : copyResult.copied ? "Copied" : "Copy failed" }
       </button>
       <a href={tooLong ? undefined : link} aria-disabled={tooLong || undefined} target="_blank"
-        rel="noopener noreferrer" aria-describedby="demo-standalone-warning">
+        rel="noopener noreferrer" aria-describedby={linkDescription}>
         Open<span className="demo-visually-hidden">{ newTabNote }</span>
       </a>
       <span role="status" className="demo-visually-hidden">
@@ -219,6 +222,7 @@ export const Demo = ({ page = "markov" }: { page?: PageId }) => {
         <section className="demo-runtime" aria-labelledby="demo-runtime-heading">
           <div className="demo-runtime-header">
             <h2 id="demo-runtime-heading">Interactive</h2>
+            { nextText && <p id="demo-standalone-note" className="demo-standalone-note">{ linkNote }</p> }
             { apViews && (
               <fieldset className="demo-widths">
                 <legend>Activity Player page width</legend>

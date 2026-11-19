@@ -59,6 +59,13 @@ $authoring-width: 435px;
   justify-content: space-between;
 }
 
+.demo-standalone-note {
+  margin: 0 0 0 12px;
+  font-size: 13px;
+  text-align: right;
+  color: $text-gray;
+}
+
 .demo-widths {
   display: flex;
   margin: 10px 0 5px;

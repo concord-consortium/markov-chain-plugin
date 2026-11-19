@@ -149,11 +149,12 @@ describe("the interactive's demo page", () => {
     });
   });
 
-  it("names itself, with no standalone link or footer", () => {
+  it("names itself, with no standalone link, its note or footer", () => {
     cy.visit("/demo.html");
     cy.title().should("equal", "Demo Authoring");
     cy.get("h1").should("have.text", "Demo Authoring").and("have.css", "font-size", "20px");
     cy.get("header").find("button, a").should("not.exist");
+    cy.get("#demo-standalone-note").should("not.exist");
     cy.get("footer").should("not.exist");
   });
 

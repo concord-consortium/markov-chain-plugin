@@ -2,7 +2,6 @@
 @use "../shared-colors" as *;
 @use "../visually-hidden";
 
-$footer-text: #595959;
 $title-bar-color: #eef3f5;
 $close-button-color: #dceff2;
 
@@ -71,7 +70,7 @@ $close-button-color: #dceff2;
   padding: 6px 16px;
   border-top: 1px solid $border-gray;
   font-size: 13px;
-  color: $footer-text;
+  color: $text-gray;
 
   a,
   .page-footer-about {
@@ -194,7 +193,7 @@ $close-button-color: #dceff2;
 
 .about-dialog-copyright {
   font-size: 13px;
-  color: $footer-text;
+  color: $text-gray;
 }
 
 .about-dialog-buttons {
