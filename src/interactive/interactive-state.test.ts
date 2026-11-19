@@ -68,6 +68,11 @@ describe("statesKey", () => {
     expect(statesKey(["a b"])).not.toBe(statesKey(["a", "b"]));
     expect(statesKey(["Aa"])).not.toBe(statesKey(["BB"]));
   });
+
+  it("gives the keys that saved positions were stored under", () => {
+    expect(statesKey(["a", "b"])).toBe("49ye2p");
+    expect(statesKey(["the", "cat", "sat", "on", "a", "mat"])).toBe("1xd1l84");
+  });
 });
 
 describe("readInteractiveState", () => {

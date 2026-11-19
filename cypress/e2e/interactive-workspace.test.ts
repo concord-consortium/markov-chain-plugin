@@ -3119,6 +3119,34 @@ describe("the workspace's Order matters switch", () => {
   });
 });
 
+describe("the workspace's output groups", () => {
+  const caseSwitch = () => cy.interactive().find(".setting-switch:contains('Case sensitive') [role='switch']");
+  const headers = () => cy.interactive().find(".group .header");
+  const playToTheEnd = () => {
+    playButton().click();
+    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+  };
+
+  it("starts a new group when the text changes between plays", () => {
+    start({ startingText: "the cat saw the dog" });
+    playToTheEnd();
+    textBox().type(" and the bird");
+    playToTheEnd();
+    headers().should("have.length", 2);
+  });
+
+  ([["The cat saw the dog", 2], ["the cat saw the dog", 1]] as const).forEach(([text, groups]) => {
+    it(`gives ${groups} group(s) for "${text}" played with Case sensitive on, then off`, () => {
+      start({ startingText: text });
+      caseSwitch().click();
+      playToTheEnd();
+      caseSwitch().click();
+      playToTheEnd();
+      headers().should("have.length", groups);
+    });
+  });
+});
+
 describe("the workspace's keyboard and narrow-screen touches", () => {
   it("rings a control focused from the keyboard in the workspace's teal", () => {
     start({ startingText: "the cat" });

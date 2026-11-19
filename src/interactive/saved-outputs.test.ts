@@ -67,6 +67,20 @@ describe("encodeOutputs and decodeOutputs", () => {
     expect(decoded.sequences[0][0].value).toBe(0);
   });
 
+  it("gives back each group's chain after a trip through JSON, and none where it wasn't kept", () => {
+    const encoded = encodeOutputs([group([[node("a")]], { chain: "1xd1l84" }), group([[node("a")]])]);
+    const decoded = decodedGroups(JSON.parse(JSON.stringify(encoded)));
+    expect(decoded.map(g => g.chain)).toEqual(["1xd1l84", undefined]);
+  });
+
+  it("keeps a group whose chain isn't a string, without its chain", () => {
+    const encoded = JSON.parse(JSON.stringify(encodeOutputs([group([[node("a")]], { chain: "x" })])));
+    encoded.groups[0].chain = 7;
+    const decoded = decodedGroups(encoded);
+    expect(labels(decoded)).toEqual([[["a"]]]);
+    expect(decoded[0].chain).toBeUndefined();
+  });
+
   it("gives back the same outputs after a trip through JSON", () => {
     const groups = [group([[node("a")]], { startingState: "a", startingNode: node("a"), orderMatters: false })];
     const encoded = encodeOutputs(groups);

@@ -16,6 +16,8 @@ export type SequenceGroup = {
   sequences: Node[][];
   // false for a group generated as a bag of words
   orderMatters?: boolean;
+  // chainKey of the graph the group was generated from; absent from work saved before groups kept it
+  chain?: string;
 };
 
 export type DelimiterType = "none"|"space"|"other";

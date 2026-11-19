@@ -5,6 +5,7 @@ import { MarkovToolApi, MarkovToolStart, useMarkovTool } from "./use-markov-tool
 import { useClearGoneSelection } from "../interactive/workspace/use-mode-body";
 import { MarkovHost, MarkovToolHandle } from "../components/host";
 import { GraphData, SequenceGroup, ViewMode } from "../type";
+import { chainKey } from "../utils/chain-graph";
 
 jest.mock("nanoid", () => ({ nanoid: () => "id" }));
 
@@ -531,6 +532,95 @@ describe("useMarkovTool's starting state", () => {
     })));
     expect(result.current.graph.nodes.map(n => n.label)).toContain("A");
     expect(result.current.generatorProps.startingState).toBe("a");
+  });
+});
+
+describe("useMarkovTool's output groups", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const play = async (result: { current: MarkovToolApi }) => {
+    await act(async () => result.current.generatorProps.onPlay());
+    await act(async () => jest.advanceTimersByTime(30000));
+  };
+  const sequenceCounts = (result: { current: MarkovToolApi }) =>
+    result.current.outputProps.sequenceGroups.map(group => group.sequences.length);
+  const statesUsed = (result: { current: MarkovToolApi }) => result.current.outputProps.sequenceGroups
+    .map(group => [...new Set(group.sequences.flat().map(n => n.label))].sort());
+
+  it("starts a new group when the values change between plays", async () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("dataset")));
+    act(() => result.current.handle.dataChanged(["a", "b", "a"]));
+    await play(result);
+    act(() => result.current.handle.dataChanged(["x", "y", "x"]));
+    await play(result);
+    expect(statesUsed(result)).toEqual([["a", "b"], ["x", "y"]]);
+  });
+
+  it("keeps the group when the same values are sent again", async () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("dataset")));
+    act(() => result.current.handle.dataChanged(["a", "b", "a"]));
+    await play(result);
+    const graph = result.current.graph;
+    act(() => result.current.handle.dataChanged(["a", "b", "a"]));
+    expect(result.current.graph).not.toBe(graph);
+    await play(result);
+    expect(sequenceCounts(result)).toEqual([2]);
+  });
+
+  it.each<[string, (graph: GraphData) => GraphData, number[]]>([
+    ["a state moved", graph => ({ ...graph, nodes: graph.nodes.map(n => n.id === "a" ? { ...n, x: 300 } : n) }), [2]],
+    ["a state added", graph => ({ ...graph, nodes: [...graph.nodes, { id: "c", label: "c", value: 1 }] }), [1, 1]],
+    ["a state renamed", graph => ({ ...graph, nodes: graph.nodes.map(n => n.id === "a" ? { ...n, label: "A" } : n) }),
+      [1, 1]],
+    ["a transition's value changed",
+      graph => ({ ...graph, edges: graph.edges.map(e => e.from === "a" ? { ...e, value: 2 } : e) }), [1, 1]],
+  ])("in a drawing with %s between plays, gives groups of %j", async (_, change, counts) => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("drawing"), { graph: drawing }));
+    await play(result);
+    act(() => result.current.view.setGraph(change));
+    await play(result);
+    expect(sequenceCounts(result)).toEqual(counts);
+  });
+
+  it("starts a new group when only the starting state changes", async () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("dataset")));
+    act(() => result.current.handle.dataChanged(["a", "b", "a"]));
+    await play(result);
+    act(() => result.current.generatorProps.onStartingStateChange({ target: { value: "a" } } as any));
+    await play(result);
+    expect(result.current.outputProps.sequenceGroups.map(group => group.startingState)).toEqual(["", "a"]);
+  });
+
+  it("finishes a stepped sequence in its own group when the values change, and starts a new one after", async () => {
+    const { result } = renderHook(() => useMarkovTool(recordingHost("dataset")));
+    act(() => result.current.handle.dataChanged(["a", "b", "a"]));
+    await act(async () => result.current.generatorProps.onStep());
+    act(() => result.current.handle.dataChanged(["x", "y", "x"]));
+    expect(result.current.animating).toBe(true);
+    for (let i = 0; i < 12 && result.current.animating; i++) {
+      await act(async () => result.current.generatorProps.onStep());
+    }
+    expect(result.current.animating).toBe(false);
+    expect(result.current.outputProps.sequenceGroups.map(group => group.sequences.map(s => s.length))).toEqual([[5]]);
+    expect(statesUsed(result)).toEqual([["a", "b"]]);
+    await play(result);
+    expect(statesUsed(result)).toEqual([["a", "b"], ["x", "y"]]);
+  });
+
+  it.each<[string, string | undefined, number[]]>([
+    ["its chain", chainKey(drawing), [2]],
+    ["no chain", undefined, [1, 1]],
+    ["another chain", "other", [1, 1]],
+  ])("started with a group that has %s, gives groups of %j after a play", async (_, chain, counts) => {
+    const group: SequenceGroup = {
+      delimiter: " ", lengthLimit: 5, startingState: "", startingNode: undefined, sequences: [[drawing.nodes[0]]],
+      chain,
+    };
+    const { result } = renderHook(() =>
+      useMarkovTool(recordingHost("drawing"), { graph: drawing, sequenceGroups: [group] }));
+    await play(result);
+    expect(sequenceCounts(result)).toEqual(counts);
   });
 });
 
