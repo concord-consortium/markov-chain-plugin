@@ -4,6 +4,8 @@
 
 **Status**: **Closed**
 
+**Followed by**: [MARK-37-output-group-order-and-graph](MARK-37-output-group-order-and-graph/), which states order in every Data mode header and starts a new group when the chain changes.
+
 ## Overview
 
 When the starting state a student chose leaves the graph, the generator puts its starting state back to "(any)", so the Starting State list, the generator and the output headings agree, and the next sequence starts a new "(any)" group.
@@ -38,7 +40,7 @@ Rebecca reported that after running sequences from "the" and then choosing "(any
 - Bug 12b: a renamed starting state's heading keeping its old label in past groups (dropped by Rebecca).
 - Rewriting or regrouping outputs already generated.
 - MARK-22 (the CODAP plugin following a dropped column after Back To Main Menu).
-- Any other change to when a new output group starts.
+- Any other change to when a new output group starts (taken up by the follow-up spec above).
 
 ## Decisions
 
