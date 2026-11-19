@@ -112,14 +112,26 @@ describe("SequenceOutput", () => {
     expect(screen.getByText("Output")).toBeInTheDocument();
   });
 
-  it("marks a group generated without order, collapsed and expanded, and no other group", () => {
-    render(<SequenceOutput {...props([{ ...group([a, b]), orderMatters: false }, group([b, a])])} />);
+  it("says how order was set, collapsed and expanded, in a group that records it", () => {
+    const groups = [{ ...group([a, b]), orderMatters: false }, { ...group([b, a]), orderMatters: true }];
+    render(<SequenceOutput {...props(groups)} />);
     expect(screen.getAllByText("Orderless")).toHaveLength(1);
-    expect(screen.queryByText("Order matters: No")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Ordered")).toHaveLength(1);
+    expect(screen.queryByText(/Order matters/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Orderless"));
-    expect(screen.queryByText("Orderless")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Ordered"));
+    expect(screen.queryByText(/^Order(ed|less)$/)).not.toBeInTheDocument();
     expect(screen.getByText("Order matters: No")).toBeInTheDocument();
+    expect(screen.getByText("Order matters: Yes")).toBeInTheDocument();
+  });
+
+  it("says nothing about order, collapsed or expanded, in a group that records no setting", () => {
+    render(<SequenceOutput {...props([group([a, b])])} />);
+    expect(screen.queryByText(/Order/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("(any)"));
+    expect(screen.getByText("Starting State: (any)")).toBeInTheDocument();
+    expect(screen.queryByText(/Order/)).not.toBeInTheDocument();
   });
 
   it("chooses an output with Enter or Space when its layout asks for keyboard choosing", () => {

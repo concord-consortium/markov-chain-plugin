@@ -1,6 +1,6 @@
 import React, { useId } from "react";
 import { clsx } from "clsx";
-import { yesNo } from "../authored-state";
+import { yesNo } from "../../components/setting-labels";
 
 interface SettingSwitchProps {
   label: string;

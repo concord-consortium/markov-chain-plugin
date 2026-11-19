@@ -2857,7 +2857,7 @@ describe("the workspace's Order matters switch", () => {
     maxLength().type("2{enter}");
     playButton().click();
     finished();
-    cy.interactive().find(".group .header").should("have.length", 1).and("not.contain.text", "Orderless");
+    cy.interactive().find(".group .header").should("have.length", 1).and("contain.text", "Ordered");
     orderSwitch().click();
     playButton().click();
     finished();

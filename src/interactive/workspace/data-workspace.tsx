@@ -2,10 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { NodeModal } from "../../components/drawing/node-modal";
 import { MarkovHost } from "../../components/host";
 import { ArrowWidths, layoutFor } from "../../components/graph-utils";
+import { orderMattersLabel } from "../../components/setting-labels";
 import { useLatest } from "../../hooks/use-latest";
 import { MarkovToolApi } from "../../hooks/use-markov-tool";
 import { Node } from "../../type";
-import { Capitalization, capitalizationFor, caseSensitiveLabel, orderMattersLabel } from "../authored-state";
+import { Capitalization, capitalizationFor, caseSensitiveLabel } from "../authored-state";
 import { CsvRefusal, CsvValues } from "../input/csv";
 import { Token, tokenize, tokensToValues } from "../input/tokenizer";
 import { CommitHow, CommitView } from "./commit";
