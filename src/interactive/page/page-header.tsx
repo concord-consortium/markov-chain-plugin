@@ -11,8 +11,8 @@ interface Props {
   children?: React.ReactNode;
 }
 
-// The bar at the top of a page the interactive is opened on by itself, never inside a host's frame. The divider is
-// drawn; a screen reader hears the separator.
+// The bar at the top of the Next Text Probability pages; interactive.html, the page hosts load, never shows it.
+// The divider is drawn; a screen reader hears the separator.
 export const PageHeader = ({ subtitle, children }: Props) => (
   <header className="page-header">
     <div className="page-header-title">

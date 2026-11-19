@@ -17,8 +17,8 @@ export const AboutDialog = ({ onClose, returnFocusTo }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
-  // the browser focuses the first link, partway through the copy, and gives focus back only after Escape; the opener
-  // can take focus only once close() has lifted the dialog's hold on the rest of the page
+  // the browser would focus ×, so the dialog takes focus to start reading at its title with no control focused.
+  // close() returns focus to whatever had it before showModal(), so the opener takes it once close() has run
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
     const opener = returnFocusTo.current;

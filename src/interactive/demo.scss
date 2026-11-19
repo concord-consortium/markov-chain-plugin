@@ -1,4 +1,4 @@
-@use "dark-teal" as *;
+@use "shared-colors" as *;
 @use "visually-hidden";
 
 // the authoring column is LARA's authoring column's width, so authors see the room they get there
@@ -57,6 +57,13 @@ $authoring-width: 435px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.demo-standalone-note {
+  margin: 0 0 0 12px;
+  font-size: 13px;
+  text-align: right;
+  color: $text-gray;
 }
 
 .demo-widths {

@@ -98,10 +98,12 @@ describe("the authoring page's standalone link", () => {
         `${origin}/next-text-probability/index.html?capitalization=asTyped&${startingText}`);
     });
     cy.get("header .demo-standalone").find("button, a").should("have.length", 2).each(control => {
-      expect(control).to.have.attr("aria-describedby", "demo-standalone-warning");
+      expect(control).to.have.attr("aria-describedby", "demo-standalone-warning demo-standalone-note");
     });
     cy.get("#demo-standalone-warning").should("be.visible")
       .and("have.text", "Link to the interactive with these settings:");
+    cy.get("#demo-standalone-note").should("be.visible").and("have.text",
+      "This link opens the interactive on its own and doesn't save work. In an activity, use interactive.html.");
     cy.get(".demo-standalone button").should("have.text", "Copy");
     standaloneLink().should("have.text", "Open (opens in a new tab)").and("have.attr", "target", "_blank");
     cy.get(".demo-standalone-long").should("not.exist");

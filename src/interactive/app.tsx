@@ -51,8 +51,9 @@ const HostedApp = () => {
   return <div className="markov-interactive" ref={ref}>{ renderMode() }</div>;
 };
 
-// Opened directly, as a link from a collection page opens it: no host will send an init message or keep a state,
-// so it takes its settings from its link and leaves the library alone, whose client would only warn and hold messages.
+// Opened directly, as a link from a collection page opens it, or the Next Text Probability page in any frame: no init
+// message or kept state is expected, so it takes its settings from its link and leaves the library alone, whose
+// client would only warn and hold messages.
 const StandaloneApp = ({ page }: { page: PageId }) => {
   const nextText = page === "next-text-probability";
   const runtime = <Runtime authoredState={authoredStateFromSearch(window.location.search)} view="standalone" />;

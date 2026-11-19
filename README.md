@@ -130,7 +130,8 @@ beside the plugin:
 - `next-text-probability/index.html` and `next-text-probability/authoring.html`: the interactive opened on its own
   and its authoring page, as Next Text Probability, with a header, and a footer whose About link shows the license
   and Terms of Use. The authoring page shows the authoring form, a full-width preview, and the link to the interactive
-  with those settings; the Activity Player's views stay on `demo.html`. They load their assets, and the authoring page
+  with those settings, with a note that an activity uses `interactive.html`, since the page the link opens saves no
+  work; the Activity Player's views stay on `demo.html`. They load their assets, and the authoring page
   frames `interactive.html`, from the folder above.
 
 A branch build is at `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/interactive.html`, and a

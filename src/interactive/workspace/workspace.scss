@@ -1,7 +1,7 @@
 @use "../../components/markov-panel" as *;
+@use "../shared-colors" as *;
 @use "../visually-hidden";
 
-$pane-border-color: #c7c7c7;
 $error-color: #b00020;
 $setting-gap: 4px 12px;
 // the line under a word the generator chose, darker than its fill for 3:1 against the text box
@@ -183,7 +183,7 @@ $highlight-output-line: #c0006b;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    border: var(--pane-border) solid $pane-border-color;
+    border: var(--pane-border) solid $border-gray;
     border-radius: 3px;
     background-color: #fff;
 
@@ -792,7 +792,7 @@ $highlight-output-line: #c0006b;
       flex: none;
       min-width: 160px;
       padding-right: 10px;
-      border-right: var(--pane-border) solid $pane-border-color;
+      border-right: var(--pane-border) solid $border-gray;
       overflow-x: hidden;
       overflow-y: auto;
 
