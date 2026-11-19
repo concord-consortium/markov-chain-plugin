@@ -103,7 +103,7 @@ describe("the authoring page's standalone link", () => {
     cy.get("#demo-standalone-warning").should("be.visible")
       .and("have.text", "Link to the interactive with these settings:");
     cy.get("#demo-standalone-note").should("be.visible").and("have.text",
-      "This link opens the interactive on its own, saving no work; in an activity, use interactive.html.");
+      "This link opens the interactive on its own and doesn't save work. In an activity, use interactive.html.");
     cy.get(".demo-standalone button").should("have.text", "Copy");
     standaloneLink().should("have.text", "Open (opens in a new tab)").and("have.attr", "target", "_blank");
     cy.get(".demo-standalone-long").should("not.exist");

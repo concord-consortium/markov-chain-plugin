@@ -76,7 +76,8 @@ const interactivePaths: Record<PageId, string> = {
 // the link group's label; the page's users don't know the Activity Player, so nothing here names it
 const linkLabel = "Link to the interactive with these settings:";
 // the page the link opens saves no work and doesn't report its height to a host, so an activity needs interactive.html
-const linkNote = "This link opens the interactive on its own, saving no work; in an activity, use interactive.html.";
+const linkNote =
+  "This link opens the interactive on its own and doesn't save work. In an activity, use interactive.html.";
 const linkDescription = "demo-standalone-warning demo-standalone-note";
 
 // what a link of this length warns, in a few words beside the label and in full for a screen reader
