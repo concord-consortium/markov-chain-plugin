@@ -1,6 +1,6 @@
 // The initInteractive message LARA, the Activity Player and portal-report send to start the interactive in a mode,
-// for the demo page and the fake Activity Player page. Their object storage is the library's in-memory store,
-// unless the page asks for none.
+// for the demo page, the fake Activity Player page and the Next Text Probability authoring page. Their object storage
+// is the library's in-memory store, unless the page asks for none, as the authoring page does.
 export type HostedMode = "authoring" | "runtime" | "report";
 
 export const initInteractiveMessage = (mode: HostedMode, authoredState: unknown, interactiveState: unknown,

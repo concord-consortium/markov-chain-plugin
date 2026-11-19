@@ -11,7 +11,7 @@ interface Props {
   showLogo?: boolean;
 }
 
-// The row at the bottom of a page the interactive is opened on by itself, never inside a host's frame
+// The row at the bottom of the Next Text Probability pages; interactive.html, the page hosts load, never shows it
 export const PageFooter = ({ showLogo }: Props) => {
   const [aboutOpen, setAboutOpen] = useState(false);
   const aboutRef = useRef<HTMLButtonElement>(null);
