@@ -1,6 +1,7 @@
 import { clampLengthLimit } from "../components/app-utils";
+import { orderMattersLabel, yesNo } from "../components/setting-labels";
 import type { MarkovToolStart } from "../hooks/use-markov-tool";
-import { caseSensitiveLabel, orderMattersLabel, readAuthoredState, yesNo } from "./authored-state";
+import { caseSensitiveLabel, readAuthoredState } from "./authored-state";
 import { readInteractiveState } from "./interactive-state";
 import { restoreWork } from "./workspace/restore-work";
 import { workspaceConfig, WorkspacePaneId } from "./workspace/workspace-config";

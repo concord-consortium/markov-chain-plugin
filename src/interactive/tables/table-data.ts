@@ -1,6 +1,7 @@
 import { AnyStartingState } from "../../components/generator";
+import { orderMattersLabel, yesNo } from "../../components/setting-labels";
 import { GraphData, SequenceGroup } from "../../type";
-import { ModeId, yesNo } from "../authored-state";
+import { ModeId } from "../authored-state";
 import { Token } from "../input/tokenizer";
 import { toPlaces } from "../workspace/build-state";
 import { inspectColumns, stateRows, transitionRows } from "../workspace/inspect-rows";
@@ -76,7 +77,7 @@ const outputsTable = ({ sequenceGroups }: Pick<TableSource, "sequenceGroups">) =
   ]));
   return table("Outputs", [
     ["Output number", "numeric"], ["Output", "categorical"], ["Starting state", "categorical"],
-    ["Max length", "numeric"], ["Delimiter", "categorical"], ["Order matters", "categorical"],
+    ["Max length", "numeric"], ["Delimiter", "categorical"], [orderMattersLabel, "categorical"],
   ], rows);
 };
 

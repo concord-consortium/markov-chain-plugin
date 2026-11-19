@@ -1,5 +1,6 @@
 import type { GraphView } from "../components/graph";
 import { DelimiterType, GraphData } from "../type";
+import { shortHash } from "../utils/short-hash";
 import { modeIds, ModeId } from "./authored-state";
 import { isRecord, parseState } from "./parse-state";
 import { isSavedOutputs, maxDelimiterLength, SavedOutputs } from "./saved-outputs";
@@ -54,14 +55,7 @@ export interface MarkovInteractiveState {
 }
 
 // a short hash of the ids in order, which tells a list of states from another of the same length
-export const statesKey = (ids: string[]) => {
-  const text = JSON.stringify(ids);
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = (hash * 1000003 + text.charCodeAt(i)) % 4294967291;
-  }
-  return hash.toString(36);
-};
+export const statesKey = (ids: string[]) => shortHash(JSON.stringify(ids));
 
 type Fields = Record<string, unknown>;
 type Check = (value: unknown) => boolean;

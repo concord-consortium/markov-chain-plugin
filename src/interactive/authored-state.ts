@@ -3,6 +3,7 @@
 // default from activities saved before it existed, and needs no version change. When a saved setting's meaning
 // changes, bump the version and convert older states in readAuthoredState.
 
+import { orderMattersLabel } from "../components/setting-labels";
 import { isRecord, parseState } from "./parse-state";
 
 export const authoredStateVersion = 1;
@@ -115,12 +116,9 @@ export const inputViewHelp: Record<InputView, string> = {
 export const capitalizationLabels: Record<Capitalization, string> = {
   lowercase: "No: \"The\" and \"the\" are the same word", asTyped: "Yes: \"The\" and \"the\" are different words"
 };
-export const yesNo = (value: boolean) => value ? "Yes" : "No";
 
 // the switch's name, shared by the form and the workspace
 export const caseSensitiveLabel = "Case sensitive";
-
-export const orderMattersLabel = "Order matters";
 
 export const settingLabels = {
   modes: "Modes",
