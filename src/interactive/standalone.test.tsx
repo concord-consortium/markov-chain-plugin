@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { App } from "./app";
 import { paneTitles } from "./report-summary";
 
@@ -38,6 +38,10 @@ describe("opened outside a host", () => {
   it("the interactive runs with the default settings and no note above it, and leaves the library alone", () => {
     render(<App />);
     expect(screen.queryByText(/Activity Player/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "About" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Next Text Probability/)).not.toBeInTheDocument();
     expect(panes()).toEqual(["Input", "Graph", "Inspect", "Sequence Generator"]);
     expect(warn).not.toHaveBeenCalled();
   });
@@ -75,6 +79,27 @@ describe("opened outside a host", () => {
     document.body.innerHTML = "<div id=\"app\"></div>";
     await act(async () => { await import("./report-item"); });
     expect(screen.getByText(/It shows a student's answer in the class dashboard/)).toBeInTheDocument();
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "About" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Next Text Probability/)).not.toBeInTheDocument();
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("the Next Text Probability page, around the same interactive", () => {
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal ??= function(this: HTMLDialogElement) { this.open = true; };
+    HTMLDialogElement.prototype.close ??= function(this: HTMLDialogElement) { this.open = false; };
+  });
+
+  it("names the interactive in a header above the workspace, and ends with the footer", () => {
+    render(<App page="next-text-probability" />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Next Text Probability$/);
+    expect(within(screen.getByRole("main")).getAllByRole("region")).toHaveLength(4);
+    const footer = screen.getByRole("contentinfo");
+    expect(footer).toHaveTextContent("The Concord Consortium, Inc.");
+    fireEvent.click(within(footer).getByRole("button", { name: "About" }));
+    expect(screen.getByRole("dialog", { name: "License & Terms of Use" })).toBeInTheDocument();
   });
 });

@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { createRoot } from "react-dom/client";
 import { ParentEndpoint } from "iframe-phone";
 import { readAuthoredState } from "./authored-state";
 import { interactiveStateVersion, readInteractiveState } from "./interactive-state";
 import { demoWidths, DemoWidthId, readDemoWidth } from "./demo-widths";
 import { HostedMode, initInteractiveMessage } from "./host-messages";
+import { newTabNote } from "./page/external-link";
+import { PageFooter } from "./page/page-footer";
+import { PageHeader } from "./page/page-header";
+import { authoringSubtitle, demoPageTitle, PageId } from "./page/page-links";
 import { reportSummaryHtml } from "./report-summary";
 import { isLinkTooLong, longLinkLength, maxLinkPathLength, searchFromAuthoredState } from "./url-settings";
 
@@ -23,6 +26,10 @@ const reportItemDocument = (html: string) =>
   .tall { display: none; }</style></head><body>${html}</body></html>`;
 
 interface HostedFrameProps {
+  // interactive.html, from the page's folder
+  src: string;
+  // whether the host offers object storage, which the Send to CODAP button needs
+  objectStorage: boolean;
   title: string;
   mode: HostedMode;
   authoredState: unknown;
@@ -35,7 +42,8 @@ interface HostedFrameProps {
 
 // interactive.html in a frame, started in a mode as LARA or the Activity Player starts it, and sized to the height
 // it reports; a new authoredState restarts it
-const HostedFrame = ({ title, mode, authoredState, getInteractiveState, onMessage, width }: HostedFrameProps) => {
+const HostedFrame = ({ src, objectStorage, title, mode, authoredState, getInteractiveState, onMessage, width }:
+  HostedFrameProps) => {
   const ref = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState<number>();
 
@@ -44,32 +52,52 @@ const HostedFrame = ({ title, mode, authoredState, getInteractiveState, onMessag
     if (!iframe) {
       return;
     }
-    iframe.src = "interactive.html";
+    iframe.src = src;
     const endpoint = new ParentEndpoint(iframe, window.location.origin, () => {
       const interactiveState = getInteractiveState?.(authoredState);
-      endpoint.post("initInteractive", initInteractiveMessage(mode, authoredState, interactiveState));
+      endpoint.post("initInteractive", initInteractiveMessage(mode, authoredState, interactiveState, objectStorage));
     });
     endpoint.addListener("height", (content: unknown) => setHeight(Number(content)));
     endpoint.addListener("authoredState", (content: unknown) => onMessage("authoredState", content, authoredState));
     endpoint.addListener("interactiveState",
       (content: unknown) => onMessage("interactiveState", content, authoredState));
     return () => endpoint.disconnect();
-  }, [mode, authoredState, getInteractiveState, onMessage]);
+  }, [src, objectStorage, mode, authoredState, getInteractiveState, onMessage]);
 
   return <iframe ref={ref} title={title} className={`hosted-frame ${mode}`} style={{ width, height }} />;
 };
 
-const pageTitle = "Demo and Standalone Authoring";
+// where each form of the page finds the interactive it frames
+const interactivePaths: Record<PageId, string> = {
+  markov: "interactive.html",
+  "next-text-probability": "../interactive.html",
+};
 
-const standaloneWarning = "Standalone link to use outside Activity Player:";
+// the link group's label; the page's users don't know the Activity Player, so nothing here names it
+const linkLabel = "Link to the interactive with these settings:";
 
-// The interactive opened on its own with the authoring form's settings, for a collection page or any page outside
-// the Activity Player. The link is beside this page, so it names the same branch or version.
+// what a link of this length warns, in a few words beside the label and in full for a screen reader
+const linkWarning = (tooLong: boolean, length: number) => {
+  if (tooLong) {
+    return { refused: true, words: "Too long to open: shorten the starting text",
+      sentence: "This link is too long to open: the deployed site refuses links over " +
+        `${maxLinkPathLength.toLocaleString("en-US")} characters. Shorten the starting text to make one.` };
+  }
+  if (length > longLinkLength) {
+    return { refused: false, words: "Long link: some sites may cut it short",
+      sentence: `This link is longer than ${longLinkLength.toLocaleString("en-US")} characters, mostly its starting ` +
+        "text, and some sites and email programs cut long links short." };
+  }
+};
+
+// The Next Text Probability page with the authoring form's settings, for a collection page or any page outside the
+// Activity Player. The page is beside this one, so the link names the same branch or version.
 const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
-  const url = new URL(`interactive.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
+  const url = new URL(`index.html${searchFromAuthoredState(readAuthoredState(authoredState))}`,
     window.location.href);
   const link = url.href;
   const tooLong = isLinkTooLong(url.pathname, url.search);
+  const warning = linkWarning(tooLong, link.length);
   const [copyResult, setCopyResult] = useState<{ copied: boolean }>();
 
   useEffect(() => {
@@ -90,36 +118,36 @@ const StandaloneLink = ({ authoredState }: { authoredState: unknown }) => {
       .then(() => showCopyResult(true), () => showCopyResult(false));
   };
 
-  // screen readers may not announce the focused button's new text, so the status says it too
+  // screen readers may not announce the focused button's new text, so the status says it too. A warning appears
+  // while the author types in the authoring frame, so its live region announces it there.
   return (
-    <div className="demo-standalone" role="group" aria-label="Standalone link">
-      { tooLong ? (
-        <p className="demo-standalone-long">
-          This link is too long to open: the deployed site refuses links over
-          { " " }{ maxLinkPathLength.toLocaleString("en-US") } characters. Shorten the starting text to make one.
-        </p>
-      ) : link.length > longLinkLength && (
-        <p className="demo-standalone-long">
-          This link is longer than { longLinkLength.toLocaleString("en-US") } characters, mostly its starting text, and
-          some sites and email programs cut long links short.
+    <div className="demo-standalone" role="group" aria-label="Link to the interactive">
+      { warning && (
+        <p className={`demo-standalone-long${warning.refused ? " demo-standalone-refused" : ""}`} aria-hidden="true">
+          { warning.words }
         </p>
       ) }
-      <p id="demo-standalone-warning" className="demo-standalone-warning">{ standaloneWarning }</p>
+      <p id="demo-standalone-warning" className="demo-standalone-warning">{ linkLabel }</p>
       <button type="button" onClick={copy} disabled={tooLong} aria-describedby="demo-standalone-warning">
         { copyResult === undefined ? "Copy" : copyResult.copied ? "Copied" : "Copy failed" }
       </button>
       <a href={tooLong ? undefined : link} aria-disabled={tooLong || undefined} target="_blank"
         rel="noopener noreferrer" aria-describedby="demo-standalone-warning">
-        Open
+        Open<span className="demo-visually-hidden">{ newTabNote }</span>
       </a>
       <span role="status" className="demo-visually-hidden">
-        { copyResult && (copyResult.copied ? "Standalone link copied" : "The standalone link couldn't be copied") }
+        { copyResult && (copyResult.copied ? "Link copied" : "The link couldn't be copied") }
+      </span>
+      <span aria-live="polite" className="demo-visually-hidden demo-standalone-long-sentence">
+        { warning?.sentence }
       </span>
     </div>
   );
 };
 
-const Demo = () => {
+export const Demo = ({ page = "markov" }: { page?: PageId }) => {
+  const nextText = page === "next-text-probability";
+  const interactiveSrc = interactivePaths[page];
   const [authoredState, setAuthoredState] = useState<unknown>(initialAuthoredState);
   const [runtimeAuthoredState, setRuntimeAuthoredState] = useState<unknown>(initialAuthoredState);
   const [widthId, setWidthId] = useState<DemoWidthId>(() => readDemoWidth(window.location.search));
@@ -160,57 +188,77 @@ const Demo = () => {
     window.history.replaceState(null, "", url);
   };
 
-  const frameWidth = demoWidths.find(w => w.id === widthId)?.frameWidth;
+  // the page width choice, the teacher's view and the report item are the Activity Player's, so only the demo page
+  // shows them; the Next Text Probability page previews the interactive at its full width
+  const apViews = !nextText;
+  const frameWidth = apViews ? demoWidths.find(w => w.id === widthId)?.frameWidth : undefined;
+  // the page its link opens is never hosted, so has no object storage; its preview has none either, to match
+  const objectStorage = !nextText;
+  // the page's main landmark, between its header and footer
+  const Columns = nextText ? "main" : "div";
 
   return (
     <div className="demo">
-      <header className="demo-header">
-        <h1>{ pageTitle }</h1>
-        <StandaloneLink authoredState={authoredState} />
-      </header>
-      <div className="demo-columns">
+      { nextText
+        ? (
+          <PageHeader subtitle={authoringSubtitle}>
+            <StandaloneLink authoredState={authoredState} />
+          </PageHeader>
+        )
+        : (
+          <header className="demo-header">
+            <h1>{ demoPageTitle }</h1>
+          </header>
+        ) }
+      <Columns className="demo-columns">
         <section className="demo-authoring" aria-labelledby="demo-authoring-heading">
           <h2 id="demo-authoring-heading">Authoring</h2>
-          <HostedFrame title="Authoring" mode="authoring" authoredState={initialAuthoredState}
-            onMessage={handleMessage} />
+          <HostedFrame src={interactiveSrc} objectStorage={objectStorage} title="Authoring" mode="authoring"
+            authoredState={initialAuthoredState} onMessage={handleMessage} />
         </section>
         <section className="demo-runtime" aria-labelledby="demo-runtime-heading">
           <div className="demo-runtime-header">
             <h2 id="demo-runtime-heading">Interactive</h2>
-            <fieldset className="demo-widths">
-              <legend>Activity Player page width</legend>
-              { demoWidths.map(({ id, label }) => (
-                <label key={id} className={id === widthId ? "selected" : undefined}>
-                  <input type="radio" name="width" value={id} checked={id === widthId}
-                    onChange={() => selectWidth(id)} />
-                  { label }
-                </label>
-              )) }
-            </fieldset>
+            { apViews && (
+              <fieldset className="demo-widths">
+                <legend>Activity Player page width</legend>
+                { demoWidths.map(({ id, label }) => (
+                  <label key={id} className={id === widthId ? "selected" : undefined}>
+                    <input type="radio" name="width" value={id} checked={id === widthId}
+                      onChange={() => selectWidth(id)} />
+                    { label }
+                  </label>
+                )) }
+              </fieldset>
+            ) }
           </div>
           <div className="demo-runtime-frame">
-            <HostedFrame title="Interactive" mode="runtime" authoredState={runtimeAuthoredState}
-              getInteractiveState={getInteractiveState} onMessage={handleMessage} width={frameWidth ?? "100%"} />
+            <HostedFrame src={interactiveSrc} objectStorage={objectStorage} title="Interactive" mode="runtime"
+              authoredState={runtimeAuthoredState} getInteractiveState={getInteractiveState} onMessage={handleMessage}
+              width={frameWidth ?? "100%"} />
           </div>
-          { report && (
+          { apViews && report && (
             <>
               <h2>Teacher&apos;s view</h2>
               <div className="demo-runtime-frame">
-                <HostedFrame key={report.saves} title="Teacher's view" mode="report"
-                  authoredState={report.authoredState} getInteractiveState={getReportState} onMessage={handleMessage}
-                  width={frameWidth ?? "100%"} />
+                <HostedFrame src={interactiveSrc} objectStorage={objectStorage} title="Teacher's view" mode="report"
+                  key={report.saves} authoredState={report.authoredState} getInteractiveState={getReportState}
+                  onMessage={handleMessage} width={frameWidth ?? "100%"} />
               </div>
             </>
           ) }
-          <h2>Report item, full answer</h2>
-          <iframe title="Report item" className="demo-report-item"
-            srcDoc={reportItemDocument(reportSummaryHtml(report?.state, report?.authoredState ?? runtimeAuthoredState))}
-          />
+          { apViews && (
+            <>
+              <h2>Report item, full answer</h2>
+              <iframe title="Report item" className="demo-report-item"
+                srcDoc={reportItemDocument(reportSummaryHtml(report?.state,
+                  report?.authoredState ?? runtimeAuthoredState))}
+              />
+            </>
+          ) }
         </section>
-      </div>
+      </Columns>
+      { nextText && <PageFooter /> }
     </div>
   );
 };
-
-document.title = pageTitle;
-createRoot(document.getElementById("app") as HTMLElement).render(<Demo />);

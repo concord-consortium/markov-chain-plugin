@@ -13,6 +13,9 @@ const os = require('os');
 //   https://github.com/concord-consortium/s3-deploy-action/blob/main/README.md#top-branch-example
 const DEPLOY_PATH = process.env.DEPLOY_PATH;
 
+// the interactive's own pages' title; the other pages' titles match their headers (webpack-pages.test.ts)
+const interactiveTitle = 'Markov Interactive';
+
 module.exports = (env, argv) => {
   const devMode = argv.mode !== 'production';
 
@@ -35,7 +38,9 @@ module.exports = (env, argv) => {
       main: './src/index.tsx',
       interactive: './src/interactive/index.tsx',
       'report-item': './src/interactive/report-item.tsx',
-      demo: './src/interactive/demo.tsx',
+      demo: './src/interactive/demo-index.tsx',
+      'next-text-probability': './src/interactive/next-text-probability/index.tsx',
+      'next-text-probability-authoring': './src/interactive/next-text-probability/authoring.tsx',
       // the Cypress tests' fake CODAP and Activity Player pages are served by the dev server only, never deployed
       ...(devMode ? {
         'fake-codap': './cypress/fake-codap/fake-codap.ts',
@@ -165,20 +170,41 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         filename: 'interactive.html',
         template: 'src/interactive/index.html',
+        title: interactiveTitle,
         publicPath: '.',
         chunks: ['interactive'],
       }),
       new HtmlWebpackPlugin({
         filename: 'report-item.html',
         template: 'src/interactive/index.html',
+        title: interactiveTitle,
         publicPath: '.',
         chunks: ['report-item'],
       }),
       new HtmlWebpackPlugin({
         filename: 'demo.html',
         template: 'src/interactive/index.html',
+        title: 'Demo Authoring',
         publicPath: '.',
         chunks: ['demo'],
+      }),
+      // the interactive and its authoring page as Next Text Probability, in a folder of their own; their assets, and
+      // the interactive.html the authoring page frames, are in the folder above
+      new HtmlWebpackPlugin({
+        filename: 'next-text-probability/index.html',
+        template: 'src/interactive/index.html',
+        title: 'Next Text Probability',
+        // phones lay the page out at their own width, where the workspace stacks its panes; hosts' frames ignore it
+        meta: { viewport: 'width=device-width, initial-scale=1' },
+        publicPath: '..',
+        chunks: ['next-text-probability'],
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'next-text-probability/authoring.html',
+        template: 'src/interactive/index.html',
+        title: 'Next Text Probability | Authoring',
+        publicPath: '..',
+        chunks: ['next-text-probability-authoring'],
       }),
       ...(devMode ? [new HtmlWebpackPlugin({
         filename: 'fake-codap.html',

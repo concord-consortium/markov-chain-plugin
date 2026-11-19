@@ -2,6 +2,7 @@ import React, { useEffect, useId, useLayoutEffect, useRef, useState } from "reac
 import { downloadTables } from "../tables/csv";
 import { buildTable, tableLabels, TableChoice, TableSource, TableWord } from "../tables/table-data";
 import { TableSender } from "../tables/table-sender";
+import { wrapTab } from "../wrap-tab";
 import { TablesAction, tablesActionLabels } from "./table-buttons";
 
 const maxTablesNameLength = 50;
@@ -25,17 +26,6 @@ const submitLabels: Record<TablesAction, [string, string]> = {
 };
 const failedMessage = "Your tables couldn't be saved. Check your connection and try again.";
 const downloadFailedMessage = "Your tables couldn't be downloaded. Try again.";
-
-// A modal dialog holds focus only within its own document, so in a frame Tab would carry on into the host's page.
-const wrapTab = (e: React.KeyboardEvent, dialog: Element) => {
-  const controls = Array.from(dialog.querySelectorAll<HTMLElement>("input:enabled, button:enabled"));
-  const [first, last] = [controls[0], controls[controls.length - 1]];
-  const { activeElement } = dialog.ownerDocument;
-  if (!first || activeElement === (e.shiftKey ? first : last) || (e.shiftKey && activeElement === dialog)) {
-    e.preventDefault();
-    (e.shiftKey ? last : first)?.focus();
-  }
-};
 
 export const TablesDialog = ({
   action, defaultName, choices, source, sender, onFinished, onFailed, onCancel, onClose

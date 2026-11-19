@@ -125,8 +125,13 @@ beside the plugin:
   work (the panes open, the Show probabilities setting, the switches, the states and transitions, the generator's
   settings and speed, and how many outputs match) and an "Open in new tab" link to their read-only work. With "Save
   Answer History" on, the summary follows the dashboard's scrubber through each saved moment.
-- `demo.html`: the Demo and Standalone Authoring page, with the authoring form beside the interactive and, once the
-  interactive saves, the teacher's read-only view of that save under it.
+- `demo.html`: the Demo Authoring page, with the authoring form beside the interactive and, once the interactive saves,
+  the teacher's read-only view of that save under it.
+- `next-text-probability/index.html` and `next-text-probability/authoring.html`: the interactive opened on its own
+  and its authoring page, as Next Text Probability, with a header, and a footer whose About link shows the license
+  and Terms of Use. The authoring page shows the authoring form, a full-width preview, and the link to the interactive
+  with those settings; the Activity Player's views stay on `demo.html`. They load their assets, and the authoring page
+  frames `interactive.html`, from the folder above.
 
 A branch build is at `https://models-resources.concord.org/markov-chain-plugin/branch/<name>/interactive.html`, and a
 tag's at `version/<tag>/interactive.html`. The release workflow doesn't copy the interactive anywhere: activities use
@@ -150,9 +155,11 @@ choosing a width updates the link. In development it is `http://localhost:8080/d
 
 Opened on its own, outside LARA or the Activity Player, `interactive.html` takes its settings from its URL, one
 parameter per setting named by its path in the authored state, such as `?modes.draw=false&inputView=table`, with the
-default for any it doesn't give, and saves nothing. The demo page builds that link for the settings in its form, to
-copy or open. Inside an activity, settings in the URL are ignored: in LARA, add the interactive's plain URL and choose
-its settings in the Authoring tab. Opened on its own, `report-item.html` says what it is.
+default for any it doesn't give, and saves nothing. The authoring page in `next-text-probability/` builds that link for
+the settings in its form, to copy or open, as a link to `next-text-probability/index.html`, which shows the same
+interactive with its header and footer. Inside an activity, settings in the URL are ignored: in LARA, add the
+interactive's plain URL and choose its settings in the Authoring tab. Opened on its own, `report-item.html` says what it
+is.
 
 ## License
 

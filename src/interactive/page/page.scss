@@ -1,0 +1,216 @@
+@use "../../components/markov-panel" as *;
+@use "../dark-teal" as *;
+@use "../visually-hidden";
+
+$footer-text: #595959;
+$rule-color: #c7c7c7;
+$title-bar-color: #eef3f5;
+$close-button-color: #dceff2;
+
+.page-visually-hidden {
+  @extend %visually-hidden;
+}
+
+.page-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 44px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  color: white;
+  background-color: $dark-teal;
+
+  h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 18px;
+    font-weight: bold;
+  }
+}
+
+.page-header-title {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+
+  // the controls beside it wrap instead
+  h1 {
+    white-space: nowrap;
+  }
+}
+
+.page-header-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+.page-header-divider {
+  width: 1px;
+  height: 22px;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.page-header-subtitle {
+  font-size: 16px;
+  font-weight: normal;
+}
+
+.page-footer {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 6px 16px;
+  border-top: 1px solid $rule-color;
+  font-size: 13px;
+  color: $footer-text;
+
+  a,
+  .page-footer-about {
+    color: $markov-teal;
+    text-decoration: underline;
+  }
+
+  a:hover,
+  .page-footer-about:hover {
+    color: $dark-teal;
+  }
+
+  .page-footer-about {
+    padding: 0;
+    border: 0;
+    font: inherit;
+    background: none;
+    cursor: pointer;
+  }
+
+  a:focus-visible,
+  .page-footer-about:focus-visible {
+    outline: 2px solid $markov-teal;
+    outline-offset: 2px;
+  }
+}
+
+.page-footer-logo {
+  width: auto;
+  height: 22px;
+  margin-right: 4px;
+}
+
+.about-dialog {
+  width: 560px;
+  // 16 px from each edge: a modal dialog's containing block is the window without its scrollbars, which 100vw and
+  // 100vh include, and the limits leave out the 1 px border on each side
+  max-width: calc(100% - 34px);
+  max-height: calc(100% - 34px);
+  padding: 0;
+  border: 1px solid $rule-color;
+  border-radius: 3px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  color: #333;
+
+  &::backdrop {
+    background-color: rgba(51, 51, 51, 0.5);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  a {
+    color: $markov-teal;
+    text-decoration: underline;
+  }
+
+  a:hover {
+    color: $dark-teal;
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid $markov-teal;
+    outline-offset: 2px;
+  }
+}
+
+.about-dialog-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 6px 0 12px;
+  background-color: $title-bar-color;
+
+  h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: bold;
+  }
+}
+
+.about-dialog-x {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid $markov-teal;
+  border-radius: 3px;
+  background-color: white;
+  cursor: pointer;
+
+  svg {
+    stroke: $markov-teal;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+}
+
+.about-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px 4px;
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+.about-dialog-logo {
+  width: 160px;
+  height: auto;
+}
+
+.about-dialog-copyright {
+  font-size: 13px;
+  color: $footer-text;
+}
+
+.about-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px 14px;
+
+  button {
+    height: 30px;
+    padding: 0 18px;
+    border: 1px solid $markov-teal;
+    border-radius: 3px;
+    font: inherit;
+    color: #333;
+    background-color: $close-button-color;
+    cursor: pointer;
+  }
+}

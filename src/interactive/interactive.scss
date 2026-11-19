@@ -12,6 +12,17 @@ body {
   display: flow-root;
 }
 
+// the Next Text Probability page: the footer sits at the window's bottom when the window has room below the workspace
+.standalone-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+
+  .page-footer {
+    margin-top: auto;
+  }
+}
+
 // what the report item says when opened outside the class dashboard, and the interactive when shown in a report
 .standalone-note,
 .report-note {
