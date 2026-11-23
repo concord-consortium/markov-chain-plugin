@@ -7,7 +7,7 @@ export interface SavedOutputs {
   states: (string | [string, string])[];
   groups: {
     delimiter: string, lengthLimit: number, startingState: string, start?: number, orderMatters?: boolean,
-    sequences: number[][],
+    chain?: string, sequences: number[][],
   }[];
 }
 
@@ -43,7 +43,7 @@ export const encodeOutputs = (sequenceGroups: SequenceGroup[]): SavedOutputs => 
   };
   const groups = sequenceGroups.map(group => ({
     delimiter: group.delimiter, lengthLimit: group.lengthLimit, startingState: group.startingState,
-    orderMatters: group.orderMatters,
+    orderMatters: group.orderMatters, chain: group.chain,
     start: group.startingNode && placeOf(group.startingNode),
     sequences: group.sequences.map(sequence => sequence.map(placeOf)),
   }));
@@ -85,6 +85,7 @@ export const decodeOutputs = ({ states, groups }: SavedOutputs): DecodedOutputs 
       : undefined);
     const group: SequenceGroup = {
       delimiter, lengthLimit, startingState, startingNode, orderMatters,
+      chain: typeof saved.chain === "string" ? saved.chain : undefined,
       sequences: sequences.filter((sequence): sequence is Node[] => sequence !== undefined),
     };
     return { group, sequences };

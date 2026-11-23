@@ -7,6 +7,7 @@ import { SequenceOutputProps } from "../components/sequence-output";
 import { IConfirmModal } from "../components/confirm-modal";
 import { clampLengthLimit, graphToRestore } from "../components/app-utils";
 import { generateSequence } from "../utils/generate-sequence";
+import { chainKey } from "../utils/chain-graph";
 import { moveOriginToCenter } from "../utils/plugin-state";
 import { ClearVia, MarkovHost, MarkovToolHandle, Selection, SelectionSource } from "../components/host";
 
@@ -189,10 +190,16 @@ export const useMarkovTool = (host: MarkovHost, start?: MarkovToolStart): Markov
   }, [graph, viewMode, markDirty]);
 
   const graphEmpty = useMemo(() => graph.nodes.length === 0, [graph]);
+  // a starting state that leaves the graph goes back to any, and stays there if it returns
+  useLayoutEffect(() => {
+    if (startingState && !graph.nodes.some(node => node.id === startingState)) {
+      setStartingState(defaultStartingState);
+    }
+  }, [graph, startingState]);
 
   // the log names states by their labels; "" is no state, as for any starting state
   const labelOf = useCallback((id: string) => id && (graph.nodes.find(n => n.id === id)?.label ?? id), [graph]);
-  // the starting state's label, "" for none or one no longer in the graph, which generates as none
+  // the starting state's label, "" for any
   const startingLabel = useCallback(() => graph.nodes.find(n => n.id === startingState)?.label ?? "",
     [graph, startingState]);
 
@@ -207,6 +214,7 @@ export const useMarkovTool = (host: MarkovHost, start?: MarkovToolStart): Markov
     const limit = clampLengthLimit(lengthLimit);
     if (limit !== undefined) {
       const startingNode = startingState.length > 0 ? graph.nodes.find(n => n.id === startingState) : undefined;
+      const chain = chainKey(graph);
       startingLabelRef.current = startingNode?.label ?? "";
 
       prevAnimatedSequenceGroups.current = [...sequenceGroups];
@@ -215,9 +223,10 @@ export const useMarkovTool = (host: MarkovHost, start?: MarkovToolStart): Markov
       if ((currentAnimatedSequenceGroup.current?.delimiter !== delimiter) ||
         (currentAnimatedSequenceGroup.current.lengthLimit !== limit) ||
         (currentAnimatedSequenceGroup.current.startingState !== startingState) ||
-        (currentAnimatedSequenceGroup.current.orderMatters !== orderMatters)) {
+        (currentAnimatedSequenceGroup.current.orderMatters !== orderMatters) ||
+        (currentAnimatedSequenceGroup.current.chain !== chain)) {
         currentAnimatedSequenceGroup.current =
-          { delimiter, lengthLimit: limit, startingState, startingNode, sequences: [], orderMatters };
+          { delimiter, lengthLimit: limit, startingState, startingNode, sequences: [], orderMatters, chain };
         setSequenceGroups(prevAnimatedSequenceGroups.current);
       } else {
         prevAnimatedSequenceGroups.current.pop();

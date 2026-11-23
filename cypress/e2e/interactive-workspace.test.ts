@@ -2857,7 +2857,7 @@ describe("the workspace's Order matters switch", () => {
     maxLength().type("2{enter}");
     playButton().click();
     finished();
-    cy.interactive().find(".group .header").should("have.length", 1).and("not.contain.text", "Orderless");
+    cy.interactive().find(".group .header").should("have.length", 1).and("contain.text", "Ordered");
     orderSwitch().click();
     playButton().click();
     finished();
@@ -3115,6 +3115,34 @@ describe("the workspace's Order matters switch", () => {
       const switchBottom = controlsRow[0].querySelector(".mode-switch")!.getBoundingClientRect().bottom;
       const groupTop = controlsRow[0].querySelector(".setting-switches")!.getBoundingClientRect().top;
       expect(groupTop).to.be.at.least(switchBottom);
+    });
+  });
+});
+
+describe("the workspace's output groups", () => {
+  const caseSwitch = () => cy.interactive().find(".setting-switch:contains('Case sensitive') [role='switch']");
+  const headers = () => cy.interactive().find(".group .header");
+  const playToTheEnd = () => {
+    playButton().click();
+    cy.interactive().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+  };
+
+  it("starts a new group when the text changes between plays", () => {
+    start({ startingText: "the cat saw the dog" });
+    playToTheEnd();
+    textBox().type(" and the bird");
+    playToTheEnd();
+    headers().should("have.length", 2);
+  });
+
+  ([["The cat saw the dog", 2], ["the cat saw the dog", 1]] as const).forEach(([text, groups]) => {
+    it(`gives ${groups} group(s) for "${text}" played with Case sensitive on, then off`, () => {
+      start({ startingText: text });
+      caseSwitch().click();
+      playToTheEnd();
+      caseSwitch().click();
+      playToTheEnd();
+      headers().should("have.length", groups);
     });
   });
 });

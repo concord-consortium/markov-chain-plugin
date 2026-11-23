@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 
 import { GenerationMode, Node, SequenceGroup } from "../type";
 import { AnyStartingState } from "./generator";
+import { orderMattersLabel, yesNo } from "./setting-labels";
 
 import DropdownUpArrowIcon from "../assets/dropdown-up-arrow-icon.svg";
 import DropdownDownArrowIcon from "../assets/dropdown-down-arrow-icon.svg";
@@ -12,7 +13,8 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
   const startingState = group.startingNode?.label ?? AnyStartingState;
   const lengthLimit = group.lengthLimit;
   const delimiter = group.delimiter === "" ? "(none)" : `"${group.delimiter}"`;
-  const orderless = group.orderMatters === false;
+  // only Data mode records an order setting; a drawing and the CODAP plugin are always ordered
+  const ordered = group.orderMatters;
 
   const handleToggleExpanded = () => setExpanded(prev => !prev);
 
@@ -25,7 +27,7 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
         </div>
         <div>Max Length: { lengthLimit }</div>
         <div>Delimiter: { delimiter }</div>
-        { orderless && <div>Order matters: No</div> }
+        { ordered !== undefined && <div>{ `${orderMattersLabel}: ${yesNo(ordered)}` }</div> }
       </div>
     );
   }
@@ -37,7 +39,7 @@ const SequenceOutputHeader = ({ group }: { group: SequenceGroup }) => {
       <span>{ lengthLimit }</span>
       <span>/</span>
       <span>{ delimiter }</span>
-      { orderless && <><span>/</span><span>Orderless</span></> }
+      { ordered !== undefined && <><span>/</span><span>{ ordered ? "Ordered" : "Orderless" }</span></> }
       <span className="expand"><DropdownDownArrowIcon /></span>
     </div>
   );

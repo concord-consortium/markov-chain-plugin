@@ -2,8 +2,10 @@ import { defaultAuthoredState } from "../../src/interactive/authored-state";
 import {
   decodeOutputs, encodeOutputs, maxDelimiterLength, maxOutputBytes, savedBytes
 } from "../../src/interactive/saved-outputs";
+import { tokenize, tokensToValues } from "../../src/interactive/input/tokenizer";
 import { textSavePause } from "../../src/interactive/workspace/use-text-save";
 import { Node } from "../../src/type";
+import { chainKey, graphFromValues } from "../../src/utils/chain-graph";
 import { animatedNodeColor, pastDoubleClick, selectedNodeColor } from "../support/graph";
 import { divider, loggedEvents, parseTransform, stateEllipse } from "../support/workspace";
 
@@ -1197,5 +1199,40 @@ describe("the read-only view", () => {
     paneToggle("Inspect").click();
     shown().find(".probabilities-toggle").click();
     noMessages();
+  });
+});
+
+describe("reopened outputs", () => {
+  const savedText = "the cat sat on the mat";
+  const savedState = (text: string) => ({
+    version: 1, input: { text },
+    useData: {
+      outputs: encodeOutputs([{
+        delimiter: " ", lengthLimit: 5, startingState: "", startingNode: undefined, orderMatters: true,
+        chain: chainKey(graphFromValues(tokensToValues(tokenize(savedText, "lowercase")))),
+        sequences: [["the", "cat"].map(node)],
+      }]),
+    },
+  });
+  const playToTheEnd = () => {
+    shown().find(".generator-pane button").contains("Play").click();
+    shown().contains(".generator-pane button", "Play", { timeout: 15000 }).should("be.enabled");
+  };
+
+  it("adds to the last group when the text is the one its outputs came from", () => {
+    cy.startInteractive({
+      mode: "runtime", width, search: fast, authoredState: {}, interactiveState: savedState(savedText),
+    });
+    playToTheEnd();
+    shown().find(".group .header").should("have.length", 1);
+    shown().find(".group .sequence").should("have.length", 2);
+  });
+
+  it("starts a new group when the saved text has changed since", () => {
+    cy.startInteractive({
+      mode: "runtime", width, search: fast, authoredState: {}, interactiveState: savedState("the dog sat on the rug"),
+    });
+    playToTheEnd();
+    shown().find(".group .header").should("have.length", 2);
   });
 });
