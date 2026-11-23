@@ -1,5 +1,24 @@
 # Changelog
 
+## Version 0.6.0 - November 23, 2026
+
+- New Markov Interactive for Activity Player activities, with authoring and a demo page [#88](https://github.com/concord-consortium/markov-chain-plugin/pull/88)
+- The interactive's student workspace: linked text and table input, the graph, an Inspect pane, and the sequence generator [#90](https://github.com/concord-consortium/markov-chain-plugin/pull/90)
+- Show probabilities, an Order matters switch (a bag of words when off), and Draw mode in the interactive [#91](https://github.com/concord-consortium/markov-chain-plugin/pull/91)
+- Students' work is saved and reopened as they left it, and teachers see it read-only, step by step, in the class dashboard [#92](https://github.com/concord-consortium/markov-chain-plugin/pull/92)
+- Send to CODAP (through the Datalog plugin) and Download tables as CSV [#93](https://github.com/concord-consortium/markov-chain-plugin/pull/93)
+- A summary of each student's work in the class dashboard [#95](https://github.com/concord-consortium/markov-chain-plugin/pull/95)
+- Start the interactive's input from a CSV file, when the author allows it [#94](https://github.com/concord-consortium/markov-chain-plugin/pull/94)
+- Fit and finish for the interactive: wording, layout, height, the teacher's history, probabilities and accessibility [#96](https://github.com/concord-consortium/markov-chain-plugin/pull/96)
+- Next Text Probability pages for the interactive on its own and its authoring, with a header, Terms of Use and license [#98](https://github.com/concord-consortium/markov-chain-plugin/pull/98) [#99](https://github.com/concord-consortium/markov-chain-plugin/pull/99)
+- Fix: output dividers and headers match the outputs under them, including a starting state that leaves the graph [#97](https://github.com/concord-consortium/markov-chain-plugin/pull/97)
+- Plugin fixes: per-state arrow widths with arrowheads sized to their lines, a sorted Starting State list, the state editor keeping a state's values, continued sequence numbers after reopening, a Max Length of at least 1, Use Data mode crashes and Reset, and state labels shown as text [#82](https://github.com/concord-consortium/markov-chain-plugin/pull/82)
+- Fix: the state editor's slider thumbs no longer swap while typing a state's name [#91](https://github.com/concord-consortium/markov-chain-plugin/pull/91)
+- Developer: confirmed deploy and release pipeline, with the plugin version read from package.json [#81](https://github.com/concord-consortium/markov-chain-plugin/pull/81)
+- Developer: updated build and test tooling, ESLint 9, React 19 and runtime libraries [#83](https://github.com/concord-consortium/markov-chain-plugin/pull/83) [#84](https://github.com/concord-consortium/markov-chain-plugin/pull/84) [#87](https://github.com/concord-consortium/markov-chain-plugin/pull/87)
+- Developer: unit tests and Cypress rendering tests, run in CI [#85](https://github.com/concord-consortium/markov-chain-plugin/pull/85) [#86](https://github.com/concord-consortium/markov-chain-plugin/pull/86)
+- Developer: the Markov tool shared between the CODAP plugin and the interactive [#89](https://github.com/concord-consortium/markov-chain-plugin/pull/89)
+
 ## Version 0.5.0 - July 14, 2025
 
 - Probability slider thumbs can be shifted in all cases [#78](https://github.com/concord-consortium/markov-chain-plugin/pull/78)
